@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1220"><title>NHL Prop Research</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color:#e8eefb;background:#0b1220}*{box-sizing:border-box}body{margin:0}header{padding:26px 20px;background:#121f35;border-bottom:1px solid #2c3d57}main{max-width:1120px;margin:auto;padding:18px}h1{margin:0;font-size:1.65rem}h2{font-size:1.2rem;margin:26px 0 12px}.muted{color:#a9bad2}.warning{background:#332a19;border:1px solid #78613a;padding:13px;border-radius:10px;margin:16px 0}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.card{background:#17243a;border:1px solid #30425e;border-radius:12px;padding:15px}.card strong{display:block;font-size:1.55rem;margin-top:6px}.filters{display:flex;gap:9px;flex-wrap:wrap;margin:16px 0}select,input{background:#17243a;color:white;border:1px solid #40536e;border-radius:9px;padding:11px;font-size:1rem;max-width:100%}.table-wrap{overflow-x:auto;border:1px solid #30425e;border-radius:12px}table{border-collapse:collapse;width:100%;min-width:700px}th,td{text-align:left;padding:11px;border-bottom:1px solid #293b56;white-space:nowrap}th{background:#17243a;color:#bbd0ec}tr:hover{background:#14233a}.tag{display:inline-block;border-radius:6px;padding:3px 7px;background:#30415c}.goblin{background:#194c3b}.demon{background:#663047}.notice{margin:20px 0;font-size:.88rem;color:#a9bad2}button{background:#315dba;color:white;border:0;border-radius:8px;padding:10px;cursor:pointer}@media(max-width:600px){header{padding:20px 15px}main{padding:12px}h1{font-size:1.4rem}}
+</style></head><body><header><div style="max-width:1120px;margin:auto"><h1>🏒 NHL Prop Research</h1><p class="muted">PrizePicks projections · Sportsbook comparisons · Standard / Goblin / Demon</p></div></header><main>
+<div class="warning"><b>Research only.</b> Probabilities are uncalibrated estimates, not verified hit rates. Props and lines may have changed or disappeared. No wagers are recommended.</div>
+<div class="cards"><div class="card">Research props<strong id="propCount">—</strong></div><div class="card">Sportsbook matches<strong id="matchCount">—</strong></div><div class="card">Board coverage<strong id="coverage">—</strong></div><div class="card">Research freshness<strong id="freshness">—</strong></div></div>
+<p class="notice" id="updated">Loading saved data…</p>
+<h2>Player props</h2><div class="filters"><input id="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter market"><option value="">All markets</option></select><select id="direction" aria-label="Filter direction"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select></div>
+<div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Lean</th><th>Model estimate</th><th>Observations</th></tr></thead><tbody id="props"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
+<h2>Model vs sportsbook disagreements</h2><p class="muted">Exact-line comparisons only. Larger gaps are research signals, not proven betting edges.</p><div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Model Higher</th><th>Sportsbook Higher</th><th>Gap</th><th>Books</th></tr></thead><tbody id="comparisons"><tr><td colspan="8">Loading…</td></tr></tbody></table></div>
+<p class="notice">No payout-adjusted EV or optimized lineups are shown until payout rules and calibration are validated. This dashboard displays saved snapshots; it is not a live betting board.</p></main>
+<script>
+const $=id=>document.getElementById(id),pct=x=>Number.isFinite(x)?(x*100).toFixed(1)+'%':'—',cell=(tr,value)=>{const td=document.createElement('td');td.textContent=String(value??'—');tr.append(td);};
+let data={props:[],comparisons:[]};
+function render(){
+ const q=$('search').value.toLowerCase().trim(),tier=$('tier').value,market=$('market').value,dir=$('direction').value;
+ const list=data.props.filter(p=>(!q||(p.player+' '+p.team).toLowerCase().includes(q))&&(!tier||p.tier===tier)&&(!market||p.market===market)&&(!dir||p.lean===dir));
+ const body=$('props');body.replaceChildren();
+ for(const p of list.slice(0,300)){const tr=document.createElement('tr');[p.player+' ('+p.team+')',p.market,p.line,p.tier,p.lean,pct(p.probability),p.observations].forEach(v=>cell(tr,v));body.append(tr);}
+ if(!list.length){const tr=document.createElement('tr');cell(tr,'No matching props in saved snapshot');body.append(tr);}
+}
+async function init(){
+ try{const res=await fetch('./data.json',{cache:'no-store'});if(!res.ok)throw Error('No data file');data=await res.json();
+ $('propCount').textContent=data.props.length;$('matchCount').textContent=data.comparisons.length;$('coverage').textContent=data.boardCoverageComplete?'Complete':'Partial';
+ const hours=(Date.now()-Date.parse(data.researchAt))/3600000;
+ $('freshness').textContent=Number.isFinite(hours)&&hours>=0&&hours<=8&&data.researchFreshAtBuild?'Recent':'Stale / unknown';
+ $('updated').textContent='Snapshot built '+new Date(data.builtAt).toLocaleString()+' · Research '+(data.researchAt?new Date(data.researchAt).toLocaleString():'unavailable')+' · Comparisons '+(data.comparisonAt?new Date(data.comparisonAt).toLocaleString():'unavailable');
+ for(const m of [...new Set(data.props.map(p=>p.market))].sort()){const o=document.createElement('option');o.value=o.textContent=m;$('market').append(o);}
+ const body=$('comparisons');body.replaceChildren();
+ for(const p of [...data.comparisons].sort((a,b)=>b.absoluteModelMarketGap-a.absoluteModelMarketGap).slice(0,100)){const tr=document.createElement('tr');[p.player,p.market,p.line,p.tier,pct(p.modelHigher),pct(p.sportsbookHigher),pct(p.absoluteModelMarketGap),(p.books||[]).join(', ')].forEach(v=>cell(tr,v));body.append(tr);}
+ if(!data.comparisons.length){const tr=document.createElement('tr');cell(tr,'No verified exact-line comparisons in this snapshot');body.append(tr);}
+ render();
+ }catch(e){$('updated').textContent='Dashboard data unavailable: '+e.message;$('props').textContent='No data available';$('comparisons').textContent='No data available';}
+}
+['search','tier','market','direction'].forEach(id=>$(id).addEventListener('input',render));init();
+</script></body></html>

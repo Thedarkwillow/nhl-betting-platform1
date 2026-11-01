@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-01T23:16:43.268Z",
+  "builtAt": "2026-11-01T23:41:04.720Z",
   "researchAt": "2026-11-01T22:28:24.123Z",
   "boardAt": "2026-11-01T22:28:24.046Z",
   "comparisonAt": "2026-11-01T22:56:17.845Z",
@@ -640,5 +640,11 @@
       "comparisonOnly": true
     }
   ],
-  "disclaimer": "Research only. Estimates are uncalibrated; lines not independently verified."
+  "lineMovement": {
+    "previousAt": null,
+    "currentAt": null,
+    "removalsVerified": false,
+    "changes": []
+  },
+  "disclaimer": "Research only. Uncalibrated estimates, unverified lines, no betting recommendations."
 }

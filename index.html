@@ -8,8 +8,8 @@
 <p class="notice" id="updated">Loading saved data…</p>
 <h2>Player props</h2><div class="filters"><input id="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter market"><option value="">All markets</option></select><select id="direction" aria-label="Filter direction"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select></div>
 <div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Lean</th><th>Model estimate</th><th>Observations</th></tr></thead><tbody id="props"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
-<h2>Model vs sportsbook disagreements</h2><p class="muted">Exact-line comparisons only. Larger gaps are research signals, not proven betting edges.</p><div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Model Higher</th><th>Sportsbook Higher</th><th>Gap</th><th>Books</th></tr></thead><tbody id="comparisons"><tr><td colspan="8">Loading…</td></tr></tbody></table></div>
-<p class="notice">No payout-adjusted EV or optimized lineups are shown until payout rules and calibration are validated. This dashboard displays saved snapshots; it is not a live betting board.</p></main>
+<h2>2–6 pick research lineup builder</h2><p class="muted">Combinations rank uncalibrated model estimates and avoid repeated players and matchups. These are not validated joint probabilities, EV calculations, or recommended wagers.</p><div class="filters"><label for="lineupSize">Number of picks </label><select id="lineupSize"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div><div class="card" id="lineup">Loading research combinations…</div><h2>Line movement</h2><p class="muted" id="movement">No recorded line movement yet.</p><h2>Model vs sportsbook disagreements</h2><p class="muted">Exact-line comparisons only. Larger gaps are research signals, not proven betting edges.</p><div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Model Higher</th><th>Sportsbook Higher</th><th>Gap</th><th>Books</th></tr></thead><tbody id="comparisons"><tr><td colspan="8">Loading…</td></tr></tbody></table></div>
+<p class="notice">No payout-adjusted EV or verified joint lineup probabilities are shown until payout rules and calibration are validated. This dashboard displays saved snapshots; it is not a live betting board.</p></main>
 <script>
 const $=id=>document.getElementById(id),pct=x=>Number.isFinite(x)?(x*100).toFixed(1)+'%':'—',cell=(tr,value)=>{const td=document.createElement('td');td.textContent=String(value??'—');tr.append(td);};
 let data={props:[],comparisons:[]};
@@ -19,6 +19,16 @@ function render(){
  const body=$('props');body.replaceChildren();
  for(const p of list.slice(0,300)){const tr=document.createElement('tr');[p.player+' ('+p.team+')',p.market,p.line,p.tier,p.lean,pct(p.probability),p.observations].forEach(v=>cell(tr,v));body.append(tr);}
  if(!list.length){const tr=document.createElement('tr');cell(tr,'No matching props in saved snapshot');body.append(tr);}
+}
+function renderLineup(){
+ const host=$('lineup');host.replaceChildren();
+ const lineup=data.lineups?.[$('lineupSize').value];
+ if(!lineup){host.textContent='Not enough eligible Standard props from distinct matchups in this snapshot.';return;}
+ const title=document.createElement('b');title.textContent=lineup.picks.length+'-pick research combination';host.append(title);
+ const list=document.createElement('ol');
+ for(const p of lineup.picks){const li=document.createElement('li');li.textContent=p.player+' — '+p.lean+' '+p.line+' '+p.market+' ('+p.team+')';list.append(li);}
+ host.append(list);
+ const foot=document.createElement('p');foot.className='muted';foot.textContent='Individual model estimates are uncalibrated. Joint probability and expected value unavailable.';host.append(foot);
 }
 async function init(){
  try{const res=await fetch('./data.json',{cache:'no-store'});if(!res.ok)throw Error('No data file');data=await res.json();
@@ -30,8 +40,11 @@ async function init(){
  const body=$('comparisons');body.replaceChildren();
  for(const p of [...data.comparisons].sort((a,b)=>b.absoluteModelMarketGap-a.absoluteModelMarketGap).slice(0,100)){const tr=document.createElement('tr');[p.player,p.market,p.line,p.tier,pct(p.modelHigher),pct(p.sportsbookHigher),pct(p.absoluteModelMarketGap),(p.books||[]).join(', ')].forEach(v=>cell(tr,v));body.append(tr);}
  if(!data.comparisons.length){const tr=document.createElement('tr');cell(tr,'No verified exact-line comparisons in this snapshot');body.append(tr);}
- render();
+ render();renderLineup();
+ const changes=data.lineMovement?.changes||[];
+ $('movement').textContent=changes.length?changes.slice(-12).map(c=>c.player+' '+c.market+': '+c.type+' ('+(c.previousLine??'—')+' → '+(c.line??'—')+')').join(' · '):'No recorded line changes in this snapshot.';
  }catch(e){$('updated').textContent='Dashboard data unavailable: '+e.message;$('props').textContent='No data available';$('comparisons').textContent='No data available';}
 }
+$('lineupSize').addEventListener('change',renderLineup);
 ['search','tier','market','direction'].forEach(id=>$(id).addEventListener('input',render));init();
 </script></body></html>

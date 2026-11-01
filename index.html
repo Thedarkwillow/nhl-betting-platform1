@@ -32,7 +32,7 @@ function renderLineup(){
 }
 async function init(){
  try{const res=await fetch('./data.json',{cache:'no-store'});if(!res.ok)throw Error('No data file');data=await res.json();
- $('propCount').textContent=data.props.length;$('matchCount').textContent=data.comparisons.length;$('coverage').textContent=data.boardCoverageComplete?'Complete':'Partial';
+ $('propCount').textContent=data.props.length;$('matchCount').textContent=data.comparisons.length;$('coverage').textContent=data.boardCoverageComplete?'Complete':(data.boardCoverage?.complete??'?')+'/'+(data.boardCoverage?.total??'?')+' categories';
  const hours=(Date.now()-Date.parse(data.researchAt))/3600000;
  $('freshness').textContent=Number.isFinite(hours)&&hours>=0&&hours<=8&&data.researchFreshAtBuild?'Recent':'Stale / unknown';
  $('updated').textContent='Snapshot built '+new Date(data.builtAt).toLocaleString()+' · Research '+(data.researchAt?new Date(data.researchAt).toLocaleString():'unavailable')+' · Comparisons '+(data.comparisonAt?new Date(data.comparisonAt).toLocaleString():'unavailable');

@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T02:10:51.104Z",
+  "builtAt": "2026-11-02T02:44:32.593Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": "2026-11-02T02:10:51.104Z",
+  "comparisonAt": "2026-11-02T02:44:32.593Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -8419,6 +8419,40 @@
       "optimizationScope": "Uncalibrated log-score minus same-game risk penalty, max 2 per game, min 3 games; correlation and payout not verified.",
       "warning": "Not a betting recommendation. No validated joint probability, no verified lineup-specific payout quote. Confirm all platform restrictions independently."
     }
+  },
+  "historicalSportsbookBacktest": {
+    "generatedAt": "2026-11-02T02:43:26.038Z",
+    "source": "PuckAPI closing median across books + official NHL game logs",
+    "markets": [
+      "shotsOnGoal"
+    ],
+    "sampledPlayers": 2,
+    "seasons": {
+      "2025-26": {
+        "samples": 39,
+        "wins": 22,
+        "hitRate": 0.5641025641025641,
+        "distinctGames": 38
+      },
+      "2026-27": {
+        "samples": 18,
+        "wins": 11,
+        "hitRate": 0.6111111111111112,
+        "distinctGames": 18
+      }
+    },
+    "overall": {
+      "samples": 57,
+      "wins": 33,
+      "hitRate": 0.5789473684210527,
+      "brierScore": 0.24356710644035087,
+      "pushes": 0
+    },
+    "coverage": "Small sampled set of player/game closing lines, NOT complete coverage of either season",
+    "isPrizePicks": false,
+    "prospectiveVerified": false,
+    "calibrated": false,
+    "warning": "Research-only retrospective selection using archived sportsbook closing lines and official results. Not actual historical PrizePicks lines. Missing lines and post-selection bias limit generalization. No verified payouts or lineup EV."
   },
   "grading": {
     "generatedAt": "2026-11-02T02:07:55.793Z",

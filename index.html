@@ -2,24 +2,28 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1220"><title>NHL Prop Research</title>
 <style>
 :root{font-family:system-ui,-apple-system,sans-serif;color:#e8eefb;background:#0b1220}*{box-sizing:border-box}body{margin:0}header{padding:26px 20px;background:#121f35;border-bottom:1px solid #2c3d57}main{max-width:1120px;margin:auto;padding:18px}h1{margin:0;font-size:1.65rem}h2{font-size:1.2rem;margin:26px 0 12px}.muted{color:#a9bad2}.warning{background:#332a19;border:1px solid #78613a;padding:13px;border-radius:10px;margin:16px 0}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.card{background:#17243a;border:1px solid #30425e;border-radius:12px;padding:15px}.card strong{display:block;font-size:1.55rem;margin-top:6px}.filters{display:flex;gap:9px;flex-wrap:wrap;margin:16px 0}select,input{background:#17243a;color:white;border:1px solid #40536e;border-radius:9px;padding:11px;font-size:1rem;max-width:100%}.table-wrap{overflow-x:auto;border:1px solid #30425e;border-radius:12px}table{border-collapse:collapse;width:100%;min-width:700px}th,td{text-align:left;padding:11px;border-bottom:1px solid #293b56;white-space:nowrap}th{background:#17243a;color:#bbd0ec}tr:hover{background:#14233a}.tag{display:inline-block;border-radius:6px;padding:3px 7px;background:#30415c}.goblin{background:#194c3b}.demon{background:#663047}.notice{margin:20px 0;font-size:.88rem;color:#a9bad2}button{background:#315dba;color:white;border:0;border-radius:8px;padding:10px;cursor:pointer}@media(max-width:600px){header{padding:20px 15px}main{padding:12px}h1{font-size:1.4rem}}
-</style></head><body><header><div style="max-width:1120px;margin:auto"><h1>🏒 NHL Prop Research</h1><p class="muted">Independent PrizePicks feed · NHL projections · 2–6 pick research lineups</p></div></header><main>
+</style></head><body><header><div style="max-width:1120px;margin:auto"><h1>🏒 NHL Prop Research</h1><p class="muted">Independent PrizePicks feed · Model research · Standard / Goblin / Demon</p></div></header><main>
 <div class="warning"><b>Research only.</b> Probabilities are uncalibrated estimates, not verified hit rates. Props and lines may have changed or disappeared. No wagers are recommended.</div>
-<div class="cards"><div class="card">Research props<strong id="propCount">—</strong></div><div class="card">Sportsbook matches<strong id="matchCount">—</strong></div><div class="card">Board coverage<strong id="coverage">—</strong></div><div class="card">Research freshness<strong id="freshness">—</strong></div></div>
+<div class="cards"><div class="card">Research props<strong id="propCount">—</strong></div><div class="card">Sportsbook matches<strong id="matchCount">—</strong></div><div class="card">Source coverage<strong id="coverage">—</strong></div><div class="card">Research freshness<strong id="freshness">—</strong></div></div>
 <p class="notice" id="updated">Loading saved data…</p>
 <h2>Player props</h2><div class="filters"><input id="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter market"><option value="">All markets</option></select><select id="direction" aria-label="Filter direction"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select></div>
 <div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Lean</th><th>Est. hit probability*</th><th>Observations</th></tr></thead><tbody id="props"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
-<h2>2–6 pick research lineup builder</h2><p class="muted">Combinations rank uncalibrated estimates without repeat players; 5–6 picks may share a game and increase correlation risk. No verified joint win probability or EV.</p><div class="filters"><label for="lineupSize">Number of picks </label><select id="lineupSize"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div><div class="card" id="lineup">Loading research combinations…</div><h2>Line movement</h2><p class="muted" id="movement">No recorded line movement yet.</p><h2>Actual historical PrizePicks line coverage — both seasons</h2>
+<h2>Optimized research lineups</h2><p class="muted">Select 2–6 picks. Standard lines only, no repeat players; 5–6 picks may include two from the same game with elevated correlation risk. No verified joint win probability or EV.</p><div class="filters"><label for="lineupSize" class="muted">Picks</label><select id="lineupSize" aria-label="Number of lineup picks"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div><p class="notice" id="lineupStatus">Loading research lineups…</p><div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Lean</th><th>Model estimate</th><th>Matchup</th></tr></thead><tbody id="lineupPicks"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
+<h2>Actual historical PrizePicks line coverage — both seasons</h2>
 <p class="muted">Independent OddsPapi PrizePicks archive, sampled pregame lines. Not sportsbook substitutes, not a full-season download, and not a graded hit-rate report.</p>
 <div class="card" id="historicalPP">Loading historical PrizePicks archive…</div>
+<h2>SportsGameOdds historical NHL closing lines</h2>
+<p class="muted">Book-labelled pregame closing-line records from selected 2025–26 and 2026–27 windows, including PrizePicks and Underdog. These have not yet been matched to official NHL outcomes or verified by the original pick'em platforms.</p>
+<div class="card" id="sgoHistorical">Loading independent historical book-closing coverage…</div>
 <h2>Retrospective PrizePicks model test</h2><p class="muted">Actual past PrizePicks lines plus earlier NHL game logs. Not a pre-published record, calibrated probability, tier hit rate or betting recommendation.</p><div class="card" id="historicalPPModel">Loading model backtest…</div>
 <h2>Historical NHL sportsbook backtest — 2025–26 vs 2026–27</h2>
 <p class="muted">Real archived sportsbook closing lines compared with official NHL results. This is a selected historical sample, not old PrizePicks lines or a verified prospective record.</p>
 <div class="card" id="historicalBook">Loading historical sportsbook sample…</div>
-<h2>Verified model performance</h2><div class="card" id="grading">Awaiting verified pregame outcomes.</div><h2>Goblin / Demon payout verification</h2><p class="muted">Tier payouts are not yet independently verified. No payout multiplier or expected value is claimed.</p><h2>Model vs sportsbook disagreements</h2><p class="muted">Exact-line comparisons only. Larger gaps are research signals, not proven betting edges.</p><div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Model Higher</th><th>Sportsbook Higher</th><th>Gap</th><th>Books</th></tr></thead><tbody id="comparisons"><tr><td colspan="8">Loading…</td></tr></tbody></table></div>
-<p class="notice">Free-source lineups are research-only. Goblin/Demon remain excluded from optimizer until payout rules are verified. No payout-adjusted EV or verified joint lineup probabilities are shown. This dashboard displays saved snapshots; it is not a live betting board.</p></main>
+<h2>Model vs sportsbook disagreements</h2><p class="muted">Exact-line comparisons only. Larger gaps are research signals, not proven betting edges.</p><div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Model Higher</th><th>Sportsbook Higher</th><th>Gap</th><th>Books</th></tr></thead><tbody id="comparisons"><tr><td colspan="8">Loading…</td></tr></tbody></table></div>
+<p class="notice">Lineups are research rankings only, not validated betting slips. Goblin and Demon props remain visible in rankings but are excluded from lineup optimization until payout rules are verified. This dashboard is not a live betting board.</p></main>
 <script>
 const $=id=>document.getElementById(id),pct=x=>Number.isFinite(x)?(x*100).toFixed(1)+'%':'—',cell=(tr,value)=>{const td=document.createElement('td');td.textContent=String(value??'—');tr.append(td);};
-let data={props:[],comparisons:[]};
+let data={props:[],comparisons:[],lineups:{}};
 function renderPrizePicksHistory(){
  const element=$('historicalPP'),d=data.historicalPrizePicksCoverage;
  if(!d){element.textContent='Historical PrizePicks archive not yet published.';return;}
@@ -27,6 +31,15 @@ function renderPrizePicksHistory(){
  const audited=data.historicalPrizePicksOutcomeAudit;
  const official=audited?' · '+audited.totalLinesMatched+' lines matched with official NHL final stats':'';
  element.textContent=details.join(' · ')+official+' · Timestamped observations; tier classification and actual selected bet directions are unknown. Full-season coverage is not established.';
+}
+function renderSGOHistory(){
+ const host=$('sgoHistorical'),h=data.historicalProviderClosingCoverage;
+ if(!h){host.textContent='No SportsGameOdds historical closing-line data published yet.';return;}
+ const lines=(h.seasons||[]).map(s=>s.season+': '+s.prizepicksClosingLines+
+  ' PrizePicks, '+s.underdogClosingLines+' Underdog, '+
+  s.ordinarySportsbookClosingLines+' traditional sportsbook close records across '+
+  s.gameObservations+' game observations in '+s.windows+' sampled windows').join(' · ');
+ host.textContent=lines+' · Not full-season coverage. Tier labels, original provider offers, official outcome grading, and prospective model accuracy remain unverified.';
 }
 function renderPPModel(){
  const box=$('historicalPPModel'),d=data.historicalPrizePicksModelBacktest;
@@ -68,6 +81,13 @@ function renderHistorical(){
  host.textContent=parts.join(' · ')+' · '+history.sampledPlayers+' players · Shots on goal only. Small selected sample, not PrizePicks accuracy or a calibrated model.';
 }
 
+function renderLineup(){
+ const size=$('lineupSize').value,slip=data.lineups?.[size],body=$('lineupPicks');body.replaceChildren();
+ if(!slip?.picks?.length){$('lineupStatus').textContent='No eligible '+size+'-pick Standard lineup available: insufficient distinct games or matching pregame props.';const tr=document.createElement('tr');cell(tr,'Unavailable for this snapshot');body.append(tr);return;}
+ $('lineupStatus').textContent='Research-only '+size+'-pick lineup · '+slip.picks.length+' independent matchups · No verified joint probability or EV · '+(slip.correlationRisk==='elevated_same_game'?'Higher same-game correlation risk':'Distinct games');
+ for(const p of slip.picks){const tr=document.createElement('tr');[p.player+' ('+p.team+')',p.market,p.line,p.lean,pct(p.probability),p.matchup].forEach(v=>cell(tr,v));body.append(tr);}
+}
+
 function render(){
  const q=$('search').value.toLowerCase().trim(),tier=$('tier').value,market=$('market').value,dir=$('direction').value;
  const list=data.props.filter(p=>(!q||(p.player+' '+p.team).toLowerCase().includes(q))&&(!tier||p.tier===tier)&&(!market||p.market===market)&&(!dir||p.lean===dir));
@@ -75,19 +95,9 @@ function render(){
  for(const p of list.slice(0,300)){const tr=document.createElement('tr');[p.player+' ('+p.team+')',p.market,p.line,p.tier,p.lean,pct(p.probability),p.observations].forEach(v=>cell(tr,v));body.append(tr);}
  if(!list.length){const tr=document.createElement('tr');cell(tr,'No matching props in saved snapshot');body.append(tr);}
 }
-function renderLineup(){
- const host=$('lineup');host.replaceChildren();
- const lineup=data.lineups?.[$('lineupSize').value];
- if(!lineup){host.textContent='Not enough eligible Standard props from distinct matchups in this snapshot.';return;}
- const title=document.createElement('b');title.textContent=lineup.picks.length+'-pick research combination';host.append(title);
- const list=document.createElement('ol');
- for(const p of lineup.picks){const li=document.createElement('li');li.textContent=p.player+' — '+p.lean+' '+p.line+' '+p.market+' ('+p.team+')';list.append(li);}
- host.append(list);
- const foot=document.createElement('p');foot.className='muted';foot.textContent=(lineup.correlationRisk==='elevated_same_game'?'Elevated same-game correlation risk; platform may change payouts. ':'Different games; correlations still require independent validation. ')+(lineup.publishedStandardPowerMultiplier?'Published Standard Power reference: '+lineup.publishedStandardPowerMultiplier+'x; not your verified lineup quote. ':'No verified lineup-specific payout quote. ')+'Model probabilities are uncalibrated; combined hit probability and EV unavailable.';host.append(foot);
-}
 async function init(){
  try{const res=await fetch('./data.json',{cache:'no-store'});if(!res.ok)throw Error('No data file');data=await res.json();
- $('propCount').textContent=data.props.length;$('matchCount').textContent=data.comparisons.length;$('coverage').textContent=data.boardCoverage?.apiPaginationComplete?'API paged':data.boardCoverageComplete?'Complete':(data.boardCoverage?.complete??'?')+'/'+(data.boardCoverage?.total??'?')+' categories';
+ $('propCount').textContent=data.props.length;$('matchCount').textContent=data.comparisons.length;$('coverage').textContent=data.boardCoverage?.apiPaginationComplete?'API paged':data.boardCoverageComplete?'Complete':'Partial';
  const hours=(Date.now()-Date.parse(data.researchAt))/3600000;
  $('freshness').textContent=Number.isFinite(hours)&&hours>=0&&hours<=8&&data.researchFreshAtBuild?'Recent':'Stale / unknown';
  $('updated').textContent='Source: '+(data.dataProvider||'unknown')+' · Snapshot built '+new Date(data.builtAt).toLocaleString()+' · Research '+(data.researchAt?new Date(data.researchAt).toLocaleString():'unavailable')+' · Comparisons '+(data.comparisonAt?new Date(data.comparisonAt).toLocaleString():'unavailable');
@@ -95,13 +105,8 @@ async function init(){
  const body=$('comparisons');body.replaceChildren();
  for(const p of [...data.comparisons].sort((a,b)=>b.absoluteModelMarketGap-a.absoluteModelMarketGap).slice(0,100)){const tr=document.createElement('tr');[p.player,p.market,p.line,p.tier,pct(p.modelHigher),pct(p.sportsbookHigher),pct(p.absoluteModelMarketGap),(p.books||[]).join(', ')].forEach(v=>cell(tr,v));body.append(tr);}
  if(!data.comparisons.length){const tr=document.createElement('tr');cell(tr,'No verified exact-line comparisons in this snapshot');body.append(tr);}
- render();renderLineup();renderHistorical();renderPrizePicksHistory();renderPPModel();
- const grade=data.grading;
- $('grading').textContent=grade&&grade.decisions>0?'Verified decisions: '+grade.decisions+' · Hit rate: '+pct(grade.verifiedHitRate)+' · These are graded pregame predictions, not synthetic backtests.':'No verified pregame outcomes graded yet. The model remains uncalibrated.';
- const changes=data.lineMovement?.changes||[];
- $('movement').textContent=changes.length?changes.slice(-12).map(c=>c.player+' '+c.market+': '+c.type+' ('+(c.previousLine??'—')+' → '+(c.line??'—')+')').join(' · '):'No recorded independent-feed line changes in this snapshot. Missing offers are not confirmed removals.';
+ render();renderLineup();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderPPModel();
  }catch(e){$('updated').textContent='Dashboard data unavailable: '+e.message;$('props').textContent='No data available';$('comparisons').textContent='No data available';}
 }
-$('lineupSize').addEventListener('change',renderLineup);
-['search','tier','market','direction'].forEach(id=>$(id).addEventListener('input',render));init();
+['search','tier','market','direction'].forEach(id=>$(id).addEventListener('input',render));$('lineupSize').addEventListener('change',renderLineup);init();
 </script></body></html>

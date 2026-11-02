@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T03:52:48.671Z",
+  "builtAt": "2026-11-02T03:54:29.584Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": "2026-11-02T03:52:48.671Z",
+  "comparisonAt": "2026-11-02T03:54:29.584Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -8554,6 +8554,7 @@
       }
     },
     "evaluated": 222,
+    "uncertainty": null,
     "excluded": {
       "fewer_than_five_pregame_stats": 1
     },

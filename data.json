@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T05:27:26.762Z",
+  "builtAt": "2026-11-02T05:28:51.753Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": "2026-11-02T05:27:26.762Z",
+  "comparisonAt": "2026-11-02T05:28:51.753Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -8423,30 +8423,69 @@
   "officialNhlSeasonSchedules": [
     {
       "season": "2023-24",
-      "officialCompletedGames": 0,
-      "officialGamesOnSchedule": 0,
-      "teamSchedulesComplete": false
+      "officialCompletedGames": 1400,
+      "officialGamesOnSchedule": 1400,
+      "teamSchedulesComplete": true
     },
     {
       "season": "2024-25",
-      "officialCompletedGames": 0,
-      "officialGamesOnSchedule": 0,
-      "teamSchedulesComplete": false
+      "officialCompletedGames": 1398,
+      "officialGamesOnSchedule": 1398,
+      "teamSchedulesComplete": true
     },
     {
       "season": "2025-26",
-      "officialCompletedGames": 0,
-      "officialGamesOnSchedule": 0,
-      "teamSchedulesComplete": false
+      "officialCompletedGames": 1394,
+      "officialGamesOnSchedule": 1394,
+      "teamSchedulesComplete": true
     },
     {
       "season": "2026-27",
-      "officialCompletedGames": 0,
-      "officialGamesOnSchedule": 0,
-      "teamSchedulesComplete": false
+      "officialCompletedGames": 231,
+      "officialGamesOnSchedule": 1344,
+      "teamSchedulesComplete": true
     }
   ],
-  "fullNhlHistoricalGameCoverage": null,
+  "fullNhlHistoricalGameCoverage": {
+    "generatedAt": "2026-11-02T05:28:35.569Z",
+    "kind": "official_schedule_against_independent_historical_closing_lines",
+    "seasons": [
+      {
+        "season": "2025-26",
+        "officialScheduleComplete": true,
+        "officialCompletedGamesTotal": 1394,
+        "officialCompletedGamesInEligiblePeriod": 768,
+        "completedGamesInsideCheckedWindows": 768,
+        "completedGamesNotYetChecked": 0,
+        "officialGamesMatchedToProvider": 768,
+        "officialGamesWithPrizePicksClosingLines": 646,
+        "officialGamesWithUnderdogClosingLines": 645,
+        "distinctPrizePicksClosingLineRecords": 9288,
+        "distinctUnderdogClosingLineRecords": 24094,
+        "fullDateCoverageChecked": true,
+        "closingLineCoverageFull": false
+      },
+      {
+        "season": "2026-27",
+        "officialScheduleComplete": true,
+        "officialCompletedGamesTotal": 231,
+        "officialCompletedGamesInEligiblePeriod": 219,
+        "completedGamesInsideCheckedWindows": 217,
+        "completedGamesNotYetChecked": 2,
+        "officialGamesMatchedToProvider": 217,
+        "officialGamesWithPrizePicksClosingLines": 217,
+        "officialGamesWithUnderdogClosingLines": 217,
+        "distinctPrizePicksClosingLineRecords": 4988,
+        "distinctUnderdogClosingLineRecords": 6949,
+        "fullDateCoverageChecked": false,
+        "closingLineCoverageFull": false
+      }
+    ],
+    "prospectiveModelAccuracyUnchanged": true,
+    "originalPlatformOffersVerified": false,
+    "tiersVerified": false,
+    "warning": "Checking every completed game is distinct from obtaining a source-authentic historic prop for every game. Provider matching is independent; PrizePicks/Underdog historical lines require source provenance and tiers before any verified accuracy or EV claim."
+  },
   "historicalProviderClosingCoverage": {
     "provider": "SportsGameOdds Pro",
     "generatedAt": "2026-11-02T05:11:42.933Z",

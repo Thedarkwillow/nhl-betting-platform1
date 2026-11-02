@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-02T23:41:42.138Z",
+  "builtAt": "2026-11-02T23:41:59.169Z",
   "researchAt": "2026-11-02T01:00:29.953Z",
   "boardAt": "2026-11-02T01:00:29.864Z",
   "comparisonAt": null,
@@ -148,7 +148,7 @@
     "warning": "Independent snapshot tier observations starting October 28 2026. No authenticated 2023–24 or 2024–25 PrizePicks tier data, exact special-line payouts or original first-party archive."
   },
   "fullNhlHistoricalGameCoverage": {
-    "generatedAt": "2026-11-02T05:30:13.357Z",
+    "generatedAt": "2026-11-02T23:41:33.581Z",
     "kind": "official_schedule_against_independent_historical_closing_lines",
     "seasons": [
       {

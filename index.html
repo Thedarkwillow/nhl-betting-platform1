@@ -13,11 +13,17 @@
 <p class="muted">Independent OddsPapi PrizePicks archive, sampled pregame lines. Not sportsbook substitutes, not a full-season download, and not a graded hit-rate report.</p>
 <div class="card" id="historicalPP">Loading historical PrizePicks archive…</div>
 <h2>SportsGameOdds historical NHL closing lines</h2>
-<p class="muted">Book-labelled pregame closing-line records from selected 2025–26 and 2026–27 windows, including PrizePicks and Underdog. These have not yet been matched to official NHL outcomes or verified by the original pick'em platforms.</p>
+<p class="muted">Book-labelled closing-line records from eligible 2025–26 and 2026–27 dates, including PrizePicks and Underdog. A separate official NHL outcome-grading process is running. Source-original offers, settlement decisions, tiers and payouts remain unverified.</p>
 <div class="card" id="sgoHistorical">Loading independent historical book-closing coverage…</div>
 <h2>Full NHL game coverage audit</h2>
 <p class="muted">Checks every documented NHL game against completed date-window historical queries. A checked game with no provider quote is NOT proof that PrizePicks or Underdog never offered a line. 2023–24 and 2024–25 have official schedules but no documented SGO bookmaker closes before January 2026.</p>
 <div class="card" id="allNhlCoverage">Loading official NHL game coverage…</div>
+<h2>Official NHL outcomes from archived pick'em closing lines</h2>
+<p class="muted">Official NHL game statistics matched to independent PrizePicks/Underdog-labelled historical closes. This measures which side of the line won based on current NHL boxscores, NOT original PrizePicks settled results, prospective prediction accuracy, or verified payout ROI.</p>
+<div class="card" id="independentNhlGrading">Loading official-outcome grading…</div>
+<h2>Historical Standard / Goblin / Demon evidence</h2>
+<p class="muted">Actual tier labels observed in independent PrizePicks snapshots, beginning October 28, 2026. Missing original seasons and exact payout multipliers remain unverified.</p>
+<div class="card" id="independentTierEvidence">Loading tier evidence…</div>
 <h2>Retrospective PrizePicks model test</h2><p class="muted">Actual past PrizePicks lines plus earlier NHL game logs. Not a pre-published record, calibrated probability, tier hit rate or betting recommendation.</p><div class="card" id="historicalPPModel">Loading model backtest…</div>
 <h2>Historical NHL sportsbook backtest — 2025–26 vs 2026–27</h2>
 <p class="muted">Real archived sportsbook closing lines compared with official NHL results. This is a selected historical sample, not old PrizePicks lines or a verified prospective record.</p>
@@ -62,6 +68,30 @@ function renderSGOHistory(){
   s.ordinarySportsbookClosingLines+' traditional sportsbook close records across '+
   s.gameObservations+' game observations in '+s.windows+' sampled windows').join(' · ');
  host.textContent=lines+' · Not full-season coverage. Tier labels, original provider offers, official outcome grading, and prospective model accuracy remain unverified.';
+}
+function renderIndependentNhlGrading(){
+ const host=$('independentNhlGrading'),x=data.independentNhlOfficialOutcomeGrading;
+ if(!x){host.textContent='Historical official NHL outcome report not yet published.';return;}
+ const progress=x.gamesWithOfficialBoxscore+'/'+x.targetGamesWithCloses+' games processed'+
+  (x.remainingGames===null?'':' · '+x.remainingGames+' remaining');
+ const rows=(x.byBookSeason||[]).map(v=>v.book+' '+v.season+
+  ': '+v.retrospectiveCorrect+'/'+v.retrospectiveEvaluated+
+  ' retrospectively reconstructed directions correct ('+pct(v.reconstructedModelHitRate)+
+  ') versus always LOWER '+pct(v.alwaysLowerBaseline)+
+  ' and always HIGHER '+pct(v.alwaysHigherBaseline)).join(' · ');
+ host.textContent=progress+' · '+x.historicalClosingLineOutcomesGraded+
+  ' official NHL boxscore-derived line results · '+x.excludedDueToUncertainPlayerIdentityOrStat+
+  ' unresolved line records'+(rows?' · '+rows:'')+
+  ' · IMPORTANT: NOT verified original PrizePicks settlements (DNP, Reboot or corrections), not actual pregame picks, not calibrated betting odds or ROI.';
+}
+function renderIndependentTierEvidence(){
+ const host=$('independentTierEvidence'),d=data.independentPrizePicksTierEvidence;
+ if(!d){host.textContent='Independent PrizePicks tier evidence not yet published.';return;}
+ const c=d.counts||{};
+ host.textContent=d.independentPregameTierObservations+' independent tier-labelled pregame observations: '+
+  (c.standard||0)+' Standard · '+(c.goblin||0)+' Goblin · '+(c.demon||0)+
+  ' Demon · '+d.exactPayoutMultipliersVerified+
+  ' verified exact payout multipliers · Original 2023–24 and 2024–25 tier archives unavailable · Independent provider reports only; not source-original PrizePicks payout or full movement history.';
 }
 function renderPPModel(){
  const box=$('historicalPPModel'),d=data.historicalPrizePicksModelBacktest;
@@ -127,7 +157,7 @@ async function init(){
  const body=$('comparisons');body.replaceChildren();
  for(const p of [...data.comparisons].sort((a,b)=>b.absoluteModelMarketGap-a.absoluteModelMarketGap).slice(0,100)){const tr=document.createElement('tr');[p.player,p.market,p.line,p.tier,pct(p.modelHigher),pct(p.sportsbookHigher),pct(p.absoluteModelMarketGap),(p.books||[]).join(', ')].forEach(v=>cell(tr,v));body.append(tr);}
  if(!data.comparisons.length){const tr=document.createElement('tr');cell(tr,'No verified exact-line comparisons in this snapshot');body.append(tr);}
- render();renderLineup();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderFullNhlCoverage();renderPPModel();
+ render();renderLineup();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderFullNhlCoverage();renderIndependentNhlGrading();renderIndependentTierEvidence();renderPPModel();
  }catch(e){$('updated').textContent='Dashboard data unavailable: '+e.message;$('props').textContent='No data available';$('comparisons').textContent='No data available';}
 }
 ['search','tier','market','direction'].forEach(id=>$(id).addEventListener('input',render));$('lineupSize').addEventListener('change',renderLineup);init();

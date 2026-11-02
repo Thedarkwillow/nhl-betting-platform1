@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T04:20:05.297Z",
+  "builtAt": "2026-11-02T04:29:08.360Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": "2026-11-02T04:20:05.297Z",
+  "comparisonAt": "2026-11-02T04:29:08.360Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -8657,6 +8657,7 @@
       },
       "calibrated": false
     },
+    "temporalModelComparison": null,
     "directionalBenchmarks": {
       "all": {
         "samples": 222,

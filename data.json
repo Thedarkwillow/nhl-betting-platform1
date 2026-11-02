@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T03:33:02.193Z",
+  "builtAt": "2026-11-02T03:46:54.629Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": "2026-11-02T03:33:02.193Z",
+  "comparisonAt": "2026-11-02T03:46:54.629Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -8534,32 +8534,31 @@
   },
   "historicalPrizePicksModelBacktest": {
     "kind": "retrospective_actual_prizepicks_line_model_test",
-    "generatedAt": "2026-11-02T03:32:48.497Z",
+    "generatedAt": "2026-11-02T03:46:38.937Z",
     "bySeason": {
       "2025-26": {
         "archivedLinesWithOfficialOutcome": 66,
-        "modelEvaluable": 21,
-        "correct": 11,
-        "retrospectiveHitRate": 0.5238095238095238,
+        "modelEvaluable": 39,
+        "correct": 21,
+        "retrospectiveHitRate": 0.5384615384615384,
         "distinctGames": 8,
-        "brierScore": 0.25462095693333325
+        "brierScore": 0.24759848270769239
       },
       "2026-27": {
         "archivedLinesWithOfficialOutcome": 157,
-        "modelEvaluable": 87,
-        "correct": 38,
-        "retrospectiveHitRate": 0.4367816091954023,
+        "modelEvaluable": 125,
+        "correct": 54,
+        "retrospectiveHitRate": 0.432,
         "distinctGames": 13,
-        "brierScore": 0.28203552284597705
+        "brierScore": 0.2882455405504
       }
     },
-    "evaluated": 108,
+    "evaluated": 164,
     "excluded": {
-      "missing_official_game_in_player_log": 77,
-      "official_stat_unavailable_in_game_log": 38
+      "official_stat_unavailable_in_game_log": 59
     },
     "playersSampled": 154,
-    "officialNhlHistoryErrors": 104,
+    "officialNhlHistoryErrors": 3,
     "sampleOnly": true,
     "calibrated": false,
     "prospectiveVerified": false,

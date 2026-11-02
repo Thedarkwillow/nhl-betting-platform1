@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T04:29:08.360Z",
+  "builtAt": "2026-11-02T04:30:05.370Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": "2026-11-02T04:29:08.360Z",
+  "comparisonAt": "2026-11-02T04:30:05.370Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -8534,7 +8534,7 @@
   },
   "historicalPrizePicksModelBacktest": {
     "kind": "retrospective_actual_prizepicks_line_model_test",
-    "generatedAt": "2026-11-02T04:19:53.512Z",
+    "generatedAt": "2026-11-02T04:29:50.854Z",
     "bySeason": {
       "2025-26": {
         "archivedLinesWithOfficialOutcome": 66,
@@ -8657,7 +8657,110 @@
       },
       "calibrated": false
     },
-    "temporalModelComparison": null,
+    "temporalModelComparison": {
+      "kind": "two_season_exploratory_nhl_model_comparison",
+      "candidates": [
+        "weighted-form-v1",
+        "last-5",
+        "last-10",
+        "prior-mean",
+        "stable-blend"
+      ],
+      "bySeason": {
+        "2025-26": {
+          "weighted-form-v1": {
+            "decisions": 66,
+            "correct": 33,
+            "hitRate": 0.5,
+            "brierScore": 0.2578333397606061,
+            "distinctGames": 8
+          },
+          "last-5": {
+            "decisions": 66,
+            "correct": 33,
+            "hitRate": 0.5,
+            "brierScore": 0.26676601273787875,
+            "distinctGames": 8
+          },
+          "last-10": {
+            "decisions": 66,
+            "correct": 35,
+            "hitRate": 0.5303030303030303,
+            "brierScore": 0.2605207604621211,
+            "distinctGames": 8
+          },
+          "prior-mean": {
+            "decisions": 66,
+            "correct": 35,
+            "hitRate": 0.5303030303030303,
+            "brierScore": 0.2545947863924242,
+            "distinctGames": 8
+          },
+          "stable-blend": {
+            "decisions": 66,
+            "correct": 30,
+            "hitRate": 0.45454545454545453,
+            "brierScore": 0.25418664198030305,
+            "distinctGames": 8
+          }
+        },
+        "2026-27": {
+          "weighted-form-v1": {
+            "decisions": 156,
+            "correct": 72,
+            "hitRate": 0.46153846153846156,
+            "brierScore": 0.2820041505583333,
+            "distinctGames": 13
+          },
+          "last-5": {
+            "decisions": 156,
+            "correct": 70,
+            "hitRate": 0.44871794871794873,
+            "brierScore": 0.3046756066070511,
+            "distinctGames": 13
+          },
+          "last-10": {
+            "decisions": 156,
+            "correct": 75,
+            "hitRate": 0.4807692307692308,
+            "brierScore": 0.2743913494416667,
+            "distinctGames": 13
+          },
+          "prior-mean": {
+            "decisions": 156,
+            "correct": 76,
+            "hitRate": 0.48717948717948717,
+            "brierScore": 0.26190030583269225,
+            "distinctGames": 13
+          },
+          "stable-blend": {
+            "decisions": 156,
+            "correct": 71,
+            "hitRate": 0.4551282051282051,
+            "brierScore": 0.2701575099532053,
+            "distinctGames": 13
+          }
+        }
+      },
+      "eligibleArchivedLines": 222,
+      "temporalHoldout": {
+        "trainingSeason": "2025-26",
+        "holdoutSeason": "2026-27",
+        "chosenOnTrainingOnly": "prior-mean",
+        "trainingDecisionCount": 66,
+        "heldOutDecisions": 156,
+        "heldOutCorrect": 76,
+        "heldOutHitRate": 0.48717948717948717,
+        "alwaysLowerHeldOutCorrect": 85,
+        "alwaysLowerHeldOutHitRate": 0.5448717948717948,
+        "outperformAlwaysLower": false,
+        "eligibleToDeploy": false,
+        "warning": "Preselected formulas, selected on small retrospective 2025-26 sample. Held-out 2026-27 data covers a narrow, nonrandom set of NHL games, not an independently recorded prediction stream."
+      },
+      "calibrated": false,
+      "verifiedProfitability": false,
+      "warning": "Exploratory model comparisons on incomplete archived PrizePicks lines, unknown tiers, correlated games and retrospectively reconstructed decisions. Do not deploy a winner or infer wagering EV without independent prospective calibration."
+    },
     "directionalBenchmarks": {
       "all": {
         "samples": 222,

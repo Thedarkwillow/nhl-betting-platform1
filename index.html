@@ -39,7 +39,18 @@ function renderPPModel(){
  const range=metrics?.exploratoryClusterBootstrap95;
  const interval=Array.isArray(range)?' · Exploratory game-cluster 95% range '+pct(range[0])+'–'+pct(range[1]):' · Too few distinct games for uncertainty range';
  const marketSample=Object.entries(d.uncertainty?.byMarket||{}).map(([k,v])=>k+': '+v.evaluated).join(', ');
- box.textContent=summary.join(' · ')+(metrics?' · '+metrics.distinctGames+' distinct sampled games':'')+interval+(marketSample?' · Model evaluations by market: '+marketSample:'')+'. Exploratory only; NOT prospective accuracy, calibrated odds, tier hit rate or payout EV.';
+ const baseline=d.directionalBenchmarks?.all;
+ const benchmark=baseline?.samples?
+  ' · Same '+baseline.samples+' lines: MODEL '+pct(baseline.model.hitRate)+
+  ', always LOWER '+pct(baseline.alwaysLower.hitRate)+
+  ', always HIGHER '+pct(baseline.alwaysHigher.hitRate)+
+  ' · Model minus Lower '+baseline.modelVsAlwaysLowerPoints.toFixed(1)+' percentage points':'';
+ const alert=baseline?.samples&&!baseline.beatsBothDirectionBaselines?
+  ' · MODEL DID NOT BEAT BOTH FIXED DIRECTION BASELINES ON THIS SAMPLE.':'';
+ box.textContent=summary.join(' · ')+benchmark+alert+
+ (metrics?' · '+metrics.distinctGames+' distinct sampled games':'')+interval+
+ (marketSample?' · Model evaluations by market: '+marketSample:'')+
+ '. Baselines measure outcomes only, not wager payouts; exploratory retrospective data is NOT prospective accuracy, calibrated odds, tier hit rate, or betting EV.';
 }
 function renderHistorical(){
  const host=$('historicalBook'),history=data.historicalSportsbookBacktest;

@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-02T19:35:48.643Z",
+  "builtAt": "2026-11-02T22:48:08.649Z",
   "researchAt": "2026-11-02T01:00:29.953Z",
   "boardAt": "2026-11-02T01:00:29.864Z",
   "comparisonAt": null,
@@ -818,7 +818,7 @@
     "warning": "Research-only retrospective selection using archived sportsbook closing lines and official results. Not actual historical PrizePicks lines. Missing lines and post-selection bias limit generalization. No verified payouts or lineup EV."
   },
   "grading": {
-    "generatedAt": "2026-11-02T05:47:18.090Z",
+    "generatedAt": "2026-11-02T22:47:44.001Z",
     "graded": 0,
     "decisions": 0,
     "verifiedHitRate": null,

@@ -11,6 +11,7 @@
 <h2>2–6 pick research lineup builder</h2><p class="muted">Combinations rank uncalibrated estimates without repeat players; 5–6 picks may share a game and increase correlation risk. No verified joint win probability or EV.</p><div class="filters"><label for="lineupSize">Number of picks </label><select id="lineupSize"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div><div class="card" id="lineup">Loading research combinations…</div><h2>Line movement</h2><p class="muted" id="movement">No recorded line movement yet.</p><h2>Actual historical PrizePicks line coverage — both seasons</h2>
 <p class="muted">Independent OddsPapi PrizePicks archive, sampled pregame lines. Not sportsbook substitutes, not a full-season download, and not a graded hit-rate report.</p>
 <div class="card" id="historicalPP">Loading historical PrizePicks archive…</div>
+<h2>Retrospective PrizePicks model test</h2><p class="muted">Actual past PrizePicks lines plus earlier NHL game logs. Not a pre-published record, calibrated probability, tier hit rate or betting recommendation.</p><div class="card" id="historicalPPModel">Loading model backtest…</div>
 <h2>Historical NHL sportsbook backtest — 2025–26 vs 2026–27</h2>
 <p class="muted">Real archived sportsbook closing lines compared with official NHL results. This is a selected historical sample, not old PrizePicks lines or a verified prospective record.</p>
 <div class="card" id="historicalBook">Loading historical sportsbook sample…</div>
@@ -23,7 +24,18 @@ function renderPrizePicksHistory(){
  const element=$('historicalPP'),d=data.historicalPrizePicksCoverage;
  if(!d){element.textContent='Historical PrizePicks archive not yet published.';return;}
  const details=(d.seasons||[]).map(s=>s.season+': '+s.records+' prop records from '+s.sampledFixtures+' sampled games');
- element.textContent=details.join(' · ')+' · Timestamped player lines only. NHL player IDs and Goblin/Demon tiers unverified; no verified closing lines, prediction hit rates or payout EV.';
+ const audited=data.historicalPrizePicksOutcomeAudit;
+ const official=audited?' · '+audited.totalLinesMatched+' lines matched with official NHL final stats':'';
+ element.textContent=details.join(' · ')+official+' · Timestamped observations; tier classification and actual selected bet directions are unknown. Full-season coverage is not established.';
+}
+function renderPPModel(){
+ const box=$('historicalPPModel'),d=data.historicalPrizePicksModelBacktest;
+ if(!d){box.textContent='Retrospective model audit pending matching to archived source data.';return;}
+ const summary=['2025-26','2026-27'].map(season=>{
+  const x=d.bySeason?.[season];
+  return season+': '+(x?.modelEvaluable?(x.correct+'/'+x.modelEvaluable+' model directions correct ('+pct(x.retrospectiveHitRate)+')'):'no evaluable model decisions');
+ });
+ box.textContent=summary.join(' · ')+' · Small sampled, correlated historical evaluation. NOT a prospective verified hit rate or tier-specific record; no payout EV.';
 }
 function renderHistorical(){
  const host=$('historicalBook'),history=data.historicalSportsbookBacktest;
@@ -62,7 +74,7 @@ async function init(){
  const body=$('comparisons');body.replaceChildren();
  for(const p of [...data.comparisons].sort((a,b)=>b.absoluteModelMarketGap-a.absoluteModelMarketGap).slice(0,100)){const tr=document.createElement('tr');[p.player,p.market,p.line,p.tier,pct(p.modelHigher),pct(p.sportsbookHigher),pct(p.absoluteModelMarketGap),(p.books||[]).join(', ')].forEach(v=>cell(tr,v));body.append(tr);}
  if(!data.comparisons.length){const tr=document.createElement('tr');cell(tr,'No verified exact-line comparisons in this snapshot');body.append(tr);}
- render();renderLineup();renderHistorical();renderPrizePicksHistory();
+ render();renderLineup();renderHistorical();renderPrizePicksHistory();renderPPModel();
  const grade=data.grading;
  $('grading').textContent=grade&&grade.decisions>0?'Verified decisions: '+grade.decisions+' · Hit rate: '+pct(grade.verifiedHitRate)+' · These are graded pregame predictions, not synthetic backtests.':'No verified pregame outcomes graded yet. The model remains uncalibrated.';
  const changes=data.lineMovement?.changes||[];

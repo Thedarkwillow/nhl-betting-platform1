@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T05:28:51.753Z",
+  "builtAt": "2026-11-02T05:30:28.262Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": "2026-11-02T05:28:51.753Z",
+  "comparisonAt": "2026-11-02T05:30:28.262Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -8447,7 +8447,7 @@
     }
   ],
   "fullNhlHistoricalGameCoverage": {
-    "generatedAt": "2026-11-02T05:28:35.569Z",
+    "generatedAt": "2026-11-02T05:30:13.357Z",
     "kind": "official_schedule_against_independent_historical_closing_lines",
     "seasons": [
       {
@@ -8469,15 +8469,15 @@
         "season": "2026-27",
         "officialScheduleComplete": true,
         "officialCompletedGamesTotal": 231,
-        "officialCompletedGamesInEligiblePeriod": 219,
-        "completedGamesInsideCheckedWindows": 217,
-        "completedGamesNotYetChecked": 2,
-        "officialGamesMatchedToProvider": 217,
-        "officialGamesWithPrizePicksClosingLines": 217,
-        "officialGamesWithUnderdogClosingLines": 217,
-        "distinctPrizePicksClosingLineRecords": 4988,
-        "distinctUnderdogClosingLineRecords": 6949,
-        "fullDateCoverageChecked": false,
+        "officialCompletedGamesInEligiblePeriod": 224,
+        "completedGamesInsideCheckedWindows": 224,
+        "completedGamesNotYetChecked": 0,
+        "officialGamesMatchedToProvider": 224,
+        "officialGamesWithPrizePicksClosingLines": 224,
+        "officialGamesWithUnderdogClosingLines": 224,
+        "distinctPrizePicksClosingLineRecords": 5155,
+        "distinctUnderdogClosingLineRecords": 7069,
+        "fullDateCoverageChecked": true,
         "closingLineCoverageFull": false
       }
     ],

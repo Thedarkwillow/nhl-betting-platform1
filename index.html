@@ -35,7 +35,11 @@ function renderPPModel(){
   const x=d.bySeason?.[season];
   return season+': '+(x?.modelEvaluable?(x.correct+'/'+x.modelEvaluable+' model directions correct ('+pct(x.retrospectiveHitRate)+')'):'no evaluable model decisions');
  });
- box.textContent=summary.join(' · ')+' · Small sampled, correlated historical evaluation. NOT a prospective verified hit rate or tier-specific record; no payout EV.';
+ const metrics=d.uncertainty?.all;
+ const range=metrics?.exploratoryClusterBootstrap95;
+ const interval=Array.isArray(range)?' · Exploratory game-cluster 95% range '+pct(range[0])+'–'+pct(range[1]):' · Too few distinct games for uncertainty range';
+ const marketSample=Object.entries(d.uncertainty?.byMarket||{}).map(([k,v])=>k+': '+v.evaluated).join(', ');
+ box.textContent=summary.join(' · ')+(metrics?' · '+metrics.distinctGames+' distinct sampled games':'')+interval+(marketSample?' · Model evaluations by market: '+marketSample:'')+'. Exploratory only; NOT prospective accuracy, calibrated odds, tier hit rate or payout EV.';
 }
 function renderHistorical(){
  const host=$('historicalBook'),history=data.historicalSportsbookBacktest;

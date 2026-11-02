@@ -15,6 +15,9 @@
 <h2>SportsGameOdds historical NHL closing lines</h2>
 <p class="muted">Book-labelled pregame closing-line records from selected 2025–26 and 2026–27 windows, including PrizePicks and Underdog. These have not yet been matched to official NHL outcomes or verified by the original pick'em platforms.</p>
 <div class="card" id="sgoHistorical">Loading independent historical book-closing coverage…</div>
+<h2>Full NHL game coverage audit</h2>
+<p class="muted">Checks every documented NHL game against completed date-window historical queries. A checked game with no provider quote is NOT proof that PrizePicks or Underdog never offered a line. 2023–24 and 2024–25 have official schedules but no documented SGO bookmaker closes before January 2026.</p>
+<div class="card" id="allNhlCoverage">Loading official NHL game coverage…</div>
 <h2>Retrospective PrizePicks model test</h2><p class="muted">Actual past PrizePicks lines plus earlier NHL game logs. Not a pre-published record, calibrated probability, tier hit rate or betting recommendation.</p><div class="card" id="historicalPPModel">Loading model backtest…</div>
 <h2>Historical NHL sportsbook backtest — 2025–26 vs 2026–27</h2>
 <p class="muted">Real archived sportsbook closing lines compared with official NHL results. This is a selected historical sample, not old PrizePicks lines or a verified prospective record.</p>
@@ -31,6 +34,25 @@ function renderPrizePicksHistory(){
  const audited=data.historicalPrizePicksOutcomeAudit;
  const official=audited?' · '+audited.totalLinesMatched+' lines matched with official NHL final stats':'';
  element.textContent=details.join(' · ')+official+' · Timestamped observations; tier classification and actual selected bet directions are unknown. Full-season coverage is not established.';
+}
+function renderFullNhlCoverage(){
+ const host=$('allNhlCoverage'),n=data.fullNhlHistoricalGameCoverage;
+ const official=(data.officialNhlSeasonSchedules||[]).map(s=>
+  s.season+': '+(s.officialCompletedGames??'—')+' completed official NHL games'+
+  (s.teamSchedulesComplete?' (schedule verified)':' (schedule incomplete)')).join(' · ');
+ if(!n){
+  host.textContent=(official||'No official NHL schedule audit published yet')+
+   ' · Full historical game vs bookmaker coverage audit pending.';
+  return;
+ }
+ const seasons=(n.seasons||[]).map(s=>s.season+': '+s.completedGamesInsideCheckedWindows+
+  '/'+s.officialCompletedGamesInEligiblePeriod+' documented-period completed games checked'+
+  ', '+s.officialGamesMatchedToProvider+' matched provider events'+
+  ', '+s.officialGamesWithPrizePicksClosingLines+' games with PrizePicks closes'+
+  ', '+s.officialGamesWithUnderdogClosingLines+' with Underdog closes'+
+  (s.fullDateCoverageChecked?' (date-window check complete)':' (date-window check incomplete)')).join(' · ');
+ host.textContent=official+' · '+seasons+
+  ' · This is source coverage, not full historic offer coverage, independent platform verification, payouts or model prediction accuracy.';
 }
 function renderSGOHistory(){
  const host=$('sgoHistorical'),h=data.historicalProviderClosingCoverage;
@@ -105,7 +127,7 @@ async function init(){
  const body=$('comparisons');body.replaceChildren();
  for(const p of [...data.comparisons].sort((a,b)=>b.absoluteModelMarketGap-a.absoluteModelMarketGap).slice(0,100)){const tr=document.createElement('tr');[p.player,p.market,p.line,p.tier,pct(p.modelHigher),pct(p.sportsbookHigher),pct(p.absoluteModelMarketGap),(p.books||[]).join(', ')].forEach(v=>cell(tr,v));body.append(tr);}
  if(!data.comparisons.length){const tr=document.createElement('tr');cell(tr,'No verified exact-line comparisons in this snapshot');body.append(tr);}
- render();renderLineup();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderPPModel();
+ render();renderLineup();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderFullNhlCoverage();renderPPModel();
  }catch(e){$('updated').textContent='Dashboard data unavailable: '+e.message;$('props').textContent='No data available';$('comparisons').textContent='No data available';}
 }
 ['search','tier','market','direction'].forEach(id=>$(id).addEventListener('input',render));$('lineupSize').addEventListener('change',renderLineup);init();

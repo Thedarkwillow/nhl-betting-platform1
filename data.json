@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T03:32:05.589Z",
+  "builtAt": "2026-11-02T03:33:02.193Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": "2026-11-02T03:32:05.589Z",
+  "comparisonAt": "2026-11-02T03:33:02.193Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -8532,7 +8532,41 @@
     "hitRateAvailable": false,
     "warning": "Official NHL outcomes of historical PrizePicks line observations, NOT a model-pick hit rate. OddsPapi does not verify Standard/Goblin/Demon tier or selected Higher/Lower side. Historical snapshots collected retrospectively; no past published picks asserted."
   },
-  "historicalPrizePicksModelBacktest": null,
+  "historicalPrizePicksModelBacktest": {
+    "kind": "retrospective_actual_prizepicks_line_model_test",
+    "generatedAt": "2026-11-02T03:32:48.497Z",
+    "bySeason": {
+      "2025-26": {
+        "archivedLinesWithOfficialOutcome": 66,
+        "modelEvaluable": 21,
+        "correct": 11,
+        "retrospectiveHitRate": 0.5238095238095238,
+        "distinctGames": 8,
+        "brierScore": 0.25462095693333325
+      },
+      "2026-27": {
+        "archivedLinesWithOfficialOutcome": 157,
+        "modelEvaluable": 87,
+        "correct": 38,
+        "retrospectiveHitRate": 0.4367816091954023,
+        "distinctGames": 13,
+        "brierScore": 0.28203552284597705
+      }
+    },
+    "evaluated": 108,
+    "excluded": {
+      "missing_official_game_in_player_log": 77,
+      "official_stat_unavailable_in_game_log": 38
+    },
+    "playersSampled": 154,
+    "officialNhlHistoryErrors": 104,
+    "sampleOnly": true,
+    "calibrated": false,
+    "prospectiveVerified": false,
+    "tierAccuracyAvailable": false,
+    "expectedValue": null,
+    "warning": "Actual archived PrizePicks lines, not synthetic thresholds. Reconstructed model decisions were not published before those games; historical selection and incomplete games can bias results. Goblin/Demon/Standard labels are unknown, so payout-based EV and tier accuracy cannot be claimed."
+  },
   "historicalSportsbookBacktest": {
     "generatedAt": "2026-11-02T02:43:26.038Z",
     "source": "PuckAPI closing median across books + official NHL game logs",

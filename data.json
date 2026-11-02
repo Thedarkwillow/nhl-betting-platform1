@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T03:54:29.584Z",
+  "builtAt": "2026-11-02T03:55:27.575Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": "2026-11-02T03:54:29.584Z",
+  "comparisonAt": "2026-11-02T03:55:27.575Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -8534,7 +8534,7 @@
   },
   "historicalPrizePicksModelBacktest": {
     "kind": "retrospective_actual_prizepicks_line_model_test",
-    "generatedAt": "2026-11-02T03:52:27.245Z",
+    "generatedAt": "2026-11-02T03:55:13.370Z",
     "bySeason": {
       "2025-26": {
         "archivedLinesWithOfficialOutcome": 66,
@@ -8554,7 +8554,109 @@
       }
     },
     "evaluated": 222,
-    "uncertainty": null,
+    "uncertainty": {
+      "all": {
+        "evaluated": 222,
+        "distinctGames": 21,
+        "sampledHitRate": 0.47297297297297297,
+        "brierScore": 0.2748182338346845,
+        "exploratoryClusterBootstrap95": [
+          0.4027777777777778,
+          0.545
+        ],
+        "uncertaintyLabel": "Exploratory bootstrap resampling whole games. Limited game/sample diversity and repeated players; NOT a prospective performance confidence guarantee."
+      },
+      "bySeason": {
+        "2025-26": {
+          "evaluated": 66,
+          "distinctGames": 8,
+          "sampledHitRate": 0.5,
+          "brierScore": 0.2578333397606061,
+          "exploratoryClusterBootstrap95": [
+            0.4375,
+            0.578125
+          ],
+          "uncertaintyLabel": "Exploratory bootstrap resampling whole games. Limited game/sample diversity and repeated players; NOT a prospective performance confidence guarantee."
+        },
+        "2026-27": {
+          "evaluated": 156,
+          "distinctGames": 13,
+          "sampledHitRate": 0.46153846153846156,
+          "brierScore": 0.2820041505583333,
+          "exploratoryClusterBootstrap95": [
+            0.36423841059602646,
+            0.56
+          ],
+          "uncertaintyLabel": "Exploratory bootstrap resampling whole games. Limited game/sample diversity and repeated players; NOT a prospective performance confidence guarantee."
+        }
+      },
+      "byMarket": {
+        "assists": {
+          "evaluated": 29,
+          "distinctGames": 15,
+          "sampledHitRate": 0.41379310344827586,
+          "brierScore": 0.28473817701379306,
+          "exploratoryClusterBootstrap95": [
+            0.20689655172413793,
+            0.6176470588235294
+          ],
+          "uncertaintyLabel": "Exploratory bootstrap resampling whole games. Limited game/sample diversity and repeated players; NOT a prospective performance confidence guarantee."
+        },
+        "shotsOnGoal": {
+          "evaluated": 93,
+          "distinctGames": 21,
+          "sampledHitRate": 0.5376344086021505,
+          "brierScore": 0.2568250378784947,
+          "exploratoryClusterBootstrap95": [
+            0.4634146341463415,
+            0.6170212765957447
+          ],
+          "uncertaintyLabel": "Exploratory bootstrap resampling whole games. Limited game/sample diversity and repeated players; NOT a prospective performance confidence guarantee."
+        },
+        "blockedShots": {
+          "evaluated": 31,
+          "distinctGames": 16,
+          "sampledHitRate": 0.45161290322580644,
+          "brierScore": 0.25611422292580643,
+          "exploratoryClusterBootstrap95": [
+            0.2647058823529412,
+            0.64
+          ],
+          "uncertaintyLabel": "Exploratory bootstrap resampling whole games. Limited game/sample diversity and repeated players; NOT a prospective performance confidence guarantee."
+        },
+        "saves": {
+          "evaluated": 27,
+          "distinctGames": 19,
+          "sampledHitRate": 0.5925925925925926,
+          "brierScore": 0.2734471706,
+          "exploratoryClusterBootstrap95": [
+            0.4074074074074074,
+            0.7692307692307693
+          ],
+          "uncertaintyLabel": "Exploratory bootstrap resampling whole games. Limited game/sample diversity and repeated players; NOT a prospective performance confidence guarantee."
+        },
+        "points": {
+          "evaluated": 39,
+          "distinctGames": 12,
+          "sampledHitRate": 0.28205128205128205,
+          "brierScore": 0.32913443529487174,
+          "exploratoryClusterBootstrap95": [
+            0.09523809523809523,
+            0.5116279069767442
+          ],
+          "uncertaintyLabel": "Exploratory bootstrap resampling whole games. Limited game/sample diversity and repeated players; NOT a prospective performance confidence guarantee."
+        },
+        "goals": {
+          "evaluated": 3,
+          "distinctGames": 3,
+          "sampledHitRate": 0.6666666666666666,
+          "brierScore": 0.23621825393333332,
+          "exploratoryClusterBootstrap95": null,
+          "uncertaintyLabel": "Exploratory bootstrap resampling whole games. Limited game/sample diversity and repeated players; NOT a prospective performance confidence guarantee."
+        }
+      },
+      "calibrated": false
+    },
     "excluded": {
       "fewer_than_five_pregame_stats": 1
     },

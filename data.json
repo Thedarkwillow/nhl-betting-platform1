@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T03:04:30.330Z",
+  "builtAt": "2026-11-02T03:30:06.308Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": "2026-11-02T03:04:30.330Z",
+  "comparisonAt": "2026-11-02T03:30:06.308Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -8462,13 +8462,79 @@
     ],
     "actualPrizePicksBookmakerSource": true,
     "rawNhlBoxScoresIncluded": false,
-    "playerIdentityVerified": false,
+    "allPlayerIdentitiesVerified": false,
     "tierLabelsVerified": false,
     "closingLineVerified": false,
     "retrospectiveHitRate": null,
     "coverageComplete": false,
     "officialPrizePicksEndpoint": false,
-    "caution": "This is a narrow sampled third-party historical PrizePicks archive. Lines are timestamped, but player identities and tier classification are not yet verified; no game outcomes or hit rates are claimed."
+    "caution": "Third-party historical PrizePicks archive, sampled only. Independent game-outcome matching and retrospective model tests are reported separately when verified. Tiers and lineup payouts remain unknown."
+  },
+  "historicalPrizePicksOutcomeAudit": {
+    "status": "partial_verified_line_outcomes",
+    "generatedAt": "2026-11-02T03:19:03.783Z",
+    "totalLinesMatched": 55,
+    "bySeason": {
+      "2025-26": {
+        "matchedLines": 23,
+        "distinctGames": 3,
+        "over": 6,
+        "under": 17,
+        "push": 0,
+        "modelEvaluable": 0,
+        "hitRate": null,
+        "verifiedModelHitRate": null
+      },
+      "2026-27": {
+        "matchedLines": 32,
+        "distinctGames": 3,
+        "over": 15,
+        "under": 17,
+        "push": 0,
+        "modelEvaluable": 0,
+        "hitRate": null,
+        "verifiedModelHitRate": null
+      }
+    },
+    "verifiedPlayerIdentities": 52,
+    "officialGames": 6,
+    "tierAccuracyAvailable": false,
+    "hitRateAvailable": false,
+    "warning": "Official NHL outcomes of historical PrizePicks line observations, NOT a model-pick hit rate. OddsPapi does not verify Standard/Goblin/Demon tier or selected Higher/Lower side. Historical snapshots collected retrospectively; no past published picks asserted."
+  },
+  "historicalPrizePicksModelBacktest": {
+    "kind": "retrospective_actual_prizepicks_line_model_test",
+    "generatedAt": "2026-11-02T03:23:03.773Z",
+    "bySeason": {
+      "2025-26": {
+        "archivedLinesWithOfficialOutcome": 23,
+        "modelEvaluable": 11,
+        "correct": 7,
+        "retrospectiveHitRate": 0.6363636363636364,
+        "distinctGames": 3,
+        "brierScore": 0.23496372465454546
+      },
+      "2026-27": {
+        "archivedLinesWithOfficialOutcome": 32,
+        "modelEvaluable": 27,
+        "correct": 9,
+        "retrospectiveHitRate": 0.3333333333333333,
+        "distinctGames": 3,
+        "brierScore": 0.32709510992962965
+      }
+    },
+    "evaluated": 38,
+    "excluded": {
+      "official_stat_unavailable_in_game_log": 17
+    },
+    "playersSampled": 52,
+    "officialNhlHistoryErrors": 2,
+    "sampleOnly": true,
+    "calibrated": false,
+    "prospectiveVerified": false,
+    "tierAccuracyAvailable": false,
+    "expectedValue": null,
+    "warning": "Actual archived PrizePicks lines, not synthetic thresholds. Reconstructed model decisions were not published before those games; historical selection and incomplete games can bias results. Goblin/Demon/Standard labels are unknown, so payout-based EV and tier accuracy cannot be claimed."
   },
   "historicalSportsbookBacktest": {
     "generatedAt": "2026-11-02T02:43:26.038Z",

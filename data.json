@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T04:18:49.000Z",
+  "builtAt": "2026-11-02T04:20:05.297Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": "2026-11-02T04:18:49.000Z",
+  "comparisonAt": "2026-11-02T04:20:05.297Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -8534,7 +8534,7 @@
   },
   "historicalPrizePicksModelBacktest": {
     "kind": "retrospective_actual_prizepicks_line_model_test",
-    "generatedAt": "2026-11-02T03:55:13.370Z",
+    "generatedAt": "2026-11-02T04:19:53.512Z",
     "bySeason": {
       "2025-26": {
         "archivedLinesWithOfficialOutcome": 66,
@@ -8657,7 +8657,215 @@
       },
       "calibrated": false
     },
-    "directionalBenchmarks": null,
+    "directionalBenchmarks": {
+      "all": {
+        "samples": 222,
+        "distinctGames": 21,
+        "model": {
+          "wins": 105,
+          "hitRate": 0.472973,
+          "brierScore": 0.274818
+        },
+        "alwaysLower": {
+          "wins": 126,
+          "hitRate": 0.567568
+        },
+        "alwaysHigher": {
+          "wins": 96,
+          "hitRate": 0.432432
+        },
+        "coinFlipBrierScore": 0.25,
+        "modelVsAlwaysLowerPoints": -9.459,
+        "modelVsAlwaysHigherPoints": 4.054,
+        "beatsBothDirectionBaselines": false
+      },
+      "bySeason": {
+        "2025-26": {
+          "samples": 66,
+          "distinctGames": 8,
+          "model": {
+            "wins": 33,
+            "hitRate": 0.5,
+            "brierScore": 0.257833
+          },
+          "alwaysLower": {
+            "wins": 41,
+            "hitRate": 0.621212
+          },
+          "alwaysHigher": {
+            "wins": 25,
+            "hitRate": 0.378788
+          },
+          "coinFlipBrierScore": 0.25,
+          "modelVsAlwaysLowerPoints": -12.121,
+          "modelVsAlwaysHigherPoints": 12.121,
+          "beatsBothDirectionBaselines": false
+        },
+        "2026-27": {
+          "samples": 156,
+          "distinctGames": 13,
+          "model": {
+            "wins": 72,
+            "hitRate": 0.461538,
+            "brierScore": 0.282004
+          },
+          "alwaysLower": {
+            "wins": 85,
+            "hitRate": 0.544872
+          },
+          "alwaysHigher": {
+            "wins": 71,
+            "hitRate": 0.455128
+          },
+          "coinFlipBrierScore": 0.25,
+          "modelVsAlwaysLowerPoints": -8.333,
+          "modelVsAlwaysHigherPoints": 0.641,
+          "beatsBothDirectionBaselines": false
+        }
+      },
+      "byMarket": {
+        "assists": {
+          "samples": 29,
+          "distinctGames": 15,
+          "model": {
+            "wins": 12,
+            "hitRate": 0.413793,
+            "brierScore": 0.284738
+          },
+          "alwaysLower": {
+            "wins": 17,
+            "hitRate": 0.586207
+          },
+          "alwaysHigher": {
+            "wins": 12,
+            "hitRate": 0.413793
+          },
+          "coinFlipBrierScore": 0.25,
+          "modelVsAlwaysLowerPoints": -17.241,
+          "modelVsAlwaysHigherPoints": 0,
+          "beatsBothDirectionBaselines": false
+        },
+        "blockedShots": {
+          "samples": 31,
+          "distinctGames": 16,
+          "model": {
+            "wins": 14,
+            "hitRate": 0.451613,
+            "brierScore": 0.256114
+          },
+          "alwaysLower": {
+            "wins": 20,
+            "hitRate": 0.645161
+          },
+          "alwaysHigher": {
+            "wins": 11,
+            "hitRate": 0.354839
+          },
+          "coinFlipBrierScore": 0.25,
+          "modelVsAlwaysLowerPoints": -19.355,
+          "modelVsAlwaysHigherPoints": 9.677,
+          "beatsBothDirectionBaselines": false
+        },
+        "goals": {
+          "samples": 3,
+          "distinctGames": 3,
+          "model": {
+            "wins": 2,
+            "hitRate": 0.666667,
+            "brierScore": 0.236218
+          },
+          "alwaysLower": {
+            "wins": 3,
+            "hitRate": 1
+          },
+          "alwaysHigher": {
+            "wins": 0,
+            "hitRate": 0
+          },
+          "coinFlipBrierScore": 0.25,
+          "modelVsAlwaysLowerPoints": -33.333,
+          "modelVsAlwaysHigherPoints": 66.667,
+          "beatsBothDirectionBaselines": false
+        },
+        "points": {
+          "samples": 39,
+          "distinctGames": 12,
+          "model": {
+            "wins": 11,
+            "hitRate": 0.282051,
+            "brierScore": 0.329134
+          },
+          "alwaysLower": {
+            "wins": 19,
+            "hitRate": 0.487179
+          },
+          "alwaysHigher": {
+            "wins": 20,
+            "hitRate": 0.512821
+          },
+          "coinFlipBrierScore": 0.25,
+          "modelVsAlwaysLowerPoints": -20.513,
+          "modelVsAlwaysHigherPoints": -23.077,
+          "beatsBothDirectionBaselines": false
+        },
+        "saves": {
+          "samples": 27,
+          "distinctGames": 19,
+          "model": {
+            "wins": 16,
+            "hitRate": 0.592593,
+            "brierScore": 0.273447
+          },
+          "alwaysLower": {
+            "wins": 17,
+            "hitRate": 0.62963
+          },
+          "alwaysHigher": {
+            "wins": 10,
+            "hitRate": 0.37037
+          },
+          "coinFlipBrierScore": 0.25,
+          "modelVsAlwaysLowerPoints": -3.704,
+          "modelVsAlwaysHigherPoints": 22.222,
+          "beatsBothDirectionBaselines": false
+        },
+        "shotsOnGoal": {
+          "samples": 93,
+          "distinctGames": 21,
+          "model": {
+            "wins": 50,
+            "hitRate": 0.537634,
+            "brierScore": 0.256825
+          },
+          "alwaysLower": {
+            "wins": 50,
+            "hitRate": 0.537634
+          },
+          "alwaysHigher": {
+            "wins": 43,
+            "hitRate": 0.462366
+          },
+          "coinFlipBrierScore": 0.25,
+          "modelVsAlwaysLowerPoints": 0,
+          "modelVsAlwaysHigherPoints": 7.527,
+          "beatsBothDirectionBaselines": false
+        }
+      },
+      "pairedDifferenceVsAlwaysLower95": {
+        "lower95": -17.339,
+        "upper95": -1.77,
+        "unit": "percentage points",
+        "method": "exploratory paired bootstrap by NHL game",
+        "caveat": "Game-cluster bootstrap reflects only this nonrepresentative retrospective sample. Not a prospective validation interval."
+      },
+      "gating": {
+        "modelOutperformedBothDirectionBaselines": false,
+        "edgeEstablished": false,
+        "safeToUseForVerifiedLineupProbabilities": false,
+        "status": "research_only_not_validated"
+      },
+      "warning": "Always-Higher and Always-Lower are fixed directional counterfactuals on the same archived lines, not payout- or eligibility-aware strategies. Archived sample is incomplete; model choices were calculated retrospectively; many props share NHL games. Do not infer profitability or calibrated lineup probabilities."
+    },
     "excluded": {
       "fewer_than_five_pregame_stats": 1
     },

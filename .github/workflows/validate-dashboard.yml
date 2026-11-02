@@ -1,0 +1,23 @@
+name: Validate Public NHL Dashboard
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'data.json'
+      - 'scripts/validate-dashboard.cjs'
+      - '.github/workflows/validate-dashboard.yml'
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify public NHL page JavaScript and research provenance
+        run: node scripts/validate-dashboard.cjs

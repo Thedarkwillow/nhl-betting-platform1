@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T04:30:05.370Z",
+  "builtAt": "2026-11-02T05:12:46.792Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": "2026-11-02T04:30:05.370Z",
+  "comparisonAt": "2026-11-02T05:12:46.792Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -8419,6 +8419,40 @@
       "optimizationScope": "Uncalibrated log-score minus same-game risk penalty, max 2 per game, min 3 games; correlation and payout not verified.",
       "warning": "Not a betting recommendation. No validated joint probability, no verified lineup-specific payout quote. Confirm all platform restrictions independently."
     }
+  },
+  "historicalProviderClosingCoverage": {
+    "provider": "SportsGameOdds Pro",
+    "generatedAt": "2026-11-02T05:11:42.933Z",
+    "type": "independent_book_level_pregame_closing_lines",
+    "seasons": [
+      {
+        "season": "2025-26",
+        "windows": 7,
+        "gameObservations": 74,
+        "prizepicksClosingLines": 1097,
+        "underdogClosingLines": 2852,
+        "ordinarySportsbookClosingLines": 10896,
+        "windowsFullyPaginated": 7
+      },
+      {
+        "season": "2026-27",
+        "windows": 5,
+        "gameObservations": 65,
+        "prizepicksClosingLines": 1512,
+        "underdogClosingLines": 1792,
+        "ordinarySportsbookClosingLines": 10726,
+        "windowsFullyPaginated": 5
+      }
+    ],
+    "sourceBookmakerProvenance": "independent_provider_only",
+    "seasonCoverageComplete": false,
+    "officialPrizePicksOrUnderdogVerified": false,
+    "tiersVerified": false,
+    "officialResultsMatched": false,
+    "modelAccuracyRecomputed": false,
+    "backtestHitRate": null,
+    "expectedValue": null,
+    "warning": "Independent provider supplied book-level closing lines. Only sampled calendar windows, not full seasons. Player identity, NHL outcomes and Standard/Goblin/Demon tiers require verification; not pre-published model predictions or measured betting edge."
   },
   "historicalPrizePicksCoverage": {
     "kind": "partial_historical_prizepicks_archive",

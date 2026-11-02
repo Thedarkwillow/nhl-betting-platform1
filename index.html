@@ -8,7 +8,10 @@
 <p class="notice" id="updated">Loading saved data…</p>
 <h2>Player props</h2><div class="filters"><input id="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter market"><option value="">All markets</option></select><select id="direction" aria-label="Filter direction"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select></div>
 <div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Lean</th><th>Est. hit probability*</th><th>Observations</th></tr></thead><tbody id="props"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
-<h2>2–6 pick research lineup builder</h2><p class="muted">Combinations rank uncalibrated estimates without repeat players; 5–6 picks may share a game and increase correlation risk. No verified joint win probability or EV.</p><div class="filters"><label for="lineupSize">Number of picks </label><select id="lineupSize"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div><div class="card" id="lineup">Loading research combinations…</div><h2>Line movement</h2><p class="muted" id="movement">No recorded line movement yet.</p><h2>Historical NHL sportsbook backtest — 2025–26 vs 2026–27</h2>
+<h2>2–6 pick research lineup builder</h2><p class="muted">Combinations rank uncalibrated estimates without repeat players; 5–6 picks may share a game and increase correlation risk. No verified joint win probability or EV.</p><div class="filters"><label for="lineupSize">Number of picks </label><select id="lineupSize"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div><div class="card" id="lineup">Loading research combinations…</div><h2>Line movement</h2><p class="muted" id="movement">No recorded line movement yet.</p><h2>Actual historical PrizePicks line coverage — both seasons</h2>
+<p class="muted">Independent OddsPapi PrizePicks archive, sampled pregame lines. Not sportsbook substitutes, not a full-season download, and not a graded hit-rate report.</p>
+<div class="card" id="historicalPP">Loading historical PrizePicks archive…</div>
+<h2>Historical NHL sportsbook backtest — 2025–26 vs 2026–27</h2>
 <p class="muted">Real archived sportsbook closing lines compared with official NHL results. This is a selected historical sample, not old PrizePicks lines or a verified prospective record.</p>
 <div class="card" id="historicalBook">Loading historical sportsbook sample…</div>
 <h2>Verified model performance</h2><div class="card" id="grading">Awaiting verified pregame outcomes.</div><h2>Goblin / Demon payout verification</h2><p class="muted">Tier payouts are not yet independently verified. No payout multiplier or expected value is claimed.</p><h2>Model vs sportsbook disagreements</h2><p class="muted">Exact-line comparisons only. Larger gaps are research signals, not proven betting edges.</p><div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Model Higher</th><th>Sportsbook Higher</th><th>Gap</th><th>Books</th></tr></thead><tbody id="comparisons"><tr><td colspan="8">Loading…</td></tr></tbody></table></div>
@@ -16,6 +19,12 @@
 <script>
 const $=id=>document.getElementById(id),pct=x=>Number.isFinite(x)?(x*100).toFixed(1)+'%':'—',cell=(tr,value)=>{const td=document.createElement('td');td.textContent=String(value??'—');tr.append(td);};
 let data={props:[],comparisons:[]};
+function renderPrizePicksHistory(){
+ const element=$('historicalPP'),d=data.historicalPrizePicksCoverage;
+ if(!d){element.textContent='Historical PrizePicks archive not yet published.';return;}
+ const details=(d.seasons||[]).map(s=>s.season+': '+s.records+' prop records from '+s.sampledFixtures+' sampled games');
+ element.textContent=details.join(' · ')+' · Timestamped player lines only. NHL player IDs and Goblin/Demon tiers unverified; no verified closing lines, prediction hit rates or payout EV.';
+}
 function renderHistorical(){
  const host=$('historicalBook'),history=data.historicalSportsbookBacktest;
  if(!history){host.textContent='Historical sportsbook sample not yet published.';return;}
@@ -53,7 +62,7 @@ async function init(){
  const body=$('comparisons');body.replaceChildren();
  for(const p of [...data.comparisons].sort((a,b)=>b.absoluteModelMarketGap-a.absoluteModelMarketGap).slice(0,100)){const tr=document.createElement('tr');[p.player,p.market,p.line,p.tier,pct(p.modelHigher),pct(p.sportsbookHigher),pct(p.absoluteModelMarketGap),(p.books||[]).join(', ')].forEach(v=>cell(tr,v));body.append(tr);}
  if(!data.comparisons.length){const tr=document.createElement('tr');cell(tr,'No verified exact-line comparisons in this snapshot');body.append(tr);}
- render();renderLineup();renderHistorical();
+ render();renderLineup();renderHistorical();renderPrizePicksHistory();
  const grade=data.grading;
  $('grading').textContent=grade&&grade.decisions>0?'Verified decisions: '+grade.decisions+' · Hit rate: '+pct(grade.verifiedHitRate)+' · These are graded pregame predictions, not synthetic backtests.':'No verified pregame outcomes graded yet. The model remains uncalibrated.';
  const changes=data.lineMovement?.changes||[];

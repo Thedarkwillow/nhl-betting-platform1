@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T02:44:32.593Z",
+  "builtAt": "2026-11-02T03:04:30.330Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": "2026-11-02T02:44:32.593Z",
+  "comparisonAt": "2026-11-02T03:04:30.330Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -8419,6 +8419,56 @@
       "optimizationScope": "Uncalibrated log-score minus same-game risk penalty, max 2 per game, min 3 games; correlation and payout not verified.",
       "warning": "Not a betting recommendation. No validated joint probability, no verified lineup-specific payout quote. Confirm all platform restrictions independently."
     }
+  },
+  "historicalPrizePicksCoverage": {
+    "kind": "partial_historical_prizepicks_archive",
+    "provider": "OddsPapi independent archive",
+    "generatedAt": "2026-11-02T03:02:32.535Z",
+    "seasons": [
+      {
+        "season": "2025-26",
+        "records": 36,
+        "sampledFixtures": 9,
+        "windows": [
+          {
+            "from": "2026-01-15T00:00:00Z",
+            "to": "2026-01-17T00:00:00Z",
+            "records": 36
+          },
+          {
+            "from": "2026-03-11T00:00:00Z",
+            "to": "2026-03-13T00:00:00Z",
+            "records": 0
+          },
+          {
+            "from": "2026-05-07T00:00:00Z",
+            "to": "2026-05-09T00:00:00Z",
+            "records": 0
+          }
+        ]
+      },
+      {
+        "season": "2026-27",
+        "records": 54,
+        "sampledFixtures": 3,
+        "windows": [
+          {
+            "from": "2026-10-14T00:00:00Z",
+            "to": "2026-10-16T00:00:00Z",
+            "records": 54
+          }
+        ]
+      }
+    ],
+    "actualPrizePicksBookmakerSource": true,
+    "rawNhlBoxScoresIncluded": false,
+    "playerIdentityVerified": false,
+    "tierLabelsVerified": false,
+    "closingLineVerified": false,
+    "retrospectiveHitRate": null,
+    "coverageComplete": false,
+    "officialPrizePicksEndpoint": false,
+    "caution": "This is a narrow sampled third-party historical PrizePicks archive. Lines are timestamped, but player identities and tier classification are not yet verified; no game outcomes or hit rates are claimed."
   },
   "historicalSportsbookBacktest": {
     "generatedAt": "2026-11-02T02:43:26.038Z",

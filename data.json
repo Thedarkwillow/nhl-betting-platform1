@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T05:47:18.811Z",
+  "builtAt": "2026-11-02T05:47:43.014Z",
   "researchAt": "2026-11-02T05:47:02.863Z",
   "boardAt": "2026-11-02T05:46:59.470Z",
-  "comparisonAt": "2026-11-02T05:47:18.811Z",
+  "comparisonAt": "2026-11-02T05:47:43.014Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -11783,11 +11783,11 @@
     "warning": "Research-only retrospective selection using archived sportsbook closing lines and official results. Not actual historical PrizePicks lines. Missing lines and post-selection bias limit generalization. No verified payouts or lineup EV."
   },
   "grading": {
-    "generatedAt": "2026-11-02T02:07:55.793Z",
+    "generatedAt": "2026-11-02T05:47:18.090Z",
     "graded": 0,
     "decisions": 0,
     "verifiedHitRate": null,
-    "pending": 349
+    "pending": 431
   },
   "payoutStatus": {
     "standard": "not_verified",

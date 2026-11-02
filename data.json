@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-02T23:42:32.519Z",
+  "builtAt": "2026-11-02T23:56:00.916Z",
   "researchAt": "2026-11-02T01:00:29.953Z",
   "boardAt": "2026-11-02T01:00:29.864Z",
   "comparisonAt": null,
@@ -818,11 +818,109 @@
     "warning": "Research-only retrospective selection using archived sportsbook closing lines and official results. Not actual historical PrizePicks lines. Missing lines and post-selection bias limit generalization. No verified payouts or lineup EV."
   },
   "grading": {
-    "generatedAt": "2026-11-02T23:42:07.920Z",
+    "generatedAt": "2026-11-02T23:55:43.477Z",
     "graded": 0,
     "decisions": 0,
     "verifiedHitRate": null,
     "pending": 621
+  },
+  "prospectiveResearchAudit": {
+    "generatedAt": "2026-11-02T23:55:43.477Z",
+    "source": "archived_pregame_research_snapshots_and_official_NHL_boxscores",
+    "capturedRankedRows": 2392,
+    "eligiblePregamePredictions": 621,
+    "recoveredGameIdentities": 1180,
+    "quarantinedMissingGameIdentities": 64,
+    "excludedNoPregameProof": 543,
+    "excludedDuplicateSnapshots": 1164,
+    "gradedDecisions": 0,
+    "verifiedProspectiveHitRate": null,
+    "alwaysLowerBaseline": null,
+    "alwaysHigherBaseline": null,
+    "pendingTotal": 621,
+    "pendingReasons": {
+      "notStarted": 621,
+      "liveOrPendingFinal": 0,
+      "finalWithoutPlayerStats": 0,
+      "unknownOfficialStatus": 0
+    },
+    "calibrationApproved": false,
+    "originalPlatformSettlementVerified": false,
+    "statisticalEdgeVerified": false,
+    "expectedValueAvailable": false,
+    "warning": "Only immutable Git-archived pregame predictions can enter prospective accuracy. Pending predictions are not losses. Boxscores do not verify PrizePicks settlement, and the probability model is not calibrated."
+  },
+  "historicalStandardAlternateResearch": {
+    "generatedAt": "2026-11-02T20:49:16.792Z",
+    "season": "2025-26",
+    "source": "The Odds API independent PrizePicks-labelled historical archive",
+    "gameSnapshotsEligible": 51,
+    "eventSnapshotsCompleted": 3,
+    "quoteRecords": 596,
+    "standardAlternatePairs": 131,
+    "unmatchedAlternateRecords": 359,
+    "savedMarketCategories": [
+      {
+        "market": "player_assists",
+        "count": 8
+      },
+      {
+        "market": "player_assists_alternate",
+        "count": 58
+      },
+      {
+        "market": "player_blocked_shots",
+        "count": 14
+      },
+      {
+        "market": "player_blocked_shots_alternate",
+        "count": 15
+      },
+      {
+        "market": "player_goals_alternate",
+        "count": 92
+      },
+      {
+        "market": "player_points_alternate",
+        "count": 120
+      },
+      {
+        "market": "player_shots_on_goal",
+        "count": 54
+      },
+      {
+        "market": "player_shots_on_goal_alternate",
+        "count": 170
+      },
+      {
+        "market": "player_total_saves",
+        "count": 14
+      },
+      {
+        "market": "player_total_saves_alternate",
+        "count": 35
+      },
+      {
+        "market": "player_points",
+        "count": 16
+      }
+    ],
+    "goalieStandardSaves": 14,
+    "goalieAlternateSaves": 35,
+    "totalCreditsUsedByAllMarketCollector": 344,
+    "fallGamesChecked": 47,
+    "fallAlternateQuotes": 2033,
+    "tierIndicators": {
+      "Standard": 0,
+      "Goblin": 635,
+      "Demon": 1574,
+      "Unclassified": 0
+    },
+    "originalTierVerified": false,
+    "originalPayoutVerified": false,
+    "fullSeasonCoverageVerified": false,
+    "providerComparisonsOnly": true,
+    "warning": "Standard/alternate historical pairs are source-labelled comparisons, not authenticated original platform offers or multipliers. Missing standards stay unmatched; provider price-indicated Goblin/Demon candidates are unverified."
   },
   "payoutStatus": {
     "standard": "not_verified",

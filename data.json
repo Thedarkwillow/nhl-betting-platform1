@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-02T01:37:09.038Z",
+  "builtAt": "2026-11-02T01:37:53.010Z",
   "researchAt": "2026-11-02T01:34:59.012Z",
   "boardAt": "2026-11-02T01:34:56.770Z",
   "comparisonAt": null,
@@ -7853,9 +7853,13 @@
           "projection": 0.183,
           "observations": 6,
           "matchup": "BOS vs VGK | 2026-11-03T00:00:00.000Z",
+          "opponent": "BOS",
+          "capturedAt": "2026-11-02T01:34:56.770Z",
+          "eventStartsAt": "2026-11-03T00:00:00.000Z",
           "probabilityCalibrated": false,
           "verified": false,
-          "expectedValue": null
+          "expectedValue": null,
+          "source": "Independent PrizePicks API"
         },
         {
           "player": "J. Farabee",
@@ -7869,9 +7873,13 @@
           "projection": 1.733,
           "observations": 6,
           "matchup": "CGY vs SJ | 2026-11-03T02:00:00.000Z",
+          "opponent": "SJ",
+          "capturedAt": "2026-11-02T01:34:56.770Z",
+          "eventStartsAt": "2026-11-03T02:00:00.000Z",
           "probabilityCalibrated": false,
           "verified": false,
-          "expectedValue": null
+          "expectedValue": null,
+          "source": "Independent PrizePicks API"
         }
       ],
       "rankScore": -0.37749,
@@ -7896,9 +7904,13 @@
           "projection": 0.183,
           "observations": 6,
           "matchup": "BOS vs VGK | 2026-11-03T00:00:00.000Z",
+          "opponent": "BOS",
+          "capturedAt": "2026-11-02T01:34:56.770Z",
+          "eventStartsAt": "2026-11-03T00:00:00.000Z",
           "probabilityCalibrated": false,
           "verified": false,
-          "expectedValue": null
+          "expectedValue": null,
+          "source": "Independent PrizePicks API"
         },
         {
           "player": "J. Farabee",
@@ -7912,9 +7924,13 @@
           "projection": 1.733,
           "observations": 6,
           "matchup": "CGY vs SJ | 2026-11-03T02:00:00.000Z",
+          "opponent": "SJ",
+          "capturedAt": "2026-11-02T01:34:56.770Z",
+          "eventStartsAt": "2026-11-03T02:00:00.000Z",
           "probabilityCalibrated": false,
           "verified": false,
-          "expectedValue": null
+          "expectedValue": null,
+          "source": "Independent PrizePicks API"
         },
         {
           "player": "V. Arvidsson",
@@ -7928,9 +7944,13 @@
           "projection": 1.733,
           "observations": 6,
           "matchup": "DET vs FLA | 2026-11-03T00:00:00.000Z",
+          "opponent": "FLA",
+          "capturedAt": "2026-11-02T01:34:56.770Z",
+          "eventStartsAt": "2026-11-03T00:00:00.000Z",
           "probabilityCalibrated": false,
           "verified": false,
-          "expectedValue": null
+          "expectedValue": null,
+          "source": "Independent PrizePicks API"
         }
       ],
       "rankScore": -0.57199,
@@ -7955,9 +7975,13 @@
           "projection": 0.183,
           "observations": 6,
           "matchup": "BOS vs VGK | 2026-11-03T00:00:00.000Z",
+          "opponent": "BOS",
+          "capturedAt": "2026-11-02T01:34:56.770Z",
+          "eventStartsAt": "2026-11-03T00:00:00.000Z",
           "probabilityCalibrated": false,
           "verified": false,
-          "expectedValue": null
+          "expectedValue": null,
+          "source": "Independent PrizePicks API"
         },
         {
           "player": "J. Farabee",
@@ -7971,9 +7995,13 @@
           "projection": 1.733,
           "observations": 6,
           "matchup": "CGY vs SJ | 2026-11-03T02:00:00.000Z",
+          "opponent": "SJ",
+          "capturedAt": "2026-11-02T01:34:56.770Z",
+          "eventStartsAt": "2026-11-03T02:00:00.000Z",
           "probabilityCalibrated": false,
           "verified": false,
-          "expectedValue": null
+          "expectedValue": null,
+          "source": "Independent PrizePicks API"
         },
         {
           "player": "V. Arvidsson",
@@ -7987,9 +8015,13 @@
           "projection": 1.733,
           "observations": 6,
           "matchup": "DET vs FLA | 2026-11-03T00:00:00.000Z",
+          "opponent": "FLA",
+          "capturedAt": "2026-11-02T01:34:56.770Z",
+          "eventStartsAt": "2026-11-03T00:00:00.000Z",
           "probabilityCalibrated": false,
           "verified": false,
-          "expectedValue": null
+          "expectedValue": null,
+          "source": "Independent PrizePicks API"
         },
         {
           "player": "T. Teravainen",
@@ -8003,9 +8035,13 @@
           "projection": 0.2,
           "observations": 5,
           "matchup": "CHI vs COL | 2026-11-03T01:00:00.000Z",
+          "opponent": "COL",
+          "capturedAt": "2026-11-02T01:34:56.770Z",
+          "eventStartsAt": "2026-11-03T01:00:00.000Z",
           "probabilityCalibrated": false,
           "verified": false,
-          "expectedValue": null
+          "expectedValue": null,
+          "source": "Independent PrizePicks API"
         }
       ],
       "rankScore": -0.77199,
@@ -8037,5 +8073,5 @@
     "removalsVerified": false,
     "changes": []
   },
-  "disclaimer": "Research only. Uncalibrated model probabilities, not verified hit rates. Independent data feed not confirmed against live PrizePicks. Distinct-player and distinct-game lineups are not validated joint probabilities or expected value. No wagers placed."
+  "disclaimer": "Research only. Uncalibrated model probabilities are not historical hit rates. Source is third-party and current PrizePicks availability is unverified. Lineups exclude same player and game but are not payout-EV or verified joint probability optimizations. No bets placed."
 }

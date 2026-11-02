@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T05:12:46.792Z",
+  "builtAt": "2026-11-02T05:26:58.962Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": "2026-11-02T05:12:46.792Z",
+  "comparisonAt": "2026-11-02T05:26:58.962Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -8420,6 +8420,33 @@
       "warning": "Not a betting recommendation. No validated joint probability, no verified lineup-specific payout quote. Confirm all platform restrictions independently."
     }
   },
+  "officialNhlSeasonSchedules": [
+    {
+      "season": "2023-24",
+      "officialCompletedGames": 0,
+      "officialGamesOnSchedule": 0,
+      "teamSchedulesComplete": false
+    },
+    {
+      "season": "2024-25",
+      "officialCompletedGames": 0,
+      "officialGamesOnSchedule": 0,
+      "teamSchedulesComplete": false
+    },
+    {
+      "season": "2025-26",
+      "officialCompletedGames": 0,
+      "officialGamesOnSchedule": 0,
+      "teamSchedulesComplete": false
+    },
+    {
+      "season": "2026-27",
+      "officialCompletedGames": 0,
+      "officialGamesOnSchedule": 0,
+      "teamSchedulesComplete": false
+    }
+  ],
+  "fullNhlHistoricalGameCoverage": null,
   "historicalProviderClosingCoverage": {
     "provider": "SportsGameOdds Pro",
     "generatedAt": "2026-11-02T05:11:42.933Z",

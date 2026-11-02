@@ -47,7 +47,13 @@ function renderPPModel(){
   ' · Model minus Lower '+baseline.modelVsAlwaysLowerPoints.toFixed(1)+' percentage points':'';
  const alert=baseline?.samples&&!baseline.beatsBothDirectionBaselines?
   ' · MODEL DID NOT BEAT BOTH FIXED DIRECTION BASELINES ON THIS SAMPLE.':'';
- box.textContent=summary.join(' · ')+benchmark+alert+
+ const held=d.temporalModelComparison?.temporalHoldout;
+ const candidate=held?.heldOutDecisions?
+  ' · Exploratory 2025–26-trained formula '+held.chosenOnTrainingOnly+
+  ' on 2026–27 holdout: '+held.heldOutCorrect+'/'+held.heldOutDecisions+
+  ' ('+pct(held.heldOutHitRate)+') versus Lower '+pct(held.alwaysLowerHeldOutHitRate)+
+  '. NOT validated or approved for deployment.':'';
+ box.textContent=summary.join(' · ')+benchmark+alert+candidate+
  (metrics?' · '+metrics.distinctGames+' distinct sampled games':'')+interval+
  (marketSample?' · Model evaluations by market: '+marketSample:'')+
  '. Baselines measure outcomes only, not wager payouts; exploratory retrospective data is NOT prospective accuracy, calibrated odds, tier hit rate, or betting EV.';

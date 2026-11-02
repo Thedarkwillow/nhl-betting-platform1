@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-02T02:08:10.667Z",
+  "builtAt": "2026-11-02T02:09:32.018Z",
   "researchAt": "2026-11-02T02:07:35.423Z",
   "boardAt": "2026-11-02T02:07:33.273Z",
-  "comparisonAt": null,
+  "comparisonAt": "2026-11-02T02:09:32.018Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -11,9 +11,9 @@
     "independentBoardCoverageUnverified": true
   },
   "researchFreshAtBuild": true,
-  "comparisonFreshAtBuild": false,
+  "comparisonFreshAtBuild": true,
   "matchedProps": 388,
-  "comparisonCount": 0,
+  "comparisonCount": 10,
   "props": [
     {
       "player": "S. Theodore",
@@ -7776,7 +7776,148 @@
       "source": "Independent PrizePicks API"
     }
   ],
-  "comparisons": [],
+  "comparisons": [
+    {
+      "player": "S. Theodore",
+      "team": "VGK",
+      "market": "shotsOnGoal",
+      "line": 1.5,
+      "tier": "Goblin",
+      "modelHigher": 0.74212,
+      "sportsbookHigher": 0.55344,
+      "absoluteModelMarketGap": 0.18867999999999996,
+      "books": [
+        "FanDuel"
+      ],
+      "comparisonOnly": true
+    },
+    {
+      "player": "D. Pastrnak",
+      "team": "BOS",
+      "market": "shotsOnGoal",
+      "line": 2.5,
+      "tier": "Standard",
+      "modelHigher": 0.4433,
+      "sportsbookHigher": 0.52147,
+      "absoluteModelMarketGap": 0.07816999999999996,
+      "books": [
+        "FanDuel"
+      ],
+      "comparisonOnly": true
+    },
+    {
+      "player": "D. Pastrnak",
+      "team": "BOS",
+      "market": "goals",
+      "line": 0.5,
+      "tier": "Demon",
+      "modelHigher": 0.469,
+      "sportsbookHigher": 0.38874,
+      "absoluteModelMarketGap": 0.08026,
+      "books": [
+        "FanDuel"
+      ],
+      "comparisonOnly": true
+    },
+    {
+      "player": "D. Pastrnak",
+      "team": "BOS",
+      "market": "shotsOnGoal",
+      "line": 2.5,
+      "tier": "Goblin",
+      "modelHigher": 0.4433,
+      "sportsbookHigher": 0.52147,
+      "absoluteModelMarketGap": 0.07816999999999996,
+      "books": [
+        "FanDuel"
+      ],
+      "comparisonOnly": true
+    },
+    {
+      "player": "D. Pastrnak",
+      "team": "BOS",
+      "market": "shotsOnGoal",
+      "line": 2.5,
+      "tier": "Standard",
+      "modelHigher": 0.4433,
+      "sportsbookHigher": 0.52147,
+      "absoluteModelMarketGap": 0.07816999999999996,
+      "books": [
+        "FanDuel"
+      ],
+      "comparisonOnly": true
+    },
+    {
+      "player": "M. Stone",
+      "team": "VGK",
+      "market": "goals",
+      "line": 0.5,
+      "tier": "Demon",
+      "modelHigher": 0.36237,
+      "sportsbookHigher": 0.33333,
+      "absoluteModelMarketGap": 0.02904000000000001,
+      "books": [
+        "FanDuel"
+      ],
+      "comparisonOnly": true
+    },
+    {
+      "player": "J. Eichel",
+      "team": "VGK",
+      "market": "goals",
+      "line": 0.5,
+      "tier": "Demon",
+      "modelHigher": 0.30719,
+      "sportsbookHigher": 0.31719,
+      "absoluteModelMarketGap": 0.010000000000000009,
+      "books": [
+        "FanDuel"
+      ],
+      "comparisonOnly": true
+    },
+    {
+      "player": "J. Eichel",
+      "team": "VGK",
+      "market": "shotsOnGoal",
+      "line": 2.5,
+      "tier": "Goblin",
+      "modelHigher": 0.27823,
+      "sportsbookHigher": 0.53958,
+      "absoluteModelMarketGap": 0.26134999999999997,
+      "books": [
+        "FanDuel"
+      ],
+      "comparisonOnly": true
+    },
+    {
+      "player": "P. Zacha",
+      "team": "BOS",
+      "market": "goals",
+      "line": 0.5,
+      "tier": "Demon",
+      "modelHigher": 0.18127,
+      "sportsbookHigher": 0.26744,
+      "absoluteModelMarketGap": 0.08617000000000002,
+      "books": [
+        "FanDuel"
+      ],
+      "comparisonOnly": true
+    },
+    {
+      "player": "T. Hertl",
+      "team": "VGK",
+      "market": "goals",
+      "line": 0.5,
+      "tier": "Demon",
+      "modelHigher": 0.16723,
+      "sportsbookHigher": 0.26744,
+      "absoluteModelMarketGap": 0.10021000000000002,
+      "books": [
+        "FanDuel"
+      ],
+      "comparisonOnly": true
+    }
+  ],
   "lineups": {
     "2": {
       "status": "research_only",

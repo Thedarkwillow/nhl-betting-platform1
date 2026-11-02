@@ -28,7 +28,7 @@ function renderLineup(){
  const list=document.createElement('ol');
  for(const p of lineup.picks){const li=document.createElement('li');li.textContent=p.player+' — '+p.lean+' '+p.line+' '+p.market+' ('+p.team+')';list.append(li);}
  host.append(list);
- const foot=document.createElement('p');foot.className='muted';foot.textContent='Individual model estimates are uncalibrated. Joint probability and expected value unavailable.';host.append(foot);
+ const foot=document.createElement('p');foot.className='muted';foot.textContent=(lineup.correlationRisk==='elevated_same_game'?'Elevated same-game correlation risk; platform may change payouts. ':'Different games; correlations still require independent validation. ')+(lineup.publishedStandardPowerMultiplier?'Published Standard Power reference: '+lineup.publishedStandardPowerMultiplier+'x; not your verified lineup quote. ':'No verified lineup-specific payout quote. ')+'Model probabilities are uncalibrated; combined hit probability and EV unavailable.';host.append(foot);
 }
 async function init(){
  try{const res=await fetch('./data.json',{cache:'no-store'});if(!res.ok)throw Error('No data file');data=await res.json();
@@ -44,7 +44,7 @@ async function init(){
  const grade=data.grading;
  $('grading').textContent=grade&&grade.decisions>0?'Verified decisions: '+grade.decisions+' · Hit rate: '+pct(grade.verifiedHitRate)+' · These are graded pregame predictions, not synthetic backtests.':'No verified pregame outcomes graded yet. The model remains uncalibrated.';
  const changes=data.lineMovement?.changes||[];
- $('movement').textContent=changes.length?changes.slice(-12).map(c=>c.player+' '+c.market+': '+c.type+' ('+(c.previousLine??'—')+' → '+(c.line??'—')+')').join(' · '):'No recorded line changes in this snapshot.';
+ $('movement').textContent=changes.length?changes.slice(-12).map(c=>c.player+' '+c.market+': '+c.type+' ('+(c.previousLine??'—')+' → '+(c.line??'—')+')').join(' · '):'No recorded independent-feed line changes in this snapshot. Missing offers are not confirmed removals.';
  }catch(e){$('updated').textContent='Dashboard data unavailable: '+e.message;$('props').textContent='No data available';$('comparisons').textContent='No data available';}
 }
 $('lineupSize').addEventListener('change',renderLineup);

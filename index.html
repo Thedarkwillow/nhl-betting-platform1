@@ -257,8 +257,8 @@ function renderLineup(){
  const size=$('lineupSize').value,slip=data.lineups?.[size],body=$('lineupPicks');body.replaceChildren();
  if(!researchIsFresh()){$('lineupStatus').textContent='Research snapshot stale or unverified. Lineup suggestions are unavailable until refreshed source data is published.';const tr=document.createElement('tr');cell(tr,'No current research lineup; historical snapshot only');body.append(tr);return;}
  if(!slip?.picks?.length){$('lineupStatus').textContent='No eligible '+size+'-pick Standard lineup available: insufficient distinct games or matching pregame props.';const tr=document.createElement('tr');cell(tr,'Unavailable for this snapshot');body.append(tr);return;}
- $('lineupStatus').textContent='Research-only '+size+'-pick lineup · '+slip.picks.length+' independent matchups · No verified joint probability or EV · '+(slip.correlationRisk==='elevated_same_game'?'Higher same-game correlation risk':'Distinct games');
- for(const p of slip.picks){const tr=document.createElement('tr');[p.player+' ('+p.team+')',p.market,p.line,p.lean,pct(p.probability),p.matchup].forEach(v=>cell(tr,v));body.append(tr);}
+ $('lineupStatus').textContent='Research-only '+size+'-pick lineup · '+(slip.distinctGames??'unknown')+' distinct games · No verified joint probability or EV · '+(slip.correlationRisk==='elevated_same_game'?'Higher same-game correlation risk':'Distinct games');
+ for(const p of slip.picks){const tr=document.createElement('tr');[p.player+' ('+p.team+')',p.market,p.line,p.lean,Number.isFinite(p.projection)?p.projection.toFixed(3):'—',p.matchup].forEach(v=>cell(tr,v));body.append(tr);}
 }
 
 function render(){

@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-03T01:01:27.031Z",
+  "builtAt": "2026-11-03T01:01:56.275Z",
   "researchAt": "2026-11-03T01:01:09.053Z",
   "boardAt": "2026-11-03T01:00:33.277Z",
-  "comparisonAt": "2026-11-03T01:01:27.031Z",
+  "comparisonAt": "2026-11-03T01:01:56.275Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -43875,29 +43875,29 @@
     "warning": "Research-only retrospective selection using archived sportsbook closing lines and official results. Not actual historical PrizePicks lines. Missing lines and post-selection bias limit generalization. No verified payouts or lineup EV."
   },
   "grading": {
-    "generatedAt": "2026-11-03T00:47:20.768Z",
+    "generatedAt": "2026-11-03T01:01:39.445Z",
     "graded": 22,
     "decisions": 20,
     "verifiedHitRate": 0.5,
-    "pending": 634
+    "pending": 1476
   },
   "prospectiveResearchAudit": {
-    "generatedAt": "2026-11-03T00:47:20.768Z",
+    "generatedAt": "2026-11-03T01:01:39.445Z",
     "source": "archived_pregame_research_snapshots_and_official_NHL_boxscores",
-    "capturedRankedRows": 2392,
-    "eligiblePregamePredictions": 656,
+    "capturedRankedRows": 3428,
+    "eligiblePregamePredictions": 1498,
     "recoveredGameIdentities": 1229,
-    "quarantinedMissingGameIdentities": 15,
+    "quarantinedMissingGameIdentities": 180,
     "excludedNoPregameProof": 169,
-    "excludedDuplicateSnapshots": 1552,
+    "excludedDuplicateSnapshots": 1581,
     "gradedDecisions": 20,
     "verifiedProspectiveHitRate": 0.5,
     "alwaysLowerBaseline": 0.55,
     "alwaysHigherBaseline": 0.45,
-    "pendingTotal": 634,
+    "pendingTotal": 1476,
     "pendingReasons": {
-      "notStarted": 259,
-      "liveOrPendingFinal": 375,
+      "notStarted": 921,
+      "liveOrPendingFinal": 555,
       "finalWithoutPlayerStats": 0,
       "unknownOfficialStatus": 0
     },

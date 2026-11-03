@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-03T02:31:51.138Z",
+  "builtAt": "2026-11-03T02:32:08.226Z",
   "researchAt": "2026-11-03T02:24:03.963Z",
   "boardAt": "2026-11-03T02:24:00.691Z",
-  "comparisonAt": "2026-11-03T02:31:51.138Z",
+  "comparisonAt": "2026-11-03T02:32:08.226Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -75932,7 +75932,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "distributionResearch": {
-    "generatedAt": "2026-11-03T02:24:01.575Z",
+    "generatedAt": "2026-11-03T02:31:50.402Z",
     "sourceMatchedQuoteRows": 220,
     "overall": {
       "decisions": 220,

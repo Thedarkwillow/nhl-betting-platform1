@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-03T03:23:12.269Z",
+  "builtAt": "2026-11-03T03:23:37.980Z",
   "researchAt": "2026-11-03T02:24:03.963Z",
   "boardAt": "2026-11-03T02:24:00.691Z",
-  "comparisonAt": "2026-11-03T03:23:12.269Z",
+  "comparisonAt": "2026-11-03T03:23:37.980Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -76737,7 +76737,32 @@
     "calibrated": false,
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
-  "approvedSourceResearch": null,
+  "approvedSourceResearch": {
+    "sourceCapturedAt": "2026-11-03T03:22:42.623Z",
+    "lastObservedMoneyPuck": {
+      "skaters": "Mon, 02 Nov 2026 11:43:10 GMT",
+      "goalies": "Mon, 02 Nov 2026 11:43:10 GMT",
+      "teams": "Mon, 02 Nov 2026 11:43:10 GMT"
+    },
+    "moneyPuckSkaters": 741,
+    "moneyPuckGoalies": 74,
+    "moneyPuckTeams": 32,
+    "dailyFaceoffUpcomingGames": 11,
+    "dailyFaceoffGoalieReports": 22,
+    "dailyFaceoffReporterConfirmed": 2,
+    "dailyFaceoffLineTeams": 22,
+    "sourceWarnings": 0,
+    "shadowAsOf": "2026-11-03T03:22:54.597Z",
+    "shadowCandidateRows": 432,
+    "shotQualityProbabilitiesDeployed": false,
+    "officialClubGoalieStarterVerified": false,
+    "forwardAndPowerPlayUnitsProjectedOnly": true,
+    "sourcePermissionsUserReported": true,
+    "writtenCommercialTermsVerified": false,
+    "originalExactPlatformSettlementVerified": false,
+    "prospectiveModelAccuracyEstablished": false,
+    "warning": "MoneyPuck season-to-date CSV and DFO projected lines are privately cached for uncalibrated research; their sources are user-approved but commercial redistribution terms are not documented in this repository. Research shadow never changes live NHL picks. No historical outcome reuse from postgame season summaries."
+  },
   "distributionResearch": {
     "generatedAt": "2026-11-03T03:22:44.512Z",
     "sourceMatchedQuoteRows": 220,

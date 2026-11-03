@@ -4,10 +4,10 @@ const html=fs.readFileSync(path.resolve(__dirname,"../index.html"),"utf8");
 const found=html.match(/<script>([\s\S]*?)<\/script>/i);
 assert.ok(found,"NHL page must contain an inline dashboard script");
 new vm.Script(found[1],{filename:"nhl-public-dashboard.inline.js"});
-const ids=["prospectiveAudit","standardAlternateAudit","modelEvidence","modelComparison","roleReadiness","evidence","lineupStatus","lineupPicks",
+const ids=["prospectiveAudit","standardAlternateAudit","modelEvidence","modelComparison","countDistributionLab","roleReadiness","evidence","lineupStatus","lineupPicks",
  "matchupSources","matchupDetails","props","comparisons","freshness","updated"];
 for(const id of ids)assert.ok(html.includes('id="'+id+'"'),"Missing required accessible dashboard region: "+id);
-for(const fn of ["renderProspectiveQuality","renderStandardAlternateAudit","renderModelEvidence","renderModelComparison","renderRoleReadiness","renderMatchupSources","renderMatchupDetail","researchIsFresh"])
+for(const fn of ["renderProspectiveQuality","renderStandardAlternateAudit","renderModelEvidence","renderModelComparison","renderCountDistributionResearch","renderRoleReadiness","renderMatchupSources","renderMatchupDetail","researchIsFresh"])
  assert.ok(found[1].includes("function "+fn+"("),"Missing essential data/status renderer "+fn);
 assert.match(found[1],/if\(!researchIsFresh\(\)\)/,"Stale lineups must fail closed");
 assert.match(found[1],/original|unverified|Uncalibrated|uncalibrated/i);
@@ -53,6 +53,18 @@ if(fs.existsSync(raw)){
   assert.ok(Array.isArray(data.props));
   for(const row of data.props){assert.equal(row.evidence?.readyForBetting,false);
    assert.equal(row.evidence?.probabilityCalibrated,false);}
+ }
+ if(data.distributionResearch){
+  assert.equal(data.distributionResearch.modelPromoted,false);
+  assert.equal(data.distributionResearch.prospectiveVerified,false);
+  assert.equal(data.distributionResearch.probabilityCalibrated,false);
+  assert.equal(data.distributionResearch.actualPlatformSettlementVerified,false);
+  assert.ok(data.distributionResearch.sourceMatchedQuoteRows>=0);
+ }
+ if(data.distributionShadowArchive){
+  assert.equal(data.distributionShadowArchive.gitCommitBeforePuckDropProven,false);
+  assert.equal(data.distributionShadowArchive.originalPlatformSettlementVerified,false);
+  assert.equal(data.distributionShadowArchive.liveLineupsAffected,false);
  }
  if(data.historicalModelResearch){assert.equal(data.historicalModelResearch.alternativePromoted,false);
   assert.equal(data.historicalModelResearch.prospectiveModelAccuracyVerified,false);}

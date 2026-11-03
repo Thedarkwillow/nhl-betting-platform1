@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-03T04:38:58.411Z",
+  "builtAt": "2026-11-03T04:39:22.057Z",
   "researchAt": "2026-11-03T02:24:03.963Z",
   "boardAt": "2026-11-03T02:24:00.691Z",
-  "comparisonAt": "2026-11-03T04:38:58.411Z",
+  "comparisonAt": "2026-11-03T04:39:22.057Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -76738,7 +76738,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T04:38:58.345Z",
+    "generatedAt": "2026-11-03T04:39:21.991Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,
@@ -76748,10 +76748,71 @@
     "sourceFreshAtBuild": true,
     "originalPlatformSettlementVerified": false
   },
-  "dfoRoleGoalieShadow": null,
+  "dfoRoleGoalieShadow": {
+    "asOf": "2026-11-03T04:39:03.925Z",
+    "skaterProjectedRoleCandidates": 0,
+    "conditionalGoalieSaveCandidates": 0,
+    "reporterConfirmedGoalieCandidates": 0,
+    "excludedReasons": {
+      "stale_or_after_puck_drop": 786
+    },
+    "modelDeployed": false,
+    "roleCoefficientsCalibrated": false,
+    "clubStarterVerified": false
+  },
   "goalieStarterAudit": null,
-  "historicalGoalieShotQuality": null,
-  "historicalShotQualityStudy": null,
+  "historicalGoalieShotQuality": {
+    "season": "2025-26",
+    "goalieAppearances": 2688,
+    "games": 1311,
+    "championMae": 6.058541,
+    "shotQualityMae": 6.073014,
+    "conditionalOnAppearance": true,
+    "confirmedStarterProbability": false,
+    "modelDeployed": false
+  },
+  "historicalShotQualityStudy": {
+    "season": "2025-26",
+    "evaluatedForecasts": 92918,
+    "byMarket": {
+      "shotsOnGoal": {
+        "observations": 46459,
+        "distinctGames": 1312,
+        "distinctDates": 167,
+        "championMAE": 1.051958,
+        "shotQualityShadowMAE": 1.047207,
+        "maeDifference": 0.00475,
+        "pairedGameBootstrap95": {
+          "unit": "MAE improvement (positive is better)",
+          "method": "paired bootstrap, NHL game-cluster",
+          "lower95": 0.003884,
+          "upper95": 0.005616,
+          "note": "Exploratory historical sample; not a production accuracy guarantee."
+        },
+        "prospectiveHitRate": null,
+        "canPromote": false
+      },
+      "goals": {
+        "observations": 46459,
+        "distinctGames": 1312,
+        "distinctDates": 167,
+        "championMAE": 0.269057,
+        "shotQualityShadowMAE": 0.270069,
+        "maeDifference": -0.001012,
+        "pairedGameBootstrap95": {
+          "unit": "MAE improvement (positive is better)",
+          "method": "paired bootstrap, NHL game-cluster",
+          "lower95": -0.001269,
+          "upper95": -0.000713,
+          "note": "Exploratory historical sample; not a production accuracy guarantee."
+        },
+        "prospectiveHitRate": null,
+        "canPromote": false
+      }
+    },
+    "modelPromoted": false,
+    "pregameOriginalBetsRecorded": false
+  },
   "approvedSourceScorecard": {
     "generatedAt": "2026-11-03T03:42:37.009Z",
     "sourceSnapshots": 1,
@@ -76785,13 +76846,13 @@
     "warning": "Only Git-frozen pregame forecasts matched to official NHL FINAL stats are scored; missing games/players remain pending or excluded. Brier, MAE and log loss are experimental and do not establish reliable betting probabilities, settled payouts or profitability."
   },
   "approvedSourceResearch": {
-    "sourceCapturedAt": "2026-11-03T03:22:42.623Z",
+    "sourceCapturedAt": "2026-11-03T04:38:54.937Z",
     "lastObservedMoneyPuck": {
-      "skaters": "Mon, 02 Nov 2026 11:43:10 GMT",
-      "goalies": "Mon, 02 Nov 2026 11:43:10 GMT",
-      "teams": "Mon, 02 Nov 2026 11:43:10 GMT"
+      "skaters": "Tue, 03 Nov 2026 04:31:07 GMT",
+      "goalies": "Tue, 03 Nov 2026 04:31:07 GMT",
+      "teams": "Tue, 03 Nov 2026 04:31:07 GMT"
     },
-    "moneyPuckSkaters": 741,
+    "moneyPuckSkaters": 742,
     "moneyPuckGoalies": 74,
     "moneyPuckTeams": 32,
     "dailyFaceoffUpcomingGames": 11,
@@ -76799,8 +76860,8 @@
     "dailyFaceoffReporterConfirmed": 2,
     "dailyFaceoffLineTeams": 22,
     "sourceWarnings": 0,
-    "shadowAsOf": "2026-11-03T03:22:54.597Z",
-    "shadowCandidateRows": 432,
+    "shadowAsOf": "2026-11-03T04:39:03.877Z",
+    "shadowCandidateRows": 0,
     "shotQualityProbabilitiesDeployed": false,
     "officialClubGoalieStarterVerified": false,
     "forwardAndPowerPlayUnitsProjectedOnly": true,
@@ -76812,7 +76873,7 @@
     "warning": "MoneyPuck season-to-date CSV and DFO projected lines are privately cached for uncalibrated research; their sources are user-approved but commercial redistribution terms are not documented in this repository. Research shadow never changes live NHL picks. No historical outcome reuse from postgame season summaries."
   },
   "distributionResearch": {
-    "generatedAt": "2026-11-03T03:42:35.571Z",
+    "generatedAt": "2026-11-03T04:38:56.048Z",
     "sourceMatchedQuoteRows": 220,
     "overall": {
       "decisions": 220,

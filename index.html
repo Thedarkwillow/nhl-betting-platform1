@@ -19,8 +19,9 @@
 <p class="muted">Dated independent The Odds API PrizePicks-labelled historical markets, including goalie saves. Comparisons are not confirmation of currently available props, original special tiers, or actual payouts.</p>
 <div class="card" id="standardAlternateAudit">Loading historical line comparison quality…</div>
 <h2>Goalie starts, skater ice time and lineup risk</h2>
-<p class="muted">Official NHL final boxscores establish historical minutes and goalie workload, not whether the goalie is confirmed to start tonight. Unknown injury statuses and abrupt usage changes remain research-only watchlist signals.</p>
+<p class="muted">Official NHL final-game minutes plus independent pregame ESPN goalie/injury reports, matched to NHL team rosters and scheduled games. A source-reported confirmed goalie is NOT an authenticated NHL/team confirmation, and a missing injury listing does not establish fitness.</p>
 <div class="card" id="roleReadiness" aria-live="polite">Loading official NHL role-history coverage…</div>
+<p class="muted note">Check original game-day reporting: <a href="https://www.nhl.com/news/nhl-lineup-projections-2026-27-season" target="_blank" rel="noopener noreferrer">NHL.com projected lineups</a> · <a href="https://www.dailyfaceoff.com/starting-goalies" target="_blank" rel="noopener noreferrer">Daily Faceoff goalie reports</a> · <a href="https://www.rotowire.com/hockey/nhl-lineups.php" target="_blank" rel="noopener noreferrer">RotoWire lineup reports</a> · <a href="https://puckpedia.com/team-lines" target="_blank" rel="noopener noreferrer">PuckPedia lines</a>. Forward lines and power-play units are not yet imported or verified; source rights must be cleared before commercial use.</p>
 <h2>Player props</h2><div class="filters"><input id="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter market"><option value="">All markets</option></select><select id="direction" aria-label="Filter direction"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select><select id="evidence" aria-label="Filter sportsbook evidence"><option value="">All evidence</option><option value="model_market_agreement">Same-side exact books</option><option value="model_market_disagreement">Opposite-side exact books</option><option value="model_only">No exact book match</option><option value="market_neutral">Neutral books</option><option value="ambiguous_market">Ambiguous book data</option></select></div>
 <div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Lean</th><th>Est. hit probability*</th><th>Observations</th><th>Book evidence</th><th>Role check</th></tr></thead><tbody id="props"><tr><td colspan="9">Loading…</td></tr></tbody></table></div>
 <h2>Optimized research lineups</h2><p class="muted">Select 2–6 picks. Standard lines only, no repeat players; 5–6 picks may include two from the same game with elevated correlation risk. No verified joint win probability or EV.</p><div class="filters"><label for="lineupSize" class="muted">Picks</label><select id="lineupSize" aria-label="Number of lineup picks"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div><p class="notice" id="lineupStatus">Loading research lineups…</p><div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Lean</th><th>Model estimate</th><th>Matchup</th></tr></thead><tbody id="lineupPicks"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
@@ -87,7 +88,9 @@ function renderRoleReadiness(){
  const items=[['Official player-game TOI',r.withOfficialTOI??0],
   ['Historical goalie appearances',r.historicalGoalieRows??0],
   ['Role / starter watchlist',r.watchlistProps??0],
-  ['Confirmed upcoming starters',0]];
+  ['ESPN reported goalie confirmations',r.externalReportedGoalieConfirmations??0],
+  ['Source-matched injury reports',r.externalInjuryReports??0],
+  ['Injury-risk watchlist legs',r.externalInjuryWatchlist??0]];
  for(const [k,v] of items){
   const div=document.createElement('div');div.className='card';
   const small=document.createElement('span');small.className='muted';small.textContent=k;
@@ -96,7 +99,11 @@ function renderRoleReadiness(){
  }
  host.append(cards);
  const note=document.createElement('p');note.className='note';
- note.textContent='Historical usage is from final NHL boxscores. Goalie starts and pregame injuries are NOT verified in this feed. Goalie-save props without confirmed starts stay visible as WATCHLIST, excluded from optimized research lineups. Sudden measured skater minutes shifts are also reviewed. Historical goalie minutes and per-60 saves are experimental, not a validated live model.';
+ const sourceTime=r.externalPregameCapturedAt&&Number.isFinite(Date.parse(r.externalPregameCapturedAt))?
+  new Date(r.externalPregameCapturedAt).toLocaleString():'unavailable';
+ note.textContent='ESPN source last captured: '+sourceTime+
+  ' · Source fresh (90-minute gate): '+(r.externalFeedFreshAtBuild===true?'Yes':'No/unknown')+
+  ' · ESPN-reported goalie confirmations require independent confirmation. No original NHL/team starting-goalie statements or medical clearance verified. No automated forward-line, pair or power-play source licensed. Official NHL boxscores are historical, not next-game availability.';
  host.append(note);
 }
 function renderModelEvidence(){
@@ -294,7 +301,10 @@ function render(){
   const e=p.evidence?.status;
   const risk=p.roleEvidence,reason=risk?.reasons||[];
   const role=p.researchEligibility==='watchlist'?
-   (reason.includes('STARTING_GOALIE_NOT_CONFIRMED')?'WATCHLIST: starter unknown':
+   (reason.includes('EXTERNAL_INJURY_OUT_OR_IR_REPORT')?'WATCHLIST: injury OUT/IR':
+    reason.includes('EXTERNAL_INJURY_UNCERTAIN_REPORT')?'WATCHLIST: injury uncertain':
+    reason.includes('STARTING_GOALIE_NOT_CONFIRMED')?
+     (risk?.starterStatus==='reported_confirmed'?'WATCHLIST: ESPN reports goalie confirmed':'WATCHLIST: goalie start unverified'):
     reason.includes('RECENT_ICE_TIME_SHIFT_REVIEW')?'WATCHLIST: TOI changed':'WATCHLIST: role risk'):
    (reason.includes('ICE_TIME_HISTORY_UNAVAILABLE')?'Minutes history missing':
     risk?'Historical usage only':'Role unverified');

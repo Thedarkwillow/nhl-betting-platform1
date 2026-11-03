@@ -60,6 +60,8 @@ if(fs.existsSync(raw)){
   assert.equal(data.distributionResearch.probabilityCalibrated,false);
   assert.equal(data.distributionResearch.actualPlatformSettlementVerified,false);
   assert.ok(data.distributionResearch.sourceMatchedQuoteRows>=0);
+  if(data.distributionResearch.overall?.fixedHalfBrier!=null)
+   assert.equal(data.distributionResearch.overall.fixedHalfBrier,0.25);
  }
  if(data.distributionProspectiveArchiveAudit){
   assert.ok(data.distributionProspectiveArchiveAudit.gitAndOfficialStartMatchedRows>=0);

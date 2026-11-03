@@ -9,11 +9,17 @@
 <h2>Verified pregame predictions &amp; results</h2>
 <p class="muted">Only picks recorded and committed before puck drop can count toward prospective accuracy. An upcoming game is pending, not a loss. Results come from official NHL statistics, not verified PrizePicks or Underdog settlements.</p>
 <div class="card" id="prospectiveAudit" aria-live="polite">Loading pregame forecast audit…</div>
+<h2>Model and market evidence</h2>
+<p class="muted">Adapted from our MLB research process: check a fresh exact-line sportsbook market independently from the model, flag disagreements and preserve missing-data warnings. Same-side evidence is NOT a verified edge or payout quote.</p>
+<div class="card" id="modelEvidence" aria-live="polite">Loading exact-line evidence…</div>
+<h2>Projection model comparison: champion vs challengers</h2>
+<p class="muted">Official NHL past player stats measure projection error; actual archived-line historical replay measures reconstructed Higher/Lower decisions. Neither substitutes for independently recorded pregame selections.</p>
+<div class="card" id="modelComparison">Loading historical model comparison…</div>
 <h2>Historical 2025–26 Standard / alternate line comparisons</h2>
 <p class="muted">Dated independent The Odds API PrizePicks-labelled historical markets, including goalie saves. Comparisons are not confirmation of currently available props, original special tiers, or actual payouts.</p>
 <div class="card" id="standardAlternateAudit">Loading historical line comparison quality…</div>
-<h2>Player props</h2><div class="filters"><input id="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter market"><option value="">All markets</option></select><select id="direction" aria-label="Filter direction"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select></div>
-<div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Lean</th><th>Est. hit probability*</th><th>Observations</th></tr></thead><tbody id="props"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
+<h2>Player props</h2><div class="filters"><input id="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter market"><option value="">All markets</option></select><select id="direction" aria-label="Filter direction"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select><select id="evidence" aria-label="Filter sportsbook evidence"><option value="">All evidence</option><option value="model_market_agreement">Same-side exact books</option><option value="model_market_disagreement">Opposite-side exact books</option><option value="model_only">No exact book match</option><option value="market_neutral">Neutral books</option><option value="ambiguous_market">Ambiguous book data</option></select></div>
+<div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Lean</th><th>Est. hit probability*</th><th>Observations</th><th>Book evidence</th></tr></thead><tbody id="props"><tr><td colspan="8">Loading…</td></tr></tbody></table></div>
 <h2>Optimized research lineups</h2><p class="muted">Select 2–6 picks. Standard lines only, no repeat players; 5–6 picks may include two from the same game with elevated correlation risk. No verified joint win probability or EV.</p><div class="filters"><label for="lineupSize" class="muted">Picks</label><select id="lineupSize" aria-label="Number of lineup picks"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div><p class="notice" id="lineupStatus">Loading research lineups…</p><div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Lean</th><th>Model estimate</th><th>Matchup</th></tr></thead><tbody id="lineupPicks"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
 <h2>Actual historical PrizePicks line coverage — both seasons</h2>
 <p class="muted">Independent OddsPapi PrizePicks archive, sampled pregame lines. Not sportsbook substitutes, not a full-season download, and not a graded hit-rate report.</p>
@@ -69,6 +75,55 @@ function renderProspectiveQuality(){
   ' archived game IDs recovered via exact official NHL schedule. '+
   (r.excludedNoPregameProof??0)+' snapshots excluded for insufficient pregame proof. Uncalibrated; no validated edge or platform settlement.';
  host.append(detail);
+}
+function renderModelEvidence(){
+ const host=$('modelEvidence'),s=data.evidenceSummary;
+ if(!s){host.textContent='Exact-line evidence audit has not been published yet. Uncalibrated model research only.';return;}
+ host.replaceChildren();
+ const boxes=document.createElement('div');boxes.className='microcards';
+ const fields=[['Saved player props',s.totalProps??0],
+  ['Same-side exact books',s.agree??0],
+  ['Opposite-side exact books',s.disagree??0],
+  ['Any exact book quote',s.exactBookMatch??0]];
+ for(const [name,value] of fields){const a=document.createElement('div');a.className='card';
+  const small=document.createElement('span');small.className='muted';small.textContent=name;
+  const big=document.createElement('strong');big.textContent=String(value);
+  a.append(small,big);boxes.append(a);}
+ host.append(boxes);
+ const p=document.createElement('p');p.className='note';
+ p.textContent='No exact match does not mean a bookmaker disagrees; comparison coverage may be missing or stale. Identical model and bookmaker directions do not verify an edge. All published props remain uncalibrated research. Use the evidence filter on the props table to inspect.';
+ host.append(p);
+}
+function renderModelComparison(){
+ const host=$('modelComparison'),r=data.historicalModelResearch;
+ if(!r){host.textContent='Two-season champion/challenger audit is not yet published or its archive provenance does not match. Live model remains weighted-form-v1.';return;}
+ host.replaceChildren();
+ const intro=document.createElement('p');intro.className='note';
+ intro.textContent='Live champion: '+r.championModel+
+  ' · Research shadows: '+(r.challengers||[]).join(', ')+
+  ' · Past-only official NHL statistical evaluations: '+(r.trainingObservations??0)+
+  ' training and '+(r.holdoutObservations??0)+' holdout observations. Challengers are NOT approved for live promotion.';
+ host.append(intro);
+ const table=document.createElement('table');table.style.minWidth='540px';
+ const header=document.createElement('thead'),headRow=document.createElement('tr');
+ ['Historical season','Model','Official-result decisions','Correct','Reconstructed hit rate'].forEach(v=>{const th=document.createElement('th');th.textContent=v;headRow.append(th);});
+ header.append(headRow);table.append(header);
+ const body=document.createElement('tbody');
+ const names=[['weighted-form-v1','Current'],['stable-shrink-v2','Shrinkage'],['prior-mean','Past average']];
+ for(const season of ['2025-26','2026-27'])for(const [key,label] of names){
+  const v=r.retrospectiveBySeason?.[season]?.[key];if(!v)continue;
+  const row=document.createElement('tr');
+  [season,label,v.decisions,v.correct,pct(v.retrospectiveRate)].forEach(x=>cell(row,x));
+  body.append(row);
+ }
+ table.append(body);
+ const wrap=document.createElement('div');wrap.className='table-wrap';wrap.style.marginTop='12px';wrap.append(table);host.append(wrap);
+ const mae=document.createElement('p');mae.className='note';
+ const improvements=Object.entries(r.marketMAE||{}).filter(([,v])=>Number.isFinite(v.championMAE)&&Number.isFinite(v.stableShrinkMAE))
+  .map(([market,v])=>market+': '+v.championMAE.toFixed(3)+' → '+v.stableShrinkMAE.toFixed(3)).join(' · ');
+ mae.textContent='2025–26 holdout raw-stat mean absolute error, current → shrinkage (lower is better): '+(improvements||'not available')+
+  '. Lower error does not imply better prop hit rate. Sampled archives and player markets are correlated; always-Lower 2026–27 historical baseline: '+pct(r.holdoutAlwaysLowerRate)+'. No actual settled payout or prospectively verified challenger advantage.';
+ host.append(mae);
 }
 function renderStandardAlternateAudit(){
  const host=$('standardAlternateAudit'),d=data.historicalStandardAlternateResearch;
@@ -207,10 +262,17 @@ function renderLineup(){
 }
 
 function render(){
- const q=$('search').value.toLowerCase().trim(),tier=$('tier').value,market=$('market').value,dir=$('direction').value;
- const list=data.props.filter(p=>(!q||(p.player+' '+p.team).toLowerCase().includes(q))&&(!tier||p.tier===tier)&&(!market||p.market===market)&&(!dir||p.lean===dir));
+ const q=$('search').value.toLowerCase().trim(),tier=$('tier').value,market=$('market').value,dir=$('direction').value,ev=$('evidence').value;
+ const list=data.props.filter(p=>(!q||(p.player+' '+p.team).toLowerCase().includes(q))&&(!tier||p.tier===tier)&&(!market||p.market===market)&&(!dir||p.lean===dir)&&(!ev||p.evidence?.status===ev));
  const body=$('props');body.replaceChildren();
- for(const p of list.slice(0,300)){const tr=document.createElement('tr');[p.player+' ('+p.team+')',p.market,p.line,p.tier,p.lean,pct(p.probability),p.observations].forEach(v=>cell(tr,v));body.append(tr);}
+ const evidenceName={model_market_agreement:'Same-side exact books',model_market_disagreement:'Opposite-side books',
+  model_only:'No exact book match',market_neutral:'Market neutral',ambiguous_market:'Ambiguous books'};
+ for(const p of list.slice(0,300)){const tr=document.createElement('tr');
+  const e=p.evidence?.status;
+  [p.player+' ('+p.team+')',p.market,p.line,p.tier,p.lean,pct(p.probability),
+   p.observations,(evidenceName[e]||'Unverified')+(p.evidence?.books?' ('+p.evidence.books+')':'')].forEach(v=>cell(tr,v));
+  if(p.evidence?.notes?.length)tr.title=p.evidence.notes.join(' · ');
+  body.append(tr);}
  if(!list.length){const tr=document.createElement('tr');cell(tr,'No matching props in saved snapshot');body.append(tr);}
 }
 async function init(){
@@ -223,8 +285,8 @@ async function init(){
  const body=$('comparisons');body.replaceChildren();
  for(const p of [...data.comparisons].sort((a,b)=>b.absoluteModelMarketGap-a.absoluteModelMarketGap).slice(0,100)){const tr=document.createElement('tr');[p.player,p.market,p.line,p.tier,pct(p.modelHigher),pct(p.sportsbookHigher),pct(p.absoluteModelMarketGap),(p.books||[]).join(', ')].forEach(v=>cell(tr,v));body.append(tr);}
  if(!data.comparisons.length){const tr=document.createElement('tr');cell(tr,'No verified exact-line comparisons in this snapshot');body.append(tr);}
- render();renderLineup();renderProspectiveQuality();renderStandardAlternateAudit();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderFullNhlCoverage();renderIndependentNhlGrading();renderIndependentTierEvidence();renderPPModel();
+ render();renderLineup();renderProspectiveQuality();renderModelEvidence();renderModelComparison();renderStandardAlternateAudit();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderFullNhlCoverage();renderIndependentNhlGrading();renderIndependentTierEvidence();renderPPModel();
  }catch(e){$('updated').textContent='Dashboard data unavailable: '+e.message;$('props').textContent='No data available';$('comparisons').textContent='No data available';}
 }
-['search','tier','market','direction'].forEach(id=>$(id).addEventListener('input',render));$('lineupSize').addEventListener('change',renderLineup);init();
+['search','tier','market','direction','evidence'].forEach(id=>$(id).addEventListener('input',render));$('lineupSize').addEventListener('change',renderLineup);init();
 </script></body></html>

@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T21:14:27.687Z",
+  "builtAt": "2026-11-03T21:17:53.809Z",
   "researchAt": "2026-11-02T01:00:29.953Z",
   "boardAt": "2026-11-02T01:00:29.864Z",
   "comparisonAt": null,
@@ -142,7 +142,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T21:14:27.619Z",
+    "generatedAt": "2026-11-03T21:17:53.761Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,
@@ -992,10 +992,10 @@
   },
   "roleContextAudit": {
     "source": "official_NHL_final_gamecenter_boxscore",
-    "updatedAt": "2026-11-03T01:21:02.563Z",
-    "historicalGameRows": 4440,
-    "withOfficialTOI": 4440,
-    "historicalGoalieRows": 444,
+    "updatedAt": "2026-11-03T21:17:27.279Z",
+    "historicalGameRows": 4600,
+    "withOfficialTOI": 4600,
+    "historicalGoalieRows": 460,
     "pregameGoalieStartersConfirmed": false,
     "pregameInjuriesVerified": false,
     "watchlistProps": 0,

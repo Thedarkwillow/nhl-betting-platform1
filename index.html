@@ -6,8 +6,8 @@
 <div class="warning"><b>Research only.</b> Probabilities are uncalibrated estimates, not verified hit rates. Props and lines may have changed or disappeared. No wagers are recommended.</div>
 <div class="cards"><div class="card">Research props<strong id="propCount">—</strong></div><div class="card">Sportsbook matches<strong id="matchCount">—</strong></div><div class="card">Source coverage<strong id="coverage">—</strong></div><div class="card">Research freshness<strong id="freshness">—</strong></div></div>
 <p class="notice" id="updated">Loading saved data…</p>
-<h2>Verified pregame predictions &amp; results</h2>
-<p class="muted">Only picks recorded and committed before puck drop can count toward prospective accuracy. An upcoming game is pending, not a loss. Results come from official NHL statistics, not verified PrizePicks or Underdog settlements.</p>
+<h2>Frozen optimizer selections &amp; verified NHL results</h2>
+<p class="muted">Only directions actually selected in an original pregame Git-frozen 2–6 pick research lineup may enter the model hit-rate score. Available Higher and Lower offer sides are NOT predictions. Pending results are not losses, and official NHL boxscores are not verified PrizePicks or Underdog settlements.</p>
 <div class="card" id="prospectiveAudit" aria-live="polite">Loading pregame forecast audit…</div>
 <h2>Model and market evidence</h2>
 <p class="muted">Adapted from our MLB research process: check a fresh exact-line sportsbook market independently from the model, flag disagreements and preserve missing-data warnings. Same-side evidence is NOT a verified edge or payout quote.</p>
@@ -151,18 +151,16 @@ function renderProspectiveQuality(){
   div.append(small,strong);cards.append(div);}
  host.append(cards);
  const detail=document.createElement('p');detail.className='note';
- const status=r.pendingReasons;
- const pending=status?' · Upcoming '+status.notStarted+' · Playing/not final '+status.liveOrPendingFinal+
-  ' · Final but missing stats '+status.finalWithoutPlayerStats+' · Unknown official state '+status.unknownOfficialStatus:
-  ' · Pending cause awaiting next grading cycle';
- const score=r.gradedDecisions>0&&Number.isFinite(r.verifiedProspectiveHitRate)?
-  'Model direction accuracy '+pct(r.verifiedProspectiveHitRate)+' on '+r.gradedDecisions+
-  ' pregame decisions · Always Lower '+pct(r.alwaysLowerBaseline)+
-  ' · Always Higher '+pct(r.alwaysHigherBaseline):
-  'Verified prospective direction hit rate: not yet available';
- detail.textContent=score+pending+'. '+(r.recoveredGameIdentities??0)+
-  ' archived game IDs recovered via exact official NHL schedule. '+
-  (r.excludedNoPregameProof??0)+' snapshots excluded for insufficient pregame proof. Uncalibrated; no validated edge or platform settlement.';
+ const score=r.accuracySource==='first_git_frozen_pregame_optimizer_directions_only'&&
+   r.gradedDecisions>0&&Number.isFinite(r.verifiedProspectiveHitRate)?
+  'Frozen optimizer-selected direction rate '+pct(r.verifiedProspectiveHitRate)+
+   ' on '+r.gradedDecisions+' distinct pregame selections · Always Lower on same selections '+
+   pct(r.alwaysLowerBaseline)+' · Always Higher '+pct(r.alwaysHigherBaseline):
+  'Model-selected direction hit rate: not yet verified';
+ detail.textContent=score+'. '+(r.rawOfferedSideDecisions??0)+
+  ' raw Higher/Lower offer-side outcomes were archived separately and do not count as model picks. '+
+  'The first proven pregame selection per exact player/game/line is counted only once, including when repeated across 2–6 pick lineups. '+
+  'Outcomes are official NHL boxscores, not fantasy-platform settlements. Estimated probabilities are uncalibrated; picks can be correlated and no profitable edge is verified.';
  host.append(detail);
 }
 function renderApprovedSourceGrading(){

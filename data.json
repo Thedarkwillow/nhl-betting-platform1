@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-03T04:42:38.463Z",
+  "builtAt": "2026-11-03T04:42:56.845Z",
   "researchAt": "2026-11-03T02:24:03.963Z",
   "boardAt": "2026-11-03T02:24:00.691Z",
-  "comparisonAt": "2026-11-03T04:42:38.463Z",
+  "comparisonAt": "2026-11-03T04:42:56.845Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -76738,7 +76738,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T04:42:38.396Z",
+    "generatedAt": "2026-11-03T04:42:56.779Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,
@@ -76856,7 +76856,7 @@
     "warning": "Only Git-frozen pregame forecasts matched to official NHL FINAL stats are scored; missing games/players remain pending or excluded. Brier, MAE and log loss are experimental and do not establish reliable betting probabilities, settled payouts or profitability."
   },
   "approvedSourceResearch": {
-    "sourceCapturedAt": "2026-11-03T04:38:54.937Z",
+    "sourceCapturedAt": "2026-11-03T04:42:19.616Z",
     "lastObservedMoneyPuck": {
       "skaters": "Tue, 03 Nov 2026 04:31:07 GMT",
       "goalies": "Tue, 03 Nov 2026 04:31:07 GMT",

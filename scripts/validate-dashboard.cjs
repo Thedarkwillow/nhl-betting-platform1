@@ -13,6 +13,9 @@ assert.match(found[1],/if\(!researchIsFresh\(\)\)/,"Stale lineups must fail clos
 assert.match(found[1],/original|unverified|Uncalibrated|uncalibrated/i);
 assert.match(found[1],/model_market_disagreement/,"Must display opposing sportsbook market signal");
 assert.match(found[1],/STARTING_GOALIE_NOT_CONFIRMED/,"Unconfirmed goalie starters must be visibly flagged");
+assert.match(found[1],/EXTERNAL_INJURY_OUT_OR_IR_REPORT/,"Source-reported injury OUT must be visible and watchlisted");
+assert.match(found[1],/reported_confirmed/,"ESPN confirmation label must remain source-attributed");
+assert.match(found[1],/externalFeedFreshAtBuild/,"NHL pregame intel must show freshness guard");
 assert.match(found[1],/prospective|retrospective/i,"Must distinguish historic from prospective model evidence");
 const raw=path.resolve(__dirname,"../data.json");
 if(fs.existsSync(raw)){
@@ -26,6 +29,9 @@ if(fs.existsSync(raw)){
   if(p.gradedDecisions===0)assert.equal(p.verifiedProspectiveHitRate,null);
  }
  if(data.roleContextAudit){
+  assert.equal(data.roleContextAudit.independentTeamStarterConfirmationVerified??false,false);
+  assert.equal(data.roleContextAudit.externalCommercialLicenseVerified??false,false);
+  assert.equal(data.roleContextAudit.lineCombinationAndPowerPlayVerified??false,false);
   assert.equal(data.roleContextAudit.pregameGoalieStartersConfirmed,false);
   assert.equal(data.roleContextAudit.pregameInjuriesVerified,false);
   assert.ok(data.roleContextAudit.withOfficialTOI>=0);

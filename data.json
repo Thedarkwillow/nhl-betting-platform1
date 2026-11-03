@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T05:14:31.905Z",
+  "builtAt": "2026-11-03T05:32:12.136Z",
   "researchAt": "2026-11-03T02:24:03.963Z",
   "boardAt": "2026-11-03T02:24:00.691Z",
   "comparisonAt": null,
@@ -76629,6 +76629,10 @@
       "warning": "Not a betting recommendation. No validated joint probability, no verified lineup-specific payout quote. Confirm all platform restrictions independently."
     }
   },
+  "featuredIndividualProps": [],
+  "featuredPropsSourceFresh": false,
+  "featuredPropsPolicy": "nhl-individual-prop-max-available-direction-v1",
+  "featuredPropsInfo": "Explicitly archived individual model preferences, not validated betting recommendations. Original platform availability, tier payouts and expected value unverified.",
   "evidenceSummary": {
     "totalProps": 786,
     "counts": {
@@ -76738,7 +76742,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T05:14:31.834Z",
+    "generatedAt": "2026-11-03T05:32:12.064Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,

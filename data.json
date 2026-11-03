@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T06:21:36.351Z",
+  "builtAt": "2026-11-03T06:21:59.208Z",
   "researchAt": "2026-11-03T02:24:03.963Z",
   "boardAt": "2026-11-03T02:24:00.691Z",
   "comparisonAt": null,
@@ -76742,7 +76742,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T06:21:36.296Z",
+    "generatedAt": "2026-11-03T06:21:59.117Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,
@@ -76887,7 +76887,7 @@
     "warning": "MoneyPuck season-to-date CSV and DFO projected lines are privately cached for uncalibrated research; their sources are user-approved but commercial redistribution terms are not documented in this repository. Research shadow never changes live NHL picks. No historical outcome reuse from postgame season summaries."
   },
   "distributionResearch": {
-    "generatedAt": "2026-11-03T05:32:12.370Z",
+    "generatedAt": "2026-11-03T06:21:34.903Z",
     "sourceMatchedQuoteRows": 220,
     "overall": {
       "decisions": 220,
@@ -78396,7 +78396,7 @@
     "warning": "Research-only retrospective selection using archived sportsbook closing lines and official results. Not actual historical PrizePicks lines. Missing lines and post-selection bias limit generalization. No verified payouts or lineup EV."
   },
   "grading": {
-    "generatedAt": "2026-11-03T05:14:15.599Z",
+    "generatedAt": "2026-11-03T06:21:38.027Z",
     "rawOfferedSidesGraded": 708,
     "rawOfferedSidesDecided": 706,
     "rawOfferedSideCorrectRate": 0.3087818696883853,
@@ -78408,7 +78408,7 @@
     "originalPlatformSettlementsVerified": false
   },
   "prospectiveResearchAudit": {
-    "generatedAt": "2026-11-03T05:14:15.599Z",
+    "generatedAt": "2026-11-03T06:21:38.027Z",
     "source": "archived_pregame_research_snapshots_and_official_NHL_boxscores",
     "accuracySource": "explicit_git_frozen_individual_prop_policy_v1",
     "capturedRankedRows": 4214,
@@ -78427,7 +78427,26 @@
     "alwaysHigherBaseline": null,
     "individualByTier": {},
     "individualByMarket": {},
-    "prospectiveReliability": null,
+    "prospectiveReliability": {
+      "decided": 0,
+      "distinctGames": 0,
+      "observedRate": null,
+      "wilson95": {
+        "lower": null,
+        "upper": null,
+        "rate": null,
+        "n": 0
+      },
+      "gameClusterBootstrap95": null,
+      "observedMeanModelProbability": null,
+      "brier": null,
+      "logLoss": null,
+      "provisionalSampleGateSatisfied": false,
+      "independentlyVerifiedPositiveReturn": false,
+      "platformSettlementsVerified": false,
+      "modelCalibrationApproved": false,
+      "warning": "Prospective directional skill and probability diagnostics only. Clustered uncertainty is grouped by NHL game; model winning probabilities and payout-adjusted returns are not verified."
+    },
     "legacyReconstructed": {
       "firstPregameProbabilityVectorPolicyAppliedAfterOutcomes": true,
       "selectedUniqueProps": 348,

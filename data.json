@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T15:22:03.317Z",
+  "builtAt": "2026-11-03T20:37:06.079Z",
   "researchAt": "2026-11-02T01:00:29.953Z",
   "boardAt": "2026-11-02T01:00:29.864Z",
   "comparisonAt": null,
@@ -142,7 +142,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T15:22:03.247Z",
+    "generatedAt": "2026-11-03T20:37:06.030Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,
@@ -287,7 +287,7 @@
     "warning": "MoneyPuck season-to-date CSV and DFO projected lines are privately cached for uncalibrated research; their sources are user-approved but commercial redistribution terms are not documented in this repository. Research shadow never changes live NHL picks. No historical outcome reuse from postgame season summaries."
   },
   "distributionResearch": {
-    "generatedAt": "2026-11-03T06:21:34.903Z",
+    "generatedAt": "2026-11-03T20:36:24.787Z",
     "sourceMatchedQuoteRows": 220,
     "overall": {
       "decisions": 220,
@@ -1036,7 +1036,7 @@
     }
   ],
   "independentNhlOfficialOutcomeGrading": {
-    "generatedAt": "2026-11-03T12:51:01.000Z",
+    "generatedAt": "2026-11-03T20:09:01.136Z",
     "targetGamesWithCloses": 870,
     "gamesWithOfficialBoxscore": 870,
     "remainingGames": 0,
@@ -1940,14 +1940,14 @@
     "warning": "Standalone individual NHL prop preferences are graded without requiring lineup membership. Only a direction explicitly selected in an immutable pregame snapshot enters the prospective model rate. Earlier frozen probability vectors evaluated using a later-written policy are exploratory retrospective reconstruction and cannot be advertised as precommitted picks. Raw offered Higher/Lower sides are not predictions. Payouts, calibration and fantasy-platform settlements remain unverified."
   },
   "historicalStandardAlternateResearch": {
-    "generatedAt": "2026-11-02T20:49:16.792Z",
+    "generatedAt": "2026-11-03T18:29:11.162Z",
     "season": "2025-26",
     "source": "The Odds API independent PrizePicks-labelled historical archive",
-    "gameSnapshotsEligible": 51,
-    "eventSnapshotsCompleted": 3,
-    "quoteRecords": 596,
-    "standardAlternatePairs": 131,
-    "unmatchedAlternateRecords": 359,
+    "gameSnapshotsEligible": 66,
+    "eventSnapshotsCompleted": 5,
+    "quoteRecords": 916,
+    "standardAlternatePairs": 175,
+    "unmatchedAlternateRecords": 586,
     "savedMarketCategories": [
       {
         "market": "player_assists",
@@ -1955,54 +1955,58 @@
       },
       {
         "market": "player_assists_alternate",
-        "count": 58
+        "count": 103
       },
       {
         "market": "player_blocked_shots",
-        "count": 14
+        "count": 20
       },
       {
         "market": "player_blocked_shots_alternate",
-        "count": 15
+        "count": 39
       },
       {
         "market": "player_goals_alternate",
-        "count": 92
+        "count": 154
       },
       {
         "market": "player_points_alternate",
-        "count": 120
+        "count": 153
       },
       {
         "market": "player_shots_on_goal",
-        "count": 54
+        "count": 74
       },
       {
         "market": "player_shots_on_goal_alternate",
-        "count": 170
+        "count": 262
       },
       {
         "market": "player_total_saves",
-        "count": 14
+        "count": 21
       },
       {
         "market": "player_total_saves_alternate",
-        "count": 35
+        "count": 50
       },
       {
         "market": "player_points",
-        "count": 16
+        "count": 30
+      },
+      {
+        "market": "player_goals",
+        "count": 2
       }
     ],
-    "goalieStandardSaves": 14,
-    "goalieAlternateSaves": 35,
-    "totalCreditsUsedByAllMarketCollector": 344,
-    "fallGamesChecked": 47,
-    "fallAlternateQuotes": 2033,
+    "goalieStandardSaves": 21,
+    "goalieAlternateSaves": 50,
+    "totalCreditsUsedByAllMarketCollector": 516,
+    "fallGamesChecked": 62,
+    "fallAlternateQuotes": 2719,
     "tierIndicators": {
       "Standard": 0,
-      "Goblin": 635,
-      "Demon": 1574,
+      "Goblin": 839,
+      "Demon": 2056,
       "Unclassified": 0
     },
     "originalTierVerified": false,

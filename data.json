@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-03T03:42:36.378Z",
+  "builtAt": "2026-11-03T03:42:52.879Z",
   "researchAt": "2026-11-03T02:24:03.963Z",
   "boardAt": "2026-11-03T02:24:00.691Z",
-  "comparisonAt": "2026-11-03T03:42:36.378Z",
+  "comparisonAt": "2026-11-03T03:42:52.879Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -76737,7 +76737,38 @@
     "calibrated": false,
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
-  "approvedSourceScorecard": null,
+  "approvedSourceScorecard": {
+    "generatedAt": "2026-11-03T03:42:37.009Z",
+    "sourceSnapshots": 1,
+    "verifiedOfficialFinalDecisions": 0,
+    "matchedOfficialGames": 0,
+    "pendingRows": 424,
+    "excludedRows": 8,
+    "reasons": {
+      "duplicate_within_snapshot": 8
+    },
+    "brier": {
+      "champion": null,
+      "shadow": null,
+      "neutral": null
+    },
+    "mae": {
+      "champion": null,
+      "shadow": null
+    },
+    "logLoss": {
+      "champion": null,
+      "shadow": null,
+      "neutral": null
+    },
+    "byMarket": {},
+    "modelPromoted": false,
+    "calibrationVerified": false,
+    "originalPlatformOfferAuthenticated": false,
+    "platformSettlementVerified": false,
+    "independentServerPushReceiptVerified": false,
+    "warning": "Only Git-frozen pregame forecasts matched to official NHL FINAL stats are scored; missing games/players remain pending or excluded. Brier, MAE and log loss are experimental and do not establish reliable betting probabilities, settled payouts or profitability."
+  },
   "approvedSourceResearch": {
     "sourceCapturedAt": "2026-11-03T03:22:42.623Z",
     "lastObservedMoneyPuck": {
@@ -76766,7 +76797,7 @@
     "warning": "MoneyPuck season-to-date CSV and DFO projected lines are privately cached for uncalibrated research; their sources are user-approved but commercial redistribution terms are not documented in this repository. Research shadow never changes live NHL picks. No historical outcome reuse from postgame season summaries."
   },
   "distributionResearch": {
-    "generatedAt": "2026-11-03T03:22:44.512Z",
+    "generatedAt": "2026-11-03T03:42:35.571Z",
     "sourceMatchedQuoteRows": 220,
     "overall": {
       "decisions": 220,

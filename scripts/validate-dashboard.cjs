@@ -5,9 +5,9 @@ const found=html.match(/<script>([\s\S]*?)<\/script>/i);
 assert.ok(found,"NHL page must contain an inline dashboard script");
 new vm.Script(found[1],{filename:"nhl-public-dashboard.inline.js"});
 const ids=["prospectiveAudit","standardAlternateAudit","modelEvidence","modelComparison","countDistributionLab","roleReadiness","evidence","lineupStatus","lineupPicks",
- "matchupSources","matchupDetails","props","comparisons","freshness","updated"];
+ "matchupSources","approvedResearchLab","matchupDetails","props","comparisons","freshness","updated"];
 for(const id of ids)assert.ok(html.includes('id="'+id+'"'),"Missing required accessible dashboard region: "+id);
-for(const fn of ["renderProspectiveQuality","renderStandardAlternateAudit","renderModelEvidence","renderModelComparison","renderCountDistributionResearch","renderRoleReadiness","renderMatchupSources","renderMatchupDetail","researchIsFresh"])
+for(const fn of ["renderProspectiveQuality","renderStandardAlternateAudit","renderModelEvidence","renderModelComparison","renderCountDistributionResearch","renderRoleReadiness","renderMatchupSources","renderApprovedResearchLab","renderMatchupDetail","researchIsFresh"])
  assert.ok(found[1].includes("function "+fn+"("),"Missing essential data/status renderer "+fn);
 assert.match(found[1],/if\(!researchIsFresh\(\)\)/,"Stale lineups must fail closed");
 assert.match(found[1],/original|unverified|Uncalibrated|uncalibrated/i);
@@ -38,6 +38,13 @@ if(fs.existsSync(raw)){
   assert.equal(data.roleContextAudit.pregameGoalieStartersConfirmed,false);
   assert.equal(data.roleContextAudit.pregameInjuriesVerified,false);
   assert.ok(data.roleContextAudit.withOfficialTOI>=0);
+ }
+ if(data.approvedSourceResearch){
+  assert.equal(data.approvedSourceResearch.shotQualityProbabilitiesDeployed,false);
+  assert.equal(data.approvedSourceResearch.writtenCommercialTermsVerified,false);
+  assert.equal(data.approvedSourceResearch.prospectiveModelAccuracyEstablished,false);
+  assert.equal(data.approvedSourceResearch.originalExactPlatformSettlementVerified,false);
+  assert.ok(data.approvedSourceResearch.shadowCandidateRows>=0);
  }
  if(data.matchupResearch){
   assert.equal(data.matchupResearch.sources?.length,5);

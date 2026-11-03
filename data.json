@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T06:21:59.208Z",
+  "builtAt": "2026-11-03T07:00:40.771Z",
   "researchAt": "2026-11-03T02:24:03.963Z",
   "boardAt": "2026-11-03T02:24:00.691Z",
   "comparisonAt": null,
@@ -76742,7 +76742,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T06:21:59.117Z",
+    "generatedAt": "2026-11-03T07:00:40.703Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,

@@ -1,0 +1,25 @@
+name: Smoke Live NHL Dashboard
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/smoke-live-dashboard.cjs'
+      - '.github/workflows/smoke-live-dashboard.yml'
+  workflow_run:
+    workflows: ['Publish NHL Dashboard']
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  live:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Fetch deployed GitHub Pages HTML and published analytics JSON
+        run: node scripts/smoke-live-dashboard.cjs

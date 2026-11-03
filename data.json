@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T20:37:06.079Z",
+  "builtAt": "2026-11-03T20:59:56.475Z",
   "researchAt": "2026-11-02T01:00:29.953Z",
   "boardAt": "2026-11-02T01:00:29.864Z",
   "comparisonAt": null,
@@ -142,7 +142,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T20:37:06.030Z",
+    "generatedAt": "2026-11-03T20:59:56.407Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,
@@ -1097,12 +1097,12 @@
     "warning": "Current NHL boxscore-derived directions are not confirmed original PrizePicks settled outcomes (DNP, Reboot, corrections). Backtests reconstruct choices using past game stats; NOT pre-published model predictions or validated profits."
   },
   "independentPrizePicksTierEvidence": {
-    "generatedAt": "2026-11-02T23:05:23.159Z",
-    "independentPregameTierObservations": 3749,
+    "generatedAt": "2026-11-03T20:56:05.944Z",
+    "independentPregameTierObservations": 6433,
     "counts": {
-      "standard": 253,
-      "goblin": 496,
-      "demon": 3000
+      "standard": 349,
+      "goblin": 984,
+      "demon": 5100
     },
     "exactPayoutMultipliersVerified": 0,
     "firstProviderCaptureDate": "2026-10-28",
@@ -1118,7 +1118,7 @@
         "originalOfferTierEvidence": "not_established_from_independent_SGO_closes"
       },
       "2026-27": {
-        "independentTierObservations": 3749,
+        "independentTierObservations": 6433,
         "coverageComplete": false
       }
     },
@@ -1796,7 +1796,7 @@
     "warning": "Research-only retrospective selection using archived sportsbook closing lines and official results. Not actual historical PrizePicks lines. Missing lines and post-selection bias limit generalization. No verified payouts or lineup EV."
   },
   "grading": {
-    "generatedAt": "2026-11-03T14:42:48.474Z",
+    "generatedAt": "2026-11-03T20:59:25.485Z",
     "rawOfferedSidesGraded": 708,
     "rawOfferedSidesDecided": 706,
     "rawOfferedSideCorrectRate": 0.3087818696883853,
@@ -1808,7 +1808,7 @@
     "originalPlatformSettlementsVerified": false
   },
   "prospectiveResearchAudit": {
-    "generatedAt": "2026-11-03T14:42:48.474Z",
+    "generatedAt": "2026-11-03T20:59:25.485Z",
     "source": "archived_pregame_research_snapshots_and_official_NHL_boxscores",
     "accuracySource": "explicit_git_frozen_individual_prop_policy_v1",
     "capturedRankedRows": 4214,

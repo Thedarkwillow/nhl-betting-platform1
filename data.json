@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T05:32:12.136Z",
+  "builtAt": "2026-11-03T05:32:33.822Z",
   "researchAt": "2026-11-03T02:24:03.963Z",
   "boardAt": "2026-11-03T02:24:00.691Z",
   "comparisonAt": null,
@@ -76742,7 +76742,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T05:32:12.064Z",
+    "generatedAt": "2026-11-03T05:32:33.742Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,
@@ -76887,7 +76887,7 @@
     "warning": "MoneyPuck season-to-date CSV and DFO projected lines are privately cached for uncalibrated research; their sources are user-approved but commercial redistribution terms are not documented in this repository. Research shadow never changes live NHL picks. No historical outcome reuse from postgame season summaries."
   },
   "distributionResearch": {
-    "generatedAt": "2026-11-03T05:11:30.617Z",
+    "generatedAt": "2026-11-03T05:32:12.370Z",
     "sourceMatchedQuoteRows": 220,
     "overall": {
       "decisions": 220,

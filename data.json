@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T00:57:40.195Z",
+  "builtAt": "2026-11-03T00:58:27.563Z",
   "researchAt": "2026-11-02T01:00:29.953Z",
   "boardAt": "2026-11-02T01:00:29.864Z",
   "comparisonAt": "2026-11-03T00:57:22.718Z",
@@ -30,6 +30,112 @@
     "4": null,
     "5": null,
     "6": null
+  },
+  "evidenceSummary": {
+    "totalProps": 0,
+    "counts": {},
+    "agree": 0,
+    "disagree": 0,
+    "exactBookMatch": 0,
+    "verifiedBettingPicks": 0,
+    "note": "Evidence classification, not model confidence, calibrated accuracy or a recommendation to wager."
+  },
+  "historicalModelResearch": {
+    "trainingSeason": "2024-25",
+    "holdoutSeason": "2025-26",
+    "trainingObservations": 33824,
+    "holdoutObservations": 41388,
+    "marketMAE": {
+      "shotsOnGoal": {
+        "holdoutRows": 9377,
+        "championMAE": 1.238012,
+        "stableShrinkMAE": 1.203774,
+        "improvement": 0.034238
+      },
+      "goals": {
+        "holdoutRows": 10157,
+        "championMAE": 0.336624,
+        "stableShrinkMAE": 0.334335,
+        "improvement": 0.002289
+      },
+      "assists": {
+        "holdoutRows": 10157,
+        "championMAE": 0.496717,
+        "stableShrinkMAE": 0.489958,
+        "improvement": 0.006759
+      },
+      "points": {
+        "holdoutRows": 9377,
+        "championMAE": 0.667639,
+        "stableShrinkMAE": 0.653359,
+        "improvement": 0.01428
+      },
+      "blockedShots": {
+        "holdoutRows": 1637,
+        "championMAE": 0.997608,
+        "stableShrinkMAE": 0.987585,
+        "improvement": 0.010023
+      },
+      "saves": {
+        "holdoutRows": 683,
+        "championMAE": 5.844536,
+        "stableShrinkMAE": 5.785416,
+        "improvement": 0.05912
+      }
+    },
+    "archivedLines": 222,
+    "retrospectiveBySeason": {
+      "2025-26": {
+        "weighted-form-v1": {
+          "decisions": 66,
+          "correct": 33,
+          "retrospectiveRate": 0.5,
+          "brierScore": 0.2578333397606061
+        },
+        "stable-shrink-v2": {
+          "decisions": 66,
+          "correct": 34,
+          "retrospectiveRate": 0.5151515151515151,
+          "brierScore": 0.2536683570969697
+        },
+        "prior-mean": {
+          "decisions": 66,
+          "correct": 35,
+          "retrospectiveRate": 0.5303030303030303,
+          "brierScore": 0.2545947863924242
+        }
+      },
+      "2026-27": {
+        "weighted-form-v1": {
+          "decisions": 156,
+          "correct": 72,
+          "retrospectiveRate": 0.46153846153846156,
+          "brierScore": 0.2820041505583333
+        },
+        "stable-shrink-v2": {
+          "decisions": 156,
+          "correct": 70,
+          "retrospectiveRate": 0.44871794871794873,
+          "brierScore": 0.26769748011858974
+        },
+        "prior-mean": {
+          "decisions": 156,
+          "correct": 76,
+          "retrospectiveRate": 0.48717948717948717,
+          "brierScore": 0.26190030583269225
+        }
+      }
+    },
+    "holdoutAlwaysLowerRate": 0.5448717948717948,
+    "championModel": "weighted-form-v1",
+    "challengers": [
+      "stable-shrink-v2",
+      "prior-mean-v2"
+    ],
+    "prospectiveModelAccuracyVerified": false,
+    "alternativePromoted": false,
+    "calibrated": false,
+    "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "officialNhlSeasonSchedules": [
     {

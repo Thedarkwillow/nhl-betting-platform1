@@ -2,7 +2,7 @@ name: Validate Public NHL Dashboard
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 'feature/**']
     paths:
       - 'index.html'
       - 'data.json'

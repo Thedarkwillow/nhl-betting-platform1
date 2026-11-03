@@ -177,6 +177,7 @@ function renderCountDistributionResearch(){
  const cards=document.createElement('div');cards.className='microcards';
  const stats=[['Actual archived quote decisions',r.sourceMatchedQuoteRows??0],
    ['Games sampled',r.overall?.distinctGames??0],
+   ['Simple 50/50 baseline Brier',Number.isFinite(r.overall?.fixedHalfBrier)?r.overall.fixedHalfBrier.toFixed(4):'0.2500'],
    ['Poisson historical Brier',Number.isFinite(r.overall?.championBrier)?r.overall.championBrier.toFixed(4):'Unavailable'],
    ['NB historical Brier',Number.isFinite(r.overall?.challengerBrier)?r.overall.challengerBrier.toFixed(4):'Unavailable'],
    ['Poisson log loss',Number.isFinite(r.overall?.championLogLoss)?r.overall.championLogLoss.toFixed(4):'Unavailable'],
@@ -193,7 +194,12 @@ function renderCountDistributionResearch(){
  const interval=r.gameClusterDifferenceInterval;
  const range=interval&&Number.isFinite(interval.lower95)&&Number.isFinite(interval.upper95)?
   ' Game-cluster bootstrap interval for improvement: '+interval.lower95.toFixed(4)+' to '+interval.upper95.toFixed(4)+'.':'';
- note.textContent='Historical Brier improvement (positive favors challenger): '+delta+'.'+range+
+ const neutral=r.overall?.fixedHalfBrier??.25;
+ const challenger=r.overall?.challengerBrier;
+ const fallbackNotice=Number.isFinite(challenger)&&challenger>=neutral?
+  ' IMPORTANT: even the improved NB challenger performs WORSE than the simple 50/50 Brier baseline on this archive. It must not be promoted or treated as calibrated.':
+  ' Performance against the 50/50 baseline remains small-sample, retrospective and unverified.';
+ note.textContent='Historical Brier improvement (positive favors challenger): '+delta+'.'+range+fallbackNotice+
   ' All observations are retrospectively reconstructed from a small, selected quote sample. Goalie/shot variance may change as players change roles. No held-out prospective model promotion, expected-value or confirmed platform settlement.';
  host.append(note);
  const frozen=document.createElement('p');frozen.className='note';

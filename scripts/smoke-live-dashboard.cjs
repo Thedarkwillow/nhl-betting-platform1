@@ -11,8 +11,21 @@ async function smoke(){
  for(const id of ["prospectiveAudit","standardAlternateAudit","lineupStatus","props"])
   assert.ok(html.includes('id="'+id+'"'),"Missing deployed dashboard component "+id);
  assert.ok(html.includes("function researchIsFresh"),"Public website lacks stale-lineup blocker");
+ for(const id of ["today","slips","results","research","featuredProps","researchDrawer"])
+  assert.ok(html.includes('id="'+id+'"'),"Deployed MLB-inspired NHL layout missing "+id);
+ assert.ok(html.includes('href="./assets/dashboard.css"'),"Missing local NHL mobile stylesheet link");
+ const stylesheet=await (await get(ROOT+"assets/dashboard.css?smoke="+Date.now())).text();
+ for(const pattern of [".featured-grid",".props-data-table",".research-drawer","@media(max-width:680px)"])
+  assert.ok(stylesheet.includes(pattern),"Public mobile NHL CSS missing "+pattern);
  const body=await (await get(ROOT+"data.json?smoke="+Date.now())).json();
  assert.ok(body.prospectiveResearchAudit,"No public prospective research status");
+ assert.ok(Array.isArray(body.featuredIndividualProps),"Published NHL board missing individually frozen prop card data");
+ assert.equal(body.featuredPropsPolicy,"nhl-individual-prop-max-available-direction-v1");
+ for(const p of body.featuredIndividualProps){
+  assert.equal(p.expectedValue,null);
+  assert.equal(p.modelProbabilityCalibrated,false);
+  assert.equal(p.originalPlatformSettlementVerified,false);
+ }
  assert.ok(body.historicalStandardAlternateResearch,"No public historical standard/alternate report");
  const quality=body.prospectiveResearchAudit,history=body.historicalStandardAlternateResearch;
  assert.equal(quality.calibrationApproved,false);

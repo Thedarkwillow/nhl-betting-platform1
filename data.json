@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T14:28:22.897Z",
+  "builtAt": "2026-11-03T14:43:08.334Z",
   "researchAt": "2026-11-02T01:00:29.953Z",
   "boardAt": "2026-11-02T01:00:29.864Z",
   "comparisonAt": null,
@@ -142,7 +142,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T14:28:22.841Z",
+    "generatedAt": "2026-11-03T14:43:08.266Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,
@@ -1796,7 +1796,7 @@
     "warning": "Research-only retrospective selection using archived sportsbook closing lines and official results. Not actual historical PrizePicks lines. Missing lines and post-selection bias limit generalization. No verified payouts or lineup EV."
   },
   "grading": {
-    "generatedAt": "2026-11-03T06:21:38.027Z",
+    "generatedAt": "2026-11-03T14:42:48.474Z",
     "rawOfferedSidesGraded": 708,
     "rawOfferedSidesDecided": 706,
     "rawOfferedSideCorrectRate": 0.3087818696883853,
@@ -1808,7 +1808,7 @@
     "originalPlatformSettlementsVerified": false
   },
   "prospectiveResearchAudit": {
-    "generatedAt": "2026-11-03T06:21:38.027Z",
+    "generatedAt": "2026-11-03T14:42:48.474Z",
     "source": "archived_pregame_research_snapshots_and_official_NHL_boxscores",
     "accuracySource": "explicit_git_frozen_individual_prop_policy_v1",
     "capturedRankedRows": 4214,

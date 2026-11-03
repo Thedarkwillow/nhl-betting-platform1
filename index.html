@@ -28,6 +28,7 @@
 <h2>NHL Matchup Research Lab</h2>
 <p class="muted">Inspired by our MLB Ballpark Pal and Baseball Savant research workflow. Tap <b>Scout</b> next to a prop to review past-only official player shot/goalie workload and opponent defensive volume. Five external sites offer further research, but links are not imported datasets or a verified betting edge.</p>
 <div class="card" id="matchupSources" aria-live="polite">Loading five NHL research sites…</div>
+<div class="card" id="approvedResearchLab" aria-live="polite" style="margin-top:12px">Loading MoneyPuck and Daily Faceoff private research coverage…</div>
 <div class="card" id="matchupDetails" aria-live="polite" style="margin-top:12px">Choose Scout on a player prop to inspect historical matchup evidence.</div>
 <h2>Player props</h2><div class="filters"><input id="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter market"><option value="">All markets</option></select><select id="direction" aria-label="Filter direction"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select><select id="evidence" aria-label="Filter sportsbook evidence"><option value="">All evidence</option><option value="model_market_agreement">Same-side exact books</option><option value="model_market_disagreement">Opposite-side exact books</option><option value="model_only">No exact book match</option><option value="market_neutral">Neutral books</option><option value="ambiguous_market">Ambiguous book data</option></select></div>
 <div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Lean</th><th>Est. hit probability*</th><th>Observations</th><th>Book evidence</th><th>Role check</th><th>Scout</th></tr></thead><tbody id="props"><tr><td colspan="10">Loading…</td></tr></tbody></table></div>
@@ -87,6 +88,39 @@ function renderProspectiveQuality(){
   (r.excludedNoPregameProof??0)+' snapshots excluded for insufficient pregame proof. Uncalibrated; no validated edge or platform settlement.';
  host.append(detail);
 }
+function renderApprovedResearchLab(){
+ const host=$('approvedResearchLab'),r=data.approvedSourceResearch;
+ if(!r){
+  host.textContent='MoneyPuck and Daily Faceoff source collection has not yet been published. NHL official-stat research remains available below.';return;
+ }
+ host.replaceChildren();
+ const header=document.createElement('h3');header.textContent='Connected NHL shot-quality & lineup research';host.append(header);
+ const cards=document.createElement('div');cards.className='microcards';
+ const stats=[['MoneyPuck skaters',r.moneyPuckSkaters??0],
+  ['MoneyPuck goalies',r.moneyPuckGoalies??0],
+  ['MoneyPuck teams',r.moneyPuckTeams??0],
+  ['DFO upcoming games',r.dailyFaceoffUpcomingGames??0],
+  ['DFO goalie reports',r.dailyFaceoffGoalieReports??0],
+  ['DFO line-combination teams',r.dailyFaceoffLineTeams??0],
+  ['Experimental xG/shot shadow forecasts',r.shadowCandidateRows??0]];
+ for(const [name,value] of stats){
+  const p=document.createElement('div');p.className='card';
+  const label=document.createElement('span');label.className='muted';label.textContent=name;
+  const strong=document.createElement('strong');strong.textContent=String(value);
+  p.append(label,strong);cards.append(p);
+ }
+ host.append(cards);
+ const detail=document.createElement('p');detail.className='note';
+ const captured=r.sourceCapturedAt&&Number.isFinite(Date.parse(r.sourceCapturedAt))?
+  new Date(r.sourceCapturedAt).toLocaleString():'not available';
+ detail.textContent='Private source snapshot: '+captured+
+  ' · Data-validation warnings: '+(r.sourceWarnings??0)+
+  '. MoneyPuck provides season-to-date expected-goals and expected-shot measures; Daily Faceoff provides dated reporter-attributed goalie and projected even-strength/power-play roles. The new 75/25 shrinkage matchup projection is an experimental, uncalibrated shadow. No change to live model, player-prop rankings or lineup probabilities.';
+ host.append(detail);
+ const caution=document.createElement('p');caution.className='note';
+ caution.textContent='Permission was reported by the account holder; written commercial access and redistribution details have not been saved. All raw provider data stays in the private research repository. A Daily Faceoff goalie report does not independently prove a team-confirmed starter, and a projected PP unit is not a guaranteed appearance.';
+ host.append(caution);
+}
 function renderMatchupSources(){
  const host=$('matchupSources'),m=data.matchupResearch;
  if(!m||!Array.isArray(m.sources)||m.sources.length!==5){
@@ -100,10 +134,12 @@ function renderMatchupSources(){
   const note=document.createElement('p');note.className='minor';note.textContent=s.focus;
   const mode=document.createElement('p');mode.className='minor';
   mode.textContent=s.integration==='official_final_game_stats'?
-    'Official final-game statistics already used; NHL EDGE tracking not imported':
-    s.integration==='research_link_permission_required'?
-    'Research link only · noncommercial dataset requires permission':
-    'Research link only · no licensed automated import';
+    'Official final-game statistics used for public Scout; NHL EDGE tracking not imported':
+    s.integration==='private_rate_shadow_and_reference'?
+    'Private experimental MoneyPuck shot-quality model, not yet promoted to live picks':
+    s.integration==='private_report_shadow_and_reference'?
+    'Private Daily Faceoff goalie and projected role monitoring; no club-verified status':
+    'Research reference only; no imported commercial dataset';
   c.append(a,note,mode);box.append(c);
  }
  host.append(box);
@@ -111,7 +147,7 @@ function renderMatchupSources(){
  stats.textContent='Official player-game rates available for '+(m.playerRateAvailable??0)+
   ' props · Opponent volume context for '+(m.opponentContextAvailable??0)+
   ' · Both for '+(m.matchupsWithBoth??0)+
-  '. All numeric research derived from official past NHL results; no MoneyPuck, RotoWire, Daily Faceoff or PuckPedia proprietary statistics imported.';
+  '. This public per-prop Scout uses official NHL history only. MoneyPuck and Daily Faceoff metrics are analyzed separately in a private experimental shadow; no unlicensed third-party records are displayed here.';
  host.append(stats);
 }
 function renderMatchupDetail(prop){
@@ -441,7 +477,7 @@ async function init(){
  const body=$('comparisons');body.replaceChildren();
  for(const p of [...data.comparisons].sort((a,b)=>b.absoluteModelMarketGap-a.absoluteModelMarketGap).slice(0,100)){const tr=document.createElement('tr');[p.player,p.market,p.line,p.tier,pct(p.modelHigher),pct(p.sportsbookHigher),pct(p.absoluteModelMarketGap),(p.books||[]).join(', ')].forEach(v=>cell(tr,v));body.append(tr);}
  if(!data.comparisons.length){const tr=document.createElement('tr');cell(tr,'No verified exact-line comparisons in this snapshot');body.append(tr);}
- render();renderLineup();renderProspectiveQuality();renderMatchupSources();renderMatchupDetail(null);renderRoleReadiness();renderModelEvidence();renderModelComparison();renderCountDistributionResearch();renderStandardAlternateAudit();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderFullNhlCoverage();renderIndependentNhlGrading();renderIndependentTierEvidence();renderPPModel();
+ render();renderLineup();renderProspectiveQuality();renderMatchupSources();renderApprovedResearchLab();renderMatchupDetail(null);renderRoleReadiness();renderModelEvidence();renderModelComparison();renderCountDistributionResearch();renderStandardAlternateAudit();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderFullNhlCoverage();renderIndependentNhlGrading();renderIndependentTierEvidence();renderPPModel();
  }catch(e){$('updated').textContent='Dashboard data unavailable: '+e.message;$('props').textContent='No data available';$('comparisons').textContent='No data available';}
 }
 ['search','tier','market','direction','evidence'].forEach(id=>$(id).addEventListener('input',render));$('lineupSize').addEventListener('change',renderLineup);init();

@@ -61,6 +61,12 @@ if(fs.existsSync(raw)){
   assert.equal(data.distributionResearch.actualPlatformSettlementVerified,false);
   assert.ok(data.distributionResearch.sourceMatchedQuoteRows>=0);
  }
+ if(data.distributionProspectiveArchiveAudit){
+  assert.ok(data.distributionProspectiveArchiveAudit.gitAndOfficialStartMatchedRows>=0);
+  assert.equal(data.distributionProspectiveArchiveAudit.officialResultsGraded,false);
+  assert.equal(data.distributionProspectiveArchiveAudit.independentlyAuthenticatedOriginalPlatformOffers,false);
+  assert.equal(data.distributionProspectiveArchiveAudit.verifiedOriginalPrizePicksSettlement,false);
+ }
  if(data.distributionShadowArchive){
   assert.equal(data.distributionShadowArchive.gitCommitBeforePuckDropProven,false);
   assert.equal(data.distributionShadowArchive.originalPlatformSettlementVerified,false);

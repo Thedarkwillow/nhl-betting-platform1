@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-03T04:39:22.057Z",
+  "builtAt": "2026-11-03T04:42:38.463Z",
   "researchAt": "2026-11-03T02:24:03.963Z",
   "boardAt": "2026-11-03T02:24:00.691Z",
-  "comparisonAt": "2026-11-03T04:39:22.057Z",
+  "comparisonAt": "2026-11-03T04:42:38.463Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -76738,7 +76738,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T04:39:21.991Z",
+    "generatedAt": "2026-11-03T04:42:38.396Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,
@@ -76760,7 +76760,17 @@
     "roleCoefficientsCalibrated": false,
     "clubStarterVerified": false
   },
-  "goalieStarterAudit": null,
+  "goalieStarterAudit": {
+    "generatedAt": "2026-11-03T04:42:20.391Z",
+    "gradedOfficialStarts": 0,
+    "reporterConfirmedVerifiedAfterFinal": 0,
+    "reportedConfirmedActualStarts": 0,
+    "reportedConfirmedNotActualStarts": 0,
+    "starterFlagUnavailable": 0,
+    "pendingOfficialResults": 22,
+    "originalPregameTeamStarterAuthenticated": false,
+    "starterProbabilityCalibrated": false
+  },
   "historicalGoalieShotQuality": {
     "season": "2025-26",
     "goalieAppearances": 2688,
@@ -76814,8 +76824,8 @@
     "pregameOriginalBetsRecorded": false
   },
   "approvedSourceScorecard": {
-    "generatedAt": "2026-11-03T03:42:37.009Z",
-    "sourceSnapshots": 1,
+    "generatedAt": "2026-11-03T04:42:20.278Z",
+    "sourceSnapshots": 2,
     "verifiedOfficialFinalDecisions": 0,
     "matchedOfficialGames": 0,
     "pendingRows": 424,

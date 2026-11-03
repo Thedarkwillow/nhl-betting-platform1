@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-03T02:24:39.028Z",
+  "builtAt": "2026-11-03T02:31:51.138Z",
   "researchAt": "2026-11-03T02:24:03.963Z",
   "boardAt": "2026-11-03T02:24:00.691Z",
-  "comparisonAt": "2026-11-03T02:24:39.028Z",
+  "comparisonAt": "2026-11-03T02:31:51.138Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -76492,6 +76492,18 @@
     "candidateOnly": "negative-binomial-shrink-v1",
     "modelPromoted": false,
     "warning": "Retrospectively recomputed from only a sampled historical PrizePicks-labelled real quote archive with official NHL game outcomes. 220 rows across 21 games do not establish a transferable improvement, live win probability or betting profitability."
+  },
+  "distributionProspectiveArchiveAudit": {
+    "asOf": "2026-11-03T02:29:48.001Z",
+    "auditedSnapshots": 1,
+    "sourceObservedQuoteRows": 200,
+    "gitAndOfficialStartMatchedRows": 200,
+    "timingRejectedRows": 0,
+    "officialResultsGraded": false,
+    "independentlyAuthenticatedOriginalPlatformOffers": false,
+    "verifiedOriginalPrizePicksSettlement": false,
+    "calibratedProbabilities": false,
+    "caveat": "Git committer-time versus official NHL start and source timing checked; independent GitHub server push receipt and platform offer authentication still needed. Future NHL final outcomes pending."
   },
   "distributionShadowArchive": {
     "asOf": "2026-11-03T02:24:03.963Z",

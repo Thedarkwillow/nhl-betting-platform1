@@ -15,6 +15,9 @@
 <h2>Projection model comparison: champion vs challengers</h2>
 <p class="muted">Official NHL past player stats measure projection error; actual archived-line historical replay measures reconstructed Higher/Lower decisions. Neither substitutes for independently recorded pregame selections.</p>
 <div class="card" id="modelComparison">Loading historical model comparison…</div>
+<h2>Count probability distribution research lab</h2>
+<p class="muted">Same archived actual player-prop lines, same model mean, two probability assumptions: existing Poisson versus shrinkage negative binomial. Historical Brier/log loss are exploratory; no prospective or profitable edge verified.</p>
+<div class="card" id="countDistributionLab" aria-live="polite">Loading count-distribution experiment…</div>
 <h2>Historical 2025–26 Standard / alternate line comparisons</h2>
 <p class="muted">Dated independent The Odds API PrizePicks-labelled historical markets, including goalie saves. Comparisons are not confirmation of currently available props, original special tiers, or actual payouts.</p>
 <div class="card" id="standardAlternateAudit">Loading historical line comparison quality…</div>
@@ -165,6 +168,39 @@ function renderRoleReadiness(){
   ' · Source fresh (90-minute gate): '+(r.externalFeedFreshAtBuild===true?'Yes':'No/unknown')+
   ' · ESPN-reported goalie confirmations require independent confirmation. No original NHL/team starting-goalie statements or medical clearance verified. No automated forward-line, pair or power-play source licensed. Official NHL boxscores are historical, not next-game availability.';
  host.append(note);
+}
+function renderCountDistributionResearch(){
+ const host=$('countDistributionLab'),r=data.distributionResearch,archive=data.distributionShadowArchive;
+ if(!r){host.textContent='Research-only Poisson vs negative-binomial comparison has not been published yet. Active model remains the original Poisson version.';return;}
+ host.replaceChildren();
+ const cards=document.createElement('div');cards.className='microcards';
+ const stats=[['Actual archived quote decisions',r.sourceMatchedQuoteRows??0],
+   ['Games sampled',r.overall?.distinctGames??0],
+   ['Poisson historical Brier',Number.isFinite(r.overall?.championBrier)?r.overall.championBrier.toFixed(4):'Unavailable'],
+   ['NB historical Brier',Number.isFinite(r.overall?.challengerBrier)?r.overall.challengerBrier.toFixed(4):'Unavailable'],
+   ['Poisson log loss',Number.isFinite(r.overall?.championLogLoss)?r.overall.championLogLoss.toFixed(4):'Unavailable'],
+   ['NB log loss',Number.isFinite(r.overall?.challengerLogLoss)?r.overall.challengerLogLoss.toFixed(4):'Unavailable']];
+ for(const [name,value] of stats){
+  const box=document.createElement('div');box.className='card',
+   small=document.createElement('span');small.className='muted',
+   big=document.createElement('strong');small.textContent=name;big.textContent=String(value);
+  box.append(small,big);cards.append(box);
+ }
+ host.append(cards);
+ const note=document.createElement('p');note.className='note';
+ const delta=Number.isFinite(r.overall?.brierImprovement)?r.overall.brierImprovement.toFixed(4):'Unknown';
+ const interval=r.gameClusterDifferenceInterval;
+ const range=interval&&Number.isFinite(interval.lower95)&&Number.isFinite(interval.upper95)?
+  ' Game-cluster bootstrap interval for improvement: '+interval.lower95.toFixed(4)+' to '+interval.upper95.toFixed(4)+'.':'';
+ note.textContent='Historical Brier improvement (positive favors challenger): '+delta+'.'+range+
+  ' All observations are retrospectively reconstructed from a small, selected quote sample. Goalie/shot variance may change as players change roles. No held-out prospective model promotion, expected-value or confirmed platform settlement.';
+ host.append(note);
+ const frozen=document.createElement('p');frozen.className='note';
+ frozen.textContent=archive?'Latest frozen shadow candidate rows: '+archive.frozenOfferRows+
+  ' · Matches saved research source: '+(archive.matchesCurrentResearch?'Yes':'No')+
+  ' · Archive-before-puck-drop Git proof is NOT yet independently verified.':
+  'First-write live candidate forecast archive has not been published yet.';
+ host.append(frozen);
 }
 function renderModelEvidence(){
  const host=$('modelEvidence'),s=data.evidenceSummary;
@@ -394,7 +430,7 @@ async function init(){
  const body=$('comparisons');body.replaceChildren();
  for(const p of [...data.comparisons].sort((a,b)=>b.absoluteModelMarketGap-a.absoluteModelMarketGap).slice(0,100)){const tr=document.createElement('tr');[p.player,p.market,p.line,p.tier,pct(p.modelHigher),pct(p.sportsbookHigher),pct(p.absoluteModelMarketGap),(p.books||[]).join(', ')].forEach(v=>cell(tr,v));body.append(tr);}
  if(!data.comparisons.length){const tr=document.createElement('tr');cell(tr,'No verified exact-line comparisons in this snapshot');body.append(tr);}
- render();renderLineup();renderProspectiveQuality();renderMatchupSources();renderMatchupDetail(null);renderRoleReadiness();renderModelEvidence();renderModelComparison();renderStandardAlternateAudit();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderFullNhlCoverage();renderIndependentNhlGrading();renderIndependentTierEvidence();renderPPModel();
+ render();renderLineup();renderProspectiveQuality();renderMatchupSources();renderMatchupDetail(null);renderRoleReadiness();renderModelEvidence();renderModelComparison();renderCountDistributionResearch();renderStandardAlternateAudit();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderFullNhlCoverage();renderIndependentNhlGrading();renderIndependentTierEvidence();renderPPModel();
  }catch(e){$('updated').textContent='Dashboard data unavailable: '+e.message;$('props').textContent='No data available';$('comparisons').textContent='No data available';}
 }
 ['search','tier','market','direction','evidence'].forEach(id=>$(id).addEventListener('input',render));$('lineupSize').addEventListener('change',renderLineup);init();

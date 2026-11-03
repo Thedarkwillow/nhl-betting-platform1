@@ -134,10 +134,12 @@ function renderMatchupSources(){
   const note=document.createElement('p');note.className='minor';note.textContent=s.focus;
   const mode=document.createElement('p');mode.className='minor';
   mode.textContent=s.integration==='official_final_game_stats'?
-    'Official final-game statistics already used; NHL EDGE tracking not imported':
-    s.integration==='research_link_permission_required'?
-    'Research link only · noncommercial dataset requires permission':
-    'Research link only · no licensed automated import';
+    'Official final-game statistics used for public Scout; NHL EDGE tracking not imported':
+    s.integration==='private_rate_shadow_and_reference'?
+    'Private experimental MoneyPuck shot-quality model, not yet promoted to live picks':
+    s.integration==='private_report_shadow_and_reference'?
+    'Private Daily Faceoff goalie and projected role monitoring; no club-verified status':
+    'Research reference only; no imported commercial dataset';
   c.append(a,note,mode);box.append(c);
  }
  host.append(box);
@@ -145,7 +147,7 @@ function renderMatchupSources(){
  stats.textContent='Official player-game rates available for '+(m.playerRateAvailable??0)+
   ' props · Opponent volume context for '+(m.opponentContextAvailable??0)+
   ' · Both for '+(m.matchupsWithBoth??0)+
-  '. All numeric research derived from official past NHL results; no MoneyPuck, RotoWire, Daily Faceoff or PuckPedia proprietary statistics imported.';
+  '. This public per-prop Scout uses official NHL history only. MoneyPuck and Daily Faceoff metrics are analyzed separately in a private experimental shadow; no unlicensed third-party records are displayed here.';
  host.append(stats);
 }
 function renderMatchupDetail(prop){

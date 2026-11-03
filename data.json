@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T00:23:02.918Z",
+  "builtAt": "2026-11-03T00:23:36.059Z",
   "researchAt": "2026-11-02T01:00:29.953Z",
   "boardAt": "2026-11-02T01:00:29.864Z",
   "comparisonAt": null,
@@ -818,14 +818,14 @@
     "warning": "Research-only retrospective selection using archived sportsbook closing lines and official results. Not actual historical PrizePicks lines. Missing lines and post-selection bias limit generalization. No verified payouts or lineup EV."
   },
   "grading": {
-    "generatedAt": "2026-11-03T00:22:47.994Z",
+    "generatedAt": "2026-11-03T00:23:20.967Z",
     "graded": 0,
     "decisions": 0,
     "verifiedHitRate": null,
     "pending": 621
   },
   "prospectiveResearchAudit": {
-    "generatedAt": "2026-11-03T00:22:47.994Z",
+    "generatedAt": "2026-11-03T00:23:20.967Z",
     "source": "archived_pregame_research_snapshots_and_official_NHL_boxscores",
     "capturedRankedRows": 2392,
     "eligiblePregamePredictions": 621,

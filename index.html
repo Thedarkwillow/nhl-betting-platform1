@@ -6,8 +6,8 @@
 <div class="warning"><b>Research only.</b> Probabilities are uncalibrated estimates, not verified hit rates. Props and lines may have changed or disappeared. No wagers are recommended.</div>
 <div class="cards"><div class="card">Research props<strong id="propCount">—</strong></div><div class="card">Sportsbook matches<strong id="matchCount">—</strong></div><div class="card">Source coverage<strong id="coverage">—</strong></div><div class="card">Research freshness<strong id="freshness">—</strong></div></div>
 <p class="notice" id="updated">Loading saved data…</p>
-<h2>Frozen optimizer selections &amp; verified NHL results</h2>
-<p class="muted">Only directions actually selected in an original pregame Git-frozen 2–6 pick research lineup may enter the model hit-rate score. Available Higher and Lower offer sides are NOT predictions. Pending results are not losses, and official NHL boxscores are not verified PrizePicks or Underdog settlements.</p>
+<h2>Individual prop accuracy — separate from lineups</h2>
+<p class="muted">Individual props are scored independently, whether or not they appear in a lineup. A model-preferred side must be explicitly saved before puck drop to qualify as prospective. Earlier pregame model probability vectors can be reconstructed for exploratory analysis, but that later-defined policy is not a verified precommitted betting strategy. Both available Higher and Lower offer sides are NOT two predictions.</p>
 <div class="card" id="prospectiveAudit" aria-live="polite">Loading pregame forecast audit…</div>
 <h2>Model and market evidence</h2>
 <p class="muted">Adapted from our MLB research process: check a fresh exact-line sportsbook market independently from the model, flag disagreements and preserve missing-data warnings. Same-side evidence is NOT a verified edge or payout quote.</p>
@@ -151,16 +151,20 @@ function renderProspectiveQuality(){
   div.append(small,strong);cards.append(div);}
  host.append(cards);
  const detail=document.createElement('p');detail.className='note';
- const score=r.accuracySource==='first_git_frozen_pregame_optimizer_directions_only'&&
-   r.gradedDecisions>0&&Number.isFinite(r.verifiedProspectiveHitRate)?
-  'Frozen optimizer-selected direction rate '+pct(r.verifiedProspectiveHitRate)+
-   ' on '+r.gradedDecisions+' distinct pregame selections · Always Lower on same selections '+
-   pct(r.alwaysLowerBaseline)+' · Always Higher '+pct(r.alwaysHigherBaseline):
-  'Model-selected direction hit rate: not yet verified';
- detail.textContent=score+'. '+(r.rawOfferedSideDecisions??0)+
-  ' raw Higher/Lower offer-side outcomes were archived separately and do not count as model picks. '+
-  'The first proven pregame selection per exact player/game/line is counted only once, including when repeated across 2–6 pick lineups. '+
-  'Outcomes are official NHL boxscores, not fantasy-platform settlements. Estimated probabilities are uncalibrated; picks can be correlated and no profitable edge is verified.';
+ const score=r.accuracySource==='explicit_git_frozen_individual_prop_policy_v1'&&
+  r.gradedDecisions>0&&Number.isFinite(r.verifiedProspectiveHitRate)?
+  'Explicitly frozen individual prop directional rate '+pct(r.verifiedProspectiveHitRate)+
+   ' across '+r.gradedDecisions+' decided props · Always Lower '+pct(r.alwaysLowerBaseline)+
+   ' · Always Higher '+pct(r.alwaysHigherBaseline):
+  'Explicit prospective individual prop rate: not yet established';
+ const legacy=r.legacyReconstructed;
+ const replay=legacy&&legacy.decided>0?
+  ' Exploratory reconstructed prior-snapshot preference: '+legacy.correct+' correct out of '+
+   legacy.decided+' decisions ('+pct(legacy.observedRate)+'). This grading rule was defined AFTER those games and is not a verified prospective pick hit rate.':
+  ' No eligible legacy individual prop reconstruction is available yet.';
+ detail.textContent=score+'.'+replay+' '+(r.rawOfferedSideDecisions??0)+
+  ' source-offered Higher/Lower sides were graded as raw outcomes, not separate model picks. '+
+  'Player prop accuracy is independent of lineup inclusion; lineup validation is tracked separately. NHL official boxscores are not fantasy-platform settlements, and model probabilities are uncalibrated.';
  host.append(detail);
 }
 function renderApprovedSourceGrading(){

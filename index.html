@@ -95,13 +95,16 @@ function renderRoleGoalieShadow(){
  ],'Only an explicit official final-game starter flag can verify a past reporter claim. No first-party pregame club starter confirmations are asserted.');
 }
 function renderHistoricalShotQuality(){
- const r=data.historicalShotQualityStudy;
+ const r=data.historicalShotQualityStudy,g=data.historicalGoalieShotQuality;
  statusPanel('historicalShotQuality','2025–26 past-only shot-quality comparison',[
   ['Shots: champion MAE',r?.byMarket?.shotsOnGoal?.championMAE??'Pending'],
   ['Shots: MoneyPuck MAE',r?.byMarket?.shotsOnGoal?.shotQualityShadowMAE??'—'],
   ['Goals: champion MAE',r?.byMarket?.goals?.championMAE??'—'],
-  ['Goals: MoneyPuck MAE',r?.byMarket?.goals?.shotQualityShadowMAE??'—']
- ],'Lower count MAE is better. Reconstructed historical games are not original published pregame predictions; no confirmed platform win rate or expected value, and no model deployment.');
+  ['Goals: MoneyPuck MAE',r?.byMarket?.goals?.shotQualityShadowMAE??'—'],
+  ['Goalie saves: baseline MAE',g?.championMae??'Pending'],
+  ['Goalie saves: MoneyPuck MAE',g?.shotQualityMae??'—'],
+  ['Goalie historical appearances tested',g?.goalieAppearances??'—']
+ ],'Lower count MAE is better. Reconstructed historical games are not original published pregame predictions; no confirmed platform win rate or expected value, and no model deployment. Goalie saves experiments are conditional on observed playing time and do not validate predicted starts.');
 }
 function renderPlatformLineShop(){
  const r=data.platformLineShopping||{};

@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T22:02:41.330Z",
+  "builtAt": "2026-11-03T22:44:23.495Z",
   "researchAt": "2026-11-02T01:00:29.953Z",
   "boardAt": "2026-11-02T01:00:29.864Z",
   "comparisonAt": null,
@@ -142,7 +142,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T22:02:41.263Z",
+    "generatedAt": "2026-11-03T22:44:23.440Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,
@@ -903,7 +903,7 @@
     "warning": "Retrospectively recomputed from only a sampled historical PrizePicks-labelled real quote archive with official NHL game outcomes. 220 rows across 21 games do not establish a transferable improvement, live win probability or betting profitability."
   },
   "distributionProspectiveArchiveAudit": {
-    "asOf": "2026-11-03T02:29:48.001Z",
+    "asOf": "2026-11-03T22:44:03.882Z",
     "auditedSnapshots": 1,
     "sourceObservedQuoteRows": 200,
     "gitAndOfficialStartMatchedRows": 200,
@@ -1003,7 +1003,7 @@
     "externalInjuryReports": 91,
     "externalInjuryWatchlist": 0,
     "externalPregameCapturedAt": "2026-11-03T21:13:52.384Z",
-    "externalFeedFreshAtBuild": true,
+    "externalFeedFreshAtBuild": false,
     "externalCommercialLicenseVerified": false,
     "independentTeamStarterConfirmationVerified": false,
     "lineCombinationAndPowerPlayVerified": false,

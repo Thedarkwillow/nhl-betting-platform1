@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T05:06:09.767Z",
+  "builtAt": "2026-11-03T05:11:33.034Z",
   "researchAt": "2026-11-03T02:24:03.963Z",
   "boardAt": "2026-11-03T02:24:00.691Z",
   "comparisonAt": null,
@@ -76738,7 +76738,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T05:06:09.701Z",
+    "generatedAt": "2026-11-03T05:11:32.961Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,
@@ -78393,26 +78393,43 @@
   },
   "grading": {
     "generatedAt": "2026-11-03T05:05:47.699Z",
-    "graded": 708,
-    "decisions": 706,
-    "verifiedHitRate": 0.3087818696883853,
-    "pending": 790
+    "rawOfferedSidesGraded": 708,
+    "rawOfferedSidesDecided": 706,
+    "rawOfferedSideCorrectRate": null,
+    "graded": 0,
+    "decisions": 0,
+    "verifiedHitRate": null,
+    "pending": 0,
+    "individualPropsOnly": true,
+    "originalPlatformSettlementsVerified": false
   },
   "prospectiveResearchAudit": {
     "generatedAt": "2026-11-03T05:05:47.699Z",
     "source": "archived_pregame_research_snapshots_and_official_NHL_boxscores",
+    "accuracySource": "explicit_git_frozen_individual_prop_policy_v1",
     "capturedRankedRows": 4214,
-    "eligiblePregamePredictions": 1498,
+    "eligiblePregamePredictions": 0,
+    "rawOfferedSideEligibleRecords": 1498,
     "recoveredGameIdentities": 1229,
     "quarantinedMissingGameIdentities": 180,
     "excludedNoPregameProof": 169,
     "excludedDuplicateSnapshots": 2367,
-    "gradedDecisions": 706,
-    "verifiedProspectiveHitRate": 0.3087818696883853,
-    "alwaysLowerBaseline": 0.7549575070821529,
-    "alwaysHigherBaseline": 0.24504249291784702,
-    "pendingTotal": 790,
-    "pendingReasons": {
+    "gradedDecisions": 0,
+    "verifiedProspectiveHitRate": null,
+    "selectedOfficialStatsGraded": 0,
+    "selectedIndividualPending": 0,
+    "pendingTotal": 0,
+    "alwaysLowerBaseline": null,
+    "alwaysHigherBaseline": null,
+    "individualByTier": {},
+    "individualByMarket": {},
+    "legacyReconstructed": null,
+    "archivedOptimizerLineupCohort": null,
+    "rawOfferedSideDecisions": 706,
+    "rawOfferedSideCorrectRate": null,
+    "rawOfferedSidePending": 790,
+    "pendingReasons": null,
+    "rawOfferedSidePendingReasons": {
       "notStarted": 786,
       "liveOrPendingFinal": 4,
       "finalWithoutPlayerStats": 0,
@@ -78422,7 +78439,7 @@
     "originalPlatformSettlementVerified": false,
     "statisticalEdgeVerified": false,
     "expectedValueAvailable": false,
-    "warning": "Only immutable Git-archived pregame predictions can enter prospective accuracy. Pending predictions are not losses. Boxscores do not verify PrizePicks settlement, and the probability model is not calibrated."
+    "warning": "Standalone individual NHL prop preferences are graded without requiring lineup membership. Only a direction explicitly selected in an immutable pregame snapshot enters the prospective model rate. Earlier frozen probability vectors evaluated using a later-written policy are exploratory retrospective reconstruction and cannot be advertised as precommitted picks. Raw offered Higher/Lower sides are not predictions. Payouts, calibration and fantasy-platform settlements remain unverified."
   },
   "historicalStandardAlternateResearch": {
     "generatedAt": "2026-11-02T20:49:16.792Z",

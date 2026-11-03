@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T05:11:53.477Z",
+  "builtAt": "2026-11-03T05:12:11.902Z",
   "researchAt": "2026-11-03T02:24:03.963Z",
   "boardAt": "2026-11-03T02:24:00.691Z",
   "comparisonAt": null,
@@ -76738,7 +76738,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T05:11:53.406Z",
+    "generatedAt": "2026-11-03T05:12:11.843Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,
@@ -78392,10 +78392,10 @@
     "warning": "Research-only retrospective selection using archived sportsbook closing lines and official results. Not actual historical PrizePicks lines. Missing lines and post-selection bias limit generalization. No verified payouts or lineup EV."
   },
   "grading": {
-    "generatedAt": "2026-11-03T05:05:47.699Z",
+    "generatedAt": "2026-11-03T05:11:40.755Z",
     "rawOfferedSidesGraded": 708,
     "rawOfferedSidesDecided": 706,
-    "rawOfferedSideCorrectRate": null,
+    "rawOfferedSideCorrectRate": 0.3087818696883853,
     "graded": 0,
     "decisions": 0,
     "verifiedHitRate": null,
@@ -78404,7 +78404,7 @@
     "originalPlatformSettlementsVerified": false
   },
   "prospectiveResearchAudit": {
-    "generatedAt": "2026-11-03T05:05:47.699Z",
+    "generatedAt": "2026-11-03T05:11:40.755Z",
     "source": "archived_pregame_research_snapshots_and_official_NHL_boxscores",
     "accuracySource": "explicit_git_frozen_individual_prop_policy_v1",
     "capturedRankedRows": 4214,
@@ -78423,10 +78423,84 @@
     "alwaysHigherBaseline": null,
     "individualByTier": {},
     "individualByMarket": {},
-    "legacyReconstructed": null,
-    "archivedOptimizerLineupCohort": null,
+    "legacyReconstructed": {
+      "firstPregameProbabilityVectorPolicyAppliedAfterOutcomes": true,
+      "selectedUniqueProps": 348,
+      "decided": 147,
+      "correct": 71,
+      "observedRate": 0.48299319727891155,
+      "byTier": {
+        "Goblin": {
+          "graded": 75,
+          "decided": 75,
+          "correct": 43,
+          "pushes": 0
+        },
+        "Standard": {
+          "graded": 37,
+          "decided": 37,
+          "correct": 16,
+          "pushes": 0
+        },
+        "Demon": {
+          "graded": 35,
+          "decided": 35,
+          "correct": 12,
+          "pushes": 0
+        }
+      },
+      "byMarket": {
+        "points": {
+          "graded": 49,
+          "decided": 49,
+          "correct": 25,
+          "pushes": 0
+        },
+        "shotsOnGoal": {
+          "graded": 74,
+          "decided": 74,
+          "correct": 36,
+          "pushes": 0
+        },
+        "assists": {
+          "graded": 13,
+          "decided": 13,
+          "correct": 6,
+          "pushes": 0
+        },
+        "goals": {
+          "graded": 6,
+          "decided": 6,
+          "correct": 1,
+          "pushes": 0
+        },
+        "blockedShots": {
+          "graded": 5,
+          "decided": 5,
+          "correct": 3,
+          "pushes": 0
+        }
+      },
+      "byGameDate": {
+        "2026-11-02": {
+          "graded": 147,
+          "decided": 147,
+          "correct": 71,
+          "pushes": 0
+        }
+      },
+      "prespecifiedProspectiveStrategy": false,
+      "prospectiveHitRateVerified": false
+    },
+    "archivedOptimizerLineupCohort": {
+      "selectedUniqueProps": 14,
+      "decided": 8,
+      "correct": 4,
+      "observedRate": 0.5,
+      "lineupJointProbabilityVerified": false
+    },
     "rawOfferedSideDecisions": 706,
-    "rawOfferedSideCorrectRate": null,
+    "rawOfferedSideCorrectRate": 0.3087818696883853,
     "rawOfferedSidePending": 790,
     "pendingReasons": null,
     "rawOfferedSidePendingReasons": {

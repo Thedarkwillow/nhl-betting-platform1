@@ -18,8 +18,11 @@
 <h2>Historical 2025–26 Standard / alternate line comparisons</h2>
 <p class="muted">Dated independent The Odds API PrizePicks-labelled historical markets, including goalie saves. Comparisons are not confirmation of currently available props, original special tiers, or actual payouts.</p>
 <div class="card" id="standardAlternateAudit">Loading historical line comparison quality…</div>
+<h2>Goalie starts, skater ice time and lineup risk</h2>
+<p class="muted">Official NHL final boxscores establish historical minutes and goalie workload, not whether the goalie is confirmed to start tonight. Unknown injury statuses and abrupt usage changes remain research-only watchlist signals.</p>
+<div class="card" id="roleReadiness" aria-live="polite">Loading official NHL role-history coverage…</div>
 <h2>Player props</h2><div class="filters"><input id="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter market"><option value="">All markets</option></select><select id="direction" aria-label="Filter direction"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select><select id="evidence" aria-label="Filter sportsbook evidence"><option value="">All evidence</option><option value="model_market_agreement">Same-side exact books</option><option value="model_market_disagreement">Opposite-side exact books</option><option value="model_only">No exact book match</option><option value="market_neutral">Neutral books</option><option value="ambiguous_market">Ambiguous book data</option></select></div>
-<div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Lean</th><th>Est. hit probability*</th><th>Observations</th><th>Book evidence</th></tr></thead><tbody id="props"><tr><td colspan="8">Loading…</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Lean</th><th>Est. hit probability*</th><th>Observations</th><th>Book evidence</th><th>Role check</th></tr></thead><tbody id="props"><tr><td colspan="9">Loading…</td></tr></tbody></table></div>
 <h2>Optimized research lineups</h2><p class="muted">Select 2–6 picks. Standard lines only, no repeat players; 5–6 picks may include two from the same game with elevated correlation risk. No verified joint win probability or EV.</p><div class="filters"><label for="lineupSize" class="muted">Picks</label><select id="lineupSize" aria-label="Number of lineup picks"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div><p class="notice" id="lineupStatus">Loading research lineups…</p><div class="table-wrap"><table><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Lean</th><th>Model estimate</th><th>Matchup</th></tr></thead><tbody id="lineupPicks"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
 <h2>Actual historical PrizePicks line coverage — both seasons</h2>
 <p class="muted">Independent OddsPapi PrizePicks archive, sampled pregame lines. Not sportsbook substitutes, not a full-season download, and not a graded hit-rate report.</p>
@@ -75,6 +78,26 @@ function renderProspectiveQuality(){
   ' archived game IDs recovered via exact official NHL schedule. '+
   (r.excludedNoPregameProof??0)+' snapshots excluded for insufficient pregame proof. Uncalibrated; no validated edge or platform settlement.';
  host.append(detail);
+}
+function renderRoleReadiness(){
+ const host=$('roleReadiness'),r=data.roleContextAudit;
+ if(!r){host.textContent='Role-history archive not published yet. No goalie starts or injuries are verified. Check each prop before relying on it.';return;}
+ host.replaceChildren();
+ const cards=document.createElement('div');cards.className='microcards';
+ const items=[['Official player-game TOI',r.withOfficialTOI??0],
+  ['Historical goalie appearances',r.historicalGoalieRows??0],
+  ['Role / starter watchlist',r.watchlistProps??0],
+  ['Confirmed upcoming starters',0]];
+ for(const [k,v] of items){
+  const div=document.createElement('div');div.className='card';
+  const small=document.createElement('span');small.className='muted';small.textContent=k;
+  const strong=document.createElement('strong');strong.textContent=String(v);
+  div.append(small,strong);cards.append(div);
+ }
+ host.append(cards);
+ const note=document.createElement('p');note.className='note';
+ note.textContent='Historical usage is from final NHL boxscores. Goalie starts and pregame injuries are NOT verified in this feed. Goalie-save props without confirmed starts stay visible as WATCHLIST, excluded from optimized research lineups. Sudden measured skater minutes shifts are also reviewed. Historical goalie minutes and per-60 saves are experimental, not a validated live model.';
+ host.append(note);
 }
 function renderModelEvidence(){
  const host=$('modelEvidence'),s=data.evidenceSummary;
@@ -269,9 +292,17 @@ function render(){
   model_only:'No exact book match',market_neutral:'Market neutral',ambiguous_market:'Ambiguous books'};
  for(const p of list.slice(0,300)){const tr=document.createElement('tr');
   const e=p.evidence?.status;
+  const risk=p.roleEvidence,reason=risk?.reasons||[];
+  const role=p.researchEligibility==='watchlist'?
+   (reason.includes('STARTING_GOALIE_NOT_CONFIRMED')?'WATCHLIST: starter unknown':
+    reason.includes('RECENT_ICE_TIME_SHIFT_REVIEW')?'WATCHLIST: TOI changed':'WATCHLIST: role risk'):
+   (reason.includes('ICE_TIME_HISTORY_UNAVAILABLE')?'Minutes history missing':
+    risk?'Historical usage only':'Role unverified');
   [p.player+' ('+p.team+')',p.market,p.line,p.tier,p.lean,pct(p.probability),
-   p.observations,(evidenceName[e]||'Unverified')+(p.evidence?.books?' ('+p.evidence.books+')':'')].forEach(v=>cell(tr,v));
-  if(p.evidence?.notes?.length)tr.title=p.evidence.notes.join(' · ');
+   p.observations,(evidenceName[e]||'Unverified')+(p.evidence?.books?' ('+p.evidence.books+')':''),
+   role].forEach(v=>cell(tr,v));
+  const notes=[...(p.evidence?.notes||[]),...reason];
+  if(notes.length)tr.title=notes.join(' · ');
   body.append(tr);}
  if(!list.length){const tr=document.createElement('tr');cell(tr,'No matching props in saved snapshot');body.append(tr);}
 }
@@ -285,7 +316,7 @@ async function init(){
  const body=$('comparisons');body.replaceChildren();
  for(const p of [...data.comparisons].sort((a,b)=>b.absoluteModelMarketGap-a.absoluteModelMarketGap).slice(0,100)){const tr=document.createElement('tr');[p.player,p.market,p.line,p.tier,pct(p.modelHigher),pct(p.sportsbookHigher),pct(p.absoluteModelMarketGap),(p.books||[]).join(', ')].forEach(v=>cell(tr,v));body.append(tr);}
  if(!data.comparisons.length){const tr=document.createElement('tr');cell(tr,'No verified exact-line comparisons in this snapshot');body.append(tr);}
- render();renderLineup();renderProspectiveQuality();renderModelEvidence();renderModelComparison();renderStandardAlternateAudit();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderFullNhlCoverage();renderIndependentNhlGrading();renderIndependentTierEvidence();renderPPModel();
+ render();renderLineup();renderProspectiveQuality();renderRoleReadiness();renderModelEvidence();renderModelComparison();renderStandardAlternateAudit();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderFullNhlCoverage();renderIndependentNhlGrading();renderIndependentTierEvidence();renderPPModel();
  }catch(e){$('updated').textContent='Dashboard data unavailable: '+e.message;$('props').textContent='No data available';$('comparisons').textContent='No data available';}
 }
 ['search','tier','market','direction','evidence'].forEach(id=>$(id).addEventListener('input',render));$('lineupSize').addEventListener('change',renderLineup);init();

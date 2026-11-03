@@ -12,9 +12,15 @@
 <h2>Model and market evidence</h2>
 <p class="muted">Adapted from our MLB research process: check a fresh exact-line sportsbook market independently from the model, flag disagreements and preserve missing-data warnings. Same-side evidence is NOT a verified edge or payout quote.</p>
 <div class="card" id="modelEvidence" aria-live="polite">Loading exact-line evidence…</div>
+<h2>PrizePicks vs Underdog — current line availability</h2>
+<p class="muted">Only exact official NHL game/player/stat matches with authorized fresh platform quotes. Underdog remains unavailable without a source.</p>
+<div class="card" id="platformLineShop" aria-live="polite">Checking platform source status…</div>
 <h2>Projection model comparison: champion vs challengers</h2>
 <p class="muted">Official NHL past player stats measure projection error; actual archived-line historical replay measures reconstructed Higher/Lower decisions. Neither substitutes for independently recorded pregame selections.</p>
 <div class="card" id="modelComparison">Loading historical model comparison…</div>
+<h2>MoneyPuck historical shot-quality experiment</h2>
+<p class="muted">Past-only NHL xOnGoal/xGoals and actual game-level stat MAE; no historical pick hit-rate claim.</p>
+<div class="card" id="historicalShotQuality" aria-live="polite">Checking historical model research…</div>
 <h2>Count probability distribution research lab</h2>
 <p class="muted">Same archived actual player-prop lines, same model mean, two probability assumptions: existing Poisson versus shrinkage negative binomial. Historical Brier/log loss are exploratory; no prospective or profitable edge verified.</p>
 <div class="card" id="countDistributionLab" aria-live="polite">Loading count-distribution experiment…</div>
@@ -24,7 +30,9 @@
 <h2>Goalie starts, skater ice time and lineup risk</h2>
 <p class="muted">Official NHL final-game minutes plus independent pregame ESPN goalie/injury reports, matched to NHL team rosters and scheduled games. A source-reported confirmed goalie is NOT an authenticated NHL/team confirmation, and a missing injury listing does not establish fitness.</p>
 <div class="card" id="roleReadiness" aria-live="polite">Loading official NHL role-history coverage…</div>
-<p class="muted note">Check original game-day reporting: <a href="https://www.nhl.com/news/nhl-lineup-projections-2026-27-season" target="_blank" rel="noopener noreferrer">NHL.com projected lineups</a> · <a href="https://www.dailyfaceoff.com/starting-goalies" target="_blank" rel="noopener noreferrer">Daily Faceoff goalie reports</a> · <a href="https://www.rotowire.com/hockey/nhl-lineups.php" target="_blank" rel="noopener noreferrer">RotoWire lineup reports</a> · <a href="https://puckpedia.com/team-lines" target="_blank" rel="noopener noreferrer">PuckPedia lines</a>. Forward lines and power-play units are not yet imported or verified; source rights must be cleared before commercial use.</p>
+<div class="card" id="newRoleGoalieLab" aria-live="polite" style="margin-top:12px">Loading experimental DFO roles and goalie shadows…</div>
+<div class="card" id="goalieStarterAudit" aria-live="polite" style="margin-top:12px">Loading official FINAL goalie report audit…</div>
+<p class="muted note">Check original game-day reporting: <a href="https://www.nhl.com/news/nhl-lineup-projections-2026-27-season" target="_blank" rel="noopener noreferrer">NHL.com projected lineups</a> · <a href="https://www.dailyfaceoff.com/starting-goalies" target="_blank" rel="noopener noreferrer">Daily Faceoff goalie reports</a> · <a href="https://www.rotowire.com/hockey/nhl-lineups.php" target="_blank" rel="noopener noreferrer">RotoWire lineup reports</a> · <a href="https://puckpedia.com/team-lines" target="_blank" rel="noopener noreferrer">PuckPedia lines</a>. Daily Faceoff lines and power-play units are now privately imported for experimental research, but remain projected and unverified; commercial redistribution rights still need documentation.</p>
 <h2>NHL Matchup Research Lab</h2>
 <p class="muted">Inspired by our MLB Ballpark Pal and Baseball Savant research workflow. Tap <b>Scout</b> next to a prop to review past-only official player shot/goalie workload and opponent defensive volume. Five external sites offer further research, but links are not imported datasets or a verified betting edge.</p>
 <div class="card" id="matchupSources" aria-live="polite">Loading five NHL research sites…</div>
@@ -58,6 +66,74 @@
 <script>
 const $=id=>document.getElementById(id),pct=x=>Number.isFinite(x)?(x*100).toFixed(1)+'%':'—',cell=(tr,value)=>{const td=document.createElement('td');td.textContent=String(value??'—');tr.append(td);};
 let data={props:[],comparisons:[],lineups:{}};
+
+function statusPanel(id,heading,items,warning){
+ const host=$(id);host.replaceChildren();
+ const title=document.createElement('h3');title.textContent=heading;host.append(title);
+ const cards=document.createElement('div');cards.className='microcards';
+ for(const [label,value] of items){
+  const card=document.createElement('div');card.className='card';
+  const name=document.createElement('span');name.className='muted';name.textContent=label;
+  const amount=document.createElement('strong');amount.textContent=String(value??'—');
+  card.append(name,amount);cards.append(card);
+ }
+ const info=document.createElement('p');info.className='muted note';info.textContent=warning;
+ host.append(cards,info);
+}
+function renderRoleGoalieShadow(){
+ const r=data.dfoRoleGoalieShadow,g=data.goalieStarterAudit;
+ statusPanel('newRoleGoalieLab','DFO projected roles and conditional goalie saves',[
+  ['EV/PP research candidates',r?.skaterProjectedRoleCandidates??'Pending'],
+  ['Goalie saves if playing',r?.conditionalGoalieSaveCandidates??'—'],
+  ['DFO reporter-confirmed candidates',r?.reporterConfirmedGoalieCandidates??'—']
+ ],'Line and power-play adjustments are unfitted research-only hypotheses. Conditional goalie saves are not an unconditional prop probability. Neither changes production picks or slips.');
+ statusPanel('goalieStarterAudit','Retrospective verification against official NHL FINAL',[
+  ['Explicit NHL starter flags verified',g?.gradedOfficialStarts??'Pending'],
+  ['DFO reports matched actual starts',g?.reportedConfirmedActualStarts??'—'],
+  ['DFO reports disagreed with starts',g?.reportedConfirmedNotActualStarts??'—'],
+  ['Official starter flag unavailable',g?.starterFlagUnavailable??'—']
+ ],'Only an explicit official final-game starter flag can verify a past reporter claim. No first-party pregame club starter confirmations are asserted.');
+}
+function renderHistoricalShotQuality(){
+ const r=data.historicalShotQualityStudy,g=data.historicalGoalieShotQuality;
+ statusPanel('historicalShotQuality','2025–26 past-only shot-quality comparison',[
+  ['Shots: champion MAE',r?.byMarket?.shotsOnGoal?.championMAE??'Pending'],
+  ['Shots: MoneyPuck MAE',r?.byMarket?.shotsOnGoal?.shotQualityShadowMAE??'—'],
+  ['Goals: champion MAE',r?.byMarket?.goals?.championMAE??'—'],
+  ['Goals: MoneyPuck MAE',r?.byMarket?.goals?.shotQualityShadowMAE??'—'],
+  ['Goalie saves: baseline MAE',g?.championMae??'Pending'],
+  ['Goalie saves: MoneyPuck MAE',g?.shotQualityMae??'—'],
+  ['Goalie historical appearances tested',g?.goalieAppearances??'—']
+ ],'Lower count MAE is better. Reconstructed historical games are not original published pregame predictions; no confirmed platform win rate or expected value, and no model deployment. Goalie saves experiments are conditional on observed playing time and do not validate predicted starts.');
+}
+function renderPlatformLineShop(){
+ const r=data.platformLineShopping||{};
+ const ready=r.status==='comparison_source_available'&&r.sourceFreshAtBuild===true&&
+  r.derivedDisplayAuthorized===true;
+ statusPanel('platformLineShop','PrizePicks / Underdog line coverage',[
+  ['PrizePicks observed sides',r.prizePicksObservedProps??0],
+  ['Underdog observed sides',r.underdogObservedProps??0],
+  ['Official-ID Standard matches',r.officialIdentityMatchedPairs??0],
+  ['Underdog status',ready?'Fresh permitted feed':'Unavailable']
+ ],ready?'Exact-line source evidence only, not original platform settlement or a recommended bet.':
+  'No current verified authorized Underdog quote feed. Missing lines and unverified payouts are intentionally not filled in.');
+ if(ready&&Array.isArray(r.comparedLines)&&r.comparedLines.length){
+  const host=$('platformLineShop'),wrap=document.createElement('div');wrap.className='table-wrap';
+  const table=document.createElement('table'),header=document.createElement('tr');
+  for(const x of ['Player','Market','Side','PrizePicks','Underdog']){
+   const th=document.createElement('th');th.textContent=x;header.append(th);
+  }
+  const thead=document.createElement('thead');thead.append(header);table.append(thead);
+  const tbody=document.createElement('tbody');
+  for(const x of r.comparedLines.slice(0,30)){
+   const tr=document.createElement('tr');
+   for(const value of [x.playerKey,x.market,x.side,x.prizePicksLine,x.underdogLine])cell(tr,value);
+   tbody.append(tr);
+  }
+  table.append(tbody);wrap.append(table);host.append(wrap);
+ }
+}
+
 function renderProspectiveQuality(){
  const host=$('prospectiveAudit'),r=data.prospectiveResearchAudit;
  if(!r){host.textContent='Prospective audit has not been published; no validated model accuracy is available.';return;}
@@ -509,7 +585,7 @@ async function init(){
  const body=$('comparisons');body.replaceChildren();
  for(const p of [...data.comparisons].sort((a,b)=>b.absoluteModelMarketGap-a.absoluteModelMarketGap).slice(0,100)){const tr=document.createElement('tr');[p.player,p.market,p.line,p.tier,pct(p.modelHigher),pct(p.sportsbookHigher),pct(p.absoluteModelMarketGap),(p.books||[]).join(', ')].forEach(v=>cell(tr,v));body.append(tr);}
  if(!data.comparisons.length){const tr=document.createElement('tr');cell(tr,'No verified exact-line comparisons in this snapshot');body.append(tr);}
- render();renderLineup();renderProspectiveQuality();renderMatchupSources();renderApprovedResearchLab();renderApprovedSourceGrading();renderMatchupDetail(null);renderRoleReadiness();renderModelEvidence();renderModelComparison();renderCountDistributionResearch();renderStandardAlternateAudit();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderFullNhlCoverage();renderIndependentNhlGrading();renderIndependentTierEvidence();renderPPModel();
+ render();renderLineup();renderProspectiveQuality();renderMatchupSources();renderApprovedResearchLab();renderApprovedSourceGrading();renderRoleGoalieShadow();renderHistoricalShotQuality();renderPlatformLineShop();renderMatchupDetail(null);renderRoleReadiness();renderModelEvidence();renderModelComparison();renderCountDistributionResearch();renderStandardAlternateAudit();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderFullNhlCoverage();renderIndependentNhlGrading();renderIndependentTierEvidence();renderPPModel();
  }catch(e){$('updated').textContent='Dashboard data unavailable: '+e.message;$('props').textContent='No data available';$('comparisons').textContent='No data available';}
 }
 ['search','tier','market','direction','evidence'].forEach(id=>$(id).addEventListener('input',render));$('lineupSize').addEventListener('change',renderLineup);init();

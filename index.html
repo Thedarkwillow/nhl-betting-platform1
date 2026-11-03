@@ -170,7 +170,8 @@ function renderRoleReadiness(){
  host.append(note);
 }
 function renderCountDistributionResearch(){
- const host=$('countDistributionLab'),r=data.distributionResearch,archive=data.distributionShadowArchive;
+ const host=$('countDistributionLab'),r=data.distributionResearch,archive=data.distributionShadowArchive,
+  proof=data.distributionProspectiveArchiveAudit;
  if(!r){host.textContent='Research-only Poisson vs negative-binomial comparison has not been published yet. Active model remains the original Poisson version.';return;}
  host.replaceChildren();
  const cards=document.createElement('div');cards.className='microcards';
@@ -198,7 +199,11 @@ function renderCountDistributionResearch(){
  const frozen=document.createElement('p');frozen.className='note';
  frozen.textContent=archive?'Latest frozen shadow candidate rows: '+archive.frozenOfferRows+
   ' · Matches saved research source: '+(archive.matchesCurrentResearch?'Yes':'No')+
-  ' · Archive-before-puck-drop Git proof is NOT yet independently verified.':
+  ' · Before-start Git/official schedule audit: '+
+  (proof?proof.gitAndOfficialStartMatchedRows+' of '+proof.sourceObservedQuoteRows+
+   ' rows with original Git commit metadata before puck drop; results pending.':
+   'not published yet.')+
+  ' Neither Git author timestamps nor ESPN/API quote authenticity establishes a platform settlement or calibrated probability.':
   'First-write live candidate forecast archive has not been published yet.';
  host.append(frozen);
 }

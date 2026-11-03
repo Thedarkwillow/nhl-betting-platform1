@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'index.html'
+      - 'assets/**'
       - 'data.json'
       - '.github/workflows/publish.yml'
 permissions:

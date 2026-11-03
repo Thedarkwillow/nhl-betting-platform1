@@ -5,6 +5,7 @@ on:
     branches: [main, 'feature/**']
     paths:
       - 'index.html'
+      - 'assets/**'
       - 'data.json'
       - 'scripts/validate-dashboard.cjs'
       - '.github/workflows/validate-dashboard.yml'

@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T21:51:28.051Z",
+  "builtAt": "2026-11-03T21:59:46.839Z",
   "researchAt": "2026-11-02T01:00:29.953Z",
   "boardAt": "2026-11-02T01:00:29.864Z",
   "comparisonAt": null,
@@ -142,7 +142,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-03T21:51:27.980Z",
+    "generatedAt": "2026-11-03T21:59:46.783Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,
@@ -1030,7 +1030,7 @@
     },
     {
       "season": "2026-27",
-      "officialCompletedGames": 231,
+      "officialCompletedGames": 235,
       "officialGamesOnSchedule": 1344,
       "teamSchedulesComplete": true
     }
@@ -1126,7 +1126,7 @@
     "warning": "Independent snapshot tier observations starting October 28 2026. No authenticated 2023–24 or 2024–25 PrizePicks tier data, exact special-line payouts or original first-party archive."
   },
   "fullNhlHistoricalGameCoverage": {
-    "generatedAt": "2026-11-02T23:41:33.581Z",
+    "generatedAt": "2026-11-03T21:59:21.959Z",
     "kind": "official_schedule_against_independent_historical_closing_lines",
     "seasons": [
       {
@@ -1147,15 +1147,15 @@
       {
         "season": "2026-27",
         "officialScheduleComplete": true,
-        "officialCompletedGamesTotal": 231,
-        "officialCompletedGamesInEligiblePeriod": 224,
-        "completedGamesInsideCheckedWindows": 224,
+        "officialCompletedGamesTotal": 235,
+        "officialCompletedGamesInEligiblePeriod": 228,
+        "completedGamesInsideCheckedWindows": 228,
         "completedGamesNotYetChecked": 0,
-        "officialGamesMatchedToProvider": 224,
-        "officialGamesWithPrizePicksClosingLines": 224,
-        "officialGamesWithUnderdogClosingLines": 224,
-        "distinctPrizePicksClosingLineRecords": 5155,
-        "distinctUnderdogClosingLineRecords": 7069,
+        "officialGamesMatchedToProvider": 228,
+        "officialGamesWithPrizePicksClosingLines": 228,
+        "officialGamesWithUnderdogClosingLines": 228,
+        "distinctPrizePicksClosingLineRecords": 5253,
+        "distinctUnderdogClosingLineRecords": 7311,
         "fullDateCoverageChecked": true,
         "closingLineCoverageFull": false
       }

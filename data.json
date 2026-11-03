@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-11-03T03:22:42.993Z",
+  "builtAt": "2026-11-03T03:23:12.269Z",
   "researchAt": "2026-11-03T02:24:03.963Z",
   "boardAt": "2026-11-03T02:24:00.691Z",
-  "comparisonAt": "2026-11-03T03:22:42.993Z",
+  "comparisonAt": "2026-11-03T03:23:12.269Z",
   "dataProvider": "prizepicksapi.com independent feed",
   "providerIndependentlyVerified": false,
   "boardCoverageComplete": false,
@@ -76739,7 +76739,7 @@
   },
   "approvedSourceResearch": null,
   "distributionResearch": {
-    "generatedAt": "2026-11-03T02:35:50.981Z",
+    "generatedAt": "2026-11-03T03:22:44.512Z",
     "sourceMatchedQuoteRows": 220,
     "overall": {
       "decisions": 220,

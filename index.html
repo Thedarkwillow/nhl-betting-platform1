@@ -458,6 +458,16 @@ function renderModelComparison(){
   ' · Past-only official NHL statistical evaluations: '+(r.trainingObservations??0)+
   ' training and '+(r.holdoutObservations??0)+' holdout observations. Challengers are NOT approved for live promotion.';
  host.append(intro);
+ const gate=r.retrospectiveTrainingGate;
+ if(gate){
+  const note=document.createElement('p');note.className='note';
+  note.textContent=gate.passed?
+   'Prior-season retrospective model-selection sample threshold reached, but no model is approved without genuine prospective validation.':
+   'No historical challenger selected: only '+gate.archivedDecisions+' retrospective training decisions from '+
+    gate.distinctGames+' NHL games; minimum research gate is '+gate.requiredDecisions+
+    ' decisions across '+gate.requiredGames+' games. Existing production model remains unchanged.';
+  host.append(note);
+ }
  const table=document.createElement('table');table.style.minWidth='540px';
  const header=document.createElement('thead'),headRow=document.createElement('tr');
  ['Historical season','Model','Official-result decisions','Correct','Reconstructed hit rate'].forEach(v=>{const th=document.createElement('th');th.textContent=v;headRow.append(th);});

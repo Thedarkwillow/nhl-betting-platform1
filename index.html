@@ -20,7 +20,8 @@
 <div class="section-head"><div><div class="section-kicker">01 / Today's board</div><h2>Individually selected props</h2><p class="section-sub">Inspired by the MLB Top Plays engine. Only fresh, explicitly archived standalone model preferences appear in these cards. Not necessarily in an optimized lineup.</p></div><span class="pill">Model research only</span></div>
 <div id="featuredProps" class="featured-grid" aria-live="polite"><div class="featured-empty"><strong>Checking archived prop selections…</strong><span>Source freshness and pregame eligibility required.</span></div></div>
 <div class="board-panel"><h3>Full prop board <span id="filteredPropCount" class="muted" style="font-weight:500;font-size:12px"></span></h3>
-<p class="muted">Available Higher and Lower offer sides are listed separately. Only the model-preferred standalone selections shown above are designated research preferences; probabilities here are uncalibrated.</p><div class="filters"><input id="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter market"><option value="">All markets</option></select><select id="direction" aria-label="Filter direction"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select><select id="evidence" aria-label="Filter sportsbook evidence"><option value="">All evidence</option><option value="model_market_agreement">Same-side exact books</option><option value="model_market_disagreement">Opposite-side exact books</option><option value="model_only">No exact book match</option><option value="market_neutral">Neutral books</option><option value="ambiguous_market">Ambiguous book data</option></select></div>
+<p class="muted">Available Higher and Lower offer sides are listed separately. Only the model-preferred standalone selections shown above are designated research preferences; probabilities here are uncalibrated.</p>
+<div class="board-mode"><label for="boardMode">Research view</label><select id="boardMode" aria-label="Choose live-age eligibility or inspect a saved research snapshot"><option value="current">Fresh pregame offers only</option><option value="archive">Saved snapshot (may be expired)</option></select><p id="boardNotice" role="status" aria-live="polite">Checking source freshness before displaying current offers…</p></div><div class="filters"><input id="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter market"><option value="">All markets</option></select><select id="direction" aria-label="Filter direction"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select><select id="evidence" aria-label="Filter sportsbook evidence"><option value="">All evidence</option><option value="model_market_agreement">Same-side exact books</option><option value="model_market_disagreement">Opposite-side exact books</option><option value="model_only">No exact book match</option><option value="market_neutral">Neutral books</option><option value="ambiguous_market">Ambiguous book data</option></select></div>
 <div class="table-wrap props-table-wrap"><table class="props-data-table"><thead><tr><th>Player</th><th>Market</th><th>Line</th><th>Tier</th><th>Lean</th><th>Est. hit probability*</th><th>Observations</th><th>Book evidence</th><th>Role check</th><th>Scout</th></tr></thead><tbody id="props"><tr><td colspan="10">Loading…</td></tr></tbody></table></div>
 </div>
 </section>
@@ -606,9 +607,24 @@ function researchIsFresh(){
  const at=Date.parse(data.researchAt),now=Date.now();
  return data.researchFreshAtBuild===true&&Number.isFinite(at)&&at<=now&&now-at<=8*3600000;
 }
+// A 30-minute safety gate is stricter than the eight-hour historical research
+// gate. Do not imply that GitHub's most recent archived offer is still listed.
+function currentBoardIsFresh(){
+ const now=Date.now(),research=Date.parse(data.researchAt),board=Date.parse(data.boardAt);
+ const complete=data.boardCoverage?.apiPaginationComplete===true||
+  data.boardCoverageComplete===true;
+ return data.researchFreshAtBuild===true&&complete&&
+  Number.isFinite(research)&&Number.isFinite(board)&&
+  research<=now&&board<=now&&now-research<=30*60000&&now-board<=30*60000;
+}
+function isCurrentOffer(p){
+ const now=Date.now(),captured=Date.parse(p?.capturedAt),start=Date.parse(p?.eventStartsAt);
+ return currentBoardIsFresh()&&Number.isFinite(captured)&&
+  captured<=now&&now-captured<=30*60000&&Number.isFinite(start)&&start>now;
+}
 function renderLineup(){
  const size=$('lineupSize').value,slip=data.lineups?.[size],body=$('lineupPicks');body.replaceChildren();
- if(!researchIsFresh()){$('lineupStatus').textContent='Research snapshot stale or unverified. Lineup suggestions are unavailable until refreshed source data is published.';const tr=document.createElement('tr');cell(tr,'No current research lineup; historical snapshot only');body.append(tr);return;}
+ if(!researchIsFresh()||!currentBoardIsFresh()||!slip?.picks?.every(isCurrentOffer)){$('lineupStatus').textContent='No current lineup: source, game timing or complete-board freshness is unverified (30-minute gate). Saved historical research remains available below.';const tr=document.createElement('tr');cell(tr,'No current research lineup; historical snapshot only');body.append(tr);return;}
  if(!slip?.picks?.length){$('lineupStatus').textContent='No eligible '+size+'-pick Standard lineup available: insufficient distinct games or matching pregame props.';const tr=document.createElement('tr');cell(tr,'Unavailable for this snapshot');body.append(tr);return;}
  $('lineupStatus').textContent='Research-only '+size+'-pick lineup · '+(slip.distinctGames??'unknown')+' distinct games · No verified joint probability or EV · '+(slip.correlationRisk==='elevated_same_game'?'Higher same-game correlation risk':'Distinct games');
  for(const p of slip.picks){const tr=document.createElement('tr');[p.player+' ('+p.team+')',p.market,p.line,p.lean,Number.isFinite(p.projection)?p.projection.toFixed(3):'—',p.matchup].forEach(v=>cell(tr,v));body.append(tr);}
@@ -616,7 +632,16 @@ function renderLineup(){
 
 function render(){
  const q=$('search').value.toLowerCase().trim(),tier=$('tier').value,market=$('market').value,dir=$('direction').value,ev=$('evidence').value;
- const list=data.props.filter(p=>(!q||(p.player+' '+p.team).toLowerCase().includes(q))&&(!tier||p.tier===tier)&&(!market||p.market===market)&&(!dir||p.lean===dir)&&(!ev||p.evidence?.status===ev));
+ const archiveMode=$('boardMode').value==='archive';
+ const list=data.props.filter(p=>(archiveMode||isCurrentOffer(p))&&
+  (!q||(p.player+' '+p.team).toLowerCase().includes(q))&&
+  (!tier||p.tier===tier)&&(!market||p.market===market)&&
+  (!dir||p.lean===dir)&&(!ev||p.evidence?.status===ev));
+ $('boardNotice').textContent=archiveMode?
+  'ARCHIVED RESEARCH ONLY: these saved offers may have expired, moved or started. Do not interpret as currently available or recommended.':
+  currentBoardIsFresh()?
+   'Source passed the 30-minute board freshness check. This still does not verify original-platform availability or payout.':
+   'No eligible current board verified (complete source, timestamp and game-start checks required). Choose Saved snapshot to inspect historical offers.';
  const body=$('props');body.replaceChildren();
  const evidenceName={model_market_agreement:'Same-side exact books',model_market_disagreement:'Opposite-side books',
   model_only:'No exact book match',market_neutral:'Market neutral',ambiguous_market:'Ambiguous books'};
@@ -649,7 +674,7 @@ function render(){
   [...tr.children].forEach((td,i)=>{td.dataset.label=columns[i]||'Detail';});
   body.append(tr);}
  if($('filteredPropCount'))$('filteredPropCount').textContent=list.length+' of '+data.props.length+' available sides';
- if(!list.length){const tr=document.createElement('tr');cell(tr,'No matching props in saved snapshot');body.append(tr);}
+ if(!list.length){const tr=document.createElement('tr');cell(tr,archiveMode?'No matching saved prop rows':'No eligible fresh pregame props; archived research is available in Saved snapshot mode');body.append(tr);}
 }
 async function init(){
  try{const res=await fetch('./data.json',{cache:'no-store'});if(!res.ok)throw Error('No data file');data=await res.json();
@@ -664,5 +689,5 @@ async function init(){
  renderFeatured();render();renderLineup();renderProspectiveQuality();renderMatchupSources();renderApprovedResearchLab();renderApprovedSourceGrading();renderRoleGoalieShadow();renderHistoricalShotQuality();renderPlatformLineShop();renderMatchupDetail(null);renderRoleReadiness();renderModelEvidence();renderModelComparison();renderCountDistributionResearch();renderStandardAlternateAudit();renderHistorical();renderPrizePicksHistory();renderSGOHistory();renderFullNhlCoverage();renderIndependentNhlGrading();renderIndependentTierEvidence();renderPPModel();
  }catch(e){$('updated').textContent='Dashboard data unavailable: '+e.message;$('props').textContent='No data available';$('comparisons').textContent='No data available';}
 }
-['search','tier','market','direction','evidence'].forEach(id=>$(id).addEventListener('input',render));$('lineupSize').addEventListener('change',renderLineup);init();
+['search','tier','market','direction','evidence','boardMode'].forEach(id=>$(id).addEventListener('input',render));$('lineupSize').addEventListener('change',renderLineup);init();
 </script></body></html>

@@ -680,7 +680,7 @@ async function init(){
  try{const res=await fetch('./data.json',{cache:'no-store'});if(!res.ok)throw Error('No data file');data=await res.json();
  $('propCount').textContent=data.props.length;$('matchCount').textContent=data.comparisons.length;$('coverage').textContent=data.boardCoverage?.apiPaginationComplete?'API paged':data.boardCoverageComplete?'Complete':'Partial';
  const hours=(Date.now()-Date.parse(data.researchAt))/3600000;
- $('freshness').textContent=researchIsFresh()?'Recent':'Stale / unknown';
+ $('freshness').textContent=currentBoardIsFresh()?'Fresh (<30m)':'Archived / not current';
  $('updated').textContent='Source: '+(data.dataProvider||'unknown')+' · Snapshot built '+new Date(data.builtAt).toLocaleString()+' · Research '+(data.researchAt?new Date(data.researchAt).toLocaleString():'unavailable')+' · Comparisons '+(data.comparisonAt?new Date(data.comparisonAt).toLocaleString():'unavailable');
  for(const m of [...new Set(data.props.map(p=>p.market))].sort()){const o=document.createElement('option');o.value=o.textContent=m;$('market').append(o);}
  const body=$('comparisons');body.replaceChildren();
@@ -690,4 +690,11 @@ async function init(){
  }catch(e){$('updated').textContent='Dashboard data unavailable: '+e.message;$('props').textContent='No data available';$('comparisons').textContent='No data available';}
 }
 ['search','tier','market','direction','evidence','boardMode'].forEach(id=>$(id).addEventListener('input',render));$('lineupSize').addEventListener('change',renderLineup);init();
+// A tab left open must never keep presenting an offer after the 30-minute
+// freshness window or puck drop. Refresh eligibility without fetching APIs.
+setInterval(()=>{
+ if(!data?.builtAt)return;
+ $('freshness').textContent=currentBoardIsFresh()?'Fresh (<30m)':'Archived / not current';
+ render();renderLineup();renderFeatured();
+},60000);
 </script></body></html>

@@ -5,6 +5,7 @@ assert.match(html,/href="\.\/assets\/dashboard\.css"/,"MLB-inspired local dashbo
 const css=fs.readFileSync(path.resolve(__dirname,"../assets/dashboard.css"),"utf8");
 assert.match(css,/\.featured-grid/,"Primary standalone prop cards must have responsive styling");
 assert.match(css,/@media\(max-width:680px\)/,"NHL mobile prop-card presentation required");
+assert.match(css,/\.board-mode/, "Mobile archived research mode must be styled");
 for(const id of ["today","slips","results","research","researchDrawer","featuredProps"])
  assert.ok(html.includes('id="'+id+'"'),"Missing user-first NHL dashboard section "+id);
 const order=["id=\"today\"","id=\"slips\"","id=\"results\"","id=\"research\""];
@@ -13,12 +14,17 @@ assert.ok(order.every((x,i)=>i===0||html.indexOf(order[i-1])<html.indexOf(x)),
 const found=html.match(/<script>([\s\S]*?)<\/script>/i);
 assert.ok(found,"NHL page must contain an inline dashboard script");
 new vm.Script(found[1],{filename:"nhl-public-dashboard.inline.js"});
+assert.match(html,/id="boardMode"/,"Research board must expose a current-versus-archive switch");
+assert.match(html,/id="boardNotice"/,"Freshness gate must explain empty current board");
 const ids=["prospectiveAudit","standardAlternateAudit","modelEvidence","modelComparison","countDistributionLab","roleReadiness","evidence","lineupStatus","lineupPicks",
  "matchupSources","approvedResearchLab","approvedSourceGrading","matchupDetails","props","comparisons","freshness","updated"];
 for(const id of ids)assert.ok(html.includes('id="'+id+'"'),"Missing required accessible dashboard region: "+id);
 for(const fn of ["renderFeatured","renderProspectiveQuality","renderStandardAlternateAudit","renderModelEvidence","renderModelComparison","renderCountDistributionResearch","renderRoleReadiness","renderMatchupSources","renderApprovedResearchLab","renderApprovedSourceGrading","renderMatchupDetail","researchIsFresh"])
  assert.ok(found[1].includes("function "+fn+"("),"Missing essential data/status renderer "+fn);
-assert.match(found[1],/if\(!researchIsFresh\(\)\)/,"Stale lineups must fail closed");
+assert.match(found[1],/if\(!researchIsFresh\(\)\|\|!currentBoardIsFresh\(\)/,"Stale or unverified current-board lineups must fail closed");
+assert.match(found[1],/function currentBoardIsFresh\(/,"30-minute live-age gate is required");
+assert.match(found[1],/function isCurrentOffer\(/,"Per-offer pregame source age must be checked");
+assert.match(found[1],/archiveMode\|\|isCurrentOffer\(p\)/,"Current props must exclude expired offers");
 assert.match(found[1],/original|unverified|Uncalibrated|uncalibrated/i);
 assert.match(found[1],/model_market_disagreement/,"Must display opposing sportsbook market signal");
 assert.match(found[1],/STARTING_GOALIE_NOT_CONFIRMED/,"Unconfirmed goalie starters must be visibly flagged");

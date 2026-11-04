@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-04T01:22:36.692Z",
+  "builtAt": "2026-11-04T01:29:47.832Z",
   "researchAt": "2026-11-02T01:00:29.953Z",
   "boardAt": "2026-11-02T01:00:29.864Z",
   "comparisonAt": "2026-11-03T23:22:42.084Z",
@@ -131,6 +131,15 @@
       }
     },
     "holdoutAlwaysLowerRate": 0.5448717948717948,
+    "retrospectiveTrainingGate": {
+      "selectedCandidate": null,
+      "passed": false,
+      "archivedDecisions": 66,
+      "distinctGames": 8,
+      "requiredDecisions": 100,
+      "requiredGames": 20,
+      "selectedFormulaApproved": false
+    },
     "championModel": "weighted-form-v1",
     "challengers": [
       "stable-shrink-v2",
@@ -142,7 +151,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-04T01:22:36.624Z",
+    "generatedAt": "2026-11-04T01:29:47.761Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,

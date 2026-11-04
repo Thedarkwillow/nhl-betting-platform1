@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-04T00:55:03.987Z",
+  "builtAt": "2026-11-04T01:22:05.824Z",
   "researchAt": "2026-11-02T01:00:29.953Z",
   "boardAt": "2026-11-02T01:00:29.864Z",
   "comparisonAt": "2026-11-03T23:22:42.084Z",
@@ -142,7 +142,7 @@
     "warning": "Historical NHL stats validate actual results, not reconstructed pregame model picks. Archived quote samples are selected and correlated; stronger raw-stat MAE did not translate to uniformly stronger Higher/Lower decisions. No tier payout or proven EV."
   },
   "platformLineShopping": {
-    "generatedAt": "2026-11-04T00:55:03.931Z",
+    "generatedAt": "2026-11-04T01:22:05.765Z",
     "status": "underdog_feed_not_connected",
     "prizePicksObservedProps": 0,
     "underdogObservedProps": 0,
@@ -260,20 +260,20 @@
     "warning": "Only Git-frozen pregame forecasts matched to official NHL FINAL stats are scored; missing games/players remain pending or excluded. Brier, MAE and log loss are experimental and do not establish reliable betting probabilities, settled payouts or profitability."
   },
   "approvedSourceResearch": {
-    "sourceCapturedAt": "2026-11-03T04:42:19.616Z",
+    "sourceCapturedAt": "2026-11-04T01:21:15.810Z",
     "lastObservedMoneyPuck": {
-      "skaters": "Tue, 03 Nov 2026 04:31:07 GMT",
-      "goalies": "Tue, 03 Nov 2026 04:31:07 GMT",
-      "teams": "Tue, 03 Nov 2026 04:31:07 GMT"
+      "skaters": "Tue, 03 Nov 2026 12:27:42 GMT",
+      "goalies": "Tue, 03 Nov 2026 12:27:42 GMT",
+      "teams": "Tue, 03 Nov 2026 12:27:42 GMT"
     },
-    "moneyPuckSkaters": 742,
+    "moneyPuckSkaters": 743,
     "moneyPuckGoalies": 74,
     "moneyPuckTeams": 32,
-    "dailyFaceoffUpcomingGames": 11,
-    "dailyFaceoffGoalieReports": 22,
-    "dailyFaceoffReporterConfirmed": 2,
-    "dailyFaceoffLineTeams": 22,
-    "sourceWarnings": 0,
+    "dailyFaceoffUpcomingGames": 5,
+    "dailyFaceoffGoalieReports": 10,
+    "dailyFaceoffReporterConfirmed": 1,
+    "dailyFaceoffLineTeams": 9,
+    "sourceWarnings": 1,
     "shadowAsOf": "2026-11-03T03:22:54.597Z",
     "shadowCandidateRows": 432,
     "shotQualityProbabilitiesDeployed": false,

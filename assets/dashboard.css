@@ -111,6 +111,15 @@ button:hover{background:#276572}
 .lineup-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .lineup-toolbar-buttons,.lineup-row-actions,.lineup-swap-actions{display:flex;gap:7px;flex-wrap:wrap}
 .lineup-toolbar-buttons button{min-height:40px}
+.props-data-table td:last-child button{min-width:98px}
+#lineupFeedback{background:#132838;border:1px solid #294c5d;border-radius:10px;padding:10px 12px;margin-top:14px}
+.lineup-toolbar-buttons{flex:1 1 390px;justify-content:flex-end}
+@media(max-width:680px){
+ .lineup-toolbar-buttons{justify-content:stretch}
+ .lineup-toolbar-buttons button{min-height:42px}
+ .props-data-table td:last-child button{min-width:0}
+}
+
 .lineup-row-actions button{font-size:11px;padding:8px 10px}
 button:disabled{opacity:.48;cursor:not-allowed}
 button:disabled:hover{background:#1c4755}

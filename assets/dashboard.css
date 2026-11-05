@@ -83,7 +83,7 @@ p{line-height:1.6}
 .board-mode select{width:auto;max-width:100%;min-width:230px;flex:0 1 auto}
 .board-mode p{flex:1 1 260px;margin:0;color:#b8cbd6;font-size:11px;line-height:1.45}
 @media(max-width:680px){.board-mode{gap:8px;padding:12px}.board-mode label,.board-mode select,.board-mode p{width:100%;flex:1 1 100%}}
-.filters{display:grid;grid-template-columns:minmax(190px,2fr) repeat(4,minmax(120px,1fr));gap:9px;margin:15px 0}
+.filters{display:grid;grid-template-columns:minmax(190px,2fr) repeat(6,minmax(120px,1fr));gap:9px;margin:15px 0}
 .filters input,.filters select,select,input{width:100%;min-width:0;max-width:100%;background:#091924;border:1px solid #375164;color:var(--ink);border-radius:10px;padding:11px 12px;font-size:13px}
 .filters input::placeholder{color:#8da3b4}
 .filters select{cursor:pointer}

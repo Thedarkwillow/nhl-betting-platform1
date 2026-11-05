@@ -136,7 +136,8 @@ function render(){
   const button=document.createElement("button");button.type="button";
   const canAdd=!archiveMode&&isCurrentOffer(p)&&workspace.eligible(p,Date.now());
   button.disabled=!canAdd;button.textContent=canAdd?"Add to lineup":"Unavailable";
-  button.setAttribute("aria-label","Add "+(p.player||"player")+" to NHL research lineup");
+  button.setAttribute("aria-label",canAdd?"Add "+(p.player||"player")+" to NHL research lineup":
+   "Offer not eligible for current NHL lineup research");
   button.addEventListener("click",()=>addBoardProp(p));
   td.append(button);tr.append(td);body.append(tr);
  }

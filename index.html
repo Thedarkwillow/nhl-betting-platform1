@@ -33,7 +33,7 @@
 <div class="board-panel">
 <h3>Browse all prop sides <span id="filteredPropCount" class="muted"></span></h3>
 <div class="board-mode"><label for="boardMode">View</label><select id="boardMode" aria-label="Browse current pregame or archived research props"><option value="current">Current pregame only</option><option value="archive">Saved history (may be expired)</option></select><p id="boardNotice" role="status" aria-live="polite">Checking offer timestamps…</p></div>
-<div class="filters"><input id="search" type="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter by offer tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter by statistic"><option value="">All stats</option></select><select id="direction" aria-label="Filter by Higher or Lower"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select></div>
+<div class="filters"><input id="search" type="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter by offer tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter by statistic"><option value="">All stats</option></select><select id="direction" aria-label="Filter by Higher or Lower"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select><select id="gameFilter" aria-label="Filter by NHL game"><option value="">All games</option></select><select id="sortProps" aria-label="Sort player prop research"><option value="estimate">Highest model estimate</option><option value="game">Soonest game</option><option value="player">Player A–Z</option></select></div>
 <div class="table-wrap props-table-wrap"><table class="props-data-table"><thead><tr><th>Player</th><th>Statistic</th><th>Line</th><th>Tier</th><th>Side</th><th>Est. probability*</th><th>Recent games</th><th>Status</th></tr></thead><tbody id="props"><tr><td colspan="8">Loading…</td></tr></tbody></table></div>
 </div>
 <div class="board-panel" style="margin-top:14px">
@@ -83,7 +83,7 @@ function renderFeatured(){
   p.researchEligibility!=="watchlist"&&p.probability>0.5).slice(0,8);
  if(!rows.length){
   const div=document.createElement("div");div.className="featured-empty";
-  const title=document.createElement("strong");title.textContent="No verified-fresh pregame picks right now";
+  const title=document.createElement("strong");title.textContent="No fresh pregame research picks right now";
   const note=document.createElement("span");note.textContent="Historical observations remain available under Saved history. New picks appear only after a qualifying pregame snapshot.";
   div.append(title,note);host.append(div);return;
  }
@@ -100,11 +100,19 @@ function renderFeatured(){
 }
 function render(){
  const q=$("search").value.toLowerCase().trim(),tier=$("tier").value,
-  market=$("market").value,side=$("direction").value,archiveMode=$("boardMode").value==="archive";
+  market=$("market").value,side=$("direction").value,
+  game=$("gameFilter").value,sortBy=$("sortProps").value,
+  archiveMode=$("boardMode").value==="archive";
  const rows=(Array.isArray(data.props)?data.props:[]).filter(p=>
   (archiveMode||isCurrentOffer(p))&&
   (!q||((p.player||"")+" "+(p.team||"")).toLowerCase().includes(q))&&
-  (!tier||p.tier===tier)&&(!market||p.market===market)&&(!side||p.lean===side));
+  (!tier||p.tier===tier)&&(!market||p.market===market)&&
+  (!side||p.lean===side)&&(!game||p.matchup===game))
+  .sort((a,b)=>sortBy==="player"?
+    String(a.player||"").localeCompare(String(b.player||"")):
+    sortBy==="game"?
+     (Date.parse(a.eventStartsAt)||0)-(Date.parse(b.eventStartsAt)||0):
+     (Number(b.probability)||0)-(Number(a.probability)||0));
  $("boardNotice").textContent=archiveMode?
   "Saved history only. These offers can be expired, changed, or unavailable.":
   currentBoardIsFresh()?
@@ -185,6 +193,10 @@ async function init(){
   for(const market of [...new Set(data.props.map(p=>p.market).filter(Boolean))].sort()){
    const option=document.createElement("option");option.value=option.textContent=market;$("market").append(option);
   }
+  for(const game of [...new Set(data.props.map(p=>p.matchup).filter(Boolean))].sort()){
+   const option=document.createElement("option");option.value=game;
+   option.textContent=game;$("gameFilter").append(option);
+  }
   renderFeatured();render();renderLineup();renderResults();renderComparisons();
  }catch(e){
   $("updated").textContent="Dashboard data unavailable: "+e.message;
@@ -193,7 +205,7 @@ async function init(){
   $("prospectiveAudit").textContent="No verified results available";
  }
 }
-["search","tier","market","direction","boardMode"].forEach(id=>$(id).addEventListener("input",render));
+["search","tier","market","direction","gameFilter","sortProps","boardMode"].forEach(id=>$(id).addEventListener("input",render));
 $("lineupSize").addEventListener("change",renderLineup);
 init();
 setInterval(()=>{

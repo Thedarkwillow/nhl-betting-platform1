@@ -9,15 +9,20 @@ async function get(url){
 async function main(){
  const html=await (await get(ROOT+"?smoke="+Date.now())).text();
  for(const id of ["today","slips","results","featuredProps","props",
-  "lineupPicks","lineupStatus","prospectiveAudit","boardMode","boardNotice"])
+  "lineupPicks","lineupStatus","prospectiveAudit","boardMode","boardNotice",
+  "rebuildLineup","resetLineup","lineupSwapPanel","lineupSwapOption","applyLineupSwap"])
   assert.ok(html.includes('id="'+id+'"'),"Missing NHL customer dashboard component: "+id);
  for(const term of ["Everything behind the model","MoneyPuck","modelComparison",
   "distributionResearch","researchDrawer","stable-shrink-v2"])
   assert.ok(!html.includes(term),"Internal methodology visible on NHL public site: "+term);
  for(const fn of ["currentBoardIsFresh","isCurrentOffer"])
   assert.ok(html.includes("function "+fn+"("),"Missing live source safety check "+fn);
+ assert.ok(html.includes('src="./assets/lineup-workspace.js"'),"Missing interactive editor script reference");
+ const editor=await (await get(ROOT+"assets/lineup-workspace.js?smoke="+Date.now())).text();
+ for(const required of ["function eligible(","function build(","function swapOptions("])
+  assert.ok(editor.includes(required),"Deployed research editor missing safeguard: "+required);
  const css=await (await get(ROOT+"assets/dashboard.css?smoke="+Date.now())).text();
- for(const pattern of [".featured-grid",".props-data-table",".board-mode","@media(max-width:680px)"])
+ for(const pattern of [".featured-grid",".props-data-table",".board-mode",".lineup-row-actions","@media(max-width:680px)"])
   assert.ok(css.includes(pattern),"Missing mobile NHL stylesheet: "+pattern);
  const data=await (await get(ROOT+"data.json?smoke="+Date.now())).json();
  assert.equal(data.schemaVersion,2);
@@ -34,6 +39,6 @@ async function main(){
  console.log(JSON.stringify({status:"live_public_dashboard_verified",
   schemaVersion:data.schemaVersion,tracked:data.performance.gradedProspectivePicks,
   featured:data.featuredIndividualProps.length,props:data.props.length,
-  privateMethodologyPublished:false}));
+  interactiveLineupBuilderPublished:true,privateMethodologyPublished:false}));
 }
 main().catch(e=>{console.error("NHL deployed site smoke failed:",e.message);process.exitCode=1});

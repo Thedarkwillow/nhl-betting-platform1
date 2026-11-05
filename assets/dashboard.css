@@ -108,6 +108,36 @@ button:hover{background:#276572}
 #slips .filters select{max-width:135px}
 #slips .filters label{font-weight:700;font-size:12px}
 #slips #lineupStatus{background:#132d3e;border-left:3px solid #54cbb5;border-radius:4px;padding:12px 14px;color:#b7d5e5;margin:16px 0}
+.lineup-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.lineup-toolbar-buttons,.lineup-row-actions,.lineup-swap-actions{display:flex;gap:7px;flex-wrap:wrap}
+.lineup-toolbar-buttons button{min-height:40px}
+.lineup-row-actions button{font-size:11px;padding:8px 10px}
+button:disabled{opacity:.48;cursor:not-allowed}
+button:disabled:hover{background:#1c4755}
+.lineup-swap-panel{padding:13px;margin-top:12px;background:#153044;border:1px solid #426a79;border-radius:12px;display:grid;gap:10px}
+.lineup-swap-panel[hidden]{display:none}
+.lineup-swap-panel label{font-size:12px;font-weight:700;color:#d2e4ee}
+.lineup-swap-panel select{max-width:520px}
+.lineup-swap-actions button{min-height:40px}
+.lineup-table td:last-child{min-width:210px}
+@media(max-width:680px){
+ .lineup-toolbar{align-items:stretch}
+ .lineup-toolbar-buttons{width:100%}
+ .lineup-toolbar-buttons button{flex:1 1 130px;font-size:11px}
+ .lineup-table-wrap{overflow:visible;background:none;border:0}
+ .lineup-table{min-width:0}
+ .lineup-table thead{display:none}
+ .lineup-table tbody{display:grid;grid-template-columns:1fr;gap:9px}
+ .lineup-table tbody tr{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;padding:12px;background:#102434;border:1px solid #294b60;border-radius:13px}
+ .lineup-table tbody td{white-space:normal;border:0;padding:0;font-size:12px;overflow-wrap:anywhere}
+ .lineup-table tbody td:before{display:block;content:attr(data-label);font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:#90aebf;margin-bottom:4px}
+ .lineup-table tbody td:first-child,.lineup-table tbody td:last-child{grid-column:1/-1}
+ .lineup-table tbody td:first-child{font-size:15px;font-weight:800}
+ .lineup-table tbody td:last-child{min-width:0}
+ .lineup-row-actions button{flex:1 1 auto}
+ .lineup-swap-panel select{max-width:100%}
+}
+
 #results .card{background:#0d2531}
 .microcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px;margin:14px 0 0}
 .microcards .card{padding:13px;min-width:0}

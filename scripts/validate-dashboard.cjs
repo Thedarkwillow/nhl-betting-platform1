@@ -3,6 +3,9 @@ const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),
  assert=require("node:assert/strict");
 const html=fs.readFileSync(path.resolve(__dirname,"../index.html"),"utf8");
 const css=fs.readFileSync(path.resolve(__dirname,"../assets/dashboard.css"),"utf8");
+const workspace=fs.readFileSync(path.resolve(__dirname,"../assets/lineup-workspace.js"),"utf8");
+new vm.Script(workspace,{filename:"lineup-workspace.js"});
+assert.match(html,/<script src="\.\/assets\/lineup-workspace\.js"><\/script>/,"Public builder module must load");
 const data=JSON.parse(fs.readFileSync(path.resolve(__dirname,"../data.json"),"utf8"));
 assert.match(html,/href="\.\/assets\/dashboard\.css"/,"NHL dashboard stylesheet missing");
 assert.match(css,/\.featured-grid/);
@@ -12,7 +15,8 @@ assert.match(html,/aria-label="Filter by NHL game"/,"Game filter must be accessi
 assert.match(html,/aria-label="Sort player prop research"/,"Sorting must be accessible");
 for(const id of ["today","slips","results","featuredProps","boardMode","boardNotice",
  "props","lineupPicks","lineupStatus","prospectiveAudit","freshness","comparisons",
- "gameFilter","sortProps"])
+ "gameFilter","sortProps","rebuildLineup","resetLineup","lineupSwapPanel",
+ "lineupSwapOption","applyLineupSwap","cancelLineupSwap","lineupDetails"])
  assert.ok(html.includes('id="'+id+'"'),"Missing customer-facing element "+id);
 assert.ok(html.indexOf('id="today"')<html.indexOf('id="slips"')&&
  html.indexOf('id="slips"')<html.indexOf('id="results"'),
@@ -28,6 +32,8 @@ assert.match(html,/unverified/i,"Original platform terms and payout caveat requi
 assert.match(match[1],/now-captured<=30\*60000/,"Current prop age must be limited");
 assert.match(match[1],/Number\.isFinite\(start\)&&start>now/,"Puck drop guard required");
 assert.match(match[1],/slip\.picks\.every\(isCurrentOffer\)/,"Lineups must fail closed");
+assert.match(match[1],/workspace\.validComplete/,"Edited lineups must preserve player/game limits");
+assert.match(match[1],/workspace\.swapOptions/,"Swaps must be validated before display");
 for(const forbidden of ["Everything behind the model","MoneyPuck",
  "projection model comparison","stable-shrink","Poisson","negative binomial",
  "private research","researchDrawer","modelComparison","distributionResearch",

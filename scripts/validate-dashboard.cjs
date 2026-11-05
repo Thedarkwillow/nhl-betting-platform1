@@ -8,8 +8,11 @@ assert.match(html,/href="\.\/assets\/dashboard\.css"/,"NHL dashboard stylesheet 
 assert.match(css,/\.featured-grid/);
 assert.match(css,/@media\(max-width:680px\)/,"Mobile NHL prop cards required");
 assert.match(css,/\.board-mode/,"Historical vs fresh data mode required");
+assert.match(html,/aria-label="Filter by NHL game"/,"Game filter must be accessible");
+assert.match(html,/aria-label="Sort player prop research"/,"Sorting must be accessible");
 for(const id of ["today","slips","results","featuredProps","boardMode","boardNotice",
- "props","lineupPicks","lineupStatus","prospectiveAudit","freshness","comparisons"])
+ "props","lineupPicks","lineupStatus","prospectiveAudit","freshness","comparisons",
+ "gameFilter","sortProps"])
  assert.ok(html.includes('id="'+id+'"'),"Missing customer-facing element "+id);
 assert.ok(html.indexOf('id="today"')<html.indexOf('id="slips"')&&
  html.indexOf('id="slips"')<html.indexOf('id="results"'),

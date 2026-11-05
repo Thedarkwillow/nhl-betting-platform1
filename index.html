@@ -199,7 +199,7 @@ function renderLineup(){
   lock.addEventListener("click",()=>{
    if(!currentBoardIsFresh()||!isCurrentOffer(p))return renderLineup();
    if(locked)editor.locks.delete(id);else editor.locks.add(id);
-   editor.touched=true;editor.picks=[];editor.swapIndex=null;renderLineup();
+   editor.touched=true;editor.picks=picks.slice();editor.swapIndex=null;renderLineup();
   });
   const swap=document.createElement("button");swap.type="button";swap.textContent="Swap";
   swap.disabled=locked;swap.setAttribute("aria-label","Swap "+p.player);

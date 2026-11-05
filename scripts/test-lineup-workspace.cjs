@@ -21,19 +21,19 @@ for(let n=2;n<=6;n++){
 assert.deepEqual(W.build(pool,{size:1,at}).picks,[],"2–6 only");
 assert.deepEqual(W.build(pool,{size:7,at}).picks,[],"2–6 only");
 for(const bad of [
- prop(99,{tier:"Demon"}),prop(99,{tier:"Goblin"}),
- prop(99,{lean:"Sideways"}),prop(99,{probability:1}),
- prop(99,{probability:.49}),prop(99,{researchEligibility:"watchlist"}),
- prop(99,{roleWarning:"Starter unknown"}),
- prop(99,{capturedAt:iso(at-31*60000)}),
- prop(99,{capturedAt:iso(at+60000)}),
- prop(99,{eventStartsAt:iso(at+10*60000)}),
- prop(99,{matchup:""})
+ prop(10,{tier:"Demon"}),prop(10,{tier:"Goblin"}),
+ prop(10,{lean:"Sideways"}),prop(10,{probability:1}),
+ prop(10,{probability:.49}),prop(10,{researchEligibility:"watchlist"}),
+ prop(10,{roleWarning:"Starter unknown"}),
+ prop(10,{capturedAt:iso(at-31*60000)}),
+ prop(10,{capturedAt:iso(at+60000)}),
+ prop(10,{eventStartsAt:iso(at+10*60000)}),
+ prop(10,{matchup:""})
 ]){
  assert.equal(W.eligible(bad,at),false,"Unsafe offer must be rejected");
 }
-assert.equal(W.eligible(prop(99),at),true);
-assert.equal(W.eligible(prop(99),at+31*60000),false,"Clock refresh invalidates stale offers");
+assert.equal(W.eligible(prop(10),at),true);
+assert.equal(W.eligible(prop(10),at+31*60000),false,"Clock refresh invalidates stale offers");
 const sameGame=[prop(1,{matchup:"Game X"}),prop(2,{matchup:"Game X"})];
 assert.equal(W.build(sameGame,{size:2,at}).picks.length,0,"2-4 picks need different games");
 const five=[prop(1,{matchup:"Game A"}),prop(2,{matchup:"Game A"}),

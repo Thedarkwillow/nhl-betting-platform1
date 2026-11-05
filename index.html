@@ -45,9 +45,14 @@
 <section class="desk-section" id="slips">
 <div class="section-head"><div><div class="section-kicker">02 / Lineup builder</div><h2>Explore 2–6 pick lineups</h2><p class="section-sub">Standard offers only. Lineups exclude repeat players; some five- and six-pick combinations may share a game.</p></div><span class="pill">Not a placed wager</span></div>
 <div class="slip-inner">
+<div class="lineup-toolbar">
 <div class="filters"><label for="lineupSize" class="muted">Picks</label><select id="lineupSize" aria-label="Lineup size"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
-<p class="notice" id="lineupStatus" role="status">Checking eligible pregame props…</p>
-<div class="table-wrap"><table><thead><tr><th>Player</th><th>Statistic</th><th>Line</th><th>Side</th><th>Est. probability*</th><th>Game</th></tr></thead><tbody id="lineupPicks"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
+<div class="lineup-toolbar-buttons"><button type="button" id="rebuildLineup">Rebuild from current props</button><button type="button" id="resetLineup">Reset edits</button></div>
+</div>
+<p class="notice" id="lineupStatus" role="status" aria-live="polite">Checking eligible pregame props…</p>
+<div class="table-wrap lineup-table-wrap"><table class="lineup-table"><thead><tr><th>Player</th><th>Statistic</th><th>Line</th><th>Side</th><th>Est. probability*</th><th>Game</th><th>Research edits</th></tr></thead><tbody id="lineupPicks"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
+<div id="lineupSwapPanel" class="lineup-swap-panel" hidden><label for="lineupSwapOption" id="lineupSwapLabel">Choose a fresh replacement</label><select id="lineupSwapOption" aria-label="Fresh eligible replacement player"></select><div class="lineup-swap-actions"><button type="button" id="applyLineupSwap">Apply swap</button><button type="button" id="cancelLineupSwap">Cancel</button></div></div>
+<p id="lineupDetails" class="minor" aria-live="polite">Edits are temporary and use only eligible fresh research offers.</p>
 <p class="minor">Lineup joint probabilities, payout-specific expected value, and platform settlement are not established. Check the original platform's rules and availability independently.</p>
 </div>
 </section>
@@ -58,6 +63,7 @@
 </section>
 <footer class="notice">NHL Research Desk provides informational research, not personalized financial advice or a wagering service. Independent data may be delayed or incomplete; verify any displayed line with the original platform. *All probabilities are estimates, not promises.</footer>
 </main>
+<script src="./assets/lineup-workspace.js"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -131,23 +137,114 @@ function render(){
  if(!rows.length){const tr=document.createElement("tr");const td=document.createElement("td");
   td.colSpan=8;td.textContent=archiveMode?"No matching saved offers":"No eligible fresh pregame props";tr.append(td);body.append(tr);}
 }
+const workspace=window.NhlLineupWorkspace;
+const editor={size:2,touched:false,locks:new Set(),excluded:new Set(),picks:[],swapIndex:null};
+function resetEditor(size,clear=true){
+ editor.size=size;editor.picks=[];editor.swapIndex=null;
+ if(clear){editor.touched=false;editor.locks.clear();editor.excluded.clear();}
+}
+function currentCandidates(at){
+ return currentBoardIsFresh()?workspace.candidates((data.props||[]).filter(isCurrentOffer),at):[];
+}
+function chooseLineup(at,candidates){
+ const size=editor.size,slip=data.lineups?.[String(size)];
+ if(!currentBoardIsFresh()||!candidates.length)
+  return {picks:[],reason:"No fresh eligible Standard props. The research builder cannot use an archived board."};
+ const ids=new Set(candidates.map(workspace.key));
+ // Keep the published suggestion until a customer changes it. Require exact
+ // membership in the current sanitized board, never just a matching name.
+ if(!editor.touched&&slip?.picks?.length===size&&slip.picks.every(isCurrentOffer)&&
+    slip.picks.every(p=>ids.has(workspace.key(p))&&workspace.eligible(p,at))&&
+    workspace.validComplete(slip.picks,size))
+  return {picks:slip.picks,correlated:new Set(slip.picks.map(p=>p.matchup)).size<size,reason:null};
+ const custom=editor.picks;
+ if(editor.touched&&custom.length===size&&
+    custom.every(p=>ids.has(workspace.key(p))&&workspace.eligible(p,at)&&!editor.excluded.has(workspace.playerKey(p)))&&
+    [...editor.locks].every(id=>custom.some(p=>workspace.key(p)===id))&&
+    workspace.validComplete(custom,size))
+  return {picks:custom,correlated:new Set(custom.map(p=>p.matchup)).size<size,reason:null};
+ return workspace.build(candidates,{size,at,lockedKeys:[...editor.locks],
+   excludedPlayers:[...editor.excluded]});
+}
 function renderLineup(){
- const n=$("lineupSize").value,slip=data.lineups?.[n],body=$("lineupPicks");
+ const n=Number($("lineupSize").value),at=Date.now(),body=$("lineupPicks");
+ if(editor.size!==n)resetEditor(n);
  body.replaceChildren();
- // Research is never a live platform payout quote or settlement.
- if(!slip?.picks?.length||!slip.picks.every(isCurrentOffer)){
-  $("lineupStatus").textContent="No qualifying fresh "+n+"-pick lineup available. Saved or incomplete boards are not treated as current.";
-  const tr=document.createElement("tr");const td=document.createElement("td");td.colSpan=6;
-  td.textContent="No current lineup";tr.append(td);body.append(tr);return;
+ const candidates=currentCandidates(at),result=chooseLineup(at,candidates),picks=result.picks||[];
+ $("rebuildLineup").disabled=!candidates.length;
+ $("lineupSwapPanel").hidden=true;
+ $("lineupDetails").textContent="Temporary research edits · Standard offers only · No original-platform availability, joint probability, or payout verified.";
+ if(!picks.length){
+  editor.picks=[];editor.swapIndex=null;
+  $("lineupStatus").textContent=result.reason||"No eligible current lineup";
+  const tr=document.createElement("tr"),td=document.createElement("td");
+  td.colSpan=7;td.textContent="No qualifying current research lineup";
+  tr.append(td);body.append(tr);return;
  }
- $("lineupStatus").textContent=n+"-pick research lineup · "+
-  (slip.correlationRisk==="elevated_same_game"?"Same-game correlation risk":"Separate games")+
-  " · Joint probability and payout unverified.";
- for(const p of slip.picks){
-  const tr=document.createElement("tr");
-  [((p.player||"Player")+" ("+(p.team||"—")+")"),p.market,p.line,p.lean,pct(p.probability),p.matchup]
-   .forEach(v=>cell(tr,v));body.append(tr);
+ const fresh=picks.every(p=>workspace.eligible(p,at)&&isCurrentOffer(p));
+ if(!fresh){editor.picks=[];$("lineupStatus").textContent="Research offer expired. Refresh and rebuild from a new verified snapshot.";return;}
+ const risk=result.correlated?"Same-game picks share unquantified correlation risk":"Picks use distinct NHL games";
+ $("lineupStatus").textContent=n+"-pick "+(editor.touched?"custom":"suggested")+
+  " research lineup · "+risk+" · Availability and payout unverified.";
+ const labels=["Player","Statistic","Line","Side","Model estimate","Game","Research edits"];
+ for(let i=0;i<picks.length;i++){
+  const p=picks[i],tr=document.createElement("tr");
+  [((p.player||"Player")+" ("+(p.team||"—")+")"),p.market,p.line,p.lean,
+   pct(p.probability),p.matchup].forEach((v,j)=>cell(tr,v,labels[j]));
+  const td=document.createElement("td");td.dataset.label="Research edits";
+  const actions=document.createElement("div");actions.className="lineup-row-actions";
+  const id=workspace.key(p),locked=editor.locks.has(id);
+  const lock=document.createElement("button");lock.type="button";
+  lock.textContent=locked?"Unlock":"Lock";lock.setAttribute("aria-label",(locked?"Unlock ":"Lock ")+p.player);
+  lock.addEventListener("click",()=>{
+   if(!currentBoardIsFresh()||!isCurrentOffer(p))return renderLineup();
+   if(locked)editor.locks.delete(id);else editor.locks.add(id);
+   editor.touched=true;editor.picks=[];editor.swapIndex=null;renderLineup();
+  });
+  const swap=document.createElement("button");swap.type="button";swap.textContent="Swap";
+  swap.disabled=locked;swap.setAttribute("aria-label","Swap "+p.player);
+  swap.addEventListener("click",()=>{
+   if(!currentBoardIsFresh()||!isCurrentOffer(p))return renderLineup();
+   editor.swapIndex=i;renderSwapPanel(picks,at);
+  });
+  const exclude=document.createElement("button");exclude.type="button";
+  exclude.textContent="Exclude";exclude.setAttribute("aria-label","Exclude "+p.player+" from this research lineup");
+  exclude.addEventListener("click",()=>{
+   if(!currentBoardIsFresh()||!isCurrentOffer(p))return renderLineup();
+   editor.locks.delete(id);editor.excluded.add(workspace.playerKey(p));
+   editor.touched=true;editor.picks=[];editor.swapIndex=null;renderLineup();
+  });
+  actions.append(lock,swap,exclude);td.append(actions);tr.append(td);body.append(tr);
  }
+ if(editor.swapIndex!==null)renderSwapPanel(picks,at);
+}
+function renderSwapPanel(picks,at){
+ const index=editor.swapIndex,panel=$("lineupSwapPanel");
+ if(index===null||index<0||index>=picks.length||!currentBoardIsFresh()||
+    editor.locks.has(workspace.key(picks[index]))){panel.hidden=true;return;}
+ const options=workspace.swapOptions(currentCandidates(at),picks,index,{
+  at,excludedPlayers:[...editor.excluded]});
+ const picker=$("lineupSwapOption");picker.replaceChildren();
+ for(const p of options){
+  const option=document.createElement("option");option.value=workspace.key(p);
+  option.textContent=p.player+" · "+p.market+" "+p.lean+" "+p.line+" · "+pct(p.probability);
+  picker.append(option);
+ }
+ $("lineupSwapLabel").textContent="Replace "+picks[index].player+" with a fresh eligible selection";
+ $("applyLineupSwap").disabled=!options.length;
+ panel.hidden=false;
+ if(!options.length)$("lineupSwapLabel").textContent+=" (no compatible replacement)";
+ panel.dataset.target=String(index);
+}
+function applyLineupSwap(){
+ const at=Date.now(),index=editor.swapIndex,result=chooseLineup(at,currentCandidates(at));
+ const picks=result.picks||[],options=workspace.swapOptions(currentCandidates(at),picks,index,{
+  at,excludedPlayers:[...editor.excluded]});
+ const replacement=options.find(p=>workspace.key(p)===$("lineupSwapOption").value);
+ if(!replacement||!currentBoardIsFresh()){editor.swapIndex=null;renderLineup();return;}
+ const next=picks.slice();next[index]=replacement;
+ if(!workspace.validComplete(next,editor.size)){editor.swapIndex=null;renderLineup();return;}
+ editor.picks=next;editor.touched=true;editor.swapIndex=null;renderLineup();
 }
 function renderResults(){
  const p=data.performance||{},host=$("prospectiveAudit");host.replaceChildren();
@@ -207,6 +304,12 @@ async function init(){
 }
 ["search","tier","market","direction","gameFilter","sortProps","boardMode"].forEach(id=>$(id).addEventListener("input",render));
 $("lineupSize").addEventListener("change",renderLineup);
+$("rebuildLineup").addEventListener("click",()=>{
+ editor.touched=true;editor.picks=[];editor.swapIndex=null;renderLineup();
+});
+$("resetLineup").addEventListener("click",()=>{resetEditor(Number($("lineupSize").value));renderLineup();});
+$("cancelLineupSwap").addEventListener("click",()=>{editor.swapIndex=null;$("lineupSwapPanel").hidden=true;});
+$("applyLineupSwap").addEventListener("click",applyLineupSwap);
 init();
 setInterval(()=>{
  if(!data?.performance)return;

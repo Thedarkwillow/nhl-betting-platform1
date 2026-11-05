@@ -61,4 +61,52 @@ assert.deepEqual(W.swapOptions(pool,first,0,{at:at+31*60000}),[],
  "Stale board cannot offer swap options");
 assert.deepEqual(W.swapOptions(pool,first,0,{at,excludedPlayers:pool.map(W.playerKey)}),[],
  "No candidates from excluded players");
+// Add from public board: exact current line, distinct player, and lock control.
+const added=W.addSelection(pool,pool[7],{size:3,at});
+assert.ok(added.picks.some(p=>W.key(p)===W.key(pool[7])));
+assert.ok(added.lockedKeys.includes(W.key(pool[7])));
+assert.ok(W.validComplete(added.picks,3));
+assert.equal(W.addSelection(pool,prop(11,{tier:"Demon"}),{size:3,at}).picks.length,0);
+assert.equal(W.addSelection(pool,pool[0],{size:3,at,
+ excludedPlayers:[W.playerKey(pool[0])]}).picks.length,0);
+assert.equal(W.addSelection(pool,pool[1],{size:3,at,
+ lockedKeys:[W.key(pool[0])],excludedPlayers:pool.slice(2).map(W.playerKey)}).picks.length,0);
+const alt=prop(1,{market:"Assists",line:1.5});
+assert.equal(W.addSelection([...pool,alt],alt,{size:3,at,
+ lockedKeys:[W.key(pool[0])]}).picks.length,0,
+ "Cannot lock a second offer for the same player");
+assert.equal(W.addSelection(pool,pool[0],{size:2,at:at+31*60000}).picks.length,0,
+ "Cannot add stale prop to lineup");
+// Draft stores only reference keys and settings, never raw offers or estimates.
+const boardAt=iso(at-4*60000),researchAt=iso(at-4*60000);
+const excludeUnused=W.playerKey(pool.find(p=>!added.picks.some(s=>W.playerKey(s)===W.playerKey(p))));
+const saved=W.createDraft({props:pool,picks:added.picks,size:3,
+ lockedKeys:added.lockedKeys,excludedPlayers:[excludeUnused],
+ boardAt,researchAt,at,boardFresh:true});
+assert.ok(saved,"Fresh complete draft should save");
+assert.ok(Array.isArray(saved.pickKeys));
+assert.equal(saved.pickKeys.length,3);
+assert.ok(!JSON.stringify(saved).includes('"probability"'));
+assert.ok(!JSON.stringify(saved).includes('"props"'));
+const restored=W.restoreDraft(JSON.stringify(saved),{props:pool,boardAt,researchAt,
+ at,boardFresh:true});
+assert.equal(restored.valid,true);
+assert.deepEqual(restored.picks.map(W.key),added.picks.map(W.key));
+assert.deepEqual(restored.lockedKeys,added.lockedKeys);
+assert.equal(W.restoreDraft(JSON.stringify(saved),{props:pool,boardAt,researchAt,
+ at:at+31*60000,boardFresh:true}).valid,false,"Expired draft must not resurrect stale offers");
+assert.equal(W.restoreDraft(JSON.stringify(saved),{props:pool,boardAt:iso(at-2*60000),
+ researchAt,at,boardFresh:true}).valid,false,"Draft must be board-scoped");
+assert.equal(W.restoreDraft(JSON.stringify(saved),{props:pool.filter(p=>W.key(p)!==W.key(added.picks[0])),
+ boardAt,researchAt,at,boardFresh:true}).valid,false,"Removed saved prop must invalidate draft");
+assert.equal(W.restoreDraft(JSON.stringify(saved),{props:pool,boardAt,researchAt,
+ at,boardFresh:false}).valid,false,"Source-incomplete board must never restore a draft");
+assert.equal(W.restoreDraft("not json",{props:pool,boardAt,researchAt,at,boardFresh:true}).valid,false);
+assert.equal(W.createDraft({props:pool,picks:added.picks,size:3,
+ lockedKeys:added.lockedKeys,boardAt,researchAt,at,boardFresh:false}),null);
+assert.equal(W.createDraft({props:pool,picks:added.picks,size:3,
+ lockedKeys:added.lockedKeys,boardAt,researchAt,at,
+ excludedPlayers:[W.playerKey(added.picks[0])],boardFresh:true}),null,
+ "Cannot save contradictory exclusions");
+
 console.log("NHL interactive workspace: 2–6 picks, source age, watchlists, tiers, games, locks, swaps and exclusions verified");

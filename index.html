@@ -34,7 +34,7 @@
 <h3>Browse all prop sides <span id="filteredPropCount" class="muted"></span></h3>
 <div class="board-mode"><label for="boardMode">View</label><select id="boardMode" aria-label="Browse current pregame or archived research props"><option value="current">Current pregame only</option><option value="archive">Saved history (may be expired)</option></select><p id="boardNotice" role="status" aria-live="polite">Checking offer timestamps…</p></div>
 <div class="filters"><input id="search" type="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter by offer tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter by statistic"><option value="">All stats</option></select><select id="direction" aria-label="Filter by Higher or Lower"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select><select id="gameFilter" aria-label="Filter by NHL game"><option value="">All games</option></select><select id="sortProps" aria-label="Sort player prop research"><option value="estimate">Highest model estimate</option><option value="game">Soonest game</option><option value="player">Player A–Z</option></select></div>
-<div class="table-wrap props-table-wrap"><table class="props-data-table"><thead><tr><th>Player</th><th>Statistic</th><th>Line</th><th>Tier</th><th>Side</th><th>Est. probability*</th><th>Recent games</th><th>Status</th></tr></thead><tbody id="props"><tr><td colspan="8">Loading…</td></tr></tbody></table></div>
+<div class="table-wrap props-table-wrap"><table class="props-data-table"><thead><tr><th>Player</th><th>Statistic</th><th>Line</th><th>Tier</th><th>Side</th><th>Est. probability*</th><th>Recent games</th><th>Status</th><th>Build</th></tr></thead><tbody id="props"><tr><td colspan="9">Loading…</td></tr></tbody></table></div>
 </div>
 <div class="board-panel" style="margin-top:14px">
 <h3>Compare available lines</h3>
@@ -47,12 +47,12 @@
 <div class="slip-inner">
 <div class="lineup-toolbar">
 <div class="filters"><label for="lineupSize" class="muted">Picks</label><select id="lineupSize" aria-label="Lineup size"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
-<div class="lineup-toolbar-buttons"><button type="button" id="rebuildLineup">Rebuild from current props</button><button type="button" id="resetLineup">Reset edits</button></div>
+<div class="lineup-toolbar-buttons"><button type="button" id="rebuildLineup">Rebuild from current props</button><button type="button" id="resetLineup">Reset edits</button><button type="button" id="saveLineupDraft">Save draft on this device</button><button type="button" id="restoreLineupDraft">Restore saved draft</button><button type="button" id="clearLineupDraft">Delete saved draft</button></div>
 </div>
 <p class="notice" id="lineupStatus" role="status" aria-live="polite">Checking eligible pregame props…</p>
 <div class="table-wrap lineup-table-wrap"><table class="lineup-table"><thead><tr><th>Player</th><th>Statistic</th><th>Line</th><th>Side</th><th>Est. probability*</th><th>Game</th><th>Research edits</th></tr></thead><tbody id="lineupPicks"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
 <div id="lineupSwapPanel" class="lineup-swap-panel" hidden><label for="lineupSwapOption" id="lineupSwapLabel">Choose a fresh replacement</label><select id="lineupSwapOption" aria-label="Fresh eligible replacement player"></select><div class="lineup-swap-actions"><button type="button" id="applyLineupSwap">Apply swap</button><button type="button" id="cancelLineupSwap">Cancel</button></div></div>
-<p id="lineupDetails" class="minor" aria-live="polite">Edits are temporary and use only eligible fresh research offers.</p>
+<p id="lineupDetails" class="minor" aria-live="polite">Edits use only eligible fresh research offers.</p><p id="lineupFeedback" class="minor" role="status" aria-live="polite">Research drafts stay in this browser only. Saved offers must pass freshness checks again before restoration.</p>
 <p class="minor">Lineup joint probabilities, payout-specific expected value, and platform settlement are not established. Check the original platform's rules and availability independently.</p>
 </div>
 </section>
@@ -126,19 +126,86 @@ function render(){
    "No current board verified. Select Saved history to review older research without presenting expired lines as current.";
  $("filteredPropCount").textContent=rows.length+" of "+data.props.length+" saved sides";
  const body=$("props");body.replaceChildren();
- const labels=["Player","Statistic","Line","Tier","Side","Model estimate","Recent games","Status"];
+ const labels=["Player","Statistic","Line","Tier","Side","Model estimate","Recent games","Status","Build"];
  for(const p of rows.slice(0,300)){
   const tr=document.createElement("tr");
   const status=p.researchEligibility==="watchlist"?"Needs availability review":"Research only";
   [((p.player||"Player")+" ("+(p.team||"—")+")"),p.market,p.line,p.tier,p.lean,
    pct(p.probability),p.observations,status].forEach((v,i)=>cell(tr,v,labels[i]));
-  body.append(tr);
+  const td=document.createElement("td");td.dataset.label="Build";
+  const button=document.createElement("button");button.type="button";
+  const canAdd=!archiveMode&&isCurrentOffer(p)&&workspace.eligible(p,Date.now());
+  button.disabled=!canAdd;button.textContent=canAdd?"Add to lineup":"Unavailable";
+  button.setAttribute("aria-label",canAdd?"Add "+(p.player||"player")+" to NHL research lineup":
+   "Offer not eligible for current NHL lineup research");
+  button.addEventListener("click",()=>addBoardProp(p));
+  td.append(button);tr.append(td);body.append(tr);
  }
  if(!rows.length){const tr=document.createElement("tr");const td=document.createElement("td");
-  td.colSpan=8;td.textContent=archiveMode?"No matching saved offers":"No eligible fresh pregame props";tr.append(td);body.append(tr);}
+  td.colSpan=9;td.textContent=archiveMode?"No matching saved offers":"No eligible fresh pregame props";tr.append(td);body.append(tr);}
 }
 const workspace=window.NhlLineupWorkspace;
 const editor={size:2,touched:false,locks:new Set(),excluded:new Set(),picks:[],swapIndex:null};
+const DRAFT_STORAGE_KEY="nhl-research-draft-v1";
+function setLineupFeedback(message){$("lineupFeedback").textContent=message;}
+function addBoardProp(p){
+ const at=Date.now();
+ if(!currentBoardIsFresh()||!isCurrentOffer(p)||!workspace.eligible(p,at)){
+  setLineupFeedback("Offer is stale, ineligible or unavailable. No selection was added.");
+  render();renderLineup();return;
+ }
+ const result=workspace.addSelection(currentCandidates(at),p,{
+  size:editor.size,at,lockedKeys:[...editor.locks],excludedPlayers:[...editor.excluded]});
+ if(!result.picks.length){
+  setLineupFeedback(result.reason||"No compatible research lineup for this selection.");
+  return;
+ }
+ editor.locks=new Set(result.lockedKeys);
+ editor.picks=result.picks;editor.touched=true;editor.swapIndex=null;
+ renderLineup();setLineupFeedback("Added "+p.player+" · "+p.market+
+  " to your research lineup and locked it. This is not a placed wager.");
+ $("slips").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function saveResearchDraft(){
+ const at=Date.now(),choices=currentCandidates(at),result=chooseLineup(at,choices);
+ const draft=workspace.createDraft({props:choices,picks:result.picks,size:editor.size,
+  lockedKeys:[...editor.locks],excludedPlayers:[...editor.excluded],
+  boardAt:data.boardAt,researchAt:data.researchAt,at,boardFresh:currentBoardIsFresh()});
+ if(!draft){
+  setLineupFeedback("Cannot save: no complete eligible fresh lineup or the source board is stale.");
+  return;
+ }
+ try{
+  localStorage.setItem(DRAFT_STORAGE_KEY,JSON.stringify(draft));
+  setLineupFeedback("Research draft saved on this device. It expires with this board; no wager was placed.");
+ }catch{
+  setLineupFeedback("Browser storage is unavailable. No draft was saved.");
+ }
+}
+function restoreResearchDraft(){
+ let stored=null;
+ try{stored=localStorage.getItem(DRAFT_STORAGE_KEY);}catch{
+  setLineupFeedback("Browser storage is unavailable.");return;
+ }
+ if(!stored){setLineupFeedback("No saved research draft on this device.");return;}
+ const at=Date.now(),result=workspace.restoreDraft(stored,{
+  props:currentCandidates(at),boardAt:data.boardAt,researchAt:data.researchAt,
+  at,boardFresh:currentBoardIsFresh()});
+ if(!result.valid){
+  setLineupFeedback(result.reason+" Your saved draft was not loaded.");
+  return;
+ }
+ $("lineupSize").value=String(result.size);
+ editor.size=result.size;editor.picks=result.picks;editor.touched=true;
+ editor.locks=new Set(result.lockedKeys);editor.excluded=new Set(result.excludedPlayers);
+ editor.swapIndex=null;renderLineup();
+ setLineupFeedback("Saved research draft restored after checking every offer against the fresh board.");
+}
+function clearResearchDraft(){
+ try{localStorage.removeItem(DRAFT_STORAGE_KEY);
+  setLineupFeedback("Saved research draft deleted from this device.");
+ }catch{setLineupFeedback("Browser storage is unavailable.");}
+}
 function resetEditor(size,clear=true){
  editor.size=size;editor.picks=[];editor.swapIndex=null;
  if(clear){editor.touched=false;editor.locks.clear();editor.excluded.clear();}
@@ -172,8 +239,9 @@ function renderLineup(){
  body.replaceChildren();
  const candidates=currentCandidates(at),result=chooseLineup(at,candidates),picks=result.picks||[];
  $("rebuildLineup").disabled=!candidates.length;
+ $("saveLineupDraft").disabled=!candidates.length;
  $("lineupSwapPanel").hidden=true;
- $("lineupDetails").textContent="Temporary research edits · Standard offers only · No original-platform availability, joint probability, or payout verified.";
+ $("lineupDetails").textContent="Standard research offers only · Edited picks are not recorded model predictions · No original-platform availability, joint probability or payout verified.";
  if(!picks.length){
   editor.picks=[];editor.swapIndex=null;
   $("lineupStatus").textContent=result.reason||"No eligible current lineup";
@@ -310,6 +378,9 @@ $("rebuildLineup").addEventListener("click",()=>{
 $("resetLineup").addEventListener("click",()=>{resetEditor(Number($("lineupSize").value));renderLineup();});
 $("cancelLineupSwap").addEventListener("click",()=>{editor.swapIndex=null;$("lineupSwapPanel").hidden=true;});
 $("applyLineupSwap").addEventListener("click",applyLineupSwap);
+$("saveLineupDraft").addEventListener("click",saveResearchDraft);
+$("restoreLineupDraft").addEventListener("click",restoreResearchDraft);
+$("clearLineupDraft").addEventListener("click",clearResearchDraft);
 init();
 setInterval(()=>{
  if(!data?.performance)return;

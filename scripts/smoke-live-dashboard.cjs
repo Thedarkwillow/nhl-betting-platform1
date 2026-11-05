@@ -10,7 +10,8 @@ async function main(){
  const html=await (await get(ROOT+"?smoke="+Date.now())).text();
  for(const id of ["today","slips","results","featuredProps","props",
   "lineupPicks","lineupStatus","prospectiveAudit","boardMode","boardNotice",
-  "rebuildLineup","resetLineup","lineupSwapPanel","lineupSwapOption","applyLineupSwap"])
+  "rebuildLineup","resetLineup","lineupSwapPanel","lineupSwapOption","applyLineupSwap",
+  "saveLineupDraft","restoreLineupDraft","clearLineupDraft","lineupFeedback"])
   assert.ok(html.includes('id="'+id+'"'),"Missing NHL customer dashboard component: "+id);
  for(const term of ["Everything behind the model","MoneyPuck","modelComparison",
   "distributionResearch","researchDrawer","stable-shrink-v2"])
@@ -19,10 +20,11 @@ async function main(){
   assert.ok(html.includes("function "+fn+"("),"Missing live source safety check "+fn);
  assert.ok(html.includes('src="./assets/lineup-workspace.js"'),"Missing interactive editor script reference");
  const editor=await (await get(ROOT+"assets/lineup-workspace.js?smoke="+Date.now())).text();
- for(const required of ["function eligible(","function build(","function swapOptions("])
+ for(const required of ["function eligible(","function build(","function swapOptions(",
+  "function addSelection(","function createDraft(","function restoreDraft("])
   assert.ok(editor.includes(required),"Deployed research editor missing safeguard: "+required);
  const css=await (await get(ROOT+"assets/dashboard.css?smoke="+Date.now())).text();
- for(const pattern of [".featured-grid",".props-data-table",".board-mode",".lineup-row-actions","@media(max-width:680px)"])
+ for(const pattern of [".featured-grid",".props-data-table",".board-mode",".lineup-row-actions","#lineupFeedback","@media(max-width:680px)"])
   assert.ok(css.includes(pattern),"Missing mobile NHL stylesheet: "+pattern);
  const data=await (await get(ROOT+"data.json?smoke="+Date.now())).json();
  assert.equal(data.schemaVersion,2);

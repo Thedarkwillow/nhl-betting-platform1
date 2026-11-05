@@ -16,7 +16,8 @@ assert.match(html,/aria-label="Sort player prop research"/,"Sorting must be acce
 for(const id of ["today","slips","results","featuredProps","boardMode","boardNotice",
  "props","lineupPicks","lineupStatus","prospectiveAudit","freshness","comparisons",
  "gameFilter","sortProps","rebuildLineup","resetLineup","lineupSwapPanel",
- "lineupSwapOption","applyLineupSwap","cancelLineupSwap","lineupDetails"])
+ "lineupSwapOption","applyLineupSwap","cancelLineupSwap","lineupDetails",
+ "saveLineupDraft","restoreLineupDraft","clearLineupDraft","lineupFeedback"])
  assert.ok(html.includes('id="'+id+'"'),"Missing customer-facing element "+id);
 assert.ok(html.indexOf('id="today"')<html.indexOf('id="slips"')&&
  html.indexOf('id="slips"')<html.indexOf('id="results"'),
@@ -34,6 +35,10 @@ assert.match(match[1],/Number\.isFinite\(start\)&&start>now/,"Puck drop guard re
 assert.match(match[1],/slip\.picks\.every\(isCurrentOffer\)/,"Lineups must fail closed");
 assert.match(match[1],/workspace\.validComplete/,"Edited lineups must preserve player/game limits");
 assert.match(match[1],/workspace\.swapOptions/,"Swaps must be validated before display");
+assert.match(match[1],/workspace\.addSelection/,"Board action must be validated by research-only workspace");
+assert.match(match[1],/workspace\.restoreDraft/,"Saved drafts must pass source and age validation");
+assert.match(match[1],/currentBoardIsFresh\(\)/,"Fresh board required before lineup edits");
+assert.match(html,/id="props"[\s\S]*?Add to lineup/,"Board action must be labelled");
 for(const forbidden of ["Everything behind the model","MoneyPuck",
  "projection model comparison","stable-shrink","Poisson","negative binomial",
  "private research","researchDrawer","modelComparison","distributionResearch",

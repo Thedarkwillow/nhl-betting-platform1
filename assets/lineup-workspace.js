@@ -98,5 +98,76 @@
       return validComplete([...fixed,p],size);
     }).slice(0,30);
   }
-  return {key,playerKey,eligible,candidates,validComplete,build,swapOptions};
+
+  // Customer-side action: a fresh exact offer can anchor a newly researched
+  // lineup, but never becomes an original platform-confirmed selection.
+  function addSelection(props,desired,{size=2,at=Date.now(),lockedKeys=[],excludedPlayers=[]}={}){
+    const available=candidates(props,at);
+    const byKey=new Map(available.map(p=>[key(p),p]));
+    const chosen=byKey.get(key(desired));
+    if(!chosen)return {picks:[],reason:"That offer is no longer fresh or eligible."};
+    if(excludedPlayers.includes(playerKey(chosen)))
+      return {picks:[],reason:"Unexclude this player before adding the offer."};
+    if(lockedKeys.some(id=>{
+      const locked=byKey.get(id);
+      return locked&&playerKey(locked)===playerKey(chosen)&&id!==key(chosen);
+    }))return {picks:[],reason:"Another offer for this player is locked. Unlock it first."};
+    const locks=[...new Set([...lockedKeys,key(chosen)])];
+    const result=build(available,{size,at,lockedKeys:locks,excludedPlayers});
+    return {...result,lockedKeys:result.picks.length?locks:[]};
+  }
+  // Save references, not proprietary source rows or potentially misleading
+  // model estimates. Expired/replaced offers cannot be revived by a draft.
+  function createDraft({props,picks,size,lockedKeys=[],excludedPlayers=[],
+    boardAt,researchAt,at=Date.now(),boardFresh=false}={}){
+    if(!boardFresh||!Number.isInteger(size)||size<2||size>6||
+       !Array.isArray(picks)||!validComplete(picks,size))return null;
+    const available=new Map(candidates(props,at).map(p=>[key(p),p]));
+    if(!picks.every(p=>available.has(key(p))))return null;
+    const keys=picks.map(key),locks=[...new Set(lockedKeys)];
+    if(locks.some(id=>!keys.includes(id))||locks.length>size)return null;
+    const excluded=[...new Set(excludedPlayers)];
+    if(excluded.length>30||excluded.some(s=>typeof s!=="string"||
+       s.length>100||picks.some(p=>playerKey(p)===s)))return null;
+    const board=Date.parse(boardAt),research=Date.parse(researchAt);
+    if(!Number.isFinite(board)||!Number.isFinite(research)||
+       board>at||research>at||at-board>30*60000||at-research>30*60000)
+      return null;
+    return {version:1,savedAt:new Date(at).toISOString(),
+      boardAt,researchAt,size,pickKeys:keys,lockedKeys:locks,
+      excludedPlayers:excluded};
+  }
+  function restoreDraft(saved,{props,boardAt,researchAt,at=Date.now(),boardFresh=false}={}){
+    const fail=reason=>({valid:false,reason,picks:[]});
+    if(!boardFresh)return fail("No fresh complete NHL board. Saved research cannot be restored.");
+    let d;
+    try{d=typeof saved==="string"?JSON.parse(saved):saved;}catch{
+      return fail("Saved draft is unreadable.");
+    }
+    if(!d||d.version!==1||d.boardAt!==boardAt||d.researchAt!==researchAt)
+      return fail("Saved draft belongs to an older or different research board.");
+    if(!Number.isInteger(d.size)||d.size<2||d.size>6||
+       !Array.isArray(d.pickKeys)||d.pickKeys.length!==d.size||
+       !Array.isArray(d.lockedKeys)||d.lockedKeys.length>d.size||
+       !Array.isArray(d.excludedPlayers)||d.excludedPlayers.length>30||
+       [...d.pickKeys,...d.lockedKeys,...d.excludedPlayers]
+         .some(x=>typeof x!=="string"||x.length>1024))
+      return fail("Saved draft has an invalid or unsupported format.");
+    const savedAt=Date.parse(d.savedAt);
+    if(!Number.isFinite(savedAt)||savedAt>at||at-savedAt>30*60000)
+      return fail("Saved draft expired. Build a new lineup from fresh offers.");
+    const available=new Map(candidates(props,at).map(p=>[key(p),p]));
+    const picks=d.pickKeys.map(id=>available.get(id));
+    if(picks.some(p=>!p)||new Set(d.pickKeys).size!==d.size||
+       !validComplete(picks,d.size))
+      return fail("One or more saved offers moved, disappeared, or became ineligible.");
+    if(d.lockedKeys.some(id=>!d.pickKeys.includes(id))||
+       new Set(d.lockedKeys).size!==d.lockedKeys.length||
+       d.excludedPlayers.some(s=>picks.some(p=>playerKey(p)===s)))
+      return fail("Saved draft has conflicting lock or exclusion settings.");
+    return {valid:true,reason:null,size:d.size,picks,
+      lockedKeys:d.lockedKeys.slice(),excludedPlayers:d.excludedPlayers.slice()};
+  }
+  return {key,playerKey,eligible,candidates,validComplete,build,swapOptions,
+    addSelection,createDraft,restoreDraft};
 });

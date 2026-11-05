@@ -79,8 +79,9 @@ assert.equal(W.addSelection(pool,pool[0],{size:2,at:at+31*60000}).picks.length,0
  "Cannot add stale prop to lineup");
 // Draft stores only reference keys and settings, never raw offers or estimates.
 const boardAt=iso(at-4*60000),researchAt=iso(at-4*60000);
+const excludeUnused=W.playerKey(pool.find(p=>!added.picks.some(s=>W.playerKey(s)===W.playerKey(p))));
 const saved=W.createDraft({props:pool,picks:added.picks,size:3,
- lockedKeys:added.lockedKeys,excludedPlayers:[W.playerKey(pool[0])],
+ lockedKeys:added.lockedKeys,excludedPlayers:[excludeUnused],
  boardAt,researchAt,at,boardFresh:true});
 assert.ok(saved,"Fresh complete draft should save");
 assert.ok(Array.isArray(saved.pickKeys));

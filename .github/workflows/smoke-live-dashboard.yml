@@ -1,11 +1,8 @@
 name: Smoke Live NHL Dashboard
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/smoke-live-dashboard.cjs'
-      - '.github/workflows/smoke-live-dashboard.yml'
+  # Run live-site smoke only after Pages publication completes. A code push
+  # can precede the published HTML/CSS/assets, causing a false failure.
   workflow_run:
     workflows: ['Publish NHL Dashboard']
     types: [completed]

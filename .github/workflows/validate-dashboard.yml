@@ -8,6 +8,7 @@ on:
       - 'assets/**'
       - 'data.json'
       - 'scripts/validate-dashboard.cjs'
+      - 'scripts/test-lineup-workspace.cjs'
       - '.github/workflows/validate-dashboard.yml'
 permissions:
   contents: read
@@ -22,3 +23,5 @@ jobs:
           node-version: '22'
       - name: Verify public NHL page JavaScript and research provenance
         run: node scripts/validate-dashboard.cjs
+      - name: Test interactive NHL research lineup editor
+        run: node scripts/test-lineup-workspace.cjs

@@ -115,7 +115,10 @@ function renderFeatured(){
   const foot=document.createElement("div");foot.className="featured-bottom";
   const estimate=document.createElement("div");estimate.className="featured-number";estimate.textContent=pct(p.probability);
   const small=document.createElement("small");small.textContent="Model estimate · unverified";estimate.append(small);
-  foot.append(estimate);card.append(top,who,stat,foot);host.append(card);
+  const details=document.createElement("button");details.type="button";details.className="player-detail-action";
+  details.textContent="Player details";details.setAttribute("aria-label","View "+p.player+" historical NHL statistics");
+  details.addEventListener("click",()=>showPlayerDetail(p));
+  foot.append(estimate);card.append(top,who,stat,foot,details);host.append(card);
  }
 }
 function render(){
@@ -153,7 +156,10 @@ function render(){
   button.setAttribute("aria-label",canAdd?"Add "+(p.player||"player")+" to NHL research lineup":
    "Offer not eligible for current NHL lineup research");
   button.addEventListener("click",()=>addBoardProp(p));
-  td.append(button);tr.append(td);body.append(tr);
+  const details=document.createElement("button");details.type="button";details.className="player-detail-action";
+  details.textContent="Details";details.setAttribute("aria-label","View "+p.player+" archived NHL player statistics");
+  details.addEventListener("click",()=>showPlayerDetail(p));
+  td.append(button,details);tr.append(td);body.append(tr);
  }
  if(!rows.length){const tr=document.createElement("tr");const td=document.createElement("td");
   td.colSpan=9;td.textContent=archiveMode?"No matching saved offers":"No eligible fresh pregame props";tr.append(td);body.append(tr);}

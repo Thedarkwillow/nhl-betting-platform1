@@ -44,6 +44,10 @@
 </div>
 <div class="table-wrap props-table-wrap"><table class="props-data-table"><thead><tr><th>Player</th><th>Statistic</th><th>Line</th><th>Tier</th><th>Side</th><th>Est. probability*</th><th>Recent games</th><th>Status</th><th>Build</th></tr></thead><tbody id="props"><tr><td colspan="9">Loading…</td></tr></tbody></table></div>
 </div>
+<details class="research-drawer" id="collectionCoverageDrawer">
+<summary>Independent source coverage and freshness</summary>
+<div class="board-panel" id="collectionCoverageStatus" role="region" aria-live="polite"><p class="muted">Checking archived NHL provider and official game alignment…</p></div>
+</details>
 <div class="board-panel" style="margin-top:14px">
 <h3>Compare available lines</h3>
 <p class="muted">Comparison data is displayed only when a matching independent quote was observed. This does not prove that either fantasy-platform offer is currently available.</p>
@@ -81,6 +85,15 @@
 <div class="section-head"><div><div class="section-kicker">03 / Results</div><h2>Tracked prediction performance</h2><p class="section-sub">Only directions saved before puck drop and graded against completed official game results count toward our prospective track record.</p></div></div>
 <div class="card" id="prospectiveAudit" aria-live="polite">Loading verified results…</div>
 <div class="board-panel results-breakdown" id="resultBreakdown" aria-live="polite"><p class="muted">Market results will appear after eligible games are officially final.</p></div>
+<details class="research-drawer" id="cohortAuditDrawer">
+<summary>Original pregame prediction history — grouped by date, market and tier</summary>
+<div class="board-panel" id="cohortAuditPanel">
+<p class="minor">Every original Git-frozen selection stays included, even if it loses, pushes or remains pending. Only aggregated counts are public; individual source lines and private model details are not redistributed.</p>
+<label for="cohortGroupBy" class="muted">Group the original selected-pick cohort</label>
+<select id="cohortGroupBy" aria-label="Group verified prospective NHL cohort by game date, market or tier"><option value="byPacificGameDay">Puck-drop date (Pacific)</option><option value="byMarket">Stat category</option><option value="byTier">Offer tier</option></select>
+<div class="table-wrap" id="cohortAuditTable" aria-live="polite"><p class="muted">Checking Git-frozen original-pick evidence…</p></div>
+</div>
+</details>
 <p class="minor">Estimated prop probabilities are not verified historical hit rates. Results do not demonstrate profitable expected value or payout-adjusted returns.</p>
 </section>
 <footer class="notice">NHL Research Desk provides informational research, not personalized financial advice or a wagering service. Independent data may be delayed or incomplete; verify any displayed line with the original platform. *All probabilities are estimates, not promises.</footer>

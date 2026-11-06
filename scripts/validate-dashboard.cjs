@@ -45,6 +45,10 @@ assert.match(match[1],/workspace\.restoreDraft/,"Saved drafts must pass source a
 assert.match(match[1],/currentBoardIsFresh\(\)/,"Fresh board required before lineup edits");
 assert.match(match[1],/function saveResearchView\(/,"Local-only filter persistence required");
 assert.match(match[1],/function restoreResearchView\(/,"Saved view must be explicitly restored");
+assert.match(match[1],/x\.eventStartsAt===p\.eventStartsAt/,"Alternate ladder must match exact game start");
+assert.match(match[1],/x\.lean===p\.lean/,"Alternate ladder must not combine Higher and Lower");
+assert.match(html,/id="minHistory"/,"History sample threshold must be explicit");
+
 assert.match(match[1],/localStorage\.setItem\(RESEARCH_FILTER_STORAGE/,
  "Saved filters must remain browser-local, not a remote account");
 assert.match(match[1],/minHistory===0\|\|Number\(p\.observations\)>=minHistory/,

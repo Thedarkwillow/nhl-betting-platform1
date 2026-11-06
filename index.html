@@ -582,7 +582,8 @@ function renderResults(){
  const items=[["Pregame picks graded",graded],["Official-stat wins",wins],
   ["Official-stat losses",losses],["Pushes",pushes],
   ["Awaiting final results",p.pendingProspectivePicks??0],
-  ["Verified prospective hit rate",graded-pushes>0?pct(p.verifiedProspectiveHitRate):"Not established"],
+  ["Observed prospective stat-direction rate",p.decidedProspectivePicks>=10&&
+   data.prospectiveCohort?.cohortVerified===true?pct(p.verifiedProspectiveHitRate):"Not established (sample/evidence gate)"],
   ["Payout-adjusted ROI","Not verified"]];
  for(const [name,val] of items){
   const div=document.createElement("div");div.className="card";

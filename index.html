@@ -247,12 +247,18 @@ function render(){
  const q=$("search").value.toLowerCase().trim(),tier=$("tier").value,
   market=$("market").value,side=$("direction").value,
   game=$("gameFilter").value,sortBy=$("sortProps").value,
-  archiveMode=$("boardMode").value==="archive";
+  archiveMode=$("boardMode").value==="archive",
+  teamFilter=$("teamFilter").value,minEstimate=Number($("minEstimate").value),
+  minHistory=Number($("minHistory").value),eligibility=$("eligibilityFilter").value;
  const rows=(Array.isArray(data.props)?data.props:[]).filter(p=>
   (archiveMode||isCurrentOffer(p))&&
   (!q||((p.player||"")+" "+(p.team||"")).toLowerCase().includes(q))&&
   (!tier||p.tier===tier)&&(!market||p.market===market)&&
-  (!side||p.lean===side)&&(!game||p.matchup===game))
+  (!side||p.lean===side)&&(!game||p.matchup===game)&&
+  (!teamFilter||p.team===teamFilter)&&
+  (!eligibility||p.researchEligibility===eligibility)&&
+  (minEstimate===0||Number(p.probability)>=minEstimate)&&
+  (minHistory===0||Number(p.observations)>=minHistory))
   .sort((a,b)=>sortBy==="player"?
     String(a.player||"").localeCompare(String(b.player||"")):
     sortBy==="game"?
@@ -521,6 +527,10 @@ async function init(){
    const option=document.createElement("option");option.value=game;
    option.textContent=game;$("gameFilter").append(option);
   }
+  for(const team of [...new Set(data.props.map(p=>p.team).filter(Boolean))].sort()){
+   const opt=document.createElement("option");opt.value=opt.textContent=team;
+   $("teamFilter").append(opt);
+  }
   renderFeatured();render();renderLineup();renderResults();renderComparisons();
   renderSourceMovements();renderUnderdogResearch();renderResultBreakdown();
  }catch(e){
@@ -530,7 +540,46 @@ async function init(){
   $("prospectiveAudit").textContent="No verified results available";
  }
 }
-["search","tier","market","direction","gameFilter","sortProps","boardMode"].forEach(id=>$(id).addEventListener("input",render));
+
+const RESEARCH_FILTER_STORAGE="nhl-research-filter-view-v1";
+const RESEARCH_FILTER_KEYS=["search","tier","market","direction","gameFilter","sortProps",
+ "boardMode","teamFilter","minEstimate","minHistory","eligibilityFilter"];
+function saveResearchView(){
+ try{
+  const selected=Object.fromEntries(RESEARCH_FILTER_KEYS.map(id=>[id,$(id).value]));
+  localStorage.setItem(RESEARCH_FILTER_STORAGE,JSON.stringify({version:1,filters:selected}));
+  $("researchViewStatus").textContent="Filter view saved on this device; this does not save a live quote.";
+ }catch{ $("researchViewStatus").textContent="Browser storage unavailable; filters work during this visit."; }
+}
+function restoreResearchView(){
+ try{
+  const saved=JSON.parse(localStorage.getItem(RESEARCH_FILTER_STORAGE)||"null");
+  if(saved?.version!==1||!saved.filters||typeof saved.filters!=="object")throw Error("No valid saved view");
+  for(const id of RESEARCH_FILTER_KEYS){
+   const control=$(id),value=saved.filters[id];
+   if(typeof value==="string"&&
+      ((id==="search"&&value.length<=100)||
+       (id!=="search"&&Array.from(control.options||[]).some(o=>o.value===value)))){
+    control.value=value;
+   }
+  }
+  render();
+  $("researchViewStatus").textContent="Saved filters restored; expired source offers remain historical and cannot be added to live lineups.";
+ }catch{ $("researchViewStatus").textContent="No valid saved filters available on this device."; }
+}
+function resetResearchView(){
+ for(const id of RESEARCH_FILTER_KEYS){
+  const control=$(id);
+  control.value=control.options?.[0]?.value??"";
+ }
+ render();
+ $("researchViewStatus").textContent="Filters reset; saved view unchanged unless you save again.";
+}
+
+["search","tier","market","direction","gameFilter","sortProps","boardMode","teamFilter","minEstimate","minHistory","eligibilityFilter"].forEach(id=>$(id).addEventListener("input",render));
+$("saveResearchView").addEventListener("click",saveResearchView);
+$("restoreResearchView").addEventListener("click",restoreResearchView);
+$("resetResearchView").addEventListener("click",resetResearchView);
 $("lineupSize").addEventListener("change",renderLineup);
 $("rebuildLineup").addEventListener("click",()=>{
  editor.touched=true;editor.picks=[];editor.swapIndex=null;renderLineup();

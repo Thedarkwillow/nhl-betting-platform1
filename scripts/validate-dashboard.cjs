@@ -15,7 +15,9 @@ assert.match(html,/aria-label="Filter by NHL game"/,"Game filter must be accessi
 assert.match(html,/aria-label="Sort player prop research"/,"Sorting must be accessible");
 for(const id of ["today","slips","results","featuredProps","boardMode","boardNotice",
  "props","lineupPicks","lineupStatus","prospectiveAudit","freshness","comparisons",
- "gameFilter","sortProps","rebuildLineup","resetLineup","lineupSwapPanel",
+ "gameFilter","sortProps","teamFilter","minEstimate","minHistory","eligibilityFilter",
+ "saveResearchView","restoreResearchView","resetResearchView","researchViewStatus",
+ "rebuildLineup","resetLineup","lineupSwapPanel",
  "lineupSwapOption","applyLineupSwap","cancelLineupSwap","lineupDetails",
  "saveLineupDraft","restoreLineupDraft","clearLineupDraft","lineupFeedback",
  "playerResearch","playerDetail","movementResearch","movementSummary","underdogResearch",
@@ -41,6 +43,19 @@ assert.match(match[1],/workspace\.swapOptions/,"Swaps must be validated before d
 assert.match(match[1],/workspace\.addSelection/,"Board action must be validated by research-only workspace");
 assert.match(match[1],/workspace\.restoreDraft/,"Saved drafts must pass source and age validation");
 assert.match(match[1],/currentBoardIsFresh\(\)/,"Fresh board required before lineup edits");
+assert.match(match[1],/function saveResearchView\(/,"Local-only filter persistence required");
+assert.match(match[1],/function restoreResearchView\(/,"Saved view must be explicitly restored");
+assert.match(match[1],/x\.eventStartsAt===p\.eventStartsAt/,"Alternate ladder must match exact game start");
+assert.match(match[1],/x\.lean===p\.lean/,"Alternate ladder must not combine Higher and Lower");
+assert.match(html,/id="minHistory"/,"History sample threshold must be explicit");
+
+assert.match(match[1],/localStorage\.setItem\(RESEARCH_FILTER_STORAGE/,
+ "Saved filters must remain browser-local, not a remote account");
+assert.match(match[1],/minHistory===0\|\|Number\(p\.observations\)>=minHistory/,
+ "Historical sample cutoff required");
+assert.match(match[1],/minEstimate===0\|\|Number\(p\.probability\)>=minEstimate/,
+ "Estimated probability cutoff required");
+
 assert.match(html,/id="props"[\s\S]*?Add to lineup/,"Board action must be labelled");
 for(const forbidden of ["Everything behind the model","MoneyPuck",
  "projection model comparison","stable-shrink","Poisson","negative binomial",

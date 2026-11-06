@@ -34,6 +34,14 @@
 <h3>Browse all prop sides <span id="filteredPropCount" class="muted"></span></h3>
 <div class="board-mode"><label for="boardMode">View</label><select id="boardMode" aria-label="Browse current pregame or archived research props"><option value="current">Current pregame only</option><option value="archive">Saved history (may be expired)</option></select><p id="boardNotice" role="status" aria-live="polite">Checking offer timestamps…</p></div>
 <div class="filters"><input id="search" type="search" placeholder="Search player or team" aria-label="Search player or team"><select id="tier" aria-label="Filter by offer tier"><option value="">All tiers</option><option>Standard</option><option>Goblin</option><option>Demon</option></select><select id="market" aria-label="Filter by statistic"><option value="">All stats</option></select><select id="direction" aria-label="Filter by Higher or Lower"><option value="">Higher & Lower</option><option>Higher</option><option>Lower</option></select><select id="gameFilter" aria-label="Filter by NHL game"><option value="">All games</option></select><select id="sortProps" aria-label="Sort player prop research"><option value="estimate">Highest model estimate</option><option value="game">Soonest game</option><option value="player">Player A–Z</option></select></div>
+<div class="research-filter-extra" role="group" aria-label="Advanced NHL prop research filters">
+<label for="teamFilter">Team<select id="teamFilter" aria-label="Filter props by NHL team"><option value="">All teams</option></select></label>
+<label for="minEstimate">Estimated probability ≥<select id="minEstimate" aria-label="Minimum model probability estimate"><option value="0">Any estimate</option><option value="0.55">55%</option><option value="0.6">60%</option><option value="0.65">65%</option><option value="0.7">70%</option><option value="0.75">75%</option></select></label>
+<label for="minHistory">Prior games<select id="minHistory" aria-label="Minimum historical NHL game observations"><option value="0">Any sample</option><option value="5">5+</option><option value="10">10+</option><option value="20">20+</option></select></label>
+<label for="eligibilityFilter">Availability review<select id="eligibilityFilter" aria-label="Filter player research eligibility"><option value="">All research statuses</option><option value="research_only">Research candidates</option><option value="watchlist">Needs review</option></select></label>
+<div class="filter-view-actions"><button type="button" id="saveResearchView">Save filters here</button><button type="button" id="restoreResearchView">Restore filters</button><button type="button" id="resetResearchView">Reset filters</button></div>
+<p class="minor" id="researchViewStatus" role="status" aria-live="polite">Saved filters stay only on this device. Model percentages are uncalibrated estimates.</p>
+</div>
 <div class="table-wrap props-table-wrap"><table class="props-data-table"><thead><tr><th>Player</th><th>Statistic</th><th>Line</th><th>Tier</th><th>Side</th><th>Est. probability*</th><th>Recent games</th><th>Status</th><th>Build</th></tr></thead><tbody id="props"><tr><td colspan="9">Loading…</td></tr></tbody></table></div>
 </div>
 <div class="board-panel" style="margin-top:14px">
@@ -156,6 +164,24 @@ function showPlayerDetail(p){
    ". Games dated on or after this quote's capture date are excluded. Historical averages are not projected outcomes.";
   host.append(grid,source);
  }
+ const alternatives=(data.props||[]).filter(x=>x.player===p.player&&x.team===p.team&&
+  x.matchup===p.matchup&&x.market===p.market&&x.lean===p.lean&&
+  x.eventStartsAt===p.eventStartsAt&&Number.isFinite(x.line)&&
+  ["Standard","Goblin","Demon"].includes(x.tier));
+ const distinct=[...new Map(alternatives.map(x=>[x.tier+"|"+x.line,x])).values()]
+  .sort((a,b)=>a.line-b.line||String(a.tier).localeCompare(String(b.tier)));
+ if(distinct.length>1){
+  const label=document.createElement("h3");label.textContent="Observed alternate thresholds · "+p.lean;
+  const detail=document.createElement("p");detail.className="minor";
+  detail.textContent="Archived independent-source tier labels and thresholds for the same player, game and side. Original fantasy-app tiers, special payouts and availability are unverified.";
+  const wrap=document.createElement("div");wrap.className="alternate-threshold-list";
+  for(const x of distinct.slice(0,12)){
+   const item=document.createElement("span");
+   item.textContent=x.tier+" · "+x.line;
+   wrap.append(item);
+  }
+  host.append(label,detail,wrap);
+ }
  const c=document.createElement("p");c.className="minor";
  c.textContent="Estimated selection probabilities are uncalibrated; source availability, injury clearance and fantasy-platform payouts are not independently verified.";
  host.append(c);
@@ -239,12 +265,18 @@ function render(){
  const q=$("search").value.toLowerCase().trim(),tier=$("tier").value,
   market=$("market").value,side=$("direction").value,
   game=$("gameFilter").value,sortBy=$("sortProps").value,
-  archiveMode=$("boardMode").value==="archive";
+  archiveMode=$("boardMode").value==="archive",
+  teamFilter=$("teamFilter").value,minEstimate=Number($("minEstimate").value),
+  minHistory=Number($("minHistory").value),eligibility=$("eligibilityFilter").value;
  const rows=(Array.isArray(data.props)?data.props:[]).filter(p=>
   (archiveMode||isCurrentOffer(p))&&
   (!q||((p.player||"")+" "+(p.team||"")).toLowerCase().includes(q))&&
   (!tier||p.tier===tier)&&(!market||p.market===market)&&
-  (!side||p.lean===side)&&(!game||p.matchup===game))
+  (!side||p.lean===side)&&(!game||p.matchup===game)&&
+  (!teamFilter||p.team===teamFilter)&&
+  (!eligibility||p.researchEligibility===eligibility)&&
+  (minEstimate===0||Number(p.probability)>=minEstimate)&&
+  (minHistory===0||Number(p.observations)>=minHistory))
   .sort((a,b)=>sortBy==="player"?
     String(a.player||"").localeCompare(String(b.player||"")):
     sortBy==="game"?
@@ -513,6 +545,10 @@ async function init(){
    const option=document.createElement("option");option.value=game;
    option.textContent=game;$("gameFilter").append(option);
   }
+  for(const team of [...new Set(data.props.map(p=>p.team).filter(Boolean))].sort()){
+   const opt=document.createElement("option");opt.value=opt.textContent=team;
+   $("teamFilter").append(opt);
+  }
   renderFeatured();render();renderLineup();renderResults();renderComparisons();
   renderSourceMovements();renderUnderdogResearch();renderResultBreakdown();
  }catch(e){
@@ -522,7 +558,46 @@ async function init(){
   $("prospectiveAudit").textContent="No verified results available";
  }
 }
-["search","tier","market","direction","gameFilter","sortProps","boardMode"].forEach(id=>$(id).addEventListener("input",render));
+
+const RESEARCH_FILTER_STORAGE="nhl-research-filter-view-v1";
+const RESEARCH_FILTER_KEYS=["search","tier","market","direction","gameFilter","sortProps",
+ "boardMode","teamFilter","minEstimate","minHistory","eligibilityFilter"];
+function saveResearchView(){
+ try{
+  const selected=Object.fromEntries(RESEARCH_FILTER_KEYS.map(id=>[id,$(id).value]));
+  localStorage.setItem(RESEARCH_FILTER_STORAGE,JSON.stringify({version:1,filters:selected}));
+  $("researchViewStatus").textContent="Filter view saved on this device; this does not save a live quote.";
+ }catch{ $("researchViewStatus").textContent="Browser storage unavailable; filters work during this visit."; }
+}
+function restoreResearchView(){
+ try{
+  const saved=JSON.parse(localStorage.getItem(RESEARCH_FILTER_STORAGE)||"null");
+  if(saved?.version!==1||!saved.filters||typeof saved.filters!=="object")throw Error("No valid saved view");
+  for(const id of RESEARCH_FILTER_KEYS){
+   const control=$(id),value=saved.filters[id];
+   if(typeof value==="string"&&
+      ((id==="search"&&value.length<=100)||
+       (id!=="search"&&Array.from(control.options||[]).some(o=>o.value===value)))){
+    control.value=value;
+   }
+  }
+  render();
+  $("researchViewStatus").textContent="Saved filters restored; expired source offers remain historical and cannot be added to live lineups.";
+ }catch{ $("researchViewStatus").textContent="No valid saved filters available on this device."; }
+}
+function resetResearchView(){
+ for(const id of RESEARCH_FILTER_KEYS){
+  const control=$(id);
+  control.value=control.options?.[0]?.value??"";
+ }
+ render();
+ $("researchViewStatus").textContent="Filters reset; saved view unchanged unless you save again.";
+}
+
+["search","tier","market","direction","gameFilter","sortProps","boardMode","teamFilter","minEstimate","minHistory","eligibilityFilter"].forEach(id=>$(id).addEventListener("input",render));
+$("saveResearchView").addEventListener("click",saveResearchView);
+$("restoreResearchView").addEventListener("click",restoreResearchView);
+$("resetResearchView").addEventListener("click",resetResearchView);
 $("lineupSize").addEventListener("change",renderLineup);
 $("rebuildLineup").addEventListener("click",()=>{
  editor.touched=true;editor.picks=[];editor.swapIndex=null;renderLineup();

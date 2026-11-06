@@ -259,3 +259,20 @@ button:disabled:hover{background:#1c4755}
  #playerResearch .research-drawer>summary{padding:14px}
  #movementSummary,#underdogResearch .board-panel{padding:13px}
 }
+
+
+/* Advanced NHL research filters never reclassify source quotes as live. */
+.research-filter-extra{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:9px;margin:13px 0 17px;padding:14px;background:#102737;border:1px solid var(--line-strong);border-radius:12px}
+.research-filter-extra>label{font-size:11px;font-weight:750;color:var(--muted);display:flex;flex-direction:column;gap:7px}
+.research-filter-extra>label select{min-width:0;width:100%;min-height:42px}
+.research-filter-extra .filter-view-actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.research-filter-extra .filter-view-actions button{flex:1 1 135px;min-height:42px}
+.research-filter-extra>p{grid-column:1/-1;margin:0;line-height:1.45;font-size:11px}
+@media(max-width:780px){
+ .research-filter-extra{grid-template-columns:repeat(2,minmax(0,1fr));padding:11px;gap:8px}
+ .research-filter-extra .filter-view-actions button{flex:1 1 112px}
+}
+@media(max-width:440px){.research-filter-extra .filter-view-actions{display:grid;grid-template-columns:1fr 1fr}}
+
+.alternate-threshold-list{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 15px}
+.alternate-threshold-list span{border:1px solid var(--line-strong);background:var(--panel2);border-radius:9px;padding:9px 12px;font-size:12px;min-height:38px;display:inline-flex;align-items:center}

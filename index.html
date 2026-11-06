@@ -121,6 +121,120 @@ function renderFeatured(){
   foot.append(estimate);card.append(top,who,stat,foot,details);host.append(card);
  }
 }
+
+function showPlayerDetail(p){
+ const host=$("playerDetail");host.replaceChildren();
+ const heading=document.createElement("h3");
+ heading.textContent=(p.player||"Player")+" · "+(p.team||"NHL")+" · "+(p.market||"stat");
+ const meta=document.createElement("p");meta.className="minor";
+ meta.textContent=(p.tier||"Standard")+" "+(p.lean||"")+" "+p.line+
+  " · Captured "+(p.capturedAt?new Date(p.capturedAt).toLocaleString():"unknown")+
+  " · "+(isCurrentOffer(p)?"Source quote recently observed; platform unverified":"Archived offer; not current");
+ host.append(heading,meta);
+ const insight=(data.playerInsights||[]).find(x=>x.player===p.player&&
+  x.team===p.team&&x.market===p.market);
+ if(!insight){
+  const note=document.createElement("p");note.className="muted";
+  note.textContent="A safely matched official historical stat summary is not available for this player and market. We do not fill missing games or infer unsupported trends.";
+  host.append(note);
+ }else{
+  const grid=document.createElement("div");grid.className="detail-stats-grid";
+  const stats=[["Last 5",insight.last5],["Last 10",insight.last10],
+   ["Last 20",insight.last20],["Season",insight.seasonAverage]];
+  for(const [label,value] of stats){
+   const card=document.createElement("div");card.className="detail-stat-card";
+   const title=document.createElement("span");title.textContent=label+" game average";
+   const strong=document.createElement("strong");
+   strong.textContent=typeof value==="number"?value.toFixed(2):"—";
+   card.append(title,strong);grid.append(card);
+  }
+  const source=document.createElement("p");source.className="minor";
+  source.textContent=(insight.source||"Official NHL completed-game statistics")+
+   " · "+insight.historicalGames+" earlier recorded games · "+
+   insight.seasonGames+" current-season games · Last appearance: "+
+   (insight.lastGameDate||"unknown")+
+   ". Games dated on or after this quote's capture date are excluded. Historical averages are not projected outcomes.";
+  host.append(grid,source);
+ }
+ const c=document.createElement("p");c.className="minor";
+ c.textContent="Estimated selection probabilities are uncalibrated; source availability, injury clearance and fantasy-platform payouts are not independently verified.";
+ host.append(c);
+ if(typeof host.scrollIntoView==="function")host.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function renderSourceMovements(){
+ const host=$("movementSummary");host.replaceChildren();
+ const m=data.movementSummary||{};
+ const header=document.createElement("h3");header.textContent="Independent source snapshot changes";
+ host.append(header);
+ if(!m.currentAt||!m.previousAt){
+  const empty=document.createElement("p");empty.className="muted";
+  empty.textContent="Two comparable archived observations are not available yet. No line movement or removal can be verified.";
+  host.append(empty);return;
+ }
+ const date=document.createElement("p");date.className="minor";
+ date.textContent="Comparing observations saved "+
+  new Date(m.previousAt).toLocaleString()+" and "+new Date(m.currentAt).toLocaleString()+
+  ". These are archived differences, not current original-platform quotes.";
+ host.append(date);
+ const grid=document.createElement("div");grid.className="detail-stats-grid";
+ for(const [label,n] of [["Increased",m.increased],["Decreased",m.decreased],
+  ["Newly observed",m.newlySeen],["Not seen (unverified)",m.notSeenUnverified]]){
+  const card=document.createElement("div");card.className="detail-stat-card";
+  const key=document.createElement("span");key.textContent=label;
+  const strong=document.createElement("strong");strong.textContent=String(Number.isInteger(n)?n:0);
+  card.append(key,strong);grid.append(card);
+ }
+ const caveat=document.createElement("p");caveat.className="minor";
+ caveat.textContent=m.note||"Missing from an independent source does not prove removal from the original platform.";
+ host.append(grid,caveat);
+}
+function renderUnderdogResearch(){
+ const host=$("underdogMatches");host.replaceChildren();
+ const p=data.platformResearch||{};
+ const safe=p.status==="licensed_fresh_independent_comparison"&&currentBoardIsFresh();
+ const rows=safe&&Array.isArray(p.matches)?p.matches:[];
+ $("underdogStatus").textContent=safe&&rows.length?
+  rows.length+" authorized, source-fresh Standard side comparisons. Original-platform availability remains unverified.":
+  "No current licensed, source-fresh, officially matched Underdog comparison available. We do not invent quotes, tiers or payouts.";
+ for(const row of rows){
+  const tr=document.createElement("tr");
+  [row.player,row.market,row.side,row.prizePicksLine,row.underdogLine,
+   row.favorableThresholdPlatform].forEach(v=>cell(tr,v));host.append(tr);
+ }
+ if(!rows.length){
+  const tr=document.createElement("tr"),td=document.createElement("td");
+  td.colSpan=6;td.textContent="Underdog comparison unavailable or source permission unverified.";
+  tr.append(td);host.append(tr);
+ }
+}
+function renderResultBreakdown(){
+ const host=$("resultBreakdown");host.replaceChildren();
+ const result=data.resultBreakdown||{};
+ const title=document.createElement("h3");title.textContent="Verified pregame selected directions by market";
+ host.append(title);
+ const rows=Array.isArray(result.byMarket)?result.byMarket.filter(x=>x.decided>0):[];
+ if(!rows.length){
+  const empty=document.createElement("p");empty.className="muted";
+  empty.textContent="No original pregame selected NHL props have finished and been graded yet. Pending picks are tracked, not counted as wins or losses.";
+  host.append(empty);return;
+ }
+ const wrapper=document.createElement("div");wrapper.className="table-wrap";
+ const table=document.createElement("table"),head=document.createElement("thead"),tr=document.createElement("tr");
+ ["Market","Wins","Losses","Pushes","Decided","Observed rate*"].forEach(v=>{
+  const th=document.createElement("th");th.textContent=v;tr.append(th);
+ });head.append(tr);table.append(head);
+ const body=document.createElement("tbody");
+ for(const x of rows.slice(0,12)){
+  const tr=document.createElement("tr");
+  [x.market,x.correct,x.losses,x.pushes,x.decided,pct(x.observedHitRate)]
+   .forEach(v=>cell(tr,v));body.append(tr);
+ }
+ table.append(body);wrapper.append(table);host.append(wrapper);
+ const note=document.createElement("p");note.className="minor";
+ note.textContent="*Observed official NHL stat-direction accuracy only, from originally Git-frozen selections. Small samples and same-game dependencies can make rates unstable. This is not a verified platform win rate or return.";
+ host.append(note);
+}
+
 function render(){
  const q=$("search").value.toLowerCase().trim(),tier=$("tier").value,
   market=$("market").value,side=$("direction").value,

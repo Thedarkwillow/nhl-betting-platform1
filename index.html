@@ -164,6 +164,24 @@ function showPlayerDetail(p){
    ". Games dated on or after this quote's capture date are excluded. Historical averages are not projected outcomes.";
   host.append(grid,source);
  }
+ const alternatives=(data.props||[]).filter(x=>x.player===p.player&&x.team===p.team&&
+  x.matchup===p.matchup&&x.market===p.market&&x.lean===p.lean&&
+  x.eventStartsAt===p.eventStartsAt&&Number.isFinite(x.line)&&
+  ["Standard","Goblin","Demon"].includes(x.tier));
+ const distinct=[...new Map(alternatives.map(x=>[x.tier+"|"+x.line,x])).values()]
+  .sort((a,b)=>a.line-b.line||String(a.tier).localeCompare(String(b.tier)));
+ if(distinct.length>1){
+  const label=document.createElement("h3");label.textContent="Observed alternate thresholds · "+p.lean;
+  const detail=document.createElement("p");detail.className="minor";
+  detail.textContent="Archived independent-source tier labels and thresholds for the same player, game and side. Original fantasy-app tiers, special payouts and availability are unverified.";
+  const wrap=document.createElement("div");wrap.className="alternate-threshold-list";
+  for(const x of distinct.slice(0,12)){
+   const item=document.createElement("span");
+   item.textContent=x.tier+" · "+x.line;
+   wrap.append(item);
+  }
+  host.append(label,detail,wrap);
+ }
  const c=document.createElement("p");c.className="minor";
  c.textContent="Estimated selection probabilities are uncalibrated; source availability, injury clearance and fantasy-platform payouts are not independently verified.";
  host.append(c);

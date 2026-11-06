@@ -17,7 +17,9 @@ for(const id of ["today","slips","results","featuredProps","boardMode","boardNot
  "props","lineupPicks","lineupStatus","prospectiveAudit","freshness","comparisons",
  "gameFilter","sortProps","rebuildLineup","resetLineup","lineupSwapPanel",
  "lineupSwapOption","applyLineupSwap","cancelLineupSwap","lineupDetails",
- "saveLineupDraft","restoreLineupDraft","clearLineupDraft","lineupFeedback"])
+ "saveLineupDraft","restoreLineupDraft","clearLineupDraft","lineupFeedback",
+ "playerResearch","playerDetail","movementResearch","movementSummary","underdogResearch",
+ "underdogStatus","underdogMatches","resultBreakdown","lineupDependencyNote"])
  assert.ok(html.includes('id="'+id+'"'),"Missing customer-facing element "+id);
 assert.ok(html.indexOf('id="today"')<html.indexOf('id="slips"')&&
  html.indexOf('id="slips"')<html.indexOf('id="results"'),
@@ -26,7 +28,8 @@ const match=html.match(/<script>([\s\S]*?)<\/script>/);
 assert.ok(match,"NHL dashboard script missing");
 new vm.Script(match[1],{filename:"nhl-public-site.js"});
 for(const fn of ["currentBoardIsFresh","isCurrentOffer","renderFeatured",
- "render","renderLineup","renderResults","renderComparisons"])
+ "render","renderLineup","renderResults","renderComparisons","showPlayerDetail",
+ "renderSourceMovements","renderUnderdogResearch","renderResultBreakdown"])
  assert.ok(match[1].includes("function "+fn+"("),"Missing safe public renderer "+fn);
 assert.match(html,/probabilities are estimates/i,"Probability caveat required");
 assert.match(html,/unverified/i,"Original platform terms and payout caveat required");
@@ -61,7 +64,36 @@ const keys=["schemaVersion","kind","builtAt","researchAt","boardAt","comparisonA
  "researchFreshAtBuild","boardCoverageComplete","boardCoverage","dataProvider",
  "props","comparisons","lineups","featuredIndividualProps",
  "featuredPropsSourceFresh","performance","disclaimer"].sort();
-assert.deepEqual(Object.keys(data).sort(),keys,"Unexpected public data field");
+const OPTIONAL_EXTENSIONS=["playerInsights","movementSummary","platformResearch","resultBreakdown"];
+assert.deepEqual(Object.keys(data).sort(),
+ [...keys,...OPTIONAL_EXTENSIONS.filter(k=>Object.hasOwn(data,k))].sort(),
+ "Unexpected public data field");
+if(data.playerInsights!==undefined){
+ assert.ok(Array.isArray(data.playerInsights),"Player trends must be an allowlisted array");
+ for(const x of data.playerInsights){
+  assert.equal(x.source,"Official NHL completed-game statistics");
+  assert.ok(Number.isInteger(x.historicalGames)&&x.historicalGames>0);
+  assert.deepEqual(Object.keys(x).sort(),
+   ["player","team","market","last5","last10","last20","seasonAverage",
+    "historicalGames","seasonGames","lastGameDate","source"].sort());
+ }
+}
+if(data.movementSummary!==undefined){
+ assert.equal(data.movementSummary.removalsVerified,false);
+ assert.equal(data.movementSummary.changes,undefined,"Do not republish raw vendor lines");
+}
+if(data.platformResearch!==undefined){
+ assert.ok(Array.isArray(data.platformResearch.matches));
+ if(data.platformResearch.status!=="licensed_fresh_independent_comparison")
+  assert.equal(data.platformResearch.matches.length,0,"Unlicensed or stale vendor data cannot be public");
+ assert.equal(data.platformResearch.payoutsVerified,false);
+ assert.equal(data.platformResearch.firstPartyAvailabilityVerified,false);
+}
+if(data.resultBreakdown!==undefined)
+ assert.ok(Array.isArray(data.resultBreakdown.byMarket)&&Array.isArray(data.resultBreakdown.byTier));
+const wins=data.performance.correctProspectivePicks??0,pushes=data.performance.pushedProspectivePicks??0;
+assert.ok(wins>=0&&pushes>=0&&wins+pushes<=data.performance.gradedProspectivePicks);
+
 const disallowed=["historicalModelResearch","distributionResearch","matchupResearch",
  "approvedSourceResearch","prospectiveResearchAudit","legacyReconstructed",
  "shadowMean","selectedFormula","modelWeights","fitParameters","rankScore"];

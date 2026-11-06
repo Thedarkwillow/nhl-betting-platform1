@@ -230,3 +230,32 @@ button:disabled:hover{background:#1c4755}
  .research-drawer>summary{padding:17px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+
+
+/* Source-scoped player and results research: derived averages only. */
+#playerResearch{scroll-margin-top:95px}
+#playerDetail h3{font-size:18px;margin:4px 0 5px}
+.player-detail-action{margin-top:8px;white-space:normal;text-align:center;min-height:38px}
+.props-data-table tbody td:last-child{min-width:150px}
+.props-data-table tbody td:last-child .player-detail-action{margin-left:7px}
+.detail-stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:15px 0}
+.detail-stat-card{min-width:0;border:1px solid var(--line);border-radius:12px;padding:13px;background:var(--panel2)}
+.detail-stat-card span{display:block;font-size:12px;color:var(--muted);line-height:1.35}
+.detail-stat-card strong{display:block;font-size:24px;font-variant-numeric:tabular-nums;letter-spacing:-.025em;margin-top:7px}
+#playerResearch .research-drawer{margin:12px 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+#playerResearch .research-drawer>summary{cursor:pointer;font-size:14px;font-weight:750;padding:17px 19px;min-height:48px}
+#playerResearch .research-drawer>.board-panel{border-left:0;border-right:0;border-bottom:0;border-radius:0}
+#underdogStatus{margin-top:0;font-size:13px}
+.results-breakdown{margin-top:15px}
+.results-breakdown h3{margin-bottom:12px}
+@media(max-width:680px){
+ #playerDetail{padding:14px}
+ .detail-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .detail-stat-card{padding:11px}
+ .detail-stat-card strong{font-size:21px}
+ .props-data-table tbody td:last-child{min-width:0}
+ .props-data-table tbody td:last-child .player-detail-action{margin:7px 0 0}
+ .props-data-table tbody td:last-child button{width:100%}
+ #playerResearch .research-drawer>summary{padding:14px}
+ #movementSummary,#underdogResearch .board-panel{padding:13px}
+}

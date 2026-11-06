@@ -42,6 +42,18 @@
 <div class="table-wrap"><table><thead><tr><th>Player</th><th>Statistic</th><th>Line</th><th>Tier</th><th>Estimated Higher*</th><th>Market Higher*</th><th>Book sources</th></tr></thead><tbody id="comparisons"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
 </div>
 </section>
+<section class="desk-section" id="playerResearch">
+<div class="section-head"><div><div class="section-kicker">PLAYER / HISTORY</div><h2>Player research details</h2><p class="section-sub">Select Player details on any saved prop to review archived official NHL form. Historical averages use only games dated before the captured quote.</p></div><span class="pill">Historical data</span></div>
+<div class="board-panel" id="playerDetail" role="region" aria-label="Selected NHL player historical performance" aria-live="polite"><p class="muted">Select Player details from the props board or featured picks.</p></div>
+<details class="research-drawer" id="movementResearch"><summary>Source line movement and availability history</summary>
+<div class="board-panel" id="movementSummary" aria-live="polite"><p class="muted">Checking archived observations…</p></div>
+</details>
+<details class="research-drawer" id="underdogResearch"><summary>PrizePicks vs Underdog verified-scope comparisons</summary>
+<div class="board-panel"><p id="underdogStatus" class="muted" role="status">Checking independent-source permissions and freshness…</p>
+<div class="table-wrap"><table><thead><tr><th>Player</th><th>Statistic</th><th>Side</th><th>PrizePicks</th><th>Underdog</th><th>Threshold preference*</th></tr></thead><tbody id="underdogMatches"><tr><td colspan="6">Source permission check required</td></tr></tbody></table></div>
+<p class="minor">*Lower threshold favors Higher; higher threshold favors Lower. This is not a payout or expected-return comparison. Lines are independent provider observations, not verified current fantasy-app offers.</p></div>
+</details>
+</section>
 <section class="desk-section" id="slips">
 <div class="section-head"><div><div class="section-kicker">02 / Lineup builder</div><h2>Explore 2–6 pick lineups</h2><p class="section-sub">Standard offers only. Lineups exclude repeat players; some five- and six-pick combinations may share a game.</p></div><span class="pill">Not a placed wager</span></div>
 <div class="slip-inner">
@@ -54,11 +66,13 @@
 <div id="lineupSwapPanel" class="lineup-swap-panel" hidden><label for="lineupSwapOption" id="lineupSwapLabel">Choose a fresh replacement</label><select id="lineupSwapOption" aria-label="Fresh eligible replacement player"></select><div class="lineup-swap-actions"><button type="button" id="applyLineupSwap">Apply swap</button><button type="button" id="cancelLineupSwap">Cancel</button></div></div>
 <p id="lineupDetails" class="minor" aria-live="polite">Edits use only eligible fresh research offers.</p><p id="lineupFeedback" class="minor" role="status" aria-live="polite">Research drafts stay in this browser only. Saved offers must pass freshness checks again before restoration.</p>
 <p class="minor">Lineup joint probabilities, payout-specific expected value, and platform settlement are not established. Check the original platform's rules and availability independently.</p>
+<p class="minor" id="lineupDependencyNote">Pairs sharing a game can have unmeasured team, goalie/shooter and scoring interactions. No joint success rate or payout is inferred.</p>
 </div>
 </section>
 <section class="desk-section" id="results">
 <div class="section-head"><div><div class="section-kicker">03 / Results</div><h2>Tracked prediction performance</h2><p class="section-sub">Only directions saved before puck drop and graded against completed official game results count toward our prospective track record.</p></div></div>
 <div class="card" id="prospectiveAudit" aria-live="polite">Loading verified results…</div>
+<div class="board-panel results-breakdown" id="resultBreakdown" aria-live="polite"><p class="muted">Market results will appear after eligible games are officially final.</p></div>
 <p class="minor">Estimated prop probabilities are not verified historical hit rates. Results do not demonstrate profitable expected value or payout-adjusted returns.</p>
 </section>
 <footer class="notice">NHL Research Desk provides informational research, not personalized financial advice or a wagering service. Independent data may be delayed or incomplete; verify any displayed line with the original platform. *All probabilities are estimates, not promises.</footer>
@@ -101,9 +115,126 @@ function renderFeatured(){
   const foot=document.createElement("div");foot.className="featured-bottom";
   const estimate=document.createElement("div");estimate.className="featured-number";estimate.textContent=pct(p.probability);
   const small=document.createElement("small");small.textContent="Model estimate · unverified";estimate.append(small);
-  foot.append(estimate);card.append(top,who,stat,foot);host.append(card);
+  const details=document.createElement("button");details.type="button";details.className="player-detail-action";
+  details.textContent="Player details";details.setAttribute("aria-label","View "+p.player+" historical NHL statistics");
+  details.addEventListener("click",()=>showPlayerDetail(p));
+  foot.append(estimate);card.append(top,who,stat,foot,details);host.append(card);
  }
 }
+
+function showPlayerDetail(p){
+ const host=$("playerDetail");host.replaceChildren();
+ const heading=document.createElement("h3");
+ heading.textContent=(p.player||"Player")+" · "+(p.team||"NHL")+" · "+(p.market||"stat");
+ const meta=document.createElement("p");meta.className="minor";
+ meta.textContent=(p.tier||"Standard")+" "+(p.lean||"")+" "+p.line+
+  " · Captured "+(p.capturedAt?new Date(p.capturedAt).toLocaleString():"unknown")+
+  " · "+(isCurrentOffer(p)?"Source quote recently observed; platform unverified":"Archived offer; not current");
+ host.append(heading,meta);
+ const insight=(data.playerInsights||[]).find(x=>x.player===p.player&&
+  x.team===p.team&&x.market===p.market);
+ if(!insight){
+  const note=document.createElement("p");note.className="muted";
+  note.textContent="A safely matched official historical stat summary is not available for this player and market. We do not fill missing games or infer unsupported trends.";
+  host.append(note);
+ }else{
+  const grid=document.createElement("div");grid.className="detail-stats-grid";
+  const stats=[["Last 5",insight.last5],["Last 10",insight.last10],
+   ["Last 20",insight.last20],["Season",insight.seasonAverage]];
+  for(const [label,value] of stats){
+   const card=document.createElement("div");card.className="detail-stat-card";
+   const title=document.createElement("span");title.textContent=label+" game average";
+   const strong=document.createElement("strong");
+   strong.textContent=typeof value==="number"?value.toFixed(2):"—";
+   card.append(title,strong);grid.append(card);
+  }
+  const source=document.createElement("p");source.className="minor";
+  source.textContent=(insight.source||"Official NHL completed-game statistics")+
+   " · "+insight.historicalGames+" earlier recorded games · "+
+   insight.seasonGames+" current-season games · Last appearance: "+
+   (insight.lastGameDate||"unknown")+
+   ". Games dated on or after this quote's capture date are excluded. Historical averages are not projected outcomes.";
+  host.append(grid,source);
+ }
+ const c=document.createElement("p");c.className="minor";
+ c.textContent="Estimated selection probabilities are uncalibrated; source availability, injury clearance and fantasy-platform payouts are not independently verified.";
+ host.append(c);
+ if(typeof host.scrollIntoView==="function")host.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function renderSourceMovements(){
+ const host=$("movementSummary");host.replaceChildren();
+ const m=data.movementSummary||{};
+ const header=document.createElement("h3");header.textContent="Independent source snapshot changes";
+ host.append(header);
+ if(!m.currentAt||!m.previousAt){
+  const empty=document.createElement("p");empty.className="muted";
+  empty.textContent="Two comparable archived observations are not available yet. No line movement or removal can be verified.";
+  host.append(empty);return;
+ }
+ const date=document.createElement("p");date.className="minor";
+ date.textContent="Comparing observations saved "+
+  new Date(m.previousAt).toLocaleString()+" and "+new Date(m.currentAt).toLocaleString()+
+  ". These are archived differences, not current original-platform quotes.";
+ host.append(date);
+ const grid=document.createElement("div");grid.className="detail-stats-grid";
+ for(const [label,n] of [["Increased",m.increased],["Decreased",m.decreased],
+  ["Newly observed",m.newlySeen],["Not seen (unverified)",m.notSeenUnverified]]){
+  const card=document.createElement("div");card.className="detail-stat-card";
+  const key=document.createElement("span");key.textContent=label;
+  const strong=document.createElement("strong");strong.textContent=String(Number.isInteger(n)?n:0);
+  card.append(key,strong);grid.append(card);
+ }
+ const caveat=document.createElement("p");caveat.className="minor";
+ caveat.textContent=m.note||"Missing from an independent source does not prove removal from the original platform.";
+ host.append(grid,caveat);
+}
+function renderUnderdogResearch(){
+ const host=$("underdogMatches");host.replaceChildren();
+ const p=data.platformResearch||{};
+ const safe=p.status==="licensed_fresh_independent_comparison"&&currentBoardIsFresh();
+ const rows=safe&&Array.isArray(p.matches)?p.matches:[];
+ $("underdogStatus").textContent=safe&&rows.length?
+  rows.length+" authorized, source-fresh Standard side comparisons. Original-platform availability remains unverified.":
+  "No current licensed, source-fresh, officially matched Underdog comparison available. We do not invent quotes, tiers or payouts.";
+ for(const row of rows){
+  const tr=document.createElement("tr");
+  [row.player,row.market,row.side,row.prizePicksLine,row.underdogLine,
+   row.favorableThresholdPlatform].forEach(v=>cell(tr,v));host.append(tr);
+ }
+ if(!rows.length){
+  const tr=document.createElement("tr"),td=document.createElement("td");
+  td.colSpan=6;td.textContent="Underdog comparison unavailable or source permission unverified.";
+  tr.append(td);host.append(tr);
+ }
+}
+function renderResultBreakdown(){
+ const host=$("resultBreakdown");host.replaceChildren();
+ const result=data.resultBreakdown||{};
+ const title=document.createElement("h3");title.textContent="Verified pregame selected directions by market";
+ host.append(title);
+ const rows=Array.isArray(result.byMarket)?result.byMarket.filter(x=>x.decided>0):[];
+ if(!rows.length){
+  const empty=document.createElement("p");empty.className="muted";
+  empty.textContent="No original pregame selected NHL props have finished and been graded yet. Pending picks are tracked, not counted as wins or losses.";
+  host.append(empty);return;
+ }
+ const wrapper=document.createElement("div");wrapper.className="table-wrap";
+ const table=document.createElement("table"),head=document.createElement("thead"),tr=document.createElement("tr");
+ ["Market","Wins","Losses","Pushes","Decided","Observed rate*"].forEach(v=>{
+  const th=document.createElement("th");th.textContent=v;tr.append(th);
+ });head.append(tr);table.append(head);
+ const body=document.createElement("tbody");
+ for(const x of rows.slice(0,12)){
+  const tr=document.createElement("tr");
+  [x.market,x.correct,x.losses,x.pushes,x.decided,pct(x.observedHitRate)]
+   .forEach(v=>cell(tr,v));body.append(tr);
+ }
+ table.append(body);wrapper.append(table);host.append(wrapper);
+ const note=document.createElement("p");note.className="minor";
+ note.textContent="*Observed official NHL stat-direction accuracy only, from originally Git-frozen selections. Small samples and same-game dependencies can make rates unstable. This is not a verified platform win rate or return.";
+ host.append(note);
+}
+
 function render(){
  const q=$("search").value.toLowerCase().trim(),tier=$("tier").value,
   market=$("market").value,side=$("direction").value,
@@ -139,7 +270,10 @@ function render(){
   button.setAttribute("aria-label",canAdd?"Add "+(p.player||"player")+" to NHL research lineup":
    "Offer not eligible for current NHL lineup research");
   button.addEventListener("click",()=>addBoardProp(p));
-  td.append(button);tr.append(td);body.append(tr);
+  const details=document.createElement("button");details.type="button";details.className="player-detail-action";
+  details.textContent="Details";details.setAttribute("aria-label","View "+p.player+" archived NHL player statistics");
+  details.addEventListener("click",()=>showPlayerDetail(p));
+  td.append(button,details);tr.append(td);body.append(tr);
  }
  if(!rows.length){const tr=document.createElement("tr");const td=document.createElement("td");
   td.colSpan=9;td.textContent=archiveMode?"No matching saved offers":"No eligible fresh pregame props";tr.append(td);body.append(tr);}
@@ -252,6 +386,20 @@ function renderLineup(){
  const fresh=picks.every(p=>workspace.eligible(p,at)&&isCurrentOffer(p));
  if(!fresh){editor.picks=[];$("lineupStatus").textContent="Research offer expired. Refresh and rebuild from a new verified snapshot.";return;}
  const risk=result.correlated?"Same-game picks share unquantified correlation risk":"Picks use distinct NHL games";
+ const overlaps=[];
+ for(let i=0;i<picks.length;i++)for(let j=i+1;j<picks.length;j++){
+  const a=picks[i],b=picks[j];
+  if(!a.matchup||a.matchup!==b.matchup)continue;
+  const detail=(a.market==="saves"&&b.market==="shotsOnGoal")||
+   (b.market==="saves"&&a.market==="shotsOnGoal")?
+   "goalie-versus-shooter interaction":a.team===b.team?
+   "same-team activity":"opposing-team activity";
+  overlaps.push(detail);
+ }
+ $("lineupDependencyNote").textContent=overlaps.length?
+  "Shared-game risk: "+[...new Set(overlaps)].join(", ")+
+  ". These are structural warning flags, not measured correlation coefficients or joint odds.":
+  "No same-game pairs in this research lineup. Cross-game dependencies and accurate fantasy-platform rules still require checking.";
  $("lineupStatus").textContent=n+"-pick "+(editor.touched?"custom":"suggested")+
   " research lineup · "+risk+" · Availability and payout unverified.";
  const labels=["Player","Statistic","Line","Side","Model estimate","Game","Research edits"];
@@ -317,9 +465,12 @@ function applyLineupSwap(){
 function renderResults(){
  const p=data.performance||{},host=$("prospectiveAudit");host.replaceChildren();
  const grid=document.createElement("div");grid.className="microcards";
- const items=[["Pregame picks graded",p.gradedProspectivePicks??0],
-  ["Verified prospective hit rate",p.gradedProspectivePicks>0?pct(p.verifiedProspectiveHitRate):"Not established"],
+ const graded=p.gradedProspectivePicks??0,pushes=p.pushedProspectivePicks??0,
+  wins=p.correctProspectivePicks??0,losses=Math.max(0,graded-pushes-wins);
+ const items=[["Pregame picks graded",graded],["Official-stat wins",wins],
+  ["Official-stat losses",losses],["Pushes",pushes],
   ["Awaiting final results",p.pendingProspectivePicks??0],
+  ["Verified prospective hit rate",graded-pushes>0?pct(p.verifiedProspectiveHitRate):"Not established"],
   ["Payout-adjusted ROI","Not verified"]];
  for(const [name,val] of items){
   const div=document.createElement("div");div.className="card";
@@ -363,6 +514,7 @@ async function init(){
    option.textContent=game;$("gameFilter").append(option);
   }
   renderFeatured();render();renderLineup();renderResults();renderComparisons();
+  renderSourceMovements();renderUnderdogResearch();renderResultBreakdown();
  }catch(e){
   $("updated").textContent="Dashboard data unavailable: "+e.message;
   $("props").textContent="No research data available";
@@ -385,7 +537,7 @@ init();
 setInterval(()=>{
  if(!data?.performance)return;
  $("freshness").textContent=currentBoardIsFresh()?"Fresh (<30m)":"Archived / not current";
- render();renderLineup();renderFeatured();
+ render();renderLineup();renderFeatured();renderUnderdogResearch();
 },60000);
 </script>
 </body></html>

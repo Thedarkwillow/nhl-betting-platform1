@@ -276,3 +276,18 @@ button:disabled:hover{background:#1c4755}
 
 .alternate-threshold-list{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 15px}
 .alternate-threshold-list span{border:1px solid var(--line-strong);background:var(--panel2);border-radius:9px;padding:9px 12px;font-size:12px;min-height:38px;display:inline-flex;align-items:center}
+
+
+/* Original Git-frozen cohort audit and measured independent coverage. */
+#today>.research-drawer,#results>.research-drawer{margin:13px 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+#today>.research-drawer>summary,#results>.research-drawer>summary{font-size:14px;font-weight:750;padding:16px 19px;cursor:pointer;min-height:50px}
+#today>.research-drawer>.board-panel,#results>.research-drawer>.board-panel{border-left:0;border-right:0;border-bottom:0;border-radius:0}
+#cohortAuditPanel select{min-height:42px;margin:10px 0 12px;max-width:320px;width:100%}
+#cohortAuditTable .table-wrap{overflow-x:auto}
+#cohortAuditTable table{min-width:590px}
+#collectionCoverageStatus h3{margin:0 0 8px}
+#cohortAuditPanel .minor{max-width:860px}
+@media(max-width:680px){
+ #today>.research-drawer>summary,#results>.research-drawer>summary{padding:14px 12px}
+ #today>.research-drawer>.board-panel,#results>.research-drawer>.board-panel{padding:12px}
+}

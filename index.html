@@ -386,6 +386,20 @@ function renderLineup(){
  const fresh=picks.every(p=>workspace.eligible(p,at)&&isCurrentOffer(p));
  if(!fresh){editor.picks=[];$("lineupStatus").textContent="Research offer expired. Refresh and rebuild from a new verified snapshot.";return;}
  const risk=result.correlated?"Same-game picks share unquantified correlation risk":"Picks use distinct NHL games";
+ const overlaps=[];
+ for(let i=0;i<picks.length;i++)for(let j=i+1;j<picks.length;j++){
+  const a=picks[i],b=picks[j];
+  if(!a.matchup||a.matchup!==b.matchup)continue;
+  const detail=(a.market==="saves"&&b.market==="shotsOnGoal")||
+   (b.market==="saves"&&a.market==="shotsOnGoal")?
+   "goalie-versus-shooter interaction":a.team===b.team?
+   "same-team activity":"opposing-team activity";
+  overlaps.push(detail);
+ }
+ $("lineupDependencyNote").textContent=overlaps.length?
+  "Shared-game risk: "+[...new Set(overlaps)].join(", ")+
+  ". These are structural warning flags, not measured correlation coefficients or joint odds.":
+  "No same-game pairs in this research lineup. Cross-game dependencies and accurate fantasy-platform rules still require checking.";
  $("lineupStatus").textContent=n+"-pick "+(editor.touched?"custom":"suggested")+
   " research lineup · "+risk+" · Availability and payout unverified.";
  const labels=["Player","Statistic","Line","Side","Model estimate","Game","Research edits"];
@@ -451,9 +465,12 @@ function applyLineupSwap(){
 function renderResults(){
  const p=data.performance||{},host=$("prospectiveAudit");host.replaceChildren();
  const grid=document.createElement("div");grid.className="microcards";
- const items=[["Pregame picks graded",p.gradedProspectivePicks??0],
-  ["Verified prospective hit rate",p.gradedProspectivePicks>0?pct(p.verifiedProspectiveHitRate):"Not established"],
+ const graded=p.gradedProspectivePicks??0,pushes=p.pushedProspectivePicks??0,
+  wins=p.correctProspectivePicks??0,losses=Math.max(0,graded-pushes-wins);
+ const items=[["Pregame picks graded",graded],["Official-stat wins",wins],
+  ["Official-stat losses",losses],["Pushes",pushes],
   ["Awaiting final results",p.pendingProspectivePicks??0],
+  ["Verified prospective hit rate",graded-pushes>0?pct(p.verifiedProspectiveHitRate):"Not established"],
   ["Payout-adjusted ROI","Not verified"]];
  for(const [name,val] of items){
   const div=document.createElement("div");div.className="card";
@@ -497,6 +514,7 @@ async function init(){
    option.textContent=game;$("gameFilter").append(option);
   }
   renderFeatured();render();renderLineup();renderResults();renderComparisons();
+  renderSourceMovements();renderUnderdogResearch();renderResultBreakdown();
  }catch(e){
   $("updated").textContent="Dashboard data unavailable: "+e.message;
   $("props").textContent="No research data available";
@@ -519,7 +537,7 @@ init();
 setInterval(()=>{
  if(!data?.performance)return;
  $("freshness").textContent=currentBoardIsFresh()?"Fresh (<30m)":"Archived / not current";
- render();renderLineup();renderFeatured();
+ render();renderLineup();renderFeatured();renderUnderdogResearch();
 },60000);
 </script>
 </body></html>

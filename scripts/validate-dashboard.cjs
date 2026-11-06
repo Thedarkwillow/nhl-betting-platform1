@@ -21,7 +21,9 @@ for(const id of ["today","slips","results","featuredProps","boardMode","boardNot
  "lineupSwapOption","applyLineupSwap","cancelLineupSwap","lineupDetails",
  "saveLineupDraft","restoreLineupDraft","clearLineupDraft","lineupFeedback",
  "playerResearch","playerDetail","movementResearch","movementSummary","underdogResearch",
- "underdogStatus","underdogMatches","resultBreakdown","lineupDependencyNote"])
+ "underdogStatus","underdogMatches","resultBreakdown","lineupDependencyNote",
+ "collectionCoverageDrawer","collectionCoverageStatus","cohortAuditDrawer",
+ "cohortAuditPanel","cohortAuditTable","cohortGroupBy"])
  assert.ok(html.includes('id="'+id+'"'),"Missing customer-facing element "+id);
 assert.ok(html.indexOf('id="today"')<html.indexOf('id="slips"')&&
  html.indexOf('id="slips"')<html.indexOf('id="results"'),
@@ -31,7 +33,8 @@ assert.ok(match,"NHL dashboard script missing");
 new vm.Script(match[1],{filename:"nhl-public-site.js"});
 for(const fn of ["currentBoardIsFresh","isCurrentOffer","renderFeatured",
  "render","renderLineup","renderResults","renderComparisons","showPlayerDetail",
- "renderSourceMovements","renderUnderdogResearch","renderResultBreakdown"])
+ "renderSourceMovements","renderUnderdogResearch","renderResultBreakdown",
+ "renderOriginalCohort","renderCollectionCoverage"])
  assert.ok(match[1].includes("function "+fn+"("),"Missing safe public renderer "+fn);
 assert.match(html,/probabilities are estimates/i,"Probability caveat required");
 assert.match(html,/unverified/i,"Original platform terms and payout caveat required");
@@ -79,7 +82,8 @@ const keys=["schemaVersion","kind","builtAt","researchAt","boardAt","comparisonA
  "researchFreshAtBuild","boardCoverageComplete","boardCoverage","dataProvider",
  "props","comparisons","lineups","featuredIndividualProps",
  "featuredPropsSourceFresh","performance","disclaimer"].sort();
-const OPTIONAL_EXTENSIONS=["playerInsights","movementSummary","platformResearch","resultBreakdown"];
+const OPTIONAL_EXTENSIONS=["playerInsights","movementSummary","platformResearch","resultBreakdown",
+ "prospectiveCohort","collectionCoverage"];
 assert.deepEqual(Object.keys(data).sort(),
  [...keys,...OPTIONAL_EXTENSIONS.filter(k=>Object.hasOwn(data,k))].sort(),
  "Unexpected public data field");
@@ -106,6 +110,32 @@ if(data.platformResearch!==undefined){
 }
 if(data.resultBreakdown!==undefined)
  assert.ok(Array.isArray(data.resultBreakdown.byMarket)&&Array.isArray(data.resultBreakdown.byTier));
+if(data.prospectiveCohort!==undefined){
+ const p=data.prospectiveCohort;
+ assert.equal(p.kind,"nhl_public_cohort_aggregate_official_stat_v1");
+ assert.equal(p.originalPlatformSettlementsVerified,false);
+ assert.equal(p.realizedReturnVerified,false);
+ assert.ok(Array.isArray(p.byPacificGameDay)&&Array.isArray(p.byTier)&&Array.isArray(p.byMarket));
+ assert.ok(!JSON.stringify(p).includes('"playerId"'),"Never expose Git registry player IDs publicly");
+ assert.ok(!JSON.stringify(p).includes('"firstGitCommittedAt"'),"Never expose raw selection proof timestamps publicly");
+ if(p.cohortVerified===true){
+  assert.equal(p.counts.registered,
+   p.counts.correct+p.counts.incorrect+p.counts.push+p.counts.pending);
+  assert.ok(p.minimumPublishedDecisions>=10);
+  for(const x of [...p.byPacificGameDay,...p.byMarket,...p.byTier])
+   if(x.decided<p.minimumPublishedDecisions)assert.equal(x.observedRate,null);
+ }
+}
+if(data.collectionCoverage!==undefined){
+ const c=data.collectionCoverage;
+ assert.equal(c.originalPlatformBoardCoverageVerified,false);
+ assert.equal(c.kind,"nhl_independent_archive_coverage_public_v1");
+ assert.equal(c.rawRows,undefined);
+ assert.equal(c.rows,undefined);
+ assert.ok(c.officialGamesInWindow===null||
+  c.officialGamesWithObservedOffers<=c.officialGamesInWindow);
+}
+
 const wins=data.performance.correctProspectivePicks??0,pushes=data.performance.pushedProspectivePicks??0;
 assert.ok(wins>=0&&pushes>=0&&wins+pushes<=data.performance.gradedProspectivePicks);
 

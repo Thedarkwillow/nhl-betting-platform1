@@ -44,6 +44,10 @@
 </div>
 <div class="table-wrap props-table-wrap"><table class="props-data-table"><thead><tr><th>Player</th><th>Statistic</th><th>Line</th><th>Tier</th><th>Side</th><th>Est. probability*</th><th>Recent games</th><th>Status</th><th>Build</th></tr></thead><tbody id="props"><tr><td colspan="9">Loading…</td></tr></tbody></table></div>
 </div>
+<details class="research-drawer" id="collectionCoverageDrawer">
+<summary>Independent source coverage and freshness</summary>
+<div class="board-panel" id="collectionCoverageStatus" role="region" aria-live="polite"><p class="muted">Checking archived NHL provider and official game alignment…</p></div>
+</details>
 <div class="board-panel" style="margin-top:14px">
 <h3>Compare available lines</h3>
 <p class="muted">Comparison data is displayed only when a matching independent quote was observed. This does not prove that either fantasy-platform offer is currently available.</p>
@@ -81,6 +85,15 @@
 <div class="section-head"><div><div class="section-kicker">03 / Results</div><h2>Tracked prediction performance</h2><p class="section-sub">Only directions saved before puck drop and graded against completed official game results count toward our prospective track record.</p></div></div>
 <div class="card" id="prospectiveAudit" aria-live="polite">Loading verified results…</div>
 <div class="board-panel results-breakdown" id="resultBreakdown" aria-live="polite"><p class="muted">Market results will appear after eligible games are officially final.</p></div>
+<details class="research-drawer" id="cohortAuditDrawer">
+<summary>Original pregame prediction history — grouped by date, market and tier</summary>
+<div class="board-panel" id="cohortAuditPanel">
+<p class="minor">Every original Git-frozen selection stays included, even if it loses, pushes or remains pending. Only aggregated counts are public; individual source lines and private model details are not redistributed.</p>
+<label for="cohortGroupBy" class="muted">Group the original selected-pick cohort</label>
+<select id="cohortGroupBy" aria-label="Group verified prospective NHL cohort by game date, market or tier"><option value="byPacificGameDay">Puck-drop date (Pacific)</option><option value="byMarket">Stat category</option><option value="byTier">Offer tier</option></select>
+<div class="table-wrap" id="cohortAuditTable" aria-live="polite"><p class="muted">Checking Git-frozen original-pick evidence…</p></div>
+</div>
+</details>
 <p class="minor">Estimated prop probabilities are not verified historical hit rates. Results do not demonstrate profitable expected value or payout-adjusted returns.</p>
 </section>
 <footer class="notice">NHL Research Desk provides informational research, not personalized financial advice or a wagering service. Independent data may be delayed or incomplete; verify any displayed line with the original platform. *All probabilities are estimates, not promises.</footer>
@@ -233,6 +246,73 @@ function renderUnderdogResearch(){
   tr.append(td);host.append(tr);
  }
 }
+
+function renderCollectionCoverage(){
+ const host=$("collectionCoverageStatus");host.replaceChildren();
+ const s=data.collectionCoverage||{},valid=s.status==="archived_independent_pagination_verified";
+ const h=document.createElement("h3");h.textContent="Archived independent NHL source observation";
+ host.append(h);
+ const para=document.createElement("p");
+ if(!valid){
+  para.className="muted";
+  para.textContent="Verified source-to-official-NHL-game coverage has not been established. This never confirms a complete original fantasy-app board.";
+  host.append(para);return;
+ }
+ const count=s.officialGamesWithObservedOffers??0,total=s.officialGamesInWindow??0;
+ para.textContent=total>0?
+  "At least one independent provider prop was matched to "+count+" of "+total+
+  " official NHL games scheduled in the 48 hours after this archived capture.":
+  "No official NHL games fell inside the measured 48-hour window. A source coverage percentage is not meaningful.";
+ const meta=document.createElement("p");meta.className="minor";
+ const live=s.sourceFreshForLiveDisplay===true&&currentBoardIsFresh();
+ meta.textContent="Source observed "+(s.archiveAt?new Date(s.archiveAt).toLocaleString():"at an unverified time")+
+  ". "+(live?"Independent capture is within the 30-minute research freshness window.":
+  "Archived source is not verified current; expired lines cannot be added to a live lineup.")+
+  " Independent source-game matches do not prove how much of the original PrizePicks or Underdog boards were available. No app-authenticated tier, payouts or current availability are confirmed.";
+ host.append(para,meta);
+}
+function renderOriginalCohort(){
+ const host=$("cohortAuditTable");host.replaceChildren();
+ const p=data.prospectiveCohort||{};
+ if(p.cohortVerified!==true||!p.counts){
+  const warn=document.createElement("p");warn.className="muted";
+  warn.textContent="The original Git-precommitted selected-pick cohort could not be reconciled with the official grading archive. Detailed public history is withheld until that evidence matches.";
+  host.append(warn);return;
+ }
+ const summary=document.createElement("p");summary.className="minor";
+ summary.textContent=p.counts.registered+" original recorded selections · "+
+  p.counts.pending+" pending official player results · "+
+  p.decided+" decided · "+p.counts.push+
+  " pushes. Prospective hit-rate cells require at least "+p.minimumPublishedDecisions+
+  " decided picks in that group.";
+ host.append(summary);
+ const groupId=$("cohortGroupBy").value;
+ const rows=Array.isArray(p[groupId])?p[groupId]:[];
+ if(!rows.length){
+  const empty=document.createElement("p");empty.className="muted";
+  empty.textContent="No precommitted picks in this category yet.";
+  host.append(empty);return;
+ }
+ const wrap=document.createElement("div");wrap.className="table-wrap";
+ const table=document.createElement("table"),thead=document.createElement("thead"),
+  tr=document.createElement("tr");
+ const labels=["Group","Frozen","Wins","Losses","Push","Pending","Observed rate*"];
+ for(const label of labels){const th=document.createElement("th");th.textContent=label;tr.append(th);}
+ thead.append(tr);table.append(thead);
+ const body=document.createElement("tbody");
+ for(const r of rows.slice(0,50)){
+  const tr=document.createElement("tr");
+  const rate=typeof r.observedRate==="number"?pct(r.observedRate):
+   r.smallSampleWithheld?"Withheld: small sample":"—";
+  [r.group,r.picks,r.correct,r.incorrect,r.push,r.pending,rate]
+   .forEach((v,i)=>cell(tr,v,labels[i]));body.append(tr);
+ }
+ table.append(body);wrap.append(table);host.append(wrap);
+ const foot=document.createElement("p");foot.className="minor";
+ foot.textContent="*Official NHL stat-direction results only. Wilson 95% intervals are unclustered and may understate same-game dependence; a payout-adjusted return or calibrated betting edge is not established. Dates use Pacific time.";
+ host.append(foot);
+}
+
 function renderResultBreakdown(){
  const host=$("resultBreakdown");host.replaceChildren();
  const result=data.resultBreakdown||{};
@@ -502,7 +582,8 @@ function renderResults(){
  const items=[["Pregame picks graded",graded],["Official-stat wins",wins],
   ["Official-stat losses",losses],["Pushes",pushes],
   ["Awaiting final results",p.pendingProspectivePicks??0],
-  ["Verified prospective hit rate",graded-pushes>0?pct(p.verifiedProspectiveHitRate):"Not established"],
+  ["Observed prospective stat-direction rate",p.decidedProspectivePicks>=10&&
+   data.prospectiveCohort?.cohortVerified===true?pct(p.verifiedProspectiveHitRate):"Not established (sample/evidence gate)"],
   ["Payout-adjusted ROI","Not verified"]];
  for(const [name,val] of items){
   const div=document.createElement("div");div.className="card";
@@ -551,6 +632,7 @@ async function init(){
   }
   renderFeatured();render();renderLineup();renderResults();renderComparisons();
   renderSourceMovements();renderUnderdogResearch();renderResultBreakdown();
+  renderOriginalCohort();renderCollectionCoverage();
  }catch(e){
   $("updated").textContent="Dashboard data unavailable: "+e.message;
   $("props").textContent="No research data available";
@@ -598,6 +680,7 @@ function resetResearchView(){
 $("saveResearchView").addEventListener("click",saveResearchView);
 $("restoreResearchView").addEventListener("click",restoreResearchView);
 $("resetResearchView").addEventListener("click",resetResearchView);
+$("cohortGroupBy").addEventListener("change",renderOriginalCohort);
 $("lineupSize").addEventListener("change",renderLineup);
 $("rebuildLineup").addEventListener("click",()=>{
  editor.touched=true;editor.picks=[];editor.swapIndex=null;renderLineup();
@@ -612,7 +695,7 @@ init();
 setInterval(()=>{
  if(!data?.performance)return;
  $("freshness").textContent=currentBoardIsFresh()?"Fresh (<30m)":"Archived / not current";
- render();renderLineup();renderFeatured();renderUnderdogResearch();
+ render();renderLineup();renderFeatured();renderUnderdogResearch();renderCollectionCoverage();
 },60000);
 </script>
 </body></html>

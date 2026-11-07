@@ -91,7 +91,8 @@ const keys=["schemaVersion","kind","builtAt","researchAt","boardAt","comparisonA
  "featuredPropsSourceFresh","performance","disclaimer"].sort();
 const OPTIONAL_EXTENSIONS=["playerInsights","movementSummary","platformResearch","resultBreakdown",
  "prospectiveCohort","collectionCoverage","researchQuality",
- "previewResearchProps","previewResearchOnly","previewSelectionsOfficiallyPrecommitted"];
+ "previewResearchProps","previewResearchOnly","previewSelectionsOfficiallyPrecommitted",
+ "evidenceLegend","responsibleResearch"];
 assert.deepEqual(Object.keys(data).sort(),
  [...keys,...OPTIONAL_EXTENSIONS.filter(k=>Object.hasOwn(data,k))].sort(),
  "Unexpected public data field");
@@ -177,7 +178,7 @@ for(const p of data.props){
  for(const key of Object.keys(p))
   assert.ok(["player","team","market","line","tier","lean","probability",
    "observations","matchup","capturedAt","eventStartsAt",
-   "researchEligibility","roleWarning"].includes(key),"Excess public prop field "+key);
+   "researchEligibility","roleWarning","tierEvidence"].includes(key),"Excess public prop field "+key);
 }
 assert.match(html,/id="refreshResearch"/,"Research refresh requires a working control");
 assert.match(html,/function refreshPublishedResearch\(/,"Refresh must read same-site sanitized data only");
@@ -191,4 +192,30 @@ if(data.previewResearchProps!==undefined){
  assert.ok(data.previewResearchProps.length<=8);
  if(data.previewResearchOnly!==true)assert.equal(data.previewResearchProps.length,0);
 }
+
+assert.match(html,/id="researchEvidence"/,"Evidence hierarchy must appear on phone and desktop");
+assert.match(html,/id="evidenceLegend"/,"Every research claim has a category");
+assert.match(html,/id="responsibleResearch"/,"Responsible-use guidance must remain visible");
+assert.match(html,/function renderEvidenceLegend\(/,"Evidence legend must render saved public-only labels");
+assert.match(html,/structural\.riskLevel/,"Lineup risk label must reference a defined local state");
+assert.doesNotMatch(html,/\+" research lineup · "\+risk\+/,"No undefined risk variable in lineup rendering");
+assert.match(css,/\.evidence-legend/,"Responsive evidence legend styling required");
+assert.ok(!/place.?bet|submit.?wager|auto.?bet/i.test(
+ html.replace(/no automated bet placement/gi,"")
+ .replace(/does not submit wagers/gi,"")
+ .replace(/No automated bet placement/gi,"")),
+ "Website must not include a wagering call to action");
+if(data.evidenceLegend!==undefined){
+ assert.equal(data.evidenceLegend.kind,"public_nhl_evidence_categories_v1");
+ for(const k of ["modelEstimate","independentQuote","retrospective",
+  "frozenPregame","officialStats","platformSettlement","tier","payouts"])
+  assert.ok(typeof data.evidenceLegend[k]==="string"&&data.evidenceLegend[k].length>8);
+}
+if(data.responsibleResearch!==undefined){
+ assert.equal(data.responsibleResearch.kind,"public_responsible_research_v1");
+ assert.equal(data.responsibleResearch.noAutoplacement,true);
+ assert.equal(data.responsibleResearch.noBettingActionOnSite,true);
+ assert.equal(data.responsibleResearch.noWinGuarantees,true);
+}
+
 console.log("Public NHL site: customer-only design, safe fresh-board gates and no internal model disclosure");

@@ -27,6 +27,18 @@
 <div class="card">Tracked picks graded<strong id="gradedCount">—</strong></div>
 </div>
 <p class="notice" id="updated">Loading saved data…</p>
+<section class="desk-section research-quality" id="researchHealth">
+<div class="section-head"><div><div class="section-kicker">RESEARCH / EVIDENCE</div>
+<h2>Research status &amp; data quality</h2>
+<p class="section-sub">A quick view of what's observed, graded and still unverified.</p></div>
+<span class="pill">Independent NHL evidence</span></div>
+<div class="quality-grid" id="researchQualityCards" role="region" aria-label="Seven-area NHL research status" aria-live="polite">
+<p class="muted">Checking saved research evidence…</p></div>
+<details class="research-drawer" id="researchQualityDetails">
+<summary>Evidence limitations and unavailable data</summary>
+<div class="board-panel" id="researchQualityNotes"><p class="muted">Loading research limitations…</p></div>
+</details>
+</section>
 <section class="desk-section" id="today">
 <div class="section-head"><div><div class="section-kicker">01 / Top props</div><h2>Featured player props</h2><p class="section-sub">Only recent, eligible pregame selections appear here. No current data means no featured picks.</p></div><span class="pill">Research only</span></div>
 <div id="featuredProps" class="featured-grid" aria-live="polite"><div class="featured-empty"><strong>Checking current props…</strong><span>Freshness required.</span></div></div>
@@ -99,6 +111,7 @@
 <footer class="notice">NHL Research Desk provides informational research, not personalized financial advice or a wagering service. Independent data may be delayed or incomplete; verify any displayed line with the original platform. *All probabilities are estimates, not promises.</footer>
 </main>
 <script src="./assets/lineup-workspace.js"></script>
+<script src="./assets/research-status.js"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -116,6 +129,9 @@ function isCurrentOffer(p){
  const now=Date.now(),captured=Date.parse(p?.capturedAt),start=Date.parse(p?.eventStartsAt);
  return currentBoardIsFresh()&&Number.isFinite(captured)&&captured<=now&&
   now-captured<=30*60000&&Number.isFinite(start)&&start>now;
+}
+function renderResearchQuality(){
+ NhlResearchStatus.render(data,{cards:$("researchQualityCards"),notes:$("researchQualityNotes")});
 }
 function renderFeatured(){
  const host=$("featuredProps");host.replaceChildren();
@@ -152,6 +168,11 @@ function showPlayerDetail(p){
   " · Captured "+(p.capturedAt?new Date(p.capturedAt).toLocaleString():"unknown")+
   " · "+(isCurrentOffer(p)?"Source quote recently observed; platform unverified":"Archived offer; not current");
  host.append(heading,meta);
+ if(/saves|goalie/i.test(String(p.market||""))){
+  const warning=document.createElement("p");warning.className="quality-inline-warning";
+  warning.textContent="Goalie research only: actual club-confirmed starter, full-game participation and fantasy-platform DNP/Reboot settlement are unverified. Historical appearances do not confirm a future start.";
+  host.append(warning);
+ }
  const insight=(data.playerInsights||[]).find(x=>x.player===p.player&&
   x.team===p.team&&x.market===p.market);
  if(!insight){
@@ -497,21 +518,12 @@ function renderLineup(){
  }
  const fresh=picks.every(p=>workspace.eligible(p,at)&&isCurrentOffer(p));
  if(!fresh){editor.picks=[];$("lineupStatus").textContent="Research offer expired. Refresh and rebuild from a new verified snapshot.";return;}
- const risk=result.correlated?"Same-game picks share unquantified correlation risk":"Picks use distinct NHL games";
- const overlaps=[];
- for(let i=0;i<picks.length;i++)for(let j=i+1;j<picks.length;j++){
-  const a=picks[i],b=picks[j];
-  if(!a.matchup||a.matchup!==b.matchup)continue;
-  const detail=(a.market==="saves"&&b.market==="shotsOnGoal")||
-   (b.market==="saves"&&a.market==="shotsOnGoal")?
-   "goalie-versus-shooter interaction":a.team===b.team?
-   "same-team activity":"opposing-team activity";
-  overlaps.push(detail);
- }
- $("lineupDependencyNote").textContent=overlaps.length?
-  "Shared-game risk: "+[...new Set(overlaps)].join(", ")+
-  ". These are structural warning flags, not measured correlation coefficients or joint odds.":
-  "No same-game pairs in this research lineup. Cross-game dependencies and accurate fantasy-platform rules still require checking.";
+ const structural=workspace.structuralRisk(picks,at);
+ $("lineupDependencyNote").textContent=structural.sharedGamePairs?
+  "Structural risk: "+structural.sharedGamePairs+" same-game pair(s) · "+
+  structural.categories.join(", ")+
+  ". No measured correlation coefficient, joint success probability or payout EV.":
+  "No shared-game pairs. Cross-game dependencies and exact fantasy-platform rules remain unverified.";
  $("lineupStatus").textContent=n+"-pick "+(editor.touched?"custom":"suggested")+
   " research lineup · "+risk+" · Availability and payout unverified.";
  const labels=["Player","Statistic","Line","Side","Model estimate","Game","Research edits"];
@@ -597,7 +609,10 @@ function renderResults(){
 }
 function renderComparisons(){
  const body=$("comparisons");body.replaceChildren();
- const rows=Array.isArray(data.comparisons)?data.comparisons:[];
+ const comparisonAt=Date.parse(data.comparisonAt),now=Date.now();
+ const freshComparison=currentBoardIsFresh()&&Number.isFinite(comparisonAt)&&
+  comparisonAt<=now&&now-comparisonAt<=30*60000;
+ const rows=freshComparison&&Array.isArray(data.comparisons)?data.comparisons:[];
  for(const p of rows.slice(0,50)){
   const tr=document.createElement("tr");
   [p.player,p.market,p.line,p.tier,pct(p.modelHigher),pct(p.sportsbookHigher),
@@ -632,7 +647,7 @@ async function init(){
   }
   renderFeatured();render();renderLineup();renderResults();renderComparisons();
   renderSourceMovements();renderUnderdogResearch();renderResultBreakdown();
-  renderOriginalCohort();renderCollectionCoverage();
+  renderOriginalCohort();renderCollectionCoverage();renderResearchQuality();
  }catch(e){
   $("updated").textContent="Dashboard data unavailable: "+e.message;
   $("props").textContent="No research data available";

@@ -6,6 +6,12 @@ const css=fs.readFileSync(path.resolve(__dirname,"../assets/dashboard.css"),"utf
 const workspace=fs.readFileSync(path.resolve(__dirname,"../assets/lineup-workspace.js"),"utf8");
 new vm.Script(workspace,{filename:"lineup-workspace.js"});
 assert.match(html,/<script src="\.\/assets\/lineup-workspace\.js"><\/script>/,"Public builder module must load");
+const statusJs=fs.readFileSync(path.resolve(__dirname,"../assets/research-status.js"),"utf8");
+new vm.Script(statusJs,{filename:"research-status.js"});
+assert.match(html,/<script src="\.\/assets\/research-status\.js"><\/script>/,"Public source-quality module must load");
+assert.match(css,/\.quality-grid/,"Responsive seven-area evidence layout must exist");
+assert.match(css,/\.quality-card/,"Source-quality cards must have accessible styling");
+
 const data=JSON.parse(fs.readFileSync(path.resolve(__dirname,"../data.json"),"utf8"));
 assert.match(html,/href="\.\/assets\/dashboard\.css"/,"NHL dashboard stylesheet missing");
 assert.match(css,/\.featured-grid/);
@@ -23,7 +29,8 @@ for(const id of ["today","slips","results","featuredProps","boardMode","boardNot
  "playerResearch","playerDetail","movementResearch","movementSummary","underdogResearch",
  "underdogStatus","underdogMatches","resultBreakdown","lineupDependencyNote",
  "collectionCoverageDrawer","collectionCoverageStatus","cohortAuditDrawer",
- "cohortAuditPanel","cohortAuditTable","cohortGroupBy"])
+ "cohortAuditPanel","cohortAuditTable","cohortGroupBy","researchHealth",
+ "researchQualityCards","researchQualityNotes","researchQualityDetails"])
  assert.ok(html.includes('id="'+id+'"'),"Missing customer-facing element "+id);
 assert.ok(html.indexOf('id="today"')<html.indexOf('id="slips"')&&
  html.indexOf('id="slips"')<html.indexOf('id="results"'),
@@ -34,7 +41,7 @@ new vm.Script(match[1],{filename:"nhl-public-site.js"});
 for(const fn of ["currentBoardIsFresh","isCurrentOffer","renderFeatured",
  "render","renderLineup","renderResults","renderComparisons","showPlayerDetail",
  "renderSourceMovements","renderUnderdogResearch","renderResultBreakdown",
- "renderOriginalCohort","renderCollectionCoverage"])
+ "renderOriginalCohort","renderCollectionCoverage","renderResearchQuality"])
  assert.ok(match[1].includes("function "+fn+"("),"Missing safe public renderer "+fn);
 assert.match(html,/probabilities are estimates/i,"Probability caveat required");
 assert.match(html,/unverified/i,"Original platform terms and payout caveat required");
@@ -83,7 +90,7 @@ const keys=["schemaVersion","kind","builtAt","researchAt","boardAt","comparisonA
  "props","comparisons","lineups","featuredIndividualProps",
  "featuredPropsSourceFresh","performance","disclaimer"].sort();
 const OPTIONAL_EXTENSIONS=["playerInsights","movementSummary","platformResearch","resultBreakdown",
- "prospectiveCohort","collectionCoverage"];
+ "prospectiveCohort","collectionCoverage","researchQuality"];
 assert.deepEqual(Object.keys(data).sort(),
  [...keys,...OPTIONAL_EXTENSIONS.filter(k=>Object.hasOwn(data,k))].sort(),
  "Unexpected public data field");
@@ -134,6 +141,26 @@ if(data.collectionCoverage!==undefined){
  assert.equal(c.rows,undefined);
  assert.ok(c.officialGamesInWindow===null||
   c.officialGamesWithObservedOffers<=c.officialGamesInWindow);
+}
+
+
+if(data.researchQuality!==undefined){
+ const s=data.researchQuality;
+ assert.equal(s.kind,"public_nhl_seven_workstream_brief_v1");
+ assert.equal(s.originalPlatformAvailabilityVerified,false);
+ assert.equal(s.originalPlatformSettlementsVerified,false);
+ assert.equal(s.expectedValueVerified,false);
+ assert.equal(s.lineupJointProbabilityVerified,false);
+ assert.equal(s.originalPlatformRemovalsVerified,false);
+ assert.equal(s.originalClubStarterVerified,false);
+ assert.ok(s.sourceOfferedSideRows>=0);
+ assert.ok(s.sourceFreshUnderdogMatches===0||
+  s.underdogStatus==="fresh_authorized_derived_comparisons");
+ for(const banned of ["sourceRawOffers","privateLineupPicks","playerId","modelWeights",
+  "privateStarterNotes","providerApiKey","championBrier"]){
+  assert.ok(!JSON.stringify(s).includes('"'+banned+'"'),
+   "Unexpected internal key in public evidence summary "+banned);
+ }
 }
 
 const wins=data.performance.correctProspectivePicks??0,pushes=data.performance.pushedProspectivePicks??0;

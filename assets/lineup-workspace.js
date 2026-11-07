@@ -168,6 +168,39 @@
     return {valid:true,reason:null,size:d.size,picks,
       lockedKeys:d.lockedKeys.slice(),excludedPlayers:d.excludedPlayers.slice()};
   }
+  function structuralRisk(picks,at=Date.now()){
+    const list=Array.isArray(picks)?picks:[],now=Number(at);
+    if(!Number.isFinite(now)||!list.length)return {status:"unavailable",
+      pairs:[],sharedGamePairs:0,riskLevel:"unverified",
+      jointProbability:null,expectedValue:null};
+    const flagged=[],categories=new Set(),seenGames=new Set();
+    for(let i=0;i<list.length;i++){
+      const game=norm(list[i]?.matchup);
+      if(game)seenGames.add(game);
+      for(let j=i+1;j<list.length;j++){
+        const a=list[i],b=list[j];
+        if(!game||game!==norm(b?.matchup))continue;
+        const aStat=norm(a.market),bStat=norm(b.market);
+        const goalie=/(goalie|saves)/i.test(aStat)||/(goalie|saves)/i.test(bStat);
+        const shots=/(shots|goals|points)/i.test(aStat)||/(shots|goals|points)/i.test(bStat);
+        const label=goalie&&shots?"goalie and shooter interaction":
+          norm(a.team)===norm(b.team)?"shared team and game":"opposing players in one game";
+        categories.add(label);
+        flagged.push({first:i,second:j,label});
+      }
+    }
+    const sourceAges=list.map(p=>(now-Date.parse(p.capturedAt))/60000);
+    const validAge=sourceAges.every(x=>Number.isFinite(x)&&x>=0&&x<=30);
+    return {status:validAge?"structural_review_only":"source_expired_or_invalid",
+      picks:list.length,distinctGames:seenGames.size,
+      sharedGamePairs:flagged.length,
+      riskLevel:flagged.length?"elevated_unmeasured":"not_measured_across_games",
+      categories:[...categories],pairs:flagged,
+      quoteFreshForResearch:validAge,
+      jointProbability:null,expectedValue:null,
+      correlationCoefficientVerified:false,
+      originalPlatformPayoutVerified:false};
+  }
   return {key,playerKey,eligible,candidates,validComplete,build,swapOptions,
-    addSelection,createDraft,restoreDraft};
+    addSelection,createDraft,restoreDraft,structuralRisk};
 });

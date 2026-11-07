@@ -26,7 +26,9 @@
 <div class="card">Board status<strong id="freshness">—</strong></div>
 <div class="card">Tracked picks graded<strong id="gradedCount">—</strong></div>
 </div>
-<p class="notice" id="updated">Loading saved data…</p>
+<div class="research-refresh-strip"><p class="notice" id="updated">Loading saved data…</p>
+<button type="button" id="refreshResearch" class="secondary-button">Refresh saved research</button></div>
+<p class="minor" id="researchRefreshStatus" role="status" aria-live="polite">Archived observations only; updates never fetch directly from the fantasy apps.</p>
 <section class="desk-section research-quality" id="researchHealth">
 <div class="section-head"><div><div class="section-kicker">RESEARCH / EVIDENCE</div>
 <h2>Research status &amp; data quality</h2>
@@ -40,7 +42,7 @@
 </details>
 </section>
 <section class="desk-section" id="today">
-<div class="section-head"><div><div class="section-kicker">01 / Top props</div><h2>Featured player props</h2><p class="section-sub">Only recent, eligible pregame selections appear here. No current data means no featured picks.</p></div><span class="pill">Research only</span></div>
+<div class="section-head"><div><div class="section-kicker">01 / Top props</div><h2>Featured player props</h2><p class="section-sub">Fresh model research previews may appear here even before new Git-frozen pregame picks. A preview is not a verified selection or an original-platform offer.</p></div><span class="pill">Research only</span></div>
 <div id="featuredProps" class="featured-grid" aria-live="polite"><div class="featured-empty"><strong>Checking current props…</strong><span>Freshness required.</span></div></div>
 <div class="board-panel">
 <h3>Browse all prop sides <span id="filteredPropCount" class="muted"></span></h3>
@@ -135,9 +137,21 @@ function renderResearchQuality(){
 }
 function renderFeatured(){
  const host=$("featuredProps");host.replaceChildren();
- const rows=(data.featuredPropsSourceFresh===true&&Array.isArray(data.featuredIndividualProps)?
+ const frozen=(data.featuredPropsSourceFresh===true&&Array.isArray(data.featuredIndividualProps)?
   data.featuredIndividualProps:[]).filter(p=>isCurrentOffer(p)&&
   p.researchEligibility!=="watchlist"&&p.probability>0.5).slice(0,8);
+ const preview=(data.previewResearchOnly===true&&
+  data.previewSelectionsOfficiallyPrecommitted===false&&
+  Array.isArray(data.previewResearchProps)?data.previewResearchProps:[])
+  .filter(p=>isCurrentOffer(p)&&p.researchEligibility!=="watchlist"&&
+   p.tier==="Standard"&&p.probability>0.5).slice(0,8);
+ const usingPreview=frozen.length===0&&preview.length>0;
+ const rows=frozen.length?frozen:preview;
+ if(usingPreview){
+  const notice=document.createElement("p");notice.className="minor featured-preview-notice";
+  notice.textContent="Independent-source model preview only. These props were not Git-frozen prospective picks. Payouts, app availability and probabilities are unverified.";
+  host.append(notice);
+ }
  if(!rows.length){
   const div=document.createElement("div");div.className="featured-empty";
   const title=document.createElement("strong");title.textContent="No fresh pregame research picks right now";
@@ -146,7 +160,8 @@ function renderFeatured(){
  }
  for(const p of rows){
   const card=document.createElement("article");card.className="featured-card";
-  const top=document.createElement("div");top.className="featured-top";top.textContent=(p.team||"NHL")+" / "+(p.tier||"Standard");
+  const top=document.createElement("div");top.className="featured-top";top.textContent=(p.team||"NHL")+" / "+(p.tier||"Standard")+
+   (usingPreview?" · Research preview":" · Frozen model selection");
   const who=document.createElement("div");who.className="featured-name";who.textContent=p.player||"Player";
   const stat=document.createElement("div");stat.className="featured-stat";stat.textContent=(p.market||"Stat")+" "+p.lean+" "+p.line;
   const foot=document.createElement("div");foot.className="featured-bottom";

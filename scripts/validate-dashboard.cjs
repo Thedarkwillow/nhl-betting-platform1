@@ -90,7 +90,8 @@ const keys=["schemaVersion","kind","builtAt","researchAt","boardAt","comparisonA
  "props","comparisons","lineups","featuredIndividualProps",
  "featuredPropsSourceFresh","performance","disclaimer"].sort();
 const OPTIONAL_EXTENSIONS=["playerInsights","movementSummary","platformResearch","resultBreakdown",
- "prospectiveCohort","collectionCoverage","researchQuality"];
+ "prospectiveCohort","collectionCoverage","researchQuality",
+ "previewResearchProps","previewResearchOnly","previewSelectionsOfficiallyPrecommitted"];
 assert.deepEqual(Object.keys(data).sort(),
  [...keys,...OPTIONAL_EXTENSIONS.filter(k=>Object.hasOwn(data,k))].sort(),
  "Unexpected public data field");

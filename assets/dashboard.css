@@ -291,3 +291,22 @@ button:disabled:hover{background:#1c4755}
  #today>.research-drawer>summary,#results>.research-drawer>summary{padding:14px 12px}
  #today>.research-drawer>.board-panel,#results>.research-drawer>.board-panel{padding:12px}
 }
+
+
+/* Seven-area research quality cards: source status, not odds or payout promises. */
+.quality-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}
+.quality-card{display:flex;min-width:0;flex-direction:column;gap:9px;
+ background:var(--panel);border:1px solid var(--line);border-radius:14px;
+ padding:17px;min-height:145px}
+.quality-card .quality-title{color:var(--muted);font-size:12px;line-height:1.35}
+.quality-card strong{font-size:17px;letter-spacing:-.02em;line-height:1.2;overflow-wrap:anywhere}
+.quality-card small{color:var(--muted2);line-height:1.45;font-size:12px}
+.quality-inline-warning{padding:12px 14px;border-radius:11px;border:1px solid #775b39;
+ background:#2f271e;color:#f1d4a6;font-size:13px;line-height:1.5}
+#researchQualityNotes .minor{margin:8px 0 12px;line-height:1.55}
+@media(max-width:1050px){.quality-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){
+ .quality-grid{grid-template-columns:1fr;gap:9px}
+ .quality-card{min-height:0;padding:14px;gap:6px}
+ .quality-card strong{font-size:16px}
+}

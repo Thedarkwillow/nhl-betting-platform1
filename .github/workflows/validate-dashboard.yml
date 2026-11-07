@@ -25,3 +25,5 @@ jobs:
         run: node scripts/validate-dashboard.cjs
       - name: Test interactive NHL research lineup editor
         run: node scripts/test-lineup-workspace.cjs
+      - name: Test seven-area public status, freshness and comparison safety
+        run: node scripts/test-research-status.cjs

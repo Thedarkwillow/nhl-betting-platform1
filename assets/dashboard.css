@@ -310,3 +310,13 @@ button:disabled:hover{background:#1c4755}
  .quality-card{min-height:0;padding:14px;gap:6px}
  .quality-card strong{font-size:16px}
 }
+
+
+/* Source-driven subscriber-ready research refresh and honest preview labels. */
+.research-refresh-strip{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.research-refresh-strip .notice{margin:0;flex:1 1 260px}
+.research-refresh-strip .secondary-button{width:auto;min-width:160px;border-radius:9px;min-height:42px;padding:8px 12px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.research-refresh-strip .secondary-button:hover,.research-refresh-strip .secondary-button:focus-visible{border-color:var(--accent)}
+#researchRefreshStatus{margin:5px 0 18px;line-height:1.5}
+.featured-preview-notice{grid-column:1/-1;border:1px solid #715a3d;border-radius:11px;background:#25251e;color:#f0d5a4;padding:12px 15px;margin:0 0 4px}
+@media(max-width:560px){.research-refresh-strip .secondary-button{width:100%}}

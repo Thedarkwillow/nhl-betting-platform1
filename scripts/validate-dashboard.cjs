@@ -178,4 +178,16 @@ for(const p of data.props){
    "observations","matchup","capturedAt","eventStartsAt",
    "researchEligibility","roleWarning"].includes(key),"Excess public prop field "+key);
 }
+assert.match(html,/id="refreshResearch"/,"Research refresh requires a working control");
+assert.match(html,/function refreshPublishedResearch\(/,"Refresh must read same-site sanitized data only");
+assert.match(html,/previewSelectionsOfficiallyPrecommitted===false/,"Independent preview must not be frozen selections");
+assert.match(html,/New published independent-source research loaded/,"New board must be labeled correctly");
+assert.match(css,/\.featured-preview-notice/,"Research preview needs visible disclaimer");
+assert.match(css,/\.research-refresh-strip/,"Mobile refresh has accessible layout");
+if(data.previewResearchProps!==undefined){
+ assert.equal(data.previewSelectionsOfficiallyPrecommitted,false);
+ assert.ok(Array.isArray(data.previewResearchProps));
+ assert.ok(data.previewResearchProps.length<=8);
+ if(data.previewResearchOnly!==true)assert.equal(data.previewResearchProps.length,0);
+}
 console.log("Public NHL site: customer-only design, safe fresh-board gates and no internal model disclosure");

@@ -40,6 +40,11 @@
 <summary>Evidence limitations and unavailable data</summary>
 <div class="board-panel" id="researchQualityNotes"><p class="muted">Loading research limitations…</p></div>
 </details>
+<section class="evidence-note" id="researchEvidence" aria-label="Research evidence categories">
+<h3>How to read our research</h3>
+<div class="evidence-legend" id="evidenceLegend">
+<p class="minor">Model estimates, third-party observations, retrospective evaluations, saved pregame selections and NHL official stats are different evidence categories.</p>
+</div></section>
 </section>
 <section class="desk-section" id="today">
 <div class="section-head"><div><div class="section-kicker">01 / Top props</div><h2>Featured player props</h2><p class="section-sub">Fresh model research previews may appear here even before new Git-frozen pregame picks. A preview is not a verified selection or an original-platform offer.</p></div><span class="pill">Research only</span></div>
@@ -110,6 +115,11 @@
 </details>
 <p class="minor">Estimated prop probabilities are not verified historical hit rates. Results do not demonstrate profitable expected value or payout-adjusted returns.</p>
 </section>
+<section class="evidence-note" id="responsibleResearch" aria-label="Responsible sports research">
+<h3>Responsible use</h3>
+<p>Research and education only. Sports betting carries financial risk and no pick is guaranteed. Set personal time and financial limits; stop if the activity becomes stressful or compulsive. This website does not submit wagers.</p>
+<p class="minor">Original PrizePicks/Underdog app availability and settlement must be checked independently. No automated bet placement or urgent wagering notifications.</p>
+</section>
 <footer class="notice">NHL Research Desk provides informational research, not personalized financial advice or a wagering service. Independent data may be delayed or incomplete; verify any displayed line with the original platform. *All probabilities are estimates, not promises.</footer>
 </main>
 <script src="./assets/lineup-workspace.js"></script>
@@ -134,6 +144,26 @@ function isCurrentOffer(p){
 }
 function renderResearchQuality(){
  NhlResearchStatus.render(data,{cards:$("researchQualityCards"),notes:$("researchQualityNotes")});
+ renderEvidenceLegend();
+}
+function renderEvidenceLegend(){
+ const host=$("evidenceLegend");host.replaceChildren();
+ const d=data.evidenceLegend||{};
+ const labels=[
+  ["Model estimate",d.modelEstimate||"Estimated probability; not calibrated"],
+  ["Independent provider offer",d.independentQuote||"Timestamped provider observation; not authenticated in original app"],
+  ["Retrospective test",d.retrospective||"Reconstructed; not an originally recorded prediction"],
+  ["Saved before puck drop",d.frozenPregame||"Original saved research direction; capture timestamp required"],
+  ["Official NHL statistics",d.officialStats||"Official game result; not original fantasy-app settlement"],
+  ["PrizePicks / Underdog settlement",d.platformSettlement||"Unverified"],
+  ["Goblin / Demon tier and payout",d.tier||"Provider-indicated tier only; exact multiplier unverified"]
+ ];
+ for(const [heading,description] of labels){
+  const article=document.createElement("article");article.className="evidence-term";
+  const strong=document.createElement("strong");strong.textContent=heading;
+  const note=document.createElement("small");note.textContent=description;
+  article.append(strong,note);host.append(article);
+ }
 }
 function renderFeatured(){
  const host=$("featuredProps");host.replaceChildren();
@@ -161,7 +191,7 @@ function renderFeatured(){
  for(const p of rows){
   const card=document.createElement("article");card.className="featured-card";
   const top=document.createElement("div");top.className="featured-top";top.textContent=(p.team||"NHL")+" / "+(p.tier||"Standard")+
-   (usingPreview?" · Research preview":" · Frozen model selection");
+   " · provider-indicated tier"+(usingPreview?" · Research preview":" · Frozen model selection");
   const who=document.createElement("div");who.className="featured-name";who.textContent=p.player||"Player";
   const stat=document.createElement("div");stat.className="featured-stat";stat.textContent=(p.market||"Stat")+" "+p.lean+" "+p.line;
   const foot=document.createElement("div");foot.className="featured-bottom";
@@ -179,7 +209,7 @@ function showPlayerDetail(p){
  const heading=document.createElement("h3");
  heading.textContent=(p.player||"Player")+" · "+(p.team||"NHL")+" · "+(p.market||"stat");
  const meta=document.createElement("p");meta.className="minor";
- meta.textContent=(p.tier||"Standard")+" "+(p.lean||"")+" "+p.line+
+ meta.textContent=(p.tier||"Unknown")+" (provider-indicated) "+(p.lean||"")+" "+p.line+
   " · Captured "+(p.capturedAt?new Date(p.capturedAt).toLocaleString():"unknown")+
   " · "+(isCurrentOffer(p)?"Source quote recently observed; platform unverified":"Archived offer; not current");
  host.append(heading,meta);
@@ -409,7 +439,7 @@ function render(){
  for(const p of rows.slice(0,300)){
   const tr=document.createElement("tr");
   const status=p.researchEligibility==="watchlist"?"Needs availability review":"Research only";
-  [((p.player||"Player")+" ("+(p.team||"—")+")"),p.market,p.line,p.tier,p.lean,
+  [((p.player||"Player")+" ("+(p.team||"—")+")"),p.market,p.line,(p.tier||"Unknown")+" (provider-indicated)",p.lean,
    pct(p.probability),p.observations,status].forEach((v,i)=>cell(tr,v,labels[i]));
   const td=document.createElement("td");td.dataset.label="Build";
   const button=document.createElement("button");button.type="button";
@@ -540,7 +570,7 @@ function renderLineup(){
   ". No measured correlation coefficient, joint success probability or payout EV.":
   "No shared-game pairs. Cross-game dependencies and exact fantasy-platform rules remain unverified.";
  $("lineupStatus").textContent=n+"-pick "+(editor.touched?"custom":"suggested")+
-  " research lineup · "+risk+" · Availability and payout unverified.";
+  " research lineup · "+structural.riskLevel+" · Availability and payout unverified.";
  const labels=["Player","Statistic","Line","Side","Model estimate","Game","Research edits"];
  for(let i=0;i<picks.length;i++){
   const p=picks[i],tr=document.createElement("tr");

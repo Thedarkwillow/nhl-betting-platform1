@@ -109,4 +109,20 @@ assert.equal(W.createDraft({props:pool,picks:added.picks,size:3,
  excludedPlayers:[W.playerKey(added.picks[0])],boardFresh:true}),null,
  "Cannot save contradictory exclusions");
 
+
+const riskDistinct=W.structuralRisk([pool[0],pool[1]],at);
+assert.equal(riskDistinct.sharedGamePairs,0);
+assert.equal(riskDistinct.jointProbability,null);
+assert.equal(riskDistinct.expectedValue,null);
+const riskSame=W.structuralRisk([
+ prop(40,{market:"Goalie Saves",matchup:"Same NHL Game",team:"AAA"}),
+ prop(41,{market:"Shots on Goal",matchup:"Same NHL Game",team:"BBB"})
+],at);
+assert.equal(riskSame.sharedGamePairs,1);
+assert.ok(riskSame.categories.includes("goalie and shooter interaction"));
+assert.equal(riskSame.riskLevel,"elevated_unmeasured");
+assert.equal(riskSame.correlationCoefficientVerified,false);
+assert.equal(W.structuralRisk([prop(42)],at+31*60000).status,"source_expired_or_invalid");
+assert.equal(W.structuralRisk([],at).status,"unavailable");
+
 console.log("NHL interactive workspace: 2–6 picks, source age, watchlists, tiers, games, locks, swaps and exclusions verified");

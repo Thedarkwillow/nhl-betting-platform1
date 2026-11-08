@@ -101,7 +101,7 @@ const keys=["schemaVersion","kind","builtAt","researchAt","boardAt","comparisonA
 const OPTIONAL_EXTENSIONS=["playerInsights","movementSummary","platformResearch","resultBreakdown",
  "prospectiveCohort","collectionCoverage","researchQuality",
  "previewResearchProps","previewResearchOnly","previewSelectionsOfficiallyPrecommitted",
- "evidenceLegend","responsibleResearch","sixPriorityBrief"];
+ "evidenceLegend","responsibleResearch","sixPriorityBrief","probabilityValidation"];
 assert.deepEqual(Object.keys(data).sort(),
  [...keys,...OPTIONAL_EXTENSIONS.filter(k=>Object.hasOwn(data,k))].sort(),
  "Unexpected public data field");
@@ -159,6 +159,17 @@ if(data.sixPriorityBrief!==undefined){
  assert.ok(!JSON.stringify(x).includes('"playerId"'));
  assert.ok(!JSON.stringify(x).includes('"projectionId"'));
  assert.ok(!JSON.stringify(x).includes('"modelWeights"'));
+}
+if(data.probabilityValidation!==undefined){
+ const v=data.probabilityValidation;
+ assert.equal(v.kind,"public_nhl_probability_validation_v1");
+ assert.equal(v.estimatedProbabilitiesValidated,false);
+ assert.equal(v.bettingRecommendationsApproved,false);
+ assert.equal(v.actualPlatformSettlementsVerified,false);
+ assert.equal(v.payoutAdjustedEVVerified,false);
+ assert.equal(v.researchOnly,true);
+ for(const banned of ["playerId","providerPlayerId","projectionId","sourceOfferId", "records","modelWeights"])
+  assert.ok(!JSON.stringify(v).includes('"'+banned+'"'));
 }
 if(data.collectionCoverage!==undefined){
  const c=data.collectionCoverage;

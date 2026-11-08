@@ -54,7 +54,10 @@ function viewModel(brief,now=new Date().toISOString()){
  const marketRows=(Array.isArray(models.markets)?models.markets:[]).slice(0,9).map(m=>[
   safe(m.label),count(m.officialFinalGameRows)+" official player-games · "+
   count(m.athletesWithEightGames)+" players with ≥8 games · "+
-  (m.modelStatus==="research_candidate_needs_holdout"?"Needs prospective holdout":"Needs data")
+  (typeof m.pastOnlyLast5MAE==="number"&&typeof m.pastOnlyLast10MAE==="number"?
+   "Backtest MAE: last 5 "+m.pastOnlyLast5MAE+" / last 10 "+m.pastOnlyLast10MAE+
+   " "+safe(m.errorUnit):m.modelStatus==="research_candidate_needs_holdout"?
+   "Needs prospective holdout":"Needs data")
  ]);
  const riskRows=[
  ["Research lineups available",(Array.isArray(risk.lineupSizesWithResearchCards)?

@@ -1,0 +1,174 @@
+name: Private pregame NHL freeze on public free runner
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 9 * * *'
+      timezone: America/Los_Angeles
+    - cron: '20 11 * * *'
+      timezone: America/Los_Angeles
+    - cron: '13 12 * * *'
+      timezone: America/Los_Angeles
+    - cron: '13 13 * * *'
+      timezone: America/Los_Angeles
+    - cron: '0 14 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: public-private-pregame-freeze
+  cancel-in-progress: false
+jobs:
+  private-freeze:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Require private repository-scoped token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          test -n "$TOKEN" || { echo "::error::PRIVATE_RESEARCH_REPO_TOKEN missing"; exit 1; }
+      - name: Checkout private main ONLY on trusted manual/scheduled workflow
+        uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate private source and precommitment gates
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! node --test test/partner-prizepicks-board.test.cjs test/partner-compact-0903.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nhl-nfl-five-priorities.test.cjs >"$log" 2>&1; then
+            echo "::error::Private pregame gate tests failed; no new selection created."
+            exit 1
+          fi
+      - name: Capture NEW actual-time complete NHL and NFL source in private checkout
+        id: capture
+        working-directory: private
+        shell: bash
+        env:
+          PARTNER_CAPTURE_SLOT: manual
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/collect-live-partner-nhl-nfl.cjs >/tmp/nhl-nfl-private-source-summary.json
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const p=JSON.parse(fs.readFileSync('/tmp/nhl-nfl-private-source-summary.json','utf8'));
+          if(p.status!=='saved_private_only'||!p.archiveDir||p.completePagination!==true)
+            throw Error('No genuinely new complete private source capture');
+          fs.appendFileSync(process.env.GITHUB_ENV,'PRIVATE_ARCHIVE='+p.archiveDir+'\n');
+          NODE
+      - name: Build NFL prior-week private research preview without making picks
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          if node scripts/build-nfl-partner-board-research.cjs "$PRIVATE_ARCHIVE" > /tmp/private-nfl-preview-summary.json 2>/tmp/private-nfl-preview-error.log; then
+            node - <<'NODE'
+          const fs=require('node:fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/private-nfl-preview-summary.json','utf8'));
+          if(!x.snapshot||x.calibratedProbabilities!==false||x.officialNFLPicks!==0)
+            throw Error('NFL private research preview does not satisfy safety contract');
+          fs.appendFileSync(process.env.GITHUB_ENV,'NFL_RESEARCH_PREVIEW='+x.snapshot+'\n');
+          NODE
+          else
+            echo "::warning::NFL prior-week matching unavailable; source still archived, no NFL picks."
+          fi
+      - name: Commit and push original source capture privately before research
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$PRIVATE_ARCHIVE/manifest.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f "$PRIVATE_ARCHIVE"
+          if test -n "${NFL_RESEARCH_PREVIEW:-}" && test -s "$NFL_RESEARCH_PREVIEW"; then
+            git add -f "$NFL_RESEARCH_PREVIEW"
+          fi
+          git commit -m "data: new private live partner NHL NFL pregame source observation"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git -c rebase.autoStash=true rebase -X theirs origin/main
+            if git push origin HEAD:main; then
+              echo "New source archived privately; no lines printed to public logs."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Source capture was not durably archived privately"
+          exit 1
+      - name: Construct separate research-only NHL selections from fresh source
+        id: freeze
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          if node scripts/freeze-partner-nhl-pregame.cjs "$PRIVATE_ARCHIVE" > /tmp/private-freeze-result.json 2>/tmp/private-freeze-error.log; then
+            node - <<'NODE'
+          const fs=require('node:fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/private-freeze-result.json','utf8'));
+          if(!x.snapshotPath||!Number.isInteger(x.selected)||x.selected<1)
+            throw Error('No eligible explicit prospective individual research selections');
+          fs.appendFileSync(process.env.GITHUB_ENV,'FREEZE_SNAPSHOT='+x.snapshotPath+'\n');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'valid=true\n');
+          NODE
+          else
+            echo "::warning::No valid fresh prospective selection candidate. Source already archived; no retroactive picks."
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Git commit AND remote push before earliest selected puck drop
+        if: steps.freeze.outputs.valid == 'true'
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_time() {
+            node - <<'NODE'
+          const fs=require('node:fs');
+          const s=JSON.parse(fs.readFileSync(process.env.FREEZE_SNAPSHOT,'utf8'));
+          const picks=s.individualPropSelections;
+          if(!Array.isArray(picks)||!picks.length||
+             picks.some(p=>!Number.isFinite(Date.parse(p.gameStartAt))||
+              Date.parse(p.gameStartAt)-Date.now()<15*60000))
+            throw Error('Cannot claim new prospective picks within 15 minutes of game start');
+          NODE
+          }
+          check_time
+          git add -f "$FREEZE_SNAPSHOT"
+          git commit -m "data: original private pregame NHL research selections"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git -c rebase.autoStash=true rebase -X theirs origin/main
+            check_time
+            node - <<'NODE'
+          const fs=require('node:fs'),{execFileSync}=require('node:child_process');
+          const s=JSON.parse(fs.readFileSync(process.env.FREEZE_SNAPSHOT,'utf8'));
+          const commit=Date.parse(execFileSync('git',['log','-1','--format=%cI'],{encoding:'utf8'}).trim());
+          if(!Number.isFinite(commit)||s.individualPropSelections.some(p=>commit>=Date.parse(p.gameStartAt)))
+            throw Error('Frozen Git commit is not strictly earlier than every game');
+          NODE
+            if git push origin HEAD:main; then
+              check_time
+              echo "Private research candidate committed and pushed before earliest puck drop."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::No confirmed timely prospective Git push. Candidate is NOT a frozen pick."
+          exit 1
+      - name: Do not claim settlement or official availability
+        if: always()
+        run: echo "This workflow never places wagers, certifies original app quotes, or publishes raw private props."

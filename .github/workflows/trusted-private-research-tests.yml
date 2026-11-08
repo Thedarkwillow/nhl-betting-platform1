@@ -1,0 +1,50 @@
+name: Trusted private research tests on public free runner
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: private-research-validation
+  cancel-in-progress: false
+jobs:
+  test-private:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Require restricted private repository access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          test -n "$TOKEN" || { echo "::error::Private checkout token missing"; exit 1; }
+      - name: Checkout PRIVATE code without public artifacts or persistent credentials
+        uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run private regression and full offline tests without public model logs
+        shell: bash
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! node --test test/partner-prizepicks-board.test.cjs test/partner-compact-0903.test.cjs test/nhl-nfl-five-priorities.test.cjs >"$log" 2>&1; then
+            echo "::error::Private targeted regression failed; details withheld from public runner logs."
+            exit 1
+          fi
+          echo "Private targeted regression passed."
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Full private Node test suite failed; details withheld from public runner logs."
+            exit 1
+          fi
+          echo "Full private Node test suite passed."
+      - name: Public result is pass/fail only
+        if: always()
+        run: echo "No offers, model rows, archive paths, or test logs are uploaded."

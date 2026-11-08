@@ -14,7 +14,7 @@ const displayRate=x=>typeof x==="number"&&Number.isFinite(x)&&x>=0&&x<=1?
  (100*x).toFixed(1)+"%":"Not established";
 const read=brief=>brief&&brief.kind===SOURCE_KIND&&brief.schemaVersion===1?brief:null;
 const safe=label=>String(label??"").slice(0,110);
-function viewModel(brief,now=new Date().toISOString()){
+function viewModel(brief,now=new Date().toISOString(),probabilityValidation=null){
  const d=read(brief);
  if(!d)return {status:"unavailable",title:"Research status not yet published",
   summary:"The verified aggregate report is missing. No collector, model or lineup is assumed healthy.",
@@ -88,6 +88,16 @@ function viewModel(brief,now=new Date().toISOString()){
      "Too few independent outcomes to show a rate")];
   })
  ]:[["Future simple-strategy trials","Awaiting first qualifying frozen pregame Standard picks"]];
+ const v=probabilityValidation?.kind==="public_nhl_probability_validation_v1"?probabilityValidation:null;
+ const validationRows=[
+  ["Probability calibration",v?.estimatedProbabilitiesValidated===false?"Not yet independently validated":"Not established"],
+  ["Frozen pregame selections",v?count(v.originalFrozenRegistered):"Awaiting private audit"],
+  ["Standard training decisions",v?count(v.standardTrainingDecisions):"No verified count"],
+  ["Future Standard holdout",v?count(v.futureStandardHoldoutDecisions)+" decisions · "+count(v.futureStandardHoldoutGames)+" NHL games":"Not yet published"],
+  ["Held-out Brier / log loss",v&&typeof v.futureStandardBrier==="number"&&typeof v.futureStandardLogLoss==="number"?
+   v.futureStandardBrier.toFixed(4)+" / "+v.futureStandardLogLoss.toFixed(4):"Awaiting qualified prospective holdout"],
+  ["Betting recommendation release","Not approved; research-only"]
+ ];
  const marketRows=(Array.isArray(models.markets)?models.markets:[]).slice(0,9).map(m=>[
   safe(m.label),count(m.officialFinalGameRows)+" official player-games · "+
   count(m.athletesWithEightGames)+" players with ≥8 games · "+
@@ -114,7 +124,7 @@ function viewModel(brief,now=new Date().toISOString()){
   {key:"movement",label:"Movements",title:"Observed source-line changes",
    rows:movements,help:"Comparisons of independent snapshots only. Missing rows are not confirmed PrizePicks removals. Reposts and gaps between captures are unknown."},
   {key:"accuracy",label:"Accuracy",title:"Original pregame model scorecard",
-   rows:scoreRows.concat(benchmarkRows,futureRows,Array.isArray(score.byMarket)?score.byMarket.slice(0,6).map(m=>
+   rows:scoreRows.concat(benchmarkRows,futureRows,validationRows,Array.isArray(score.byMarket)?score.byMarket.slice(0,6).map(m=>
     [safe(m.market)+" · "+count(m.decided)+" decisions",
      displayRate(m.observedRate)+" observed; "+count(m.pending)+" pending"]):[]),
    help:"Overall results mix Higher-only Goblin/Demon and Standard tiers. Last-5/Last-10 challengers are frozen before puck drop and scored only on the same precommitted Standard lines they covered; abstentions remain visible. The old Standard Higher comparison is hypothetical. No full-board baseline availability, original-app settlement, verified payout EV or betting edge is established."},
@@ -148,7 +158,7 @@ function renderSection(section,content){
  content.append(list,text("p",section.help,"ops-help"));
 }
 function renderDesk(target,data,now=new Date().toISOString()){
- const model=viewModel(data?.sixPriorityBrief,now);
+ const model=viewModel(data?.sixPriorityBrief,now,data?.probabilityValidation);
  const message=target.querySelector("[data-ops-summary]"),
  tabs=target.querySelector("[data-ops-tabs]"),
  content=target.querySelector("[data-ops-content]");

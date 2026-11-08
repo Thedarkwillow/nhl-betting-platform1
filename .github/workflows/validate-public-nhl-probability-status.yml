@@ -1,0 +1,25 @@
+name: Validate Public NHL Probability Status (No Secrets)
+on:
+  pull_request:
+    paths:
+      - 'assets/six-priority-desk.js'
+      - 'scripts/test-six-priority-desk.cjs'
+      - 'scripts/validate-dashboard.cjs'
+      - '.github/workflows/validate-public-nhl-probability-status.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify public-only probability validation, XSS-safe UI and data allowlist
+        run: |
+          node --check assets/six-priority-desk.js
+          node scripts/test-six-priority-desk.cjs
+          node scripts/validate-dashboard.cjs

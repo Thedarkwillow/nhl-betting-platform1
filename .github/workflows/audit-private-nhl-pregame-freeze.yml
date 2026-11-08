@@ -1,0 +1,82 @@
+name: Audit private NHL prospective research freeze Git proof
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/audit-private-nhl-pregame-freeze.yml']
+  schedule:
+    - cron: '25 14 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+jobs:
+  validate-remote-git-precommit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Require private access token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::No private repository access token"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate original private Git addition, time, game identity and chronology
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node - <<'NODE'
+          const fs=require('node:fs'),{execFileSync}=require('node:child_process');
+          const root='outputs/research/snapshots';
+          const names=fs.readdirSync(root).filter(n=>/^\d{8}T\d{6}Z\.json$/.test(n)).sort();
+          if(!names.length)throw Error('No original NHL research freezes on private main');
+          const file=root+'/'+names[names.length-1];
+          const s=JSON.parse(fs.readFileSync(file,'utf8'));
+          const selected=s.individualPropSelections;
+          if(!Array.isArray(selected)||!selected.length||
+             s.individualPropSelectionPolicy!=='nhl-individual-prop-max-available-direction-v1')
+            throw Error('No new explicitly recorded NHL pregame selections');
+          const added=execFileSync('git',['log','--diff-filter=A','-1','--format=%cI','--',file],{encoding:'utf8'}).trim();
+          const count=Number(execFileSync('git',['rev-list','--count','HEAD','--',file],{encoding:'utf8'}).trim());
+          const commitAt=Date.parse(added),modelAt=Date.parse(s.projectionBuiltAt),
+           generated=Date.parse(s.generatedAt),capture=Date.parse(s.boardAsOfAt);
+          if(!Number.isFinite(commitAt)||count!==1||!Number.isFinite(generated)||
+             !Number.isFinite(capture)||!Number.isFinite(modelAt)||modelAt>capture||
+             capture>generated||generated>commitAt||generated-capture>30*60000)
+            throw Error('Original private Git provenance / frozen source timing invalid');
+          const official=JSON.parse(fs.readFileSync('outputs/official-nhl/season-schedules/2026-27.json','utf8'));
+          if(official.complete!==true)throw Error('Official season schedule not validated');
+          const indexed=new Map(official.games.map(g=>[g.id,g]));
+          const uniq=new Set(),games=new Set();let earliest=Infinity;
+          for(const p of selected){
+            const game=indexed.get(p.gameId),start=Date.parse(p.gameStartAt),
+              event=Date.parse(p.eventStartsAt),captured=Date.parse(p.capturedAt);
+            const key=[p.gameId,p.playerId,p.market,p.line,p.tier].join('|');
+            if(uniq.has(key)||!game||!Number.isFinite(start)||!Number.isFinite(event)||
+               !Number.isFinite(captured)||Math.abs(Date.parse(game.startTimeUTC)-start)>300000||
+               Math.abs(start-event)>300000||captured>generated||captured>=start||
+               commitAt>=start||start-commitAt<15*60000||
+               p.marketStatus!=='research_only'||p.originalModelProbabilityCalibrated!==false||
+               p.originalPlatformSettlementVerified!==false)
+              throw Error('Selected NHL prop does not satisfy original game, offer, and Git time gates');
+            uniq.add(key);games.add(p.gameId);earliest=Math.min(earliest,start);
+          }
+          // Aggregate metadata only. Never publish player names, prices, prop lines,
+          // sources, model parameters or private git source content.
+          console.log('PASS: first Git addition and original immutable candidate record');
+          console.log(JSON.stringify({privateGitPrecommitVerified:true,
+            originalSelections:selected.length,distinctFutureGames:games.size,
+            initialCommitBeforeEarliestStart:true,sourceBeforeModelSelection:true,
+            originalPlatformQuoteAuthenticated:false,officialSettlementsVerified:false,
+            modelProbabilitiesCalibrated:false,automatedWagersPlaced:0}));
+          NODE

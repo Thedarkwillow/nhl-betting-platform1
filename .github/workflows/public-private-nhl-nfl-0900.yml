@@ -1,19 +1,27 @@
-name: Public Free Runners - Private NHL and NFL Morning Boards
+name: Public Free Runners - Private NHL and NFL 6 and 9 AM Boards
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "probe_now counts-only, capture_0900 real private archive in 9 AM Pacific hour"
+        description: "probe_now counts-only, capture_0600/0900 private archival in actual Pacific hour"
         type: choice
         required: true
         default: probe_now
-        options: [probe_now, capture_0900]
+        options: [probe_now, capture_0600, capture_0900]
   push:
     branches: [main]
     paths:
       - 'scripts/probe-nhl-nfl-prop-feed.cjs'
       - '.github/workflows/public-private-nhl-nfl-0900.yml'
   schedule:
+    - cron: '0 6 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '12 6 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '27 6 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '43 6 * * *'
+      timezone: 'America/Los_Angeles'
     - cron: '0 9 * * *'
       timezone: 'America/Los_Angeles'
     - cron: '12 9 * * *'
@@ -47,21 +55,32 @@ jobs:
           node --check scripts/probe-nhl-nfl-prop-feed.cjs
           node --test scripts/test-public-nhl-nfl-prop-health.cjs
           node scripts/probe-nhl-nfl-prop-feed.cjs
-      - name: Require actual 9 AM and private-only token for full archive
+      - name: Require actual 6 AM or 9 AM and private-only token for full archive
         id: gate
-        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'capture_0900')
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'capture_0900' || inputs.mode == 'capture_0600'))
         env:
           PRIVATE_RESEARCH_REPO_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          REQUESTED_MODE: ${{ inputs.mode }}
         run: |
           set -euo pipefail
           if test -z "$PRIVATE_RESEARCH_REPO_TOKEN"; then
             echo "::error::Missing PRIVATE_RESEARCH_REPO_TOKEN. Public counts are NOT private archived boards."
             exit 1
           fi
-          test "$(TZ=America/Los_Angeles date +%H)" = 09 || {
-            echo "::error::Outside actual 9 AM Pacific capture window."
-            exit 1
-          }
+          actual_hour="$(TZ=America/Los_Angeles date +%H)"
+          case "$actual_hour" in
+            06) requested="06:00";;
+            09) requested="09:00";;
+            *) echo "::error::Not in an actual Pacific 6 AM or 9 AM capture hour."; exit 1;;
+          esac
+          if test "$GITHUB_EVENT_NAME" = workflow_dispatch; then
+            case "$REQUESTED_MODE" in
+              capture_0600) test "$requested" = "06:00";;
+              capture_0900) test "$requested" = "09:00";;
+              *) exit 1;;
+            esac || { echo "::error::Requested slot conflicts with actual Pacific time."; exit 1; }
+          fi
+          echo "slot=$requested" >> "$GITHUB_OUTPUT"
           echo "allowed=true" >> "$GITHUB_OUTPUT"
       - name: Checkout private repository ONLY on trusted schedule/manual dispatch
         if: steps.gate.outputs.allowed == 'true'
@@ -85,7 +104,7 @@ jobs:
         id: snapshot
         working-directory: private
         env:
-          PARTNER_CAPTURE_SLOT: '09:00'
+          PARTNER_CAPTURE_SLOT: ${{ steps.gate.outputs.slot }}
         run: |
           set -euo pipefail
           node scripts/collect-live-partner-nhl-nfl.cjs | tee /tmp/private-board-summary.json
@@ -103,8 +122,8 @@ jobs:
         working-directory: private
         run: |
           set -euo pipefail
-          if test "$CAPTURE_STATUS" = "already_complete_09am_snapshot"; then
-            echo "Duplicate source capture skipped: same-day 9 AM private archive exists."
+          if test "$CAPTURE_STATUS" = "already_complete_morning_snapshot"; then
+            echo "Duplicate source capture skipped: same-day private 6 AM or 9 AM archive exists."
             exit 0
           fi
           test -s "$ARCHIVE_DIR/manifest.json" || { echo "::error::No private source manifest"; exit 1; }
@@ -114,7 +133,7 @@ jobs:
           git add -f outputs/partner-source/line-delta 2>/dev/null || true
           git add -f outputs/partner-source/research-preview 2>/dev/null || true
           if git diff --cached --quiet; then echo "::error::No actual source archival changes"; exit 1; fi
-          git commit -m "data: actual-time 9 AM private partner NHL and NFL boards"
+          git commit -m "data: actual-time 6/9 AM private partner NHL and NFL boards"
           for attempt in 1 2 3 4 5; do
             git fetch origin main
             git -c rebase.autoStash=true rebase -X theirs origin/main

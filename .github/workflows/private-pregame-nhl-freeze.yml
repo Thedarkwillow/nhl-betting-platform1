@@ -1,6 +1,11 @@
 name: Private pregame NHL freeze on public free runner
 on:
   workflow_dispatch:
+  # Trusted main-only source change triggers one immediate integrated validation.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/private-pregame-nhl-freeze.yml'
   schedule:
     - cron: '20 9 * * *'
       timezone: America/Los_Angeles

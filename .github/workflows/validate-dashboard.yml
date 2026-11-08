@@ -9,6 +9,7 @@ on:
       - 'data.json'
       - 'scripts/validate-dashboard.cjs'
       - 'scripts/test-lineup-workspace.cjs'
+      - 'scripts/test-six-priority-desk.cjs'
       - '.github/workflows/validate-dashboard.yml'
 permissions:
   contents: read
@@ -27,3 +28,5 @@ jobs:
         run: node scripts/test-lineup-workspace.cjs
       - name: Test seven-area public status, freshness and comparison safety
         run: node scripts/test-research-status.cjs
+      - name: Test phone-ready six-roadmap evidence, freshness and unverified payout safeguards
+        run: node scripts/test-six-priority-desk.cjs

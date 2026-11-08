@@ -66,7 +66,7 @@ jobs:
           else
             echo "::warning::FAIL: full private suite; details retained only in private GitHub"
             printf '\nFULL PRIVATE SUITE FAIL\n' >> "$destination"
-            tail -c 110000 "$full_log" >> "$destination"
+            cat "$full_log" >> "$destination"
             overall=1
           fi
           rm -f "$full_log"

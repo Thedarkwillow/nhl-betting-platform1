@@ -6,6 +6,7 @@
 <meta name="description" content="NHL player prop research, side-by-side offer comparisons, 2–6 pick research lineups, and transparent performance reporting.">
 <title>NHL Research Desk | Player Props & Lineups</title>
 <link rel="stylesheet" href="./assets/dashboard.css">
+<link rel="stylesheet" href="./assets/six-priority-desk.css">
 </head>
 <body>
 <header class="app-header"><div class="topbar">
@@ -45,6 +46,21 @@
 <div class="evidence-legend" id="evidenceLegend">
 <p class="minor">Model estimates, third-party observations, retrospective evaluations, saved pregame selections and NHL official stats are different evidence categories.</p>
 </div></section>
+</section>
+<section class="desk-section" id="researchOperationsDesk" aria-label="NHL collection, model and lineup validation">
+<div class="section-head"><div><div class="section-kicker">EVIDENCE / OPERATIONS</div>
+<h2>Research operations desk</h2>
+<p class="section-sub">6 AM and 9 AM capture status, observed line movements, prospective accuracy, NHL model data coverage and 2–6 pick concentration.</p>
+</div><span class="pill">Archived evidence</span></div>
+<div class="ops-toolbar">
+<p class="ops-updated" data-ops-summary role="status" aria-live="polite">Checking verified research evidence…</p>
+<button type="button" class="ops-button" data-ops-refresh>Refresh evidence</button>
+</div>
+<div class="ops-tabs" role="tablist" aria-label="Choose NHL research audit" data-ops-tabs></div>
+<div class="ops-panel" role="tabpanel" aria-label="Research evidence details" aria-live="polite" data-ops-content>
+<p class="ops-help">Saved audit details will appear when the sanitized report has been published.</p>
+</div>
+<p class="ops-policy">Third-party quote observations are not authenticated PrizePicks availability. Model probabilities and lineup values are experimental; original-platform settlements and payouts remain unverified.</p>
 </section>
 <section class="desk-section" id="today">
 <div class="section-head"><div><div class="section-kicker">01 / Top props</div><h2>Featured player props</h2><p class="section-sub">Fresh model research previews may appear here even before new Git-frozen pregame picks. A preview is not a verified selection or an original-platform offer.</p></div><span class="pill">Research only</span></div>
@@ -816,4 +832,5 @@ setInterval(()=>{
  render();renderLineup();renderFeatured();renderUnderdogResearch();renderCollectionCoverage();
 },60000);
 </script>
+<script defer src="./assets/six-priority-desk.js"></script>
 </body></html>

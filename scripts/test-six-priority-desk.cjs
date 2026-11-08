@@ -93,3 +93,20 @@ assert.ok(futureLines.some(x=>x[0]==="Last-5/10 agreement-only"&&x[1].includes("
 assert.equal(viewModel(brief,now).sections.find(x=>x.key==="accuracy").rows
  .some(x=>x[0]==="Future simple-strategy trials"&&x[1].includes("Awaiting")),true);
 console.log("Future first-Git-frozen simple challengers and sample-size abstention warnings verified");
+
+const validation={
+ kind:"public_nhl_probability_validation_v1",status:"research_validation_only",
+ originalFrozenRegistered:42,standardTrainingDecisions:15,
+ futureStandardHoldoutDecisions:3,futureStandardHoldoutGames:2,
+ futureStandardHoldoutDates:1,futureStandardBrier:null,futureStandardLogLoss:null,
+ estimatedProbabilitiesValidated:false,bettingRecommendationsApproved:false,
+ actualPlatformSettlementsVerified:false,payoutAdjustedEVVerified:false,researchOnly:true
+};
+const withValidation=viewModel(brief,now,validation);
+const statusRows=withValidation.sections.find(x=>x.key==="accuracy").rows;
+assert.ok(statusRows.some(r=>r[0]==="Probability calibration"&&r[1]==="Not yet independently validated"));
+assert.ok(statusRows.some(r=>r[0]==="Future Standard holdout"&&r[1].includes("3 decisions")));
+assert.ok(statusRows.some(r=>r[0]==="Betting recommendation release"&&r[1].includes("Not approved")));
+assert.ok(viewModel(brief,now).sections.find(x=>x.key==="accuracy").rows
+ .some(r=>r[0]==="Future Standard holdout"&&r[1]==="Not yet published"));
+console.log("Public forward probability validation status fails closed until independent proof");

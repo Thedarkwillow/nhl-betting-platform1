@@ -73,6 +73,21 @@ function viewModel(brief,now=new Date().toISOString()){
    "Not established"],
   ["Baseline status","Historical diagnostic only; too few games to prove an edge"]
  ]:[["Standard-vs-Higher benchmark","Not yet available from the archived cohort"]];
+ const audit=score.futureSimpleStrategyAudit;
+ const futureRows=audit?.kind==="public_nhl_future_frozen_simple_strategies_v1"?[
+  ["Future frozen Standard picks",count(audit.originalFrozenStandardSelections)+" saved · "+
+   count(audit.decided)+" decided · "+count(audit.pending)+" pending"],
+  ...[["last5","Last-5 historical mean"],["last10","Last-10 historical mean"],
+   ["consensus5And10MarginHalf","Last-5/10 agreement-only"]].map(([id,label])=>{
+   const s=audit.byStrategy?.[id]||{};
+   return [label,count(s.decided)+" decided on covered lines · "+
+    count(s.abstained)+" abstained · "+
+    (typeof s.challengerHitRate==="number"?
+     "Challenger "+displayRate(s.challengerHitRate)+
+     " vs model "+displayRate(s.modelHitRateOnSameLines):
+     "Too few independent outcomes to show a rate")];
+  })
+ ]:[["Future simple-strategy trials","Awaiting first qualifying frozen pregame Standard picks"]];
  const marketRows=(Array.isArray(models.markets)?models.markets:[]).slice(0,9).map(m=>[
   safe(m.label),count(m.officialFinalGameRows)+" official player-games · "+
   count(m.athletesWithEightGames)+" players with ≥8 games · "+
@@ -99,10 +114,10 @@ function viewModel(brief,now=new Date().toISOString()){
   {key:"movement",label:"Movements",title:"Observed source-line changes",
    rows:movements,help:"Comparisons of independent snapshots only. Missing rows are not confirmed PrizePicks removals. Reposts and gaps between captures are unknown."},
   {key:"accuracy",label:"Accuracy",title:"Original pregame model scorecard",
-   rows:scoreRows.concat(benchmarkRows,Array.isArray(score.byMarket)?score.byMarket.slice(0,6).map(m=>
+   rows:scoreRows.concat(benchmarkRows,futureRows,Array.isArray(score.byMarket)?score.byMarket.slice(0,6).map(m=>
     [safe(m.market)+" · "+count(m.decided)+" decisions",
      displayRate(m.observedRate)+" observed; "+count(m.pending)+" pending"]):[]),
-   help:"The overall hit rate mixes Higher-only Goblin/Demon and Standard tiers; use the Standard-only comparison to evaluate directional choices. Always Higher/Lower on the same saved thresholds are hypothetical, not proof those offers were executable. Official NHL outcomes are not platform settlement; games are correlated."},
+   help:"Overall results mix Higher-only Goblin/Demon and Standard tiers. Last-5/Last-10 challengers are frozen before puck drop and scored only on the same precommitted Standard lines they covered; abstentions remain visible. The old Standard Higher comparison is hypothetical. No full-board baseline availability, original-app settlement, verified payout EV or betting edge is established."},
   {key:"markets",label:"Market lab",title:"Official NHL historical sample coverage",
    rows:marketRows.length?marketRows:[["Historical stat coverage","Not available"]],
    help:"Research coverage counts are not offered lines or calibrated probabilities. PrizePicks goalie-fantasy scoring values are user-provided and lack independent platform confirmation."},

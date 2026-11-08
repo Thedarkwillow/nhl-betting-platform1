@@ -1,0 +1,130 @@
+name: Public Free Runners - Private NHL and NFL Morning Boards
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "probe_now counts-only, capture_0900 real private archive in 9 AM Pacific hour"
+        type: choice
+        required: true
+        default: probe_now
+        options: [probe_now, capture_0900]
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/probe-nhl-nfl-prop-feed.cjs'
+      - '.github/workflows/public-private-nhl-nfl-0900.yml'
+  schedule:
+    - cron: '0 9 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '12 9 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '27 9 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '43 9 * * *'
+      timezone: 'America/Los_Angeles'
+permissions:
+  contents: read
+concurrency:
+  group: public-runner-private-prop-collector-nhl-nfl
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout public counts-only source probe
+        uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Observe NHL and NFL public source COUNTS; no player records saved
+        continue-on-error: true
+        working-directory: public
+        run: |
+          node --check scripts/probe-nhl-nfl-prop-feed.cjs
+          node --test scripts/test-public-nhl-nfl-prop-health.cjs
+          node scripts/probe-nhl-nfl-prop-feed.cjs
+      - name: Require actual 9 AM and private-only token for full archive
+        id: gate
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'capture_0900')
+        env:
+          PRIVATE_RESEARCH_REPO_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          if test -z "$PRIVATE_RESEARCH_REPO_TOKEN"; then
+            echo "::error::Missing PRIVATE_RESEARCH_REPO_TOKEN. Public counts are NOT private archived boards."
+            exit 1
+          fi
+          test "$(TZ=America/Los_Angeles date +%H)" = 09 || {
+            echo "::error::Outside actual 9 AM Pacific capture window."
+            exit 1
+          }
+          echo "allowed=true" >> "$GITHUB_OUTPUT"
+      - name: Checkout private repository ONLY on trusted schedule/manual dispatch
+        if: steps.gate.outputs.allowed == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - name: Validate offline private source and chronology checks
+        if: steps.gate.outputs.allowed == 'true'
+        working-directory: private
+        run: |
+          node --check scripts/collect-live-partner-nhl-nfl.cjs
+          node --check scripts/diff-live-partner-captures.cjs
+          node --test test/nhl-nfl-partner-direct-collection.test.cjs
+      - name: Capture full NEW NHL and NFL source responses inside private checkout
+        if: steps.gate.outputs.allowed == 'true'
+        id: snapshot
+        working-directory: private
+        env:
+          PARTNER_CAPTURE_SLOT: '09:00'
+        run: |
+          set -euo pipefail
+          node scripts/collect-live-partner-nhl-nfl.cjs | tee /tmp/private-board-summary.json
+          echo "ARCHIVE_DIR=$(node -e "const d=require('/tmp/private-board-summary.json');process.stdout.write(d.archiveDir)")" >> "$GITHUB_ENV"
+          echo "status=$(node -e "const d=require('/tmp/private-board-summary.json');process.stdout.write(d.status)")" >> "$GITHUB_OUTPUT"
+      - name: Compare honest actual-time observations and preview old NHL model
+        if: steps.snapshot.outputs.status == 'saved_private_only'
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node scripts/diff-live-partner-captures.cjs "$ARCHIVE_DIR"
+          node scripts/build-partner-board-preview.cjs "$ARCHIVE_DIR" || echo "::warning::Research preview failed; source archive still required"
+      - name: Git-archive only private NHL/NFL offers and audit; never public
+        if: steps.gate.outputs.allowed == 'true'
+        working-directory: private
+        run: |
+          set -euo pipefail
+          if test "$CAPTURE_STATUS" = "already_complete_09am_snapshot"; then
+            echo "Duplicate source capture skipped: same-day 9 AM private archive exists."
+            exit 0
+          fi
+          test -s "$ARCHIVE_DIR/manifest.json" || { echo "::error::No private source manifest"; exit 1; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f "$ARCHIVE_DIR"
+          git add -f outputs/partner-source/line-delta 2>/dev/null || true
+          git add -f outputs/partner-source/research-preview 2>/dev/null || true
+          if git diff --cached --quiet; then echo "::error::No actual source archival changes"; exit 1; fi
+          git commit -m "data: actual-time 9 AM private partner NHL and NFL boards"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git -c rebase.autoStash=true rebase -X theirs origin/main
+            if git push origin HEAD:main; then
+              echo "Completed: source data saved PRIVATE; public repo contains only runner code and aggregate probes."
+              exit 0
+            fi
+            sleep "$((attempt*2))"
+          done
+          echo "::error::No durable private 9 AM archive; do not count as successful"
+          exit 1
+        env:
+          CAPTURE_STATUS: ${{ steps.snapshot.outputs.status }}

@@ -17,3 +17,24 @@ published an audited summary, the page displays an unavailable/not-approved stat
 Never publish private partner-board archives, player IDs, model coefficients, payout receipts,
 or private Git snapshots here. Model estimates and research lineups are not validated betting
 recommendations. No wager-placement integration is authorized.
+
+## 9 AM Pacific NHL + NFL private boards on free PUBLIC runners
+
+The new `.github/workflows/public-private-nhl-nfl-0900.yml` workflow runs
+09:00, 09:12, 09:27 and 09:43 Pacific, plus a trusted manual `capture_0900`
+dispatch. The public checkout only probes **counts**; original player offers
+must never be saved, logged or uploaded from the public repo.
+
+For an actual privately archived full board, configure the public Actions
+secret `PRIVATE_RESEARCH_REPO_TOKEN` with a fine-grained, expiring GitHub
+personal access token restricted to **only**
+`Thedarkwillow/nhl-betting-platform`, **Contents: Read and write**.
+No public repository default token can read private code. The scheduled
+workflow securely checks out the private repository at runtime, runs the
+private collector for both sports, and pushes only to the private branch
+`main`. It fails if the secret, source reachability, actual Pacific 9 AM
+time, complete provider pagination, or private Git archival is missing.
+
+The `probe_now` action and first `push` run test public network access;
+they DO NOT certify a real 9 AM board. Current model probabilities remain
+uncalibrated and no wagers are placed.

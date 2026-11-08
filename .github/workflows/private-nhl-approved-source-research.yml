@@ -1,0 +1,103 @@
+name: Private NHL MoneyPuck and Daily Faceoff research via public runner
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-approved-source-research.yml']
+  schedule:
+    - cron: '40 8 * * *'
+      timezone: America/Los_Angeles
+    - cron: '40 12 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: free-runner-private-nhl-approved-research
+  cancel-in-progress: false
+jobs:
+  private-approved-sources:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 21
+    steps:
+      - name: Verify private repository checkout authorization
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private repo token missing";exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          path: private
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate MoneyPuck and Daily Faceoff source evidence
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-approved-source-adapters.test.cjs test/nhl-approved-source-shadow.test.cjs test/nhl-dfo-role-goalie-shadow.test.cjs test/collect-approved-nhl-sources.test.cjs > "$log" 2>&1; then
+            echo "::error::Private approved source evidence tests failed."
+            exit 1
+          fi
+      - name: Capture source-observed matchup and goalie context
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node scripts/collect-approved-nhl-sources.cjs > "$log" 2>&1; then
+            echo "::error::Approved NHL source failed or refused incomplete data. No source data published."
+            exit 1
+          fi
+          echo "PASS: private MoneyPuck/DFO source research captured."
+      - name: Attempt uncalibrated NHL role and goalie research shadows only
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if node scripts/build-approved-nhl-shadow.cjs > "$log" 2>&1; then
+            echo "PASS: source-matched private research shadow."
+          else
+            echo "::warning::No fresh exact-line challenger; source archive preserved. Champion unchanged."
+          fi
+          if node scripts/build-nhl-dfo-role-goalie-shadow.cjs > "$log" 2>&1; then
+            echo "PASS: DFO conditional historical shadow; no starter confirmation."
+          else
+            echo "::warning::No fresh goalie/role candidate; never invent starters."
+          fi
+      - name: Archive only research-labeled outputs on private main
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          shopt -s nullglob
+          files=(outputs/approved-nhl-sources/latest.json outputs/approved-nhl-sources/snapshots/*.json
+            outputs/projections/approved-source-shadow-latest.json outputs/projections/approved-source-snapshots/*.json
+            outputs/projections/dfo-role-goalie-shadow-latest.json outputs/projections/dfo-role-goalie-snapshots/*.json)
+          (("${#files[@]}" > 0)) || { echo "::error::No private approved-source records";exit 1; }
+          git add -f -- "${files[@]}"
+          if git diff --cached --quiet; then
+            echo "No new source changes"; exit 0
+          fi
+          git commit -m "data: free-runner private MoneyPuck and DFO research contexts" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main; then
+              echo "PASS: Approved NHL research source saved privately."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Approved NHL private research archive not confirmed";exit 1

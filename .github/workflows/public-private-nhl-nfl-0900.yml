@@ -45,6 +45,7 @@ jobs:
         working-directory: public
         run: |
           node --check scripts/probe-nhl-nfl-prop-feed.cjs
+          node --test scripts/test-public-nhl-nfl-prop-health.cjs
           node scripts/probe-nhl-nfl-prop-feed.cjs
       - name: Require actual 9 AM and private-only token for full archive
         id: gate

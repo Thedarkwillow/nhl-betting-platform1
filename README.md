@@ -18,10 +18,11 @@ Never publish private partner-board archives, player IDs, model coefficients, pa
 or private Git snapshots here. Model estimates and research lineups are not validated betting
 recommendations. No wager-placement integration is authorized.
 
-## 9 AM Pacific NHL + NFL private boards on free PUBLIC runners
+## 6 AM + 9 AM Pacific NHL and NFL private boards on free PUBLIC runners
 
 The new `.github/workflows/public-private-nhl-nfl-0900.yml` workflow runs
-09:00, 09:12, 09:27 and 09:43 Pacific, plus a trusted manual `capture_0900`
+06:00, 06:12, 06:27, 06:43; 09:00, 09:12, 09:27 and 09:43 Pacific,
+plus trusted manual `capture_0600` and `capture_0900`
 dispatch. The public checkout only probes **counts**; original player offers
 must never be saved, logged or uploaded from the public repo.
 
@@ -36,5 +37,6 @@ private collector for both sports, and pushes only to the private branch
 time, complete provider pagination, or private Git archival is missing.
 
 The `probe_now` action and first `push` run test public network access;
-they DO NOT certify a real 9 AM board. Current model probabilities remain
+they DO NOT certify a real 6 AM or 9 AM board. A true 6-to-9 AM
+comparison needs both independently observed same-day source archives. Current model probabilities remain
 uncalibrated and no wagers are placed.

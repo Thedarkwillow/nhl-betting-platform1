@@ -59,6 +59,17 @@ jobs:
             fi
             rm -f "$log"
           done
+          full_log="$(mktemp)"
+          if npm test > "$full_log" 2>&1; then
+            echo "PASS: full private suite"
+            printf '\nFULL PRIVATE SUITE PASS\n' >> "$destination"
+          else
+            echo "::warning::FAIL: full private suite; details retained only in private GitHub"
+            printf '\nFULL PRIVATE SUITE FAIL\n' >> "$destination"
+            tail -c 110000 "$full_log" >> "$destination"
+            overall=1
+          fi
+          rm -f "$full_log"
           echo "Failing suite present: $overall" >> "$destination"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

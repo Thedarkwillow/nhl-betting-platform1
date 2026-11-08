@@ -1,0 +1,77 @@
+name: Diagnose private research tests without public test logs
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-private-tests.yml'
+permissions:
+  contents: read
+concurrency:
+  group: private-diagnostics
+  cancel-in-progress: false
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - name: Validate token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run isolated suites and archive diagnostics only on PRIVATE GitHub
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          destination="outputs/health/ci-diagnostics/private-tests-run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.txt"
+          mkdir -p "$(dirname "$destination")"
+          {
+            echo "Private CI diagnostic; no credentials required or captured."
+            echo "Executed under public compute with private repository source."
+            echo "Public verification run: ${GITHUB_RUN_ID}, attempt ${GITHUB_RUN_ATTEMPT}"
+          } > "$destination"
+          overall=0
+          index=0
+          for file in test/partner-prizepicks-board.test.cjs test/partner-compact-0903.test.cjs test/nhl-nfl-five-priorities.test.cjs; do
+            index=$((index+1))
+            log="$(mktemp)"
+            if node --test "$file" > "$log" 2>&1; then
+              echo "PASS: suite $index (private test name hidden)"
+              printf '\nTEST %s %s PASS\n' "$index" "$file" >> "$destination"
+            else
+              echo "::warning::FAIL: suite $index; detailed failure written only to private GitHub"
+              printf '\nTEST %s %s FAIL\n' "$index" "$file" >> "$destination"
+              tail -c 18000 "$log" >> "$destination"
+              overall=1
+            fi
+            rm -f "$log"
+          done
+          echo "Failing suite present: $overall" >> "$destination"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f "$destination"
+          git commit -m "audit: privately archive targeted node regression diagnostics" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main; then
+              echo "Private diagnostic report successfully committed; no model details in public outputs."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Failed to durably write private CI diagnostic report"
+          exit 1

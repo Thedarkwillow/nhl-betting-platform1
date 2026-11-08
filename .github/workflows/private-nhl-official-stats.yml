@@ -1,0 +1,133 @@
+name: Private NHL official stats and projections on free public runner
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-official-stats.yml']
+  schedule:
+    - cron: '10 6 * * *'
+      timezone: America/Los_Angeles
+    - cron: '50 23 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: free-runner-private-nhl-stats
+  cancel-in-progress: false
+jobs:
+  official-stats:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    steps:
+      - name: Require private-repository token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private checkout credential unavailable"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate official NHL statistics and projection models
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/history.test.cjs test/projections.test.cjs test/nhl-official-goalie-fantasy.test.cjs >"$log" 2>&1; then
+            echo "::error::Private official-stat/model tests failed, no detailed output public."
+            exit 1
+          fi
+          echo "PASS: private official-stat and projection unit tests."
+      - name: Catch up the last three days of strictly official FINAL NHL game results
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for offset in 3 2 1; do
+            DATE="$(TZ=America/Los_Angeles date -d "$offset days ago" +%F)"
+            FILE="outputs/player-stats/$DATE.json"
+            if test -s "$FILE" && node - "$FILE" "$DATE" <<'NODE'
+          const fs=require('node:fs');
+          const r=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          if(r.requestedDate!==process.argv[3]||r.errors?.length||
+             r.sourceSchemaVersion!==5||r.collectedGames!==r.completedGames||
+             r.completedGames!==r.scheduledGames)process.exit(1);
+          NODE
+            then
+              echo "Already archived complete official NHL final date."
+            else
+              if ! node scripts/collect-player-stats.cjs "$DATE" >"$log" 2>&1; then
+                echo "::error::NHL official final collection failed for $DATE; no partial final-day claim"
+                exit 1
+              fi
+              echo "Saved official NHL game-day research for $DATE."
+            fi
+          done
+          # Evening only: save current date after completion, never label
+          # partial in-progress slate as fully graded or settled.
+          if test "$(TZ=America/Los_Angeles date +%H)" -ge 20; then
+            DATE="$(TZ=America/Los_Angeles date +%F)"
+            if ! node scripts/collect-player-stats.cjs "$DATE" >"$log" 2>&1; then
+              echo "::error::Current evening official final collection had errors."
+              exit 1
+            fi
+            echo "Evening official result capture attempted; completeness recorded in private source."
+          fi
+      - name: Rebuild past-only NHL history and champion projections privately
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/build-player-history.cjs >"$log" 2>&1 ||
+             ! node scripts/build-projections.cjs >"$log" 2>&1; then
+            echo "::error::NHL official history / projection rebuild failed."
+            exit 1
+          fi
+          echo "PASS: private player history and NHL champion + shadow projections rebuilt."
+      - name: Commit only official stats and model files back to PRIVATE main
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          shopt -s nullglob
+          files=(outputs/player-stats/*.json outputs/history/players.json
+            outputs/projections/players.json outputs/projections/stable-shrink-v2-latest.json
+            outputs/projections/prior-mean-v2-latest.json
+            outputs/projections/nhl-four-priority-shadow-latest.json
+            outputs/projections/nhl-extra-market-shadow-latest.json
+            outputs/projections/nhl-market-trained-v3-latest.json
+            outputs/projections/shadow-snapshots/*.json
+            outputs/backtests/nhl-trained-market-v3-holdout-latest.json)
+          (("${#files[@]}" > 0)) || { echo "::error::No private stats/model files"; exit 1; }
+          git add -f -- "${files[@]}"
+          if git diff --cached --quiet; then
+            echo "No new official stats/model changes."
+            exit 0
+          fi
+          git commit -m "data: free-runner private official NHL finals and prior-only projections" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main; then
+              echo "PASS: official NHL history and projections archived privately."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Could not durably commit official stats on private main."
+          exit 1

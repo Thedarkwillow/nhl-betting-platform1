@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "public_official_nhl_game_status_not_prop_lines",
+  "source": "NHL Web API",
+  "endpoint": "https://api-web.nhle.com/v1/score/2026-11-08",
+  "pacificDate": "2026-11-08",
+  "observedAtUTC": "2026-11-08T21:06:06.467Z",
+  "note": "Public NHL scores only. No player props, model predictions or platform settlements.",
+  "games": [
+    {
+      "gameId": 2026020277,
+      "startTimeUTC": "2026-11-08T18:00:00Z",
+      "state": "FINAL",
+      "away": "FLA",
+      "home": "BOS",
+      "awayScore": 1,
+      "homeScore": 4
+    },
+    {
+      "gameId": 2026020278,
+      "startTimeUTC": "2026-11-08T20:30:00Z",
+      "state": "LIVE",
+      "away": "VGK",
+      "home": "BUF",
+      "awayScore": 0,
+      "homeScore": 0
+    },
+    {
+      "gameId": 2026020280,
+      "startTimeUTC": "2026-11-08T23:00:00Z",
+      "state": "FUT",
+      "away": "TBL",
+      "home": "WPG"
+    },
+    {
+      "gameId": 2026020279,
+      "startTimeUTC": "2026-11-09T00:00:00Z",
+      "state": "FUT",
+      "away": "NJD",
+      "home": "TOR"
+    },
+    {
+      "gameId": 2026020281,
+      "startTimeUTC": "2026-11-09T00:00:00Z",
+      "state": "FUT",
+      "away": "PHI",
+      "home": "CGY"
+    },
+    {
+      "gameId": 2026020282,
+      "startTimeUTC": "2026-11-09T01:00:00Z",
+      "state": "FUT",
+      "away": "PIT",
+      "home": "ANA"
+    }
+  ]
+}

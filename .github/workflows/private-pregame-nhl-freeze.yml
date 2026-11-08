@@ -76,7 +76,7 @@ jobs:
           const x=JSON.parse(fs.readFileSync('/tmp/private-nfl-preview-summary.json','utf8'));
           if(!x.snapshot||x.calibratedProbabilities!==false||x.officialNFLPicks!==0)
             throw Error('NFL private research preview does not satisfy safety contract');
-          fs.appendFileSync(process.env.GITHUB_ENV,'NFL_RESEARCH_PREVIEW='+x.snapshot+'\\n');
+          fs.appendFileSync(process.env.GITHUB_ENV,'NFL_RESEARCH_PREVIEW='+x.snapshot+'\n');
           NODE
           else
             echo "::warning::NFL prior-week matching unavailable; source still archived, no NFL picks."

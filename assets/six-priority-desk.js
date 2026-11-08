@@ -31,7 +31,12 @@ function viewModel(brief,now=new Date().toISOString()){
   ["9 AM Pacific board",ops.nineAm==="archived_on_time"?"Captured on time":"Not verified"],
   ["6 AM to 9 AM comparison",ops.sameDayDelta==="compared"?"Archived comparison":"Not verified"],
   ["Independent board",boardCurrent?"Current (under 30 minutes)":"Archived / unavailable"],
-  ["Last source observation",formatAt(ops.lastBoardCapturedAt)]
+  ["Last source observation",formatAt(ops.lastBoardCapturedAt)],
+  ["Provider allowance (archived)",ops.archivedQuotaUnit==="credits"&&
+   Number.isInteger(ops.lastArchivedCreditsRemaining)?
+   count(ops.lastArchivedCreditsRemaining)+" credits reported at capture (not live)":
+   ops.archivedQuotaUnit==="requests"?
+   "Request-metered; remaining allowance not verified":"Not verified"]
  ];
  const movements=move.counts?[
   ["Newly observed",count(move.counts.new_offer)],

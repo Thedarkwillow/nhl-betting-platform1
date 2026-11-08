@@ -6,6 +6,10 @@ on:
       timezone: America/Los_Angeles
     - cron: '20 11 * * *'
       timezone: America/Los_Angeles
+    - cron: '13 12 * * *'
+      timezone: America/Los_Angeles
+    - cron: '13 13 * * *'
+      timezone: America/Los_Angeles
     - cron: '0 14 * * *'
       timezone: America/Los_Angeles
 permissions:

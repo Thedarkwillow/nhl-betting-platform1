@@ -1,0 +1,90 @@
+name: Private NHL prospective grading and baseline audit via public runner
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-prospective-grading.yml']
+  schedule:
+    - cron: '10 2 * * *'
+      timezone: America/Los_Angeles
+    - cron: '20 8 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: free-runner-private-nhl-official-grading
+  cancel-in-progress: false
+jobs:
+  grade-private-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Require narrowly scoped private access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private checkout secret missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          path: private
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate strict official NHL final outcomes and original Git precommit
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node --test test/grade-nhl-predictions.test.cjs test/nhl-frozen-individual-props.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nhl-prospective-validation.test.cjs test/nhl-frozen-baseline-challenge.test.cjs test/nhl-simple-pregame-challengers.test.cjs > "$log" 2>&1; then
+            echo "::error::Private precommit / settlement-grading regression failed."
+            exit 1
+          fi
+      - name: Grade only officially final NHL games and analyze frozen baseline challengers
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for script in scripts/grade-nhl-predictions.cjs scripts/report-nhl-prospective-model-release.cjs scripts/report-nhl-prospective-validation.cjs scripts/report-nhl-frozen-baseline-challenge.cjs scripts/report-nhl-frozen-simple-challengers.cjs; do
+            if ! node "$script" > "$log" 2>&1; then
+              echo "::error::NHL private grading or baseline report could not be verified; no prospective accuracy claimed."
+              exit 1
+            fi
+          done
+          echo "PASS: refreshed private official-outcome and frozen-baseline audits; unfinished games remain pending."
+      - name: Archive grading and benchmarks in private repository only
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          shopt -s nullglob
+          files=(outputs/grading/nhl-latest.json outputs/health/nhl-prospective-model-release-latest.json
+            outputs/health/nhl-prospective-validation-latest.json
+            outputs/health/nhl-frozen-baseline-challenge-latest.json
+            outputs/health/nhl-frozen-simple-challengers-latest.json)
+          (("${#files[@]}" > 0)) || { echo "::error::No NHL grading or baseline output"; exit 1; }
+          git add -f -- "${files[@]}"
+          if git diff --cached --quiet; then
+            echo "No changed official grading results."
+            exit 0
+          fi
+          git commit -m "data: private NHL prospective grading and frozen baseline audit" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main; then
+              echo "PASS: private official NHL grade and challenger reports durably saved."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::NHL private grading archive push failed";exit 1

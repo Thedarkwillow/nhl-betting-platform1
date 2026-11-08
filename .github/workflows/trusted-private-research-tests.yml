@@ -1,6 +1,9 @@
 name: Trusted private research tests on public free runner
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '7 12 * * *'
+      timezone: America/Los_Angeles
 permissions:
   contents: read
 concurrency:

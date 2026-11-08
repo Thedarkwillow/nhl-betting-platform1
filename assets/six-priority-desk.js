@@ -56,6 +56,23 @@ function viewModel(brief,now=new Date().toISOString()){
    displayRate(score.wilson95.lower)+"–"+displayRate(score.wilson95.upper):
    "Insufficient verified decisions"]
  ]:[["Prospective scorecard","Original frozen pregame cohort unavailable or unverified"]];
+ const b=score.standardSameLineBenchmark;
+ const benchmarkRows=b?.kind==="public_nhl_standard_same_line_baseline_v1"&&
+   Number.isInteger(b.decided)&&b.decided>0?[
+  ["Standard-only decided picks",count(b.decided)+" across "+count(b.decidedOfficialGames)+" NHL games"],
+  ["Standard model hit rate",count(b.modelCorrect)+"/"+count(b.decided)+" · "+
+   displayRate(b.modelObservedHitRate)],
+  ["Hypothetical always Higher",count(b.alwaysHigherCorrect)+"/"+count(b.decided)+" · "+
+   displayRate(b.hypotheticalHigherObservedRate)],
+  ["Hypothetical always Lower",count(b.alwaysLowerCorrect)+"/"+count(b.decided)+" · "+
+   displayRate(b.hypotheticalLowerObservedRate)],
+  ["Model minus Higher (same Standard thresholds)",
+   typeof b.modelMinusHypotheticalHigher==="number"?
+   (b.modelMinusHypotheticalHigher>=0?"+":"")+
+   (b.modelMinusHypotheticalHigher*100).toFixed(1)+" percentage points":
+   "Not established"],
+  ["Baseline status","Historical diagnostic only; too few games to prove an edge"]
+ ]:[["Standard-vs-Higher benchmark","Not yet available from the archived cohort"]];
  const marketRows=(Array.isArray(models.markets)?models.markets:[]).slice(0,9).map(m=>[
   safe(m.label),count(m.officialFinalGameRows)+" official player-games · "+
   count(m.athletesWithEightGames)+" players with ≥8 games · "+
@@ -82,10 +99,10 @@ function viewModel(brief,now=new Date().toISOString()){
   {key:"movement",label:"Movements",title:"Observed source-line changes",
    rows:movements,help:"Comparisons of independent snapshots only. Missing rows are not confirmed PrizePicks removals. Reposts and gaps between captures are unknown."},
   {key:"accuracy",label:"Accuracy",title:"Original pregame model scorecard",
-   rows:scoreRows.concat(Array.isArray(score.byMarket)?score.byMarket.slice(0,6).map(m=>
+   rows:scoreRows.concat(benchmarkRows,Array.isArray(score.byMarket)?score.byMarket.slice(0,6).map(m=>
     [safe(m.market)+" · "+count(m.decided)+" decisions",
      displayRate(m.observedRate)+" observed; "+count(m.pending)+" pending"]):[]),
-   help:"Official NHL stat Higher/Lower outcomes, not original PrizePicks or Underdog settlement. Small samples and same-game dependence limit certainty."},
+   help:"The overall hit rate mixes Higher-only Goblin/Demon and Standard tiers; use the Standard-only comparison to evaluate directional choices. Always Higher/Lower on the same saved thresholds are hypothetical, not proof those offers were executable. Official NHL outcomes are not platform settlement; games are correlated."},
   {key:"markets",label:"Market lab",title:"Official NHL historical sample coverage",
    rows:marketRows.length?marketRows:[["Historical stat coverage","Not available"]],
    help:"Research coverage counts are not offered lines or calibrated probabilities. PrizePicks goalie-fantasy scoring values are user-provided and lack independent platform confirmation."},

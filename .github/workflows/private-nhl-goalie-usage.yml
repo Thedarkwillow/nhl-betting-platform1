@@ -1,0 +1,88 @@
+name: Private NHL goalie and ice-time historical usage on public free runner
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-goalie-usage.yml']
+  schedule:
+    - cron: '55 6 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: free-runner-private-nhl-goalie-usage
+  cancel-in-progress: false
+jobs:
+  backfill-usage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Require private GitHub repository access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private checkout token missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate goalie usage identity and past-only backtest
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-usage-goalie.test.cjs test/nhl-usage-backtest.test.cjs test/free-nhl-research.test.cjs > "$log" 2>&1; then
+            echo "::error::Private goalie/usage tests failed."
+            exit 1
+          fi
+      - name: Bounded NHL FINAL goalie and skater TOI usage backfill
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node -e 'require("./scripts/backfill-nhl-usage.cjs").main({maxRequests:45}).catch(e=>{console.error(e.message);process.exitCode=1})' >"$log" 2>&1; then
+            echo "::error::Official goalie/skater historical usage backfill failed; do not invent starts or TOI."
+            exit 1
+          fi
+          if ! node scripts/backtest-nhl-usage.cjs >"$log" 2>&1; then
+            echo "::error::Historical usage shadow audit failed; champion model unchanged."
+            exit 1
+          fi
+          echo "PASS: historical NHL goalie save / skater TOI usage shadow, not starter confirmation."
+      - name: Preserve goalie and skater usage evidence only on private GitHub
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          shopt -s nullglob
+          files=(outputs/nhl-usage/latest.json outputs/nhl-usage/daily/*.json
+            outputs/backtests/nhl-usage-role-shadow-latest.json)
+          (("${#files[@]}" > 0)) || { echo "::error::No private historical usage files"; exit 1; }
+          git add -f -- "${files[@]}"
+          if git diff --cached --quiet; then
+            echo "No changes to past-only NHL usage archive."
+            exit 0
+          fi
+          git commit -m "data: free-runner private NHL goalie and ice-time usage" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main; then
+              echo "PASS: NHL usage and goalie context archived privately."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Private usage archival did not reach Git main"; exit 1

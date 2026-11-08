@@ -70,3 +70,26 @@ assert.ok(scoreRows.some(r=>r[0]==="Standard model hit rate"&&r[1].includes("44.
 assert.ok(scoreRows.some(r=>r[0]==="Hypothetical always Higher"&&r[1].includes("51.7%")));
 assert.ok(scoreRows.some(r=>r[0].startsWith("Model minus Higher")&&r[1].includes("-6.9 percentage points")));
 assert.match(withStandard.sections.find(s=>s.key==="accuracy").help,/hypothetical/);
+
+
+const futureSimpleView=viewModel({...brief,scorecard:{...brief.scorecard,
+ futureSimpleStrategyAudit:{
+  kind:"public_nhl_future_frozen_simple_strategies_v1",
+  originalFrozenStandardSelections:12,decided:11,pending:0,pushes:1,
+  byStrategy:{
+   last5:{covered:12,decided:11,abstained:0,challengerHitRate:.6364,
+    modelHitRateOnSameLines:.5455},
+   last10:{covered:9,decided:9,abstained:3,challengerHitRate:null,
+    modelHitRateOnSameLines:null},
+   consensus5And10MarginHalf:{covered:6,decided:6,abstained:6,
+    challengerHitRate:null,modelHitRateOnSameLines:null}
+  }
+ }}},now);
+const futureLines=futureSimpleView.sections.find(x=>x.key==="accuracy").rows;
+assert.ok(futureLines.some(x=>x[0]==="Future frozen Standard picks"&&x[1].includes("12 saved")));
+assert.ok(futureLines.some(x=>x[0]==="Last-5 historical mean"&&x[1].includes("Challenger 63.6%")));
+assert.ok(futureLines.some(x=>x[0]==="Last-10 historical mean"&&x[1].includes("Too few")));
+assert.ok(futureLines.some(x=>x[0]==="Last-5/10 agreement-only"&&x[1].includes("6 abstained")));
+assert.equal(viewModel(brief,now).sections.find(x=>x.key==="accuracy").rows
+ .some(x=>x[0]==="Future simple-strategy trials"&&x[1].includes("Awaiting")),true);
+console.log("Future first-Git-frozen simple challengers and sample-size abstention warnings verified");

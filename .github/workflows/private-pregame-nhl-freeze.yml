@@ -64,6 +64,23 @@ jobs:
             throw Error('No genuinely new complete private source capture');
           fs.appendFileSync(process.env.GITHUB_ENV,'PRIVATE_ARCHIVE='+p.archiveDir+'\n');
           NODE
+      - name: Build NFL prior-week private research preview without making picks
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          if node scripts/build-nfl-partner-board-research.cjs "$PRIVATE_ARCHIVE" > /tmp/private-nfl-preview-summary.json 2>/tmp/private-nfl-preview-error.log; then
+            node - <<'NODE'
+          const fs=require('node:fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/private-nfl-preview-summary.json','utf8'));
+          if(!x.snapshot||x.calibratedProbabilities!==false||x.officialNFLPicks!==0)
+            throw Error('NFL private research preview does not satisfy safety contract');
+          fs.appendFileSync(process.env.GITHUB_ENV,'NFL_RESEARCH_PREVIEW='+x.snapshot+'\\n');
+          NODE
+          else
+            echo "::warning::NFL prior-week matching unavailable; source still archived, no NFL picks."
+          fi
       - name: Commit and push original source capture privately before research
         working-directory: private
         shell: bash
@@ -73,6 +90,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f "$PRIVATE_ARCHIVE"
+          if test -n "${NFL_RESEARCH_PREVIEW:-}" && test -s "$NFL_RESEARCH_PREVIEW"; then
+            git add -f "$NFL_RESEARCH_PREVIEW"
+          fi
           git commit -m "data: new private live partner NHL NFL pregame source observation"
           for attempt in 1 2 3; do
             git fetch origin main
@@ -129,7 +149,13 @@ jobs:
             git fetch origin main
             git -c rebase.autoStash=true rebase -X theirs origin/main
             check_time
-            git log -1 --format=%cI | xargs -I{} sh -c 'test -n "$1"' sh '{}'
+            node - <<'NODE'
+          const fs=require('node:fs'),{execFileSync}=require('node:child_process');
+          const s=JSON.parse(fs.readFileSync(process.env.FREEZE_SNAPSHOT,'utf8'));
+          const commit=Date.parse(execFileSync('git',['log','-1','--format=%cI'],{encoding:'utf8'}).trim());
+          if(!Number.isFinite(commit)||s.individualPropSelections.some(p=>commit>=Date.parse(p.gameStartAt)))
+            throw Error('Frozen Git commit is not strictly earlier than every game');
+          NODE
             if git push origin HEAD:main; then
               check_time
               echo "Private research candidate committed and pushed before earliest puck drop."

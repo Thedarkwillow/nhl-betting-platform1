@@ -41,3 +41,14 @@ const neverPublished=viewModel({...brief,scorecard:{},operations:{}},now);
 assert.ok(neverPublished.sections[2].rows[0][1].includes("unavailable"));
 assert.equal(neverPublished.sections[0].rows[0][1],"Not verified");
 console.log("Mobile research desk: live freshness, on-time evidence, movements, accuracy, markets and lineup caveats verified");
+
+
+const creditsView=viewModel({...brief,operations:{
+ ...brief.operations,archivedQuotaUnit:"credits",lastArchivedCreditsRemaining:31
+}},now);
+assert.ok(creditsView.sections[0].rows.some(x=>x[0].startsWith("Provider allowance")&&
+ x[1].includes("31 credits reported at capture (not live)")));
+const requestView=viewModel({...brief,operations:{
+ ...brief.operations,archivedQuotaUnit:"requests",lastArchivedCreditsRemaining:null
+}},now);
+assert.ok(requestView.sections[0].rows.some(x=>x[1].includes("remaining allowance not verified")));

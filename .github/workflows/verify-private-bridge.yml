@@ -1,0 +1,142 @@
+name: Verify public runner private research bridge and fresh board
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-private-bridge.yml'
+permissions:
+  contents: read
+concurrency:
+  group: verify-private-research-bridge
+  cancel-in-progress: false
+jobs:
+  private-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Check restricted PRIVATE_RESEARCH_REPO_TOKEN exists without revealing it
+        env:
+          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          test -n "$PRIVATE_REPO_TOKEN" || { echo "::error::MISSING_PRIVATE_RESEARCH_REPO_TOKEN"; exit 1; }
+          echo "Private token present (value hidden)"
+      - name: Prove read access by checking out private research repository
+        uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify offline targeted and full Node research tests (no private logs)
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if node --test test/partner-prizepicks-board.test.cjs test/partner-compact-0903.test.cjs test/nhl-nfl-five-priorities.test.cjs > "$log" 2>&1; then
+            echo "PASS: targeted private research tests"
+          else
+            echo "::error::FAIL: targeted private research tests; inspect privately, no test logs exposed"
+            exit 1
+          fi
+          if npm test > "$log" 2>&1; then
+            echo "PASS: full private Node test suite"
+          else
+            echo "::error::FAIL: full private Node test suite; no private test logs exposed"
+            exit 1
+          fi
+  private-board-capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Check private token without revealing its value
+        env:
+          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          test -n "$PRIVATE_REPO_TOKEN" || { echo "::error::MISSING_PRIVATE_RESEARCH_REPO_TOKEN"; exit 1; }
+      - name: Prove private read and write access with private checkout
+        uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          fetch-depth: 0
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate direct collector unit tests without printing private data
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          logfile="$(mktemp)"
+          trap 'rm -f "$logfile"' EXIT
+          if node --test test/nhl-nfl-partner-direct-collection.test.cjs > "$logfile" 2>&1; then
+            echo "PASS: partner source collector offline tests"
+          else
+            echo "::error::FAIL: partner collector tests; no raw private test logs exposed"
+            exit 1
+          fi
+      - name: Capture genuinely NEW partner NHL and NFL responses inside private checkout
+        working-directory: private
+        shell: bash
+        env:
+          PARTNER_CAPTURE_SLOT: manual
+        run: |
+          set -euo pipefail
+          umask 077
+          if ! node scripts/collect-live-partner-nhl-nfl.cjs > /tmp/private-bridge-board.json 2> /tmp/private-bridge-errors.log; then
+            echo "::error::Provider capture failed (private details withheld)"
+            exit 1
+          fi
+          node - <<'NODE'
+          const fs=require('node:fs'),p=JSON.parse(fs.readFileSync('/tmp/private-bridge-board.json','utf8'));
+          if(p.status!=='saved_private_only'||p.completePagination!==true||
+             !/^outputs\/manual-board-captures\/\d{4}-\d{2}-\d{2}\/[0-9A-Z]+$/.test(p.archiveDir)||
+             !Number.isInteger(p.counts?.NHL)||p.counts.NHL<200||
+             !Number.isInteger(p.counts?.NFL)||p.counts.NFL<1000||
+             p.rawPublicWrites!==0)
+            throw Error('Reject incomplete, malformed or non-private capture');
+          if(Date.now()-Date.parse(p.capturedAt)>5*60*1000)
+            throw Error('Capture not within five minutes of verification');
+          fs.appendFileSync(process.env.GITHUB_ENV,'PRIVATE_ARCHIVE_DIR='+p.archiveDir+'\n');
+          console.log('PASS: new full source capture; NHL='+p.counts.NHL+'; NFL='+p.counts.NFL+'; no raw public writes.');
+          NODE
+      - name: Write and verify original source manifest in private GitHub ONLY
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$PRIVATE_ARCHIVE_DIR/manifest.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f "$PRIVATE_ARCHIVE_DIR"
+          if git diff --cached --quiet; then
+            echo "::error::No NEW private board archive staged"
+            exit 1
+          fi
+          git commit -m "data: verify trusted public runner private NHL/NFL partner archive" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main; then
+              git fetch -q origin main
+              if git show "origin/main:$PRIVATE_ARCHIVE_DIR/manifest.json" >/dev/null; then
+                echo "PASS: NEW capture committed and independently verified on PRIVATE main."
+                exit 0
+              fi
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Private archival push not confirmed. No successful archival claim."
+          exit 1

@@ -1,0 +1,86 @@
+name: Private NHL injuries and goalie pregame context on public free runner
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-pregame-intel.yml']
+  schedule:
+    - cron: '45 7 * * *'
+      timezone: America/Los_Angeles
+    - cron: '45 10 * * *'
+      timezone: America/Los_Angeles
+    - cron: '45 13 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: free-runner-private-nhl-pregame-intel
+  cancel-in-progress: false
+jobs:
+  role-context:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Require restricted private repository token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private checkout credential missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          path: private
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate injury / official goalie roster chronology
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+          if ! node --test test/nhl-pregame-intel.test.cjs > "$tmp" 2>&1; then
+            echo "::error::Private pregame roster / injury source tests failed."
+            exit 1
+          fi
+      - name: Capture ESPN-reported injuries and official NHL game / goalie context
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+          if ! node scripts/collect-nhl-pregame-intel.cjs > "$tmp" 2>&1; then
+            echo "::error::Injury or goalie context source unavailable/stale; no healthy or confirmed starter claims."
+            exit 1
+          fi
+          echo "PASS: NHL pregame source-reported context captured privately; not starter confirmation."
+      - name: Archive source-reported pregame context ONLY in private repository
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          shopt -s nullglob
+          files=(outputs/pregame-availability/latest.json outputs/pregame-availability/snapshots/*.json)
+          (("${#files[@]}" > 0)) || { echo "::error::No NHL pregame context output"; exit 1; }
+          git add -f -- "${files[@]}"
+          if git diff --cached --quiet; then
+            echo "No new source-reported context data"; exit 0
+          fi
+          git commit -m "data: free-runner private NHL injury and goalie source context" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main; then
+              echo "PASS: NHL source-reported injuries and goalies archived privately."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Private injury / goalie archive push not confirmed"; exit 1

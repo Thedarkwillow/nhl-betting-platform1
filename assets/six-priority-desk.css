@@ -1,0 +1,26 @@
+/* Mobile-first independent NHL research operations desk; no provider data embedded. */
+#researchOperationsDesk .ops-intro{max-width:75ch;color:#9fb0c2;line-height:1.55}
+#researchOperationsDesk .ops-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 16px}
+#researchOperationsDesk .ops-updated{flex:1;min-width:200px;font-size:.9rem;line-height:1.5;color:#c4d4df}
+#researchOperationsDesk .ops-button{font:inherit;color:#e4f2ff;background:#162b3d;border:1px solid #41627c;border-radius:12px;padding:10px 14px;cursor:pointer;min-height:44px}
+#researchOperationsDesk .ops-button:focus-visible,
+#researchOperationsDesk .ops-tab:focus-visible{outline:3px solid #70d9e7;outline-offset:2px}
+#researchOperationsDesk .ops-tabs{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;padding:3px 1px 10px;scrollbar-width:thin}
+#researchOperationsDesk .ops-tab{white-space:nowrap;flex:0 0 auto;font:inherit;font-weight:700;font-size:.9rem;cursor:pointer;min-height:44px;background:#112234;color:#a9c2d6;border:1px solid #2f4a61;border-radius:11px;padding:9px 13px}
+#researchOperationsDesk .ops-tab.active{background:#193c48;border-color:#4bd4c7;color:#edffff}
+#researchOperationsDesk .ops-panel{border-radius:16px;border:1px solid #29475b;background:#102334;padding:16px}
+#researchOperationsDesk .desk-panel-title{font-size:1.12rem;line-height:1.3;margin:0 0 15px;color:#e9f4ff}
+#researchOperationsDesk .ops-data-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:0}
+#researchOperationsDesk .ops-data-item{min-width:0;padding:13px;border:1px solid #31485a;border-radius:12px;background:#0a1a29;overflow-wrap:anywhere}
+#researchOperationsDesk dt{font-size:.8rem;color:#9eafc2;margin-bottom:8px;font-weight:600}
+#researchOperationsDesk dd{margin:0;font-size:1rem;color:#f5fbff;font-weight:700;line-height:1.4}
+#researchOperationsDesk .ops-help{margin:15px 0 0;color:#a8bbcb;font-size:.87rem;line-height:1.55}
+#researchOperationsDesk .ops-policy{font-size:.82rem;color:#aac1d0;line-height:1.5;margin:10px 0 0}
+@media(max-width:480px){
+ #researchOperationsDesk .ops-data-grid{grid-template-columns:1fr}
+ #researchOperationsDesk .ops-panel{padding:12px}
+ #researchOperationsDesk .ops-data-item{padding:12px}
+ #researchOperationsDesk .ops-updated{min-width:0}
+ #researchOperationsDesk .ops-tabs{margin-right:-8px}
+}
+@media(prefers-reduced-motion:reduce){#researchOperationsDesk *{scroll-behavior:auto}}

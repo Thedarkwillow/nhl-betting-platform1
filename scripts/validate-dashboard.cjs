@@ -14,6 +14,15 @@ assert.match(css,/\.quality-card/,"Source-quality cards must have accessible sty
 
 const data=JSON.parse(fs.readFileSync(path.resolve(__dirname,"../data.json"),"utf8"));
 assert.match(html,/href="\.\/assets\/dashboard\.css"/,"NHL dashboard stylesheet missing");
+assert.match(html,/id="researchOperationsDesk"/,"Roadmap research desk must be present");
+assert.match(html,/data-ops-tabs/,"Roadmap operation tabs must be present");
+assert.match(html,/six-priority-desk\.js/,"Roadmap evidence JavaScript must load");
+const operationsJs=fs.readFileSync(path.resolve(__dirname,"../assets/six-priority-desk.js"),"utf8");
+new vm.Script(operationsJs,{filename:"six-priority-desk.js"});
+const operationsCss=fs.readFileSync(path.resolve(__dirname,"../assets/six-priority-desk.css"),"utf8");
+assert.match(operationsCss,/@media\(max-width:480px\)/,
+ "Roadmap evidence panel must have a narrow-phone layout");
+
 assert.match(css,/\.featured-grid/);
 assert.match(css,/@media\(max-width:680px\)/,"Mobile NHL prop cards required");
 assert.match(css,/\.board-mode/,"Historical vs fresh data mode required");
@@ -92,7 +101,7 @@ const keys=["schemaVersion","kind","builtAt","researchAt","boardAt","comparisonA
 const OPTIONAL_EXTENSIONS=["playerInsights","movementSummary","platformResearch","resultBreakdown",
  "prospectiveCohort","collectionCoverage","researchQuality",
  "previewResearchProps","previewResearchOnly","previewSelectionsOfficiallyPrecommitted",
- "evidenceLegend","responsibleResearch"];
+ "evidenceLegend","responsibleResearch","sixPriorityBrief"];
 assert.deepEqual(Object.keys(data).sort(),
  [...keys,...OPTIONAL_EXTENSIONS.filter(k=>Object.hasOwn(data,k))].sort(),
  "Unexpected public data field");
@@ -134,6 +143,22 @@ if(data.prospectiveCohort!==undefined){
   for(const x of [...p.byPacificGameDay,...p.byMarket,...p.byTier])
    if(x.decided<p.minimumPublishedDecisions)assert.equal(x.observedRate,null);
  }
+}
+if(data.sixPriorityBrief!==undefined){
+ const x=data.sixPriorityBrief;
+ assert.equal(x.kind,"public_nhl_six_priority_evidence_brief_v1");
+ assert.equal(x.schemaVersion,1);
+ assert.equal(x.operations.firstPartyOfferVerified,false);
+ assert.equal(x.operations.cloudflareSchedulerExecutionVerified,false);
+ assert.equal(x.movements.platformRemovalConfirmed,false);
+ assert.equal(x.scorecard.originalPrizePicksSettlementVerified,false);
+ assert.equal(x.scorecard.verifiedPayoutEV,false);
+ assert.equal(x.lineupRisk.verifiedPayoutEV,false);
+ assert.equal(x.markets.goalieFantasyScoring.platformSettlementVerified,false);
+ assert.ok(Array.isArray(x.markets.markets));
+ assert.ok(!JSON.stringify(x).includes('"playerId"'));
+ assert.ok(!JSON.stringify(x).includes('"projectionId"'));
+ assert.ok(!JSON.stringify(x).includes('"modelWeights"'));
 }
 if(data.collectionCoverage!==undefined){
  const c=data.collectionCoverage;

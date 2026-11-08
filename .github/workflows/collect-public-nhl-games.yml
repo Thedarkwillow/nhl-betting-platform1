@@ -1,0 +1,47 @@
+name: Public NHL Official Game Status (No Prop Data)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '8 6 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '8 9 * * *'
+      timezone: 'America/Los_Angeles'
+permissions:
+  contents: write
+concurrency:
+  group: public-official-nhl-game-status
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test no-secret public score normalization
+        run: node --test scripts/test-public-nhl-games.cjs
+      - name: Fetch and sanitize only official NHL public game facts
+        run: node scripts/collect-public-nhl-games.cjs
+      - name: Archive timestamped verified public scores
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add nhl-games.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data(public): archive safe official NHL game status'
+            for attempt in 1 2 3; do
+              git fetch origin main
+              git -c rebase.autoStash=true rebase origin/main
+              if git push origin HEAD:main; then exit 0; fi
+              sleep "$attempt"
+            done
+            echo "::error::Unable to archive public NHL game status"
+            exit 1
+          fi

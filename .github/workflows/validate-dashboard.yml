@@ -7,6 +7,9 @@ on:
       - 'index.html'
       - 'assets/**'
       - 'data.json'
+      - 'scripts/collect-public-nhl-games.cjs'
+      - 'scripts/test-public-nhl-games.cjs'
+      - '.github/workflows/collect-public-nhl-games.yml'
       - 'scripts/validate-dashboard.cjs'
       - 'scripts/test-lineup-workspace.cjs'
       - 'scripts/test-six-priority-desk.cjs'
@@ -22,6 +25,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
+      - name: Test public game-status normalization and provenance guards
+        run: node --test scripts/test-public-nhl-games.cjs
       - name: Verify public NHL page JavaScript and research provenance
         run: node scripts/validate-dashboard.cjs
       - name: Test interactive NHL research lineup editor

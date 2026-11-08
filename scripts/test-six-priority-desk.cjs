@@ -52,3 +52,21 @@ const requestView=viewModel({...brief,operations:{
  ...brief.operations,archivedQuotaUnit:"requests",lastArchivedCreditsRemaining:null
 }},now);
 assert.ok(requestView.sections[0].rows.some(x=>x[1].includes("remaining allowance not verified")));
+
+
+const withStandard=viewModel({...brief,scorecard:{...brief.scorecard,
+ standardSameLineBenchmark:{
+  kind:"public_nhl_standard_same_line_baseline_v1",
+  decided:29,decidedOfficialGames:4,modelCorrect:13,
+  alwaysHigherCorrect:15,alwaysLowerCorrect:14,
+  modelObservedHitRate:13/29,hypotheticalHigherObservedRate:15/29,
+  hypotheticalLowerObservedRate:14/29,
+  modelMinusHypotheticalHigher:-2/29,
+  originalPlatformSideAvailabilityVerified:false
+ }}},now);
+const scoreRows=withStandard.sections.find(s=>s.key==="accuracy").rows;
+assert.ok(scoreRows.some(r=>r[0]==="Standard-only decided picks"&&r[1].includes("29")));
+assert.ok(scoreRows.some(r=>r[0]==="Standard model hit rate"&&r[1].includes("44.8%")));
+assert.ok(scoreRows.some(r=>r[0]==="Hypothetical always Higher"&&r[1].includes("51.7%")));
+assert.ok(scoreRows.some(r=>r[0].startsWith("Model minus Higher")&&r[1].includes("-6.9 percentage points")));
+assert.match(withStandard.sections.find(s=>s.key==="accuracy").help,/hypothetical/);

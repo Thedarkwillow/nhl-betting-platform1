@@ -74,6 +74,7 @@ jobs:
           // New-code first-Git snapshots must contain the three research-only
           // Standard shadow forecasts in the SAME immutable original file.
           // Old original snapshots cannot retroactively claim these forecasts.
+          // Also verify the first actual future Standard shadow capture after the model merge.
           const shadowFirstAdd=execFileSync('git',['log','--diff-filter=A','-1',
             '--format=%cI','--','src/nhl-standard-triple-challenger.cjs'],
             {encoding:'utf8'}).trim();

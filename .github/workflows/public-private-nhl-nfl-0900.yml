@@ -1,3 +1,4 @@
+# 2026-11-09 09:16 Pacific: safe same-hour recovery trigger; never relabel an earlier capture.
 name: Public Free Runners - Private NHL and NFL 6 and 9 AM Boards
 on:
   workflow_dispatch:

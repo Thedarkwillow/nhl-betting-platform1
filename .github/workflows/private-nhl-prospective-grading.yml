@@ -52,7 +52,9 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          for script in scripts/grade-nhl-predictions.cjs scripts/report-nhl-prospective-model-release.cjs scripts/report-nhl-prospective-validation.cjs scripts/report-nhl-frozen-baseline-challenge.cjs scripts/report-nhl-frozen-simple-challengers.cjs; do
+          # Always rebuild the original Git-backed cohort from first commit history
+          # AFTER the official final boxscores update; never reuse yesterday's ledger.
+          for script in scripts/grade-nhl-predictions.cjs scripts/build-nhl-private-ledger-and-labs.cjs scripts/report-nhl-prospective-model-release.cjs scripts/report-nhl-prospective-validation.cjs scripts/report-nhl-frozen-baseline-challenge.cjs scripts/report-nhl-frozen-simple-challengers.cjs; do
             if ! node "$script" > "$log" 2>&1; then
               echo "::error::NHL private grading or baseline report could not be verified; no prospective accuracy claimed."
               exit 1
@@ -67,7 +69,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           shopt -s nullglob
-          files=(outputs/grading/nhl-latest.json outputs/health/nhl-prospective-model-release-latest.json
+          files=(outputs/grading/nhl-latest.json
+            outputs/research/registry/nhl-precommitted-ledger-latest.json
+            outputs/health/nhl-roadmap-readiness-latest.json
+            outputs/health/nhl-source-coverage-latest.json
+            outputs/research/correlation/nhl-count-stat-dependence-latest.json
+            outputs/health/nhl-prospective-model-release-latest.json
             outputs/health/nhl-prospective-validation-latest.json
             outputs/health/nhl-frozen-baseline-challenge-latest.json
             outputs/health/nhl-frozen-simple-challengers-latest.json)

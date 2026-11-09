@@ -115,6 +115,7 @@ jobs:
           echo "::error::Source capture was not durably archived privately"
           exit 1
       # Standard shadows are frozen with the same original private Git snapshot.
+      # Manual late-night board checks accept fully paginated small NFL inventories.
       # Never replace champion model picks with unfitted challenger directions.
       - name: Construct separate research-only NHL selections from fresh source
         id: freeze

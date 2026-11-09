@@ -59,7 +59,6 @@ jobs:
             if ! node "$script" > "$log" 2>&1; then
               if [[ "$script" == "scripts/report-nhl-frozen-baseline-challenge.cjs" ]]; then
                 grep "^Refusing " "$log" | tail -n 1 | cut -c 1-180 || true
-                node -e 'const p="./outputs/research/registry/nhl-precommitted-ledger-latest.json";const l=require(p),{rowValid}=require("./src/nhl-frozen-baseline-challenge.cjs");const bad=l.records.filter(r=>!rowValid(r));const same=bad.filter(r=>Number.isFinite(Date.parse(r.firstResearchAt))&&Math.floor(Date.parse(r.firstResearchAt)/1000)===Math.floor(Date.parse(r.firstGitCommittedAt)/1000));console.log(JSON.stringify({registered:l.records.length,invalidRows:bad.length,withinGitTimestampSecond:same.length,duplicateIds:l.records.length-new Set(l.records.map(r=>r.id)).size,counts:l.counts}));' || true
               fi
               echo "::error::NHL audit script ${script} failed; no prospective accuracy claimed. Raw logs stay private."
               exit 1

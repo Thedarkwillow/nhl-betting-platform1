@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "public_safe_nhl_nfl_original_pregame_freeze_status_v1",
+  "generatedAt": "2026-11-09T17:29:36.422Z",
+  "sourceCaptureFinishedUTC": "2026-11-09T17:22:17.036Z",
+  "captureSlotPacific": "09:00",
+  "originalPrivateGitCommitUTC": "2026-11-09T17:26:51Z",
+  "firstGitAdditionVerified": true,
+  "sameCommitForBothSports": true,
+  "privateCommitSha": "4a5fc8ff19101d3b869d4a7ad36c5cac65c5c7e9",
+  "capturedOffers": {
+    "NHL": 927,
+    "NFL": 1808
+  },
+  "pregameSelections": {
+    "NHL": {
+      "count": 49,
+      "distinctGames": 2,
+      "standard": 12
+    },
+    "NFL": {
+      "count": 115,
+      "distinctGames": 4,
+      "standard": 115
+    }
+  },
+  "originalModelDirectionsBeforeKickoff": true,
+  "independentlyVerifiedInitialGitCommit": true,
+  "modelProbabilityCalibrated": false,
+  "authenticPrizePicksAppOfferVerified": false,
+  "platformSettlementVerified": false,
+  "verifiedExpectedValue": false,
+  "officialWagersPlaced": 0,
+  "noRawLinesPlayersOrPrivateModelsPublished": true,
+  "scope": "Independently verified private first-Git pregame research, not playable or proven profitable picks"
+}

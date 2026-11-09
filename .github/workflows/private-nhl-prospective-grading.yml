@@ -58,9 +58,9 @@ jobs:
           for script in scripts/grade-nhl-predictions.cjs scripts/build-nhl-private-ledger-and-labs.cjs scripts/report-nhl-prospective-model-release.cjs scripts/report-nhl-prospective-validation.cjs scripts/report-nhl-frozen-baseline-challenge.cjs scripts/report-nhl-frozen-simple-challengers.cjs; do
             if ! node "$script" > "$log" 2>&1; then
               if [[ "$script" == "scripts/report-nhl-frozen-baseline-challenge.cjs" ]]; then
-      grep "^Refusing " "$log" | tail -n 1 | cut -c 1-180 || true
-    fi
-    echo "::error::NHL audit script ${script} failed; no prospective accuracy claimed. Raw logs stay private."
+                grep "^Refusing " "$log" | tail -n 1 | cut -c 1-180 || true
+              fi
+              echo "::error::NHL audit script ${script} failed; no prospective accuracy claimed. Raw logs stay private."
               exit 1
             fi
           done

@@ -1,0 +1,80 @@
+name: Private NFL postgame research and offered-line evidence audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nfl-postgame-research-audit.yml']
+  schedule:
+    - cron: '25 4 * * 1,2'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-nfl-postgame-research-gate
+  cancel-in-progress: false
+jobs:
+  audit-private-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Require private contents token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private repository access missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test retrospective NFL stats and strict source quote gates
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nfl-historical-stats-backtest.test.cjs test/nfl-quote-evidence.test.cjs test/nfl-research-history-board.test.cjs >"$log" 2>&1; then
+            echo "::error::Private NFL research regression failed; no raw data sent to public logs."
+            exit 1
+          fi
+          echo "PASS: private NFL research and quote-gate tests."
+      - name: Reevaluate archived historical stats and pregame quote eligibility
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for script in scripts/backtest-nfl-historical-stats.cjs scripts/audit-nfl-quote-evidence.cjs; do
+            if ! node "$script" >"$log" 2>&1; then
+              echo "::error::NFL offline audit stage failed: $script. No verified betting rate claimed."
+              exit 1
+            fi
+          done
+          echo "PASS: NFL historical stats-only re-evaluation and qualifying-quote audit. Data freshness is governed by the PRIVATE source archive; this step does NOT refresh official game stats or assert forward picks."
+      - name: Archive research-only NFL reports in PRIVATE repository
+        working-directory: private
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f -- outputs/nfl/backtests/stats-only-latest.json outputs/nfl/backtests/posted-line-evidence-audit.json
+          if git diff --cached --quiet; then
+            echo "Private NFL reports unchanged."
+            exit 0
+          fi
+          git commit -m "audit: NFL cached-stat replay and pregame offer proof gate" >/dev/null
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main; then
+              echo "PASS: NFL audit archived privately. This is not wager grading."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Private NFL audit report archival failed"; exit 1

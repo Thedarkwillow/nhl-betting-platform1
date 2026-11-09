@@ -1,3 +1,4 @@
+# Manual postgame audit trigger 2026-11-09 (no backdated predictions; grade official finals only).
 name: Private NHL prospective grading and baseline audit via public runner
 on:
   workflow_dispatch:

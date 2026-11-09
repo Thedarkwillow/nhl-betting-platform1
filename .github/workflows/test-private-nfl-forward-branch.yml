@@ -1,3 +1,4 @@
+# Unit regression rerun: source freshness and kickoff cutoff are independent.
 name: Test private NFL original-forecast pipeline on public runner
 on:
   workflow_dispatch:

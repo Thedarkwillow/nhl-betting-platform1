@@ -1,0 +1,66 @@
+name: Test private NFL original-forecast pipeline on public runner
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/test-private-nfl-forward-branch.yml']
+permissions:
+  contents: read
+jobs:
+  validate-private-research-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Require authorized private repo token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: feat/nfl-original-pregame-git-freeze-and-postgame-20261109
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test strict NFL original-provenance, chronology, grading and history refresh rules
+        working-directory: private
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! node --test test/nfl-prospective-freeze.test.cjs test/nfl-precommitted-grading.test.cjs test/nfl-research-history-board.test.cjs >"$log" 2>&1; then
+            echo "::error::Private NFL new regression failed; no private logs released."
+            exit 1
+          fi
+          if ! python -m unittest discover -s test -p 'test_nfl*.py' >"$log" 2>&1; then
+            echo "::error::Private NFL Python regression failed; no private logs released."
+            exit 1
+          fi
+          echo "PASS: NFL original forecast chronology and historical refresh regression."
+      - name: Verify complete private regression suite
+        working-directory: private
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Full private Node suite failed (details withheld)."
+            exit 1
+          fi
+          echo "PASS: entire private Node suite."
+      - name: Smoke original NFL historical forecasts without network or wagering
+        working-directory: private
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/grade-nfl-precommitted.cjs >"$log" 2>&1; then
+            echo "::error::Private NFL original Git history replay failed."
+            exit 1
+          fi
+          echo "PASS: preexisting original NFL numeric forecasts can be replayed without falsely inventing frozen directions."

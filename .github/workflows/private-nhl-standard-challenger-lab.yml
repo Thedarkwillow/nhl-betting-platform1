@@ -34,6 +34,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      # This suite includes the late-night manual NFL inventory policy tests.
       - name: Run isolated regression and full private test suite
         id: test
         working-directory: private

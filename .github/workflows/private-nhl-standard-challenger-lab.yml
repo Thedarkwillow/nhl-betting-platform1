@@ -1,3 +1,4 @@
+# Manual postgame audit trigger 2026-11-09 (no backdated predictions; grade official finals only).
 name: Private NHL Standard usage matchup and distribution challenger lab
 on:
   workflow_dispatch:

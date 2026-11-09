@@ -71,6 +71,42 @@ jobs:
               throw Error('Selected NHL prop does not satisfy original game, offer, and Git time gates');
             uniq.add(key);games.add(p.gameId);earliest=Math.min(earliest,start);
           }
+          // New-code first-Git snapshots must contain the three research-only
+          // Standard shadow forecasts in the SAME immutable original file.
+          // Old original snapshots cannot retroactively claim these forecasts.
+          const shadowFirstAdd=execFileSync('git',['log','--diff-filter=A','-1',
+            '--format=%cI','--','src/nhl-standard-triple-challenger.cjs'],
+            {encoding:'utf8'}).trim();
+          const policyAt=Date.parse(shadowFirstAdd);
+          if(Number.isFinite(policyAt)&&generated>=policyAt){
+            const shadow=s.standardTripleChallenger,standard=selected.filter(x=>x.tier==='Standard');
+            if(shadow?.kind!=='nhl_standard_precommitted_three_challengers_v1'||
+               shadow.createdAt!==s.generatedAt||
+               shadow.originalSnapshotGeneratedAt!==s.generatedAt||
+               !Array.isArray(shadow.rows)||shadow.rows.length!==standard.length||
+               shadow.calibrationVerified!==false||
+               shadow.championSelectionsUnchanged!==true||
+               s.standardCalibrationShadow?.approvedForLiveUse!==false)
+              throw Error('New frozen NHL Standard research shadow or calibration gate missing');
+            const registered=new Set();
+            for(const r of shadow.rows){
+              const key=[r.gameId,r.playerId,r.market,r.line,r.tier].join('|');
+              const p=standard.find(x=>[x.gameId,x.playerId,x.market,x.line,x.tier].join('|')===key);
+              if(!p||registered.has(key)||r.originalSelectedSide!==p.lean||
+                 r.originalCapturedAt!==p.capturedAt||r.gameStartAt!==p.gameStartAt||
+                 r.generatedAt!==s.generatedAt||
+                 r.calibrated!==false||r.automaticRecommendationEligible!==false||
+                 !['research_only'].includes(r.status))
+                throw Error('Stored shadow does not exactly match original standard pregame selection');
+              registered.add(key);
+            }
+            console.log('PASS: new Standard challengers originally Git frozen with selected lines.');
+            console.log(JSON.stringify({originalStandardShadowRows:shadow.rows.length,
+              shadowOriginalFirstGitProven:true,modelPromoted:false,
+              calibrationApproved:false,noOriginalPlatformSettlements:true}));
+          }else{
+            console.log('Previous-policy original snapshot: no new challenger foresight claimed.');
+          }
           // Aggregate metadata only. Never publish player names, prices, prop lines,
           // sources, model parameters or private git source content.
           console.log('PASS: first Git addition and original immutable candidate record');

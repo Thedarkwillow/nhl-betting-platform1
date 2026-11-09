@@ -1,4 +1,4 @@
-# 2026-11-09 09:16 Pacific: safe same-hour recovery trigger; never relabel an earlier capture.
+# Trusted push changes also run the real 6/9 AM capture gate; only an actual Pacific-hour board is certified.
 name: Public Free Runners - Private NHL and NFL 6 and 9 AM Boards
 on:
   workflow_dispatch:
@@ -58,7 +58,7 @@ jobs:
           node scripts/probe-nhl-nfl-prop-feed.cjs
       - name: Require actual 6 AM or 9 AM and private-only token for full archive
         id: gate
-        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'capture_0900' || inputs.mode == 'capture_0600'))
+        if: github.event_name == 'schedule' || github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'capture_0900' || inputs.mode == 'capture_0600'))
         env:
           PRIVATE_RESEARCH_REPO_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           REQUESTED_MODE: ${{ inputs.mode }}

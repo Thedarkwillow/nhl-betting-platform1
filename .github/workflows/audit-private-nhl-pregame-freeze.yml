@@ -52,7 +52,11 @@ jobs:
            generated=Date.parse(s.generatedAt),capture=Date.parse(s.boardAsOfAt);
           if(!Number.isFinite(commitAt)||count!==1||!Number.isFinite(generated)||
              !Number.isFinite(capture)||!Number.isFinite(modelAt)||modelAt>capture||
-             capture>generated||generated>commitAt||generated-capture>30*60000)
+             capture>generated||
+             // Git committer dates have SECOND precision, snapshot timestamps
+             // retain milliseconds; accept only the SAME truncated second.
+             generated>commitAt&&Math.floor(generated/1000)!==Math.floor(commitAt/1000)||
+             generated-capture>30*60000)
             throw Error('Original private Git provenance / frozen source timing invalid');
           const official=JSON.parse(fs.readFileSync('outputs/official-nhl/season-schedules/2026-27.json','utf8'));
           if(official.complete!==true)throw Error('Official season schedule not validated');

@@ -51,6 +51,7 @@ jobs:
           fi
           echo "PASS: private NHL/NFL pregame freeze chronology and source gates."
       - name: Locate fresh, Git-archived, true-time NHL NFL complete capture
+        id: source
         working-directory: private
         shell: bash
         run: |
@@ -76,10 +77,32 @@ jobs:
           }
           matches.sort((a,b)=>b.t-a.t);
           if(!matches.length)throw Error('No original, complete, fresh private 6/9 AM capture to freeze');
-          fs.appendFileSync(process.env.GITHUB_ENV,'PRIVATE_ARCHIVE='+matches[0].d+'\n');
-          console.log('PASS: original complete recent NHL/NFL private source archive selected.');
+          const current=matches[0].d;
+          const manifest=JSON.parse(fs.readFileSync(path.join(current,'manifest.json'),'utf8'));
+          const nhlAt=manifest.sports.find(x=>x.sport==='NHL').sourceObservedAt;
+          const nflAt=manifest.sports.find(x=>x.sport==='NFL').sourceObservedAt;
+          const seen=(dir,field,asOf)=>{
+            if(!fs.existsSync(dir))return false;
+            for(const name of fs.readdirSync(dir)){
+              if(!name.endsWith('.json'))continue;
+              try{
+                if(JSON.parse(fs.readFileSync(path.join(dir,name),'utf8'))[field]===asOf)
+                  return true;
+              }catch{}
+            }
+            return false;
+          };
+          if(seen('outputs/research/snapshots','boardAsOfAt',nhlAt)&&
+             seen('outputs/nfl/prospective','sourceBoardAsOfAt',nflAt)){
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,'duplicate=true\n');
+            console.log('PASS: both original research freezes already privately committed for this same exact source; skip duplicate.');
+          }else{
+            fs.appendFileSync(process.env.GITHUB_ENV,'PRIVATE_ARCHIVE='+current+'\n');
+            console.log('PASS: original complete recent NHL/NFL private source archive selected.');
+          }
           NODE
       - name: Construct NHL original explicit Higher Lower selections offline
+        if: steps.source.outputs.duplicate != 'true'
         id: nhl
         working-directory: private
         shell: bash
@@ -99,6 +122,7 @@ jobs:
           console.log('PASS: NHL original explicit future Higher/Lower research candidates constructed.');
           NODE
       - name: Construct NFL past-only numeric model and explicit Higher Lower selections
+        if: steps.source.outputs.duplicate != 'true'
         id: nfl
         working-directory: private
         shell: bash
@@ -129,6 +153,7 @@ jobs:
           console.log('PASS: NFL original explicit future Higher/Lower research candidates constructed.');
           NODE
       - name: Commit both ORIGINAL pregame selections and numeric research privately
+        if: steps.source.outputs.duplicate != 'true'
         working-directory: private
         shell: bash
         run: |

@@ -1,0 +1,186 @@
+name: Verify both original NFL NHL freezes and publish safe status
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-private-nhl-nfl-freeze-status.yml']
+  schedule:
+    - cron: '42 9 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: write
+concurrency:
+  group: safe-public-nhl-nfl-freeze-status
+  cancel-in-progress: false
+jobs:
+  verify-and-publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout public website repository
+        uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: true
+      - name: Require private source credentials
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private source token missing"; exit 1; }
+      - name: Checkout original private research provenance
+        uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Independently verify first Git addition, original source and kickoff cutoffs
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node - <<'NODE'
+          const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process');
+          const {verifyCommitChronology}=require('./src/nfl-prospective-freeze.cjs');
+          const requireTrue=(v,msg)=>{if(!v)throw Error(msg);};
+          const read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+          const git=(...args)=>cp.execFileSync('git',args,{encoding:'utf8'}).trim();
+          const latest=(dir,pattern)=>{
+            const names=fs.readdirSync(dir).filter(x=>pattern.test(x)).sort();
+            requireTrue(names.length>0,'Original snapshot file missing');
+            return path.join(dir,names[names.length-1]);
+          };
+          const nhlPath=latest('outputs/research/snapshots',/^\d{8}T\d{6}Z\.json$/);
+          const nflPath=latest('outputs/nfl/prospective',/^\d{8}T\d{6}Z\.json$/);
+          const n=read(nhlPath),f=read(nflPath);
+          const proof=file=>{
+            const at=git('log','--diff-filter=A','-1','--format=%cI','--',file);
+            const sha=git('log','--diff-filter=A','-1','--format=%H','--',file);
+            const changes=Number(git('rev-list','--count','HEAD','--',file));
+            requireTrue(sha&&Number.isFinite(Date.parse(at))&&changes===1,
+              'Original Git addition not unique and immutable');
+            return {at,sha,time:Date.parse(at)};
+          };
+          const np=proof(nhlPath),fp=proof(nflPath);
+          requireTrue(np.sha===fp.sha,'Both sports must be committed together before games');
+          requireTrue(n.snapshotKind==='nhl_partner_direct_original_pregame_candidate_unproven_until_first_git_commit',
+            'NHL original research kind invalid');
+          const nr=n.individualPropSelections,fr=f.selections;
+          requireTrue(Array.isArray(nr)&&nr.length>0&&Array.isArray(fr)&&fr.length>0,
+            'No explicit NHL/NFL selections to certify');
+          requireTrue(n.individualPropSelectionPolicy==='nhl-individual-prop-max-available-direction-v1'&&
+            n.originalFantasyPlatformOfferAuthenticated===false&&
+            n.originalPlatformSettlementVerified===false,
+            'NHL research-only source contract invalid');
+          requireTrue(f.kind==='nfl_independent_partner_standard_directional_original_research_v1'&&
+            f.calibratedProbabilities===false&&f.authenticatedPlatformAvailability===false,
+            'NFL original research-only contract invalid');
+          requireTrue(verifyCommitChronology(f,fp.at).verified===true,
+            'NFL original first-Git timestamp fails pregame chronology');
+          const generated=Date.parse(n.generatedAt),board=Date.parse(n.boardAsOfAt);
+          requireTrue(Number.isFinite(generated)&&Number.isFinite(board)&&
+            board<=generated&&generated-board<=30*60000&&
+            Math.floor(generated/1000)<=Math.floor(np.time/1000),
+            'NHL original source/model/Git chronology invalid');
+          const schedule=read('outputs/official-nhl/season-schedules/2026-27.json');
+          requireTrue(schedule.complete===true,'Original official NHL schedule incomplete');
+          const official=new Map(schedule.games.map(x=>[x.id,x]));
+          const nkeys=new Set(),ngames=new Set();
+          for(const p of nr){
+            const g=official.get(p.gameId);
+            const start=Date.parse(p.gameStartAt),event=Date.parse(p.eventStartsAt);
+            const key=[p.gameId,p.playerId,p.market,p.line,p.tier].join('|');
+            requireTrue(g&&Number.isFinite(start)&&start-np.time>=15*60000&&
+              Math.abs(start-event)<=300000&&
+              Math.abs(start-Date.parse(g.startTimeUTC))<=300000&&
+              !nkeys.has(key)&&p.marketStatus==='research_only'&&
+              p.originalModelProbabilityCalibrated===false&&
+              p.originalPlatformSettlementVerified===false,
+              'NHL original selection/source chronology or identity failed');
+            nkeys.add(key);ngames.add(p.gameId);
+          }
+          const fkeys=new Set(),fgames=new Set();
+          for(const s of fr){
+            const key=[s.sourceGameId,s.historicalPlayerId,s.market,s.line].join('|');
+            const start=Date.parse(s.eventStartsAt);
+            requireTrue(s.selectedSide===s.offeredSide&&
+              ['Higher','Lower'].includes(s.selectedSide)&&s.tier==='Standard'&&
+              s.authenticatedPrizePicksAppQuote===false&&s.probability===null&&
+              s.platformSettlementVerified===false&&
+              Number.isFinite(start)&&start-fp.time>=15*60000&&!fkeys.has(key),
+              'NFL original selection/provenance/side invalid');
+            fkeys.add(key);fgames.add(s.sourceGameId);
+          }
+          // Both records must come from the same originally captured live source.
+          const day=new Date(board).toISOString().slice(0,10);
+          const dirs=fs.readdirSync('outputs/manual-board-captures/'+day);
+          const matched=dirs.map(x=>{
+            const p='outputs/manual-board-captures/'+day+'/'+x+'/manifest.json';
+            return fs.existsSync(p)?read(p):null;
+          }).find(x=>x&&x.completePagination===true&&x.actualCaptureInRequestedHour===true&&
+            x.sports?.find(s=>s.sport==='NHL')?.sourceObservedAt===n.boardAsOfAt&&
+            x.sports?.find(s=>s.sport==='NFL')?.sourceObservedAt===f.sourceBoardAsOfAt);
+          requireTrue(matched,'Frozen NHL/NFL forecasts not matched to one original complete private source');
+          const report={
+            schemaVersion:1,kind:'public_safe_nhl_nfl_original_pregame_freeze_status_v1',
+            generatedAt:new Date().toISOString(),
+            sourceCaptureFinishedUTC:matched.captureFinishedUTC,
+            captureSlotPacific:matched.captureSlotPacific,
+            originalPrivateGitCommitUTC:np.at,
+            firstGitAdditionVerified:true,
+            sameCommitForBothSports:true,
+            privateCommitSha:np.sha,
+            capturedOffers:{NHL:matched.sports.find(s=>s.sport==='NHL').rawCount,
+              NFL:matched.sports.find(s=>s.sport==='NFL').rawCount},
+            pregameSelections:{
+              NHL:{count:nr.length,distinctGames:ngames.size,
+                standard:nr.filter(x=>x.tier==='Standard').length},
+              NFL:{count:fr.length,distinctGames:fgames.size,
+                standard:fr.filter(x=>x.tier==='Standard').length}
+            },
+            originalModelDirectionsBeforeKickoff:true,
+            independentlyVerifiedInitialGitCommit:true,
+            modelProbabilityCalibrated:false,
+            authenticPrizePicksAppOfferVerified:false,
+            platformSettlementVerified:false,
+            verifiedExpectedValue:false,
+            officialWagersPlaced:0,
+            noRawLinesPlayersOrPrivateModelsPublished:true,
+            scope:'Independently verified private first-Git pregame research, not playable or proven profitable picks'
+          };
+          const output='../public/data/nhl-nfl-freeze-status.json';
+          fs.mkdirSync('../public/data',{recursive:true});
+          fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n');
+          console.log(JSON.stringify({status:'verified original NHL NFL research first Git',nhl:nr.length,nfl:fr.length,
+            capturedNhl:report.capturedOffers.NHL,capturedNfl:report.capturedOffers.NFL,
+            originalBeforeKickoff:true,publicRowsReleased:0}));
+          NODE
+      - name: Commit safe aggregate status to PUBLIC repository
+        working-directory: public
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/nhl-nfl-freeze-status.json
+          if git diff --cached --quiet; then
+            echo "PASS: public status is unchanged."
+            exit 0
+          fi
+          git commit -m "status: verified both NHL NFL original pregame research freezes" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main; then
+              echo "PASS: truthful counts-only freeze evidence published to public repository."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Public status archival not confirmed"
+          exit 1

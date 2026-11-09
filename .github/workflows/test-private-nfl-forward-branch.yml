@@ -1,4 +1,4 @@
-# Unit regression rerun: source freshness and kickoff cutoff are independent.
+# Private branch NFL freeze regression rerun after corrected field assertion.
 name: Test private NFL original-forecast pipeline on public runner
 on:
   workflow_dispatch:

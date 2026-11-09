@@ -114,6 +114,8 @@ jobs:
           done
           echo "::error::Source capture was not durably archived privately"
           exit 1
+      # Standard shadows are frozen with the same original private Git snapshot.
+      # Never replace champion model picks with unfitted challenger directions.
       - name: Construct separate research-only NHL selections from fresh source
         id: freeze
         working-directory: private

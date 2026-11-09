@@ -1,0 +1,113 @@
+name: Private NHL Standard usage matchup and distribution challenger lab
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-standard-challenger-lab.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-standard-shadow-research-lab
+  cancel-in-progress: false
+jobs:
+  validate-and-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 26
+    steps:
+      - name: Require narrowly scoped private Git Contents token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::No private repository access"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: feat/nhl-standard-shadow-triple-walkforward-20261109
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run isolated regression and full private test suite
+        id: test
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-standard-triple-challenger.test.cjs test/nhl-partner-pregame-freeze.test.cjs >"$log" 2>&1; then
+            cp "$log" /tmp/private-standard-research-failure.log
+            echo "::warning::Private new challenger regressions FAILED; details committed privately."
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "PASS: private Standard challenger and original freeze tests"
+          if ! npm test >"$log" 2>&1; then
+            cp "$log" /tmp/private-standard-research-failure.log
+            echo "::warning::Full private Node suite FAILED; details committed privately."
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "PASS: all private Node regression suites."
+          echo "status=passed" >> "$GITHUB_OUTPUT"
+      - name: Run private historical diagnostic without claiming prospective hit rate
+        id: replay
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          if test "${{ steps.test.outputs.status }}" != passed; then
+            echo "status=skipped" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if node scripts/report-nhl-standard-triple-challengers.cjs > /tmp/private-standard-replay.json 2>/tmp/private-standard-replay-errors.log; then
+            echo "PASS: private retrospective Standard-line diagnostic reconstructed."
+            echo "status=passed" >> "$GITHUB_OUTPUT"
+          else
+            cp /tmp/private-standard-replay-errors.log /tmp/private-standard-research-failure.log
+            echo "::warning::Private retrospective Standard-line diagnostic FAILED."
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Save detailed evidence or test failure ONLY to private branch
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          path="outputs/health/nhl-standard-shadow-branch-diagnostic.txt"
+          if test -s /tmp/private-standard-research-failure.log; then
+            cp /tmp/private-standard-research-failure.log "$path"
+          else
+            printf 'Private Standard-model branch synthetic tests and full Node suite passed.\n' > "$path"
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f -- "$path"
+          if test "${{ steps.replay.outputs.status }}" = passed; then
+            git add -f outputs/health/nhl-standard-triple-challenger-latest.json
+          fi
+          if git diff --cached --quiet; then
+            echo "No private diagnostics changed."
+            exit 0
+          fi
+          git commit -m "audit: private Standard challenger validation and retrospective research status" >/dev/null
+          for attempt in 1 2 3 4; do
+            git fetch -q origin feat/nhl-standard-shadow-triple-walkforward-20261109
+            git -c rebase.autoStash=true rebase -q -X theirs origin/feat/nhl-standard-shadow-triple-walkforward-20261109
+            if git push -q origin HEAD:feat/nhl-standard-shadow-triple-walkforward-20261109; then
+              echo "Private test report durably archived, no private log published."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Private branch diagnostic archival failed";exit 1
+      - name: Report pass or fail without releasing source
+        shell: bash
+        run: |
+          test "${{ steps.test.outputs.status }}" = passed ||
+            { echo "::error::Private challenger regression not green"; exit 1; }
+          test "${{ steps.replay.outputs.status }}" = passed ||
+            { echo "::error::Private challenger diagnostic not green"; exit 1; }

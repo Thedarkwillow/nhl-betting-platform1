@@ -81,7 +81,23 @@ jobs:
               echo "::error::Current evening official final collection had errors."
               exit 1
             fi
-            echo "Evening official result capture attempted; completeness recorded in private source."
+            # Do not treat scheduled or LIVE games as official final statistics.
+            node - "$DATE" <<'NODE'
+          const fs=require('node:fs');
+          const date=process.argv[2];
+          const r=JSON.parse(fs.readFileSync('outputs/player-stats/'+date+'.json','utf8'));
+          if(r.requestedDate!==date||r.sourceSchemaVersion!==5||
+             !Number.isInteger(r.scheduledGames)||r.scheduledGames<1||
+             r.scheduledGames!==r.completedGames||
+             r.completedGames!==r.collectedGames||
+             r.errors?.length){
+            console.error('::error::Official NHL schedule is not yet completely FINAL and collected.');
+            process.exit(1);
+          }
+          console.log('PASS: official NHL FINAL games and boxscores collected for '+date+
+            ', scheduled='+r.scheduledGames+', final='+r.completedGames+
+            ', collected='+r.collectedGames+', errors=0.');
+          NODE
           fi
       - name: Rebuild past-only NHL history and champion projections privately
         working-directory: private

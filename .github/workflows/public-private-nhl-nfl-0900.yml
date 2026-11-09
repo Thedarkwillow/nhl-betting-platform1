@@ -1,4 +1,4 @@
-# Trusted push changes also run the real 6/9 AM capture gate; only an actual Pacific-hour board is certified.
+# Rate-limit recovery: retry current private collector only during the real capture hour.
 name: Public Free Runners - Private NHL and NFL 6 and 9 AM Boards
 on:
   workflow_dispatch:

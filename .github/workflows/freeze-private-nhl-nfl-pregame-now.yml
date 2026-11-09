@@ -116,6 +116,7 @@ jobs:
             throw Error('NFL private preview lacks original model provenance');
           fs.appendFileSync(process.env.GITHUB_ENV,'NFL_PREVIEW='+z.snapshot+'\n');
           NODE
+          NFL_PREVIEW="$(node -e "const d=require('/tmp/nfl-private-preview.json'); process.stdout.write(d.snapshot)")"
           if ! node scripts/freeze-nfl-partner-pregame.cjs "$NFL_PREVIEW" > /tmp/nfl-original-freeze.json 2>"$log"; then
             echo "::error::No eligible original explicit NFL Standard Higher/Lower selection."
             exit 1

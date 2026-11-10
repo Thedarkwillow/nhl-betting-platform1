@@ -9,6 +9,7 @@ on:
       - 'data.json'
       - 'data/nhl-nfl-freeze-status.json'
       - 'data/collection-health.json'
+      - 'data/model-scorecards.json'
       - 'nhl-games.json'
       - '.github/workflows/publish.yml'
 permissions:

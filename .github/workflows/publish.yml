@@ -8,6 +8,7 @@ on:
       - 'assets/**'
       - 'data.json'
       - 'data/nhl-nfl-freeze-status.json'
+      - 'data/collection-health.json'
       - 'nhl-games.json'
       - '.github/workflows/publish.yml'
 permissions:

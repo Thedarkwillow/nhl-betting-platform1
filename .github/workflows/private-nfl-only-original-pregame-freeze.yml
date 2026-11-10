@@ -1,6 +1,11 @@
 name: Freeze standalone NFL Standard research from genuine private morning board
 on:
   workflow_dispatch:
+  # Smoke out-of-hour setup without inventing a capture. Actual production
+  # freezing still requires fresh original private source and first Git proof.
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nfl-only-original-pregame-freeze.yml']
   workflow_run:
     workflows: ['Public Free Runners - Private NHL and NFL 6 and 9 AM Boards']
     types: [completed]

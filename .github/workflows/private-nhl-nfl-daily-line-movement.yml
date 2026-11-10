@@ -1,3 +1,4 @@
+# Nov 10: source report correction selects independently reverified 09:22AM Nov9 archive, never 8PM manual baseline.
 name: Record daily NHL NFL source line moves and publish counts
 on:
   workflow_dispatch:
@@ -58,7 +59,7 @@ jobs:
           node - <<'NODE'
           const fs=require('node:fs'),path=require('node:path');
           const {verifiedSlot}=require('./src/partner-prizepicks-board.cjs');
-          const {findBaseline}=require('./scripts/diff-live-partner-captures.cjs');
+          const {findBaseline,isCertifiedMorning}=require('./scripts/diff-live-partner-captures.cjs');
           const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',
             year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
           const z=Object.fromEntries(p.map(x=>[x.type,x.value]));
@@ -73,7 +74,21 @@ jobs:
               Date.now()-t>3*3600000)continue;
             const target='outputs/partner-source/line-delta/'+day+'/'+
               doc.captureFinishedUTC.slice(0,19).replace(/[-:]/g,'')+'Z.json';
-            if(fs.existsSync(target))continue;
+            if(fs.existsSync(target)){
+              // A previous report may have (incorrectly) used an out-of-hour
+              // manual source. The derived file is auditable/correctable in
+              // Git history; original source archives are immutable.
+              let old;try{old=JSON.parse(fs.readFileSync(target))}catch{old=null;}
+              const baseline=old?.baselineArchive;
+              if(typeof baseline!=='string'||
+                 !baseline.startsWith('outputs/manual-board-captures/'))continue;
+              const oldFile=baseline+'/manifest.json';
+              if(!fs.existsSync(oldFile))continue;
+              let priorManifest;
+              try{priorManifest=JSON.parse(fs.readFileSync(oldFile))}catch{continue;}
+              if(isCertifiedMorning(priorManifest))continue;
+              console.log('REPAIR: previous derived report used a nonmorning baseline; source untouched.');
+            }
             const prior=findBaseline(relative);
             if(!prior)continue;
             possible.push({relative,t,target,prior});

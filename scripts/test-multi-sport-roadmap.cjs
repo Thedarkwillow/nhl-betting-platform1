@@ -1,7 +1,7 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict"),
  fs=require("node:fs"),path=require("node:path");
-const {viewModel}=require("../assets/multi-sport-roadmap.js");
+const {viewModel,movementView}=require("../assets/multi-sport-roadmap.js");
 const source=JSON.parse(fs.readFileSync(path.join(__dirname,"../data/nhl-nfl-freeze-status.json"),"utf8"));
 const clock=Date.parse(source.sourceCaptureFinishedUTC);
 test("NHL and NFL public research counts are real precommitted aggregate evidence",()=>{
@@ -43,4 +43,24 @@ test("site inserts sport selector without exposing private prop lines or model i
  assert.match(html,/NHL-only/);
  assert.equal(source.noRawLinesPlayersOrPrivateModelsPublished,true);
  assert.equal(JSON.stringify(source).includes('"playerId"'),false);
+});
+
+test("sport picker shows only independently archived NFL and NHL line-change counts",()=>{
+ const d=JSON.parse(fs.readFileSync(path.join(__dirname,
+  "../data/source-line-movement.json"),"utf8"));
+ const at=Date.parse(d.laterCaptureAt)+3600000;
+ const nfl=movementView(d,"NFL",at);
+ const nhl=movementView(d,"NHL",at);
+ assert.match(nfl,/cross-day source comparison/);
+ assert.match(nfl,/98 matching-offer lines changed/);
+ assert.match(nfl,/6 offered-side changes/);
+ assert.match(nfl,/NOT confirmed removals/);
+ assert.match(nfl,/Archived research; not current app availability/);
+ assert.match(nhl,/No shared offer IDs/);
+ const bad={...d,originalOffersFromPartnerSourceNotVerifiedPrizePicksApp:false};
+ assert.match(movementView(bad,"NFL",at),/no verified comparison/);
+ const html=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
+ assert.match(html,/data-multi="movement"/);
+ assert.equal(d.privateOfferIDsPublished,0);
+ assert.equal(d.rawLinesPublished,0);
 });

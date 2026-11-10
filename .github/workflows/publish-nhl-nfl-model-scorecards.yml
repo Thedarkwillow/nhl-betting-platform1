@@ -1,0 +1,91 @@
+name: Publish sanitized NHL NFL frozen model scorecards
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-nhl-nfl-model-scorecards.yml']
+  workflow_run:
+    workflows:
+      - 'Private NHL prospective grading and baseline audit via public runner'
+      - 'NFL archived pregame forecast and finals grading via public free runner'
+    types: [completed]
+  schedule:
+    - cron: '35 2 * * *'
+      timezone: America/Los_Angeles
+    - cron: '25 6 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: write
+concurrency:
+  group: verified-public-nhl-nfl-grade-scorecards
+  cancel-in-progress: false
+jobs:
+  release-aggregates-only:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Require narrowly scoped private research credential
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::No authorized private scorecard source"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          fetch-depth: 0
+          path: private
+          persist-credentials: false
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test allowlist and prospective-only counting without source leaks
+        working-directory: public
+        run: |
+          set -euo pipefail
+          node --test scripts/test-publish-safe-pregame-scorecards.cjs
+          node --check scripts/publish-safe-pregame-scorecards.cjs
+      - name: Validate real original outcome evidence and export aggregate-only model grades
+        run: |
+          set -euo pipefail
+          umask 077
+          node public/scripts/publish-safe-pregame-scorecards.cjs "$GITHUB_WORKSPACE/private" "$GITHUB_WORKSPACE/public"
+          node - <<'NODE'
+          const s=require('./public/data/model-scorecards.json');
+          if(s.kind!=='public_nhl_nfl_original_git_frozen_model_scorecards_v1'||
+           s.nfl.separateNumericForecasts.modelSelectedHigherLowerHitRate!==null||
+           s.evidenceWarnings.rawPropRowsExposed!==0||
+           s.evidenceWarnings.calibratedHigherLowerProbabilities!==false||
+           s.evidenceWarnings.payoutAdjustedEV!==null)
+            throw Error('No safe public graded-sample evidence');
+          console.log('PASS: grade summary valid; raw player records and unverified wager economics withheld.');
+          NODE
+      - name: Commit only sanitized public scorecard, never private quote data
+        working-directory: public
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/model-scorecards.json
+          if git diff --cached --quiet; then
+            echo "PASS: previously published counts unchanged."
+            exit 0
+          fi
+          git commit -m "status: NHL NFL original frozen grading and paired baselines (aggregate only)" >/dev/null
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main; then
+              echo "PASS: public verified-model scorecard archive updated without exposing private source."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Scorecard publication not confirmed"
+          exit 1

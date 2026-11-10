@@ -49,6 +49,37 @@
   return "6 AM "+status("06:00")+" · 9 AM "+status("09:00")+
    " · 6-to-9 comparison "+(d.sixToNineChangesVerified===true?"archived":"unavailable");
  }
+ function movementView(d,sport="NHL",now=Date.now()){
+  const code=["NHL","NFL"].includes(sport)?sport:"NHL",
+   m=d?.sports?.[code],before=Date.parse(d?.earlierCaptureAt),
+   after=Date.parse(d?.laterCaptureAt);
+  const count=x=>Number.isInteger(x)&&x>=0;
+  if(d?.kind!=="public_safe_nhl_nfl_board_line_movement_counts_v1"||
+   d.schemaVersion!==1||d.privateOfferIDsPublished!==0||
+   d.rawLinesPublished!==0||d.previouslyFrozenDirectionsRetained!==true||
+   d.originalOffersFromPartnerSourceNotVerifiedPrizePicksApp!==true||
+   ![before,after].every(Number.isFinite)||after<=before||
+   !m||!["existingLineChanged","existingSideAvailabilityChanged",
+    "newSourceOfferIDs","noLongerSeenSourceIDsUnverified","unchanged",
+    "firstObserved","secondObserved"].every(k=>count(m[k])))
+   return "NHL/NFL line movement: no verified comparison published.";
+  const label=d.genuineSixToNineComparison===true?
+    "genuine same-day 6-to-9 AM":
+    d.crossDayComparison===true?"cross-day":"other same-day";
+  const time=new Intl.DateTimeFormat("en-US",{timeZone:"America/Los_Angeles",
+   month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}).format(new Date(after));
+  const extra=m.newSourceOfferIDs===m.secondObserved?
+   " No shared offer IDs across these captures.":"";
+  const stale=Number.isFinite(now)&&now-after>30*60000?
+   " Archived research; not current app availability.":"";
+  return code+" "+label+" source comparison ("+time+" PT): "+
+   m.existingLineChanged+" matching-offer lines changed, "+
+   m.existingSideAvailabilityChanged+" offered-side changes, "+
+   m.newSourceOfferIDs+" newly observed IDs, "+
+   m.noLongerSeenSourceIDsUnverified+
+   " IDs absent in the later source (NOT confirmed removals)."+
+   extra+stale;
+ }
  function render(rootEl,view){
   if(!rootEl)return;
   const byId=x=>rootEl.querySelector('[data-multi="'+x+'"]');
@@ -71,8 +102,12 @@
   const host=document.getElementById("multiSportEvidence");
   if(!host)return;
   const picker=host.querySelector("#multiSportPicker");
-  let status=null;
-  const draw=()=>render(host,viewModel(status,picker?.value||"NHL"));
+  let status=null,movement=null;
+  const movements=host.querySelector('[data-multi="movement"]');
+  const draw=()=>{
+   render(host,viewModel(status,picker?.value||"NHL"));
+   if(movements)movements.textContent=movementView(movement,picker?.value||"NHL");
+  };
   const ops=host.querySelector('[data-multi="operations"]');
   if(ops){
    ops.textContent=healthView(null);
@@ -83,6 +118,10 @@
   }
   if(picker)picker.addEventListener("change",draw);
   draw();
+  if(movements)fetch("./data/source-line-movement.json",{cache:"no-store"})
+   .then(r=>{if(!r.ok)throw Error("No source movement report");return r.json()})
+   .then(d=>{movement=d;draw()})
+   .catch(()=>{movement=null;draw()});
   fetch("./data/nhl-nfl-freeze-status.json",{cache:"no-store"})
    .then(r=>{if(!r.ok)throw Error("No published freeze status");return r.json();})
    .then(d=>{status=d;draw();})
@@ -92,5 +131,5 @@
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);
   else init();
  }
- return {viewModel,healthView,render};
+ return {viewModel,healthView,movementView,render};
 });

@@ -42,7 +42,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          node --test test/nfl-precommitted-grading.test.cjs test/nfl-prospective-freeze.test.cjs >"$log" 2>&1 ||
+          node --test test/nfl-precommitted-grading.test.cjs test/nfl-prospective-freeze.test.cjs test/nfl-frozen-direction-diagnostic.test.cjs test/nfl-prospective-shadow.test.cjs test/nfl-shadow-postgame-grade.test.cjs >"$log" 2>&1 ||
             { echo "::error::NFL original chronology or grading regression"; exit 1; }
           python -m unittest discover -s test -p 'test_nfl_2026_refresh.py' >"$log" 2>&1 ||
             { echo "::error::NFL history preservation regression"; exit 1; }
@@ -75,12 +75,21 @@ jobs:
             echo "::error::NFL precommitted outcome audit failed; no success claim."
             exit 1
           fi
+          # Only first-Git original and future-abstention evidence, never
+          # backdated directional preferences or player-level public output.
+          if ! node scripts/report-nfl-frozen-direction-diagnostic.cjs >"$log" 2>&1 ||
+             ! node scripts/report-nfl-shadow-postgame.cjs >"$log" 2>&1; then
+            echo "::error::NFL frozen Higher/Lower bias or independent shadow grading failed."
+            exit 1
+          fi
           node - <<'NODE'
           const r=require('./outputs/nfl/backtests/pregame-forecast-proof-latest.json');
           if(r.kind!=='nfl_private_pregame_evidence_separated_outcome_audit_v1'||
              r.nflverseFinalStatsNotPlatformSettlement!==true||
              r.neverClaimNumericSideAsPreviouslyFrozenHigherLower!==true||
-             r.explicitFrozenDirections?.platformPayoutSettlementsVerified!==false)
+             r.explicitFrozenDirections?.platformPayoutSettlementsVerified!==false||
+             require('./outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json').productionModelPromotionApproved!==false||
+             require('./outputs/nfl/backtests/frozen-shadow-prospective-grading-latest.json').payoutAdjustedEV!==null)
            throw Error('NFL evidence classification missing');
           console.log(JSON.stringify({numericDecided:r.numeric.decided,
              frozenSelectedDecided:r.explicitFrozenDirections.decided,
@@ -93,7 +102,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f outputs/nfl/history/manifest.json outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/backtests/pregame-forecast-proof-latest.json
+          git add -f outputs/nfl/history/manifest.json outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/backtests/pregame-forecast-proof-latest.json outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json outputs/nfl/backtests/frozen-shadow-prospective-grading-latest.json
           if git diff --cached --quiet; then
             echo "PASS: NFL private report unchanged."
             exit 0

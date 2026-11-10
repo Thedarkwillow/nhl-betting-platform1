@@ -1,0 +1,98 @@
+name: Archive integrated seven-roadmap NHL NFL readiness privately
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-seven-roadmap-report.yml']
+  schedule:
+    - cron: '52 5 * * 2,5'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-seven-roadmap-evidence-archive
+  cancel-in-progress: false
+jobs:
+  private-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Require trusted private contents token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private source access missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate private research record consistency
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-paired-shadow-research.test.cjs test/nfl-frozen-structural-lineups.test.cjs test/sport-market-release-readiness.test.cjs test/nhl-platform-line-shop.test.cjs >"$log" 2>&1; then
+            echo "::error::Seven-priority private safety tests failed"
+            exit 1
+          fi
+          echo "PASS: seven-priority research safeguards."
+      - name: Refresh prospective NHL paired champion and challenger evidence
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/report-nhl-standard-triple-challengers.cjs >"$log" 2>&1; then
+            echo "::error::NHL prospective challenger scoring failed; no win-rate claim."
+            exit 1
+          fi
+          echo "PASS: prospective and posthoc NHL paired evidence remain separated."
+      - name: Build all seven roadmap workstreams from original private history
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/report-seven-roadmap-readiness.cjs >"$log" 2>&1; then
+            echo "::error::Integrated private seven-priority report failed"
+            exit 1
+          fi
+          node - <<'NODE'
+          const r=require('./outputs/health/seven-roadmap-readiness-latest.json');
+          if(r.kind!=='private_seven_roadmap_tracks_integrated_readiness_v1'||
+             r.tracks.specialtyMarketModels.readyAutomaticMarkets!==0||
+             r.tracks.lineupOptimization.payoutEV!==null||
+             r.automaticWagersPlaced!==0)
+           throw Error('Research-only release gates missing');
+          console.log('PASS: seven-track audit compiled privately with no auto-pick or invented EV.');
+          NODE
+      - name: Archive private research without exposing named props publicly
+        working-directory: private
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/nhl-standard-triple-challenger-latest.json outputs/health/seven-roadmap-readiness-latest.json
+          if git diff --cached --quiet; then
+            echo "PASS: original research evidence unchanged."
+            exit 0
+          fi
+          git commit -m "research: original-frozen NHL paired challengers and NFL seven-roadmap readiness" >/dev/null
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main; then
+              echo "PASS: seven-track research report archived privately; public outputs remain counts-only."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Private seven-track report archival failed"
+          exit 1

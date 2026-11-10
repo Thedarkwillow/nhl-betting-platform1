@@ -1,0 +1,120 @@
+name: Freeze future NFL opponent offense usage matchup challenger research
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nfl-matchup-context-future-shadow.yml']
+  workflow_run:
+    workflows:
+      - 'Freeze actual-time NHL and NFL pregame Higher Lower research'
+      - 'Freeze standalone NFL Standard research from genuine private morning board'
+    types: [completed]
+  schedule:
+    - cron: '37 6 * * *'
+      timezone: America/Los_Angeles
+    - cron: '37 9 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: original-nfl-matchup-context-research-shadow
+  cancel-in-progress: false
+jobs:
+  first-git-context:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - name: Require private research write access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::No private authorized research access"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          persist-credentials: true
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test matchup model, independent Git original provenance and point-in-time data rights
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nfl-pregame-matchup-challenger.test.cjs test/nfl-matchup-shadow-grading.test.cjs test/nfl-prospective-freeze.test.cjs > "$log" 2>&1; then
+            echo "::error::Unproven pregame NFL contextual feature, Git or rights test"
+            exit 1
+          fi
+          echo "PASS: NFL original quote, opponent context and strictly prior-time data gate."
+      - name: Compute actual future-only research without changing the original Higher Lower selections
+        id: build
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node scripts/build-nfl-matchup-shadow.cjs >/tmp/nfl-matchup-shadow.json 2>"$log"; then
+            echo "::error::Private current NFL historical/opponent source computation failed"
+            exit 1
+          fi
+          node - <<'NODE'
+          const fs=require('node:fs'),x=require('/tmp/nfl-matchup-shadow.json');
+          const states=['candidate_pending_separate_first_Git_commit',
+           'skipped_no_original_nfl_snapshot',
+           'skipped_no_fresh_first_git_original_board',
+           'skipped_already_frozen_same_original_source'];
+          if(!states.includes(x.status))throw Error('Invalid original research capture state');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'status='+x.status+'\n');
+          if(x.status==='candidate_pending_separate_first_Git_commit'){
+            fs.appendFileSync(process.env.GITHUB_ENV,'NFL_CONTEXT_SHADOW='+x.file+'\n');
+            console.log('PASS: NEW historical NFL context projections constructed; first remote Git still REQUIRED.');
+          }else console.log('SKIP: no new original first-Git NFL future board; do not relabel old games.');
+          NODE
+      - name: Independently Git freeze new matchup challenger before each future kickoff
+        if: steps.build.outputs.status == 'candidate_pending_separate_first_Git_commit'
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          check() {
+            node - <<'NODE'
+          const fs=require('node:fs');
+          const a=JSON.parse(fs.readFileSync(process.env.NFL_CONTEXT_SHADOW,'utf8'));
+          if(a.kind!=='nfl_pregame_matchup_all_sources_shadow_v1'||
+             !Array.isArray(a.rows)||!a.rows.length||
+             a.rows.some(x=>Date.parse(x.gameStartAt)-Date.now()<15*60000))
+            throw Error('Cannot claim new original context precommit after game cutoff');
+          NODE
+          }
+          check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$NFL_CONTEXT_SHADOW"
+          git commit -m "research(nfl): first Git new pregame matchup context vs immutable Standard forecast" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            check
+            node - <<'NODE'
+          const cp=require('node:child_process'),fs=require('node:fs');
+          const git=cp.execFileSync('git',['log','-1','--format=%cI'],{encoding:'utf8'}).trim();
+          const doc=JSON.parse(fs.readFileSync(process.env.NFL_CONTEXT_SHADOW,'utf8'));
+          if(require('./src/nfl-matchup-shadow-grading.cjs').verify(doc,git)!==true)
+            throw Error('First Git context challenge missing 15m original kickoff proof');
+          NODE
+            if git push -q origin HEAD:main; then
+              echo 'PASS: distinct, future NFL context research precommitted privately before games; original frozen Higher Lower untouched.'
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Private first remote Git context shadow archive unverified"
+          exit 1
+      - name: Report no-postdated-evidence invariant
+        if: always()
+        run: echo "Green workflow can mean honest no-new-source skip; never count it as a fresh frozen contextual forecast. No real app quote, payout, probability, auto-pick or wager."

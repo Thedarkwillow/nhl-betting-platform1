@@ -1,3 +1,4 @@
+# 2026-11-10: postgame nflverse refresh and original first-Git NFL frozen directional grade attempt.
 name: NFL archived pregame forecast and finals grading via public free runner
 on:
   workflow_dispatch:

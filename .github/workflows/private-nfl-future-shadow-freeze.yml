@@ -1,6 +1,10 @@
 name: Freeze prospective NFL margin-abstention shadow before kickoff
 on:
   workflow_dispatch:
+  # Run a fail-closed no-new-board smoke immediately when automation changes.
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nfl-future-shadow-freeze.yml']
   workflow_run:
     workflows:
       - 'Freeze actual-time NHL and NFL pregame Higher Lower research'

@@ -4,13 +4,13 @@
   "source": "NHL Web API",
   "endpoint": "https://api-web.nhle.com/v1/score/2026-11-09",
   "pacificDate": "2026-11-09",
-  "observedAtUTC": "2026-11-09T23:23:19.848Z",
+  "observedAtUTC": "2026-11-10T00:40:07.810Z",
   "note": "Public NHL scores only. No player props, model predictions or platform settlements.",
   "games": [
     {
       "gameId": 2026020283,
       "startTimeUTC": "2026-11-10T01:00:00Z",
-      "state": "FUT",
+      "state": "PRE",
       "away": "NYR",
       "home": "EDM"
     },

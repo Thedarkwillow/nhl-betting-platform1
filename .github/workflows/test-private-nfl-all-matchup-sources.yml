@@ -1,0 +1,98 @@
+name: Verify NFL four matchup features and agreed source websites privately
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/test-private-nfl-all-matchup-sources.yml']
+permissions:
+  contents: read
+jobs:
+  validate-private-context:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - name: Require authorization to read private football models
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private GitHub research access missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: feat/nfl-pregame-matchup-context-all-sources-20261110
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prove real defense/offense usage and weather/injury source cutoff with immutable NFL lines
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node --test test/nfl-pregame-matchup-challenger.test.cjs test/nfl-matchup-shadow-grading.test.cjs test/nfl-matchup-context.test.cjs test/nfl-context-source-matrix.test.cjs test/nfl-prospective-freeze.test.cjs >"$log" 2>&1; then
+            echo "::error::NFL matchup, website, data leakage, source license, or future Git tests failed"
+            grep -A 7 '^not ok' "$log" | head -n 60 || true
+            exit 1
+          fi
+          echo "PASS: NFL four-feature defensive/offensive/usage/pregame weather feature tests."
+      - name: Protect all existing NHL NFL and MLB research through complete Node regression
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Private full research suite failed; NFL context change cannot be released"
+            grep -A 6 '^not ok' "$log" | head -n 50 || true
+            exit 1
+          fi
+          echo "PASS: complete private npm test suite."
+      - name: Re-evaluate actual historical NFL matchup and FTN site features in research-only cohort
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node scripts/backtest-nfl-matchup-context.cjs >"$log" 2>&1; then
+            echo "::error::Actual 2025/2026 NFL historical source and context challenger replay failed"
+            exit 1
+          fi
+          node - <<'NODE'
+          const d=require('./outputs/nfl/backtests/context-challenger-latest.json');
+          if(d.kind!=='nfl_2025_2026_context_matchup_ftn_retro_challenger_v1'||
+             !d.counts?.scored2026||
+             d.noProspectiveEdgeClaim!==true||
+             d.ftnIncludedInActualResearchPredictions!==true||
+             d.commercialClosedModelPromotionForbiddenPendingLegalCompliance!==true)
+            throw Error('Historical NFL context provenance or source rights missing');
+          console.log(JSON.stringify({historicalRetrospectiveOnly:true,
+            marketsTested:d.perMarketYear.filter(x=>x.year===2026).length,
+            scored2026:d.counts.scored2026,
+            genuineOriginalNFLHigherLowerClaims:0,
+            independentForwardTestPending:true,
+            FTN_licensed_commercial_gate:true}));
+          NODE
+      - name: Refuse stale current context trial pretending to have a new first-Git snapshot
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node scripts/build-nfl-matchup-shadow.cjs >"$log" 2>&1; then
+            echo "::error::Stale NFL original board must result in honest skip, not invented future model picks"
+            exit 1
+          fi
+          node scripts/report-nfl-matchup-shadow.cjs >"$log" 2>&1 ||
+            { echo "::error::Private NFL matchup shadow grading not fail-closed"; exit 1; }
+          node - <<'NODE'
+          const d=require('./outputs/nfl/backtests/matchup-context-forward-grade-latest.json');
+          if(d.kind!=='nfl_context_matchup_original_git_forward_only_grade_v1'||
+             d.currentFirstPartyQuotesVerified!==false||
+             d.productionChampionUnchanged!==true||
+             d.automaticWagersPlaced!==0)
+            throw Error('Unverified NFL context shadow promoted');
+          console.log('PASS: current missing future contextual data cannot create prospective hit rate.');
+          NODE

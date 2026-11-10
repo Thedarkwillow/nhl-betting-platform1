@@ -1,0 +1,71 @@
+name: Verify private four-priority grading/collector/Standard branch
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/test-private-four-priorities-branch.yml']
+permissions:
+  contents: read
+jobs:
+  test-private-branch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Require private source read access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private checkout token missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: feat/nov09-grade-captures-standard-scoreboard
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: New NHL market gate and genuine 6/9 AM collection guards
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-standard-market-diagnostics.test.cjs test/nhl-nfl-partner-direct-collection.test.cjs test/nhl-frozen-baseline-challenge.test.cjs > "$log" 2>&1; then
+            echo "::error::Private four-priority NHL Standard or morning-source tests failed."
+            grep '^not ok' "$log" | head -n 15 || true
+            exit 1
+          fi
+          echo "PASS: new same-line Standard and trustworthy morning archive gates."
+      - name: Run all private Node regression tests before enabling original model changes
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! npm test > "$log" 2>&1; then
+            echo "::error::Existing NHL, NFL and MLB-preservation regressions failed."
+            grep '^not ok' "$log" | head -n 15 || true
+            exit 1
+          fi
+          echo "PASS: full private Node suite."
+      - name: Rebuild actual frozen NHL baseline model audit without backdating directions
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node scripts/report-nhl-frozen-baseline-challenge.cjs > "$log" 2>&1; then
+            echo "::error::Original precommit NHL report failed."
+            exit 1
+          fi
+          node - <<'NODE'
+          const r=require('./outputs/health/nhl-frozen-baseline-challenge-latest.json');
+          if(r.evidenceValid!==true||
+             r.forwardStandardMarketGate?.kind!=='nhl_standard_future_market_gate_v1'||
+             r.forwardStandardMarketGate.promotionPermitted!==false||
+             r.payoutAdjustedEV!==null||r.modelPromoted!==false)
+            throw Error('Private market gate or payout safety invalid');
+          console.log('PASS: original first-Git NHL model comparison with future-only market gate.');
+          NODE

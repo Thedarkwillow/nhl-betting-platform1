@@ -1,4 +1,4 @@
-# Validate final roadmap documentation and full private suite after seven-track code and docs landed on branch.
+# Verify private main after merge; the seven-priority research rollout must stay testable.
 name: Seven roadmap tracks private regression on public free runner
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: feat/roadmap-seven-tracks-20261109
+          ref: main
           path: private
           fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}

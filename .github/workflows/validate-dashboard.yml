@@ -15,6 +15,11 @@ on:
       - 'scripts/test-six-priority-desk.cjs'
       - 'scripts/test-multi-sport-roadmap.cjs'
       - 'data/nhl-nfl-freeze-status.json'
+      - 'data/model-scorecards.json'
+      - 'scripts/publish-safe-pregame-scorecards.cjs'
+      - 'scripts/test-publish-safe-pregame-scorecards.cjs'
+      - 'scripts/test-model-scorecards.cjs'
+      - 'scripts/test-public-capture-schedule.cjs'
       - '.github/workflows/validate-dashboard.yml'
 permissions:
   contents: read
@@ -39,3 +44,7 @@ jobs:
         run: node scripts/test-six-priority-desk.cjs
       - name: Test NHL NFL sport selector, verified precommit status and stale-source warnings
         run: node --test scripts/test-multi-sport-roadmap.cjs
+      - name: Test public NHL NFL original-precommit model grades and sanitized release
+        run: node --test scripts/test-model-scorecards.cjs scripts/test-publish-safe-pregame-scorecards.cjs
+      - name: Validate no double provider probes before morning full captures
+        run: node --test scripts/test-public-capture-schedule.cjs

@@ -42,7 +42,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)";trap 'rm -f "$log"' EXIT
-          if ! node --test test/grade-nhl-predictions.test.cjs test/nhl-frozen-individual-props.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nhl-prospective-validation.test.cjs test/nhl-frozen-baseline-challenge.test.cjs test/nhl-simple-pregame-challengers.test.cjs > "$log" 2>&1; then
+          if ! node --test test/grade-nhl-predictions.test.cjs test/nhl-frozen-individual-props.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nhl-prospective-validation.test.cjs test/nhl-frozen-baseline-challenge.test.cjs test/nhl-standard-market-diagnostics.test.cjs test/nhl-standard-triple-challenger.test.cjs test/nhl-simple-pregame-challengers.test.cjs > "$log" 2>&1; then
             echo "::error::Private precommit / settlement-grading regression failed."
             exit 1
           fi
@@ -55,7 +55,7 @@ jobs:
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           # Always rebuild the original Git-backed cohort from first commit history
           # AFTER the official final boxscores update; never reuse yesterday's ledger.
-          for script in scripts/grade-nhl-predictions.cjs scripts/build-nhl-private-ledger-and-labs.cjs scripts/report-nhl-prospective-model-release.cjs scripts/report-nhl-prospective-validation.cjs scripts/report-nhl-frozen-baseline-challenge.cjs scripts/report-nhl-frozen-simple-challengers.cjs; do
+          for script in scripts/grade-nhl-predictions.cjs scripts/build-nhl-private-ledger-and-labs.cjs scripts/report-nhl-prospective-model-release.cjs scripts/report-nhl-prospective-validation.cjs scripts/report-nhl-frozen-baseline-challenge.cjs scripts/report-nhl-frozen-simple-challengers.cjs scripts/report-nhl-standard-triple-challengers.cjs; do
             if ! node "$script" > "$log" 2>&1; then
               if [[ "$script" == "scripts/report-nhl-frozen-baseline-challenge.cjs" ]]; then
                 grep "^Refusing " "$log" | tail -n 1 | cut -c 1-180 || true
@@ -81,7 +81,8 @@ jobs:
             outputs/health/nhl-prospective-model-release-latest.json
             outputs/health/nhl-prospective-validation-latest.json
             outputs/health/nhl-frozen-baseline-challenge-latest.json
-            outputs/health/nhl-frozen-simple-challengers-latest.json)
+            outputs/health/nhl-frozen-simple-challengers-latest.json
+            outputs/health/nhl-standard-triple-challenger-latest.json)
           (("${#files[@]}" > 0)) || { echo "::error::No NHL grading or baseline output"; exit 1; }
           git add -f -- "${files[@]}"
           if git diff --cached --quiet; then

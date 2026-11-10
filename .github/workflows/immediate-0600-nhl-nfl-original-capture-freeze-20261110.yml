@@ -1,0 +1,168 @@
+name: Immediate Nov 10 NHL NFL full 6AM original board and first Git freeze
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/immediate-0600-nhl-nfl-original-capture-freeze-20261110.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: private-one-time-nhl-nfl-actual-0600-research-20261110
+  cancel-in-progress: false
+jobs:
+  capture-and-freeze:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - name: Require private write authorization and ACTUAL Pacific 6 AM
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$TOKEN" || { echo "::error::No private write credential"; exit 1; }
+          test "$(TZ=America/Los_Angeles date +%F)" = 2026-11-10 ||
+            { echo "::error::Wrong local day; do not call this a November 10 capture"; exit 1; }
+          test "$(TZ=America/Los_Angeles date +%H)" = 06 ||
+            { echo "::error::Outside actual 6 AM Pacific capture window; no fake slot"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test real NHL and NFL board parser plus both frozen-model identity gates
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-nfl-partner-direct-collection.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nfl-prospective-freeze.test.cjs >"$log" 2>&1; then
+            echo "::error::Actual-source source/selection offline tests failed; refusing false first Git capture"
+            grep -A 8 '^not ok' "$log" | head -n 50 || true
+            exit 1
+          fi
+          echo "PASS: NHL and NFL private source and original pregame integrity tests."
+      - name: Capture complete original NHL + NFL partner board ONCE within actual Pacific 6 AM
+        id: observe
+        working-directory: private
+        env:
+          PARTNER_CAPTURE_SLOT: '06:00'
+        run: |
+          set -euo pipefail
+          umask 077
+          if ! node scripts/collect-live-partner-nhl-nfl.cjs > /tmp/nhl-nfl-0600-result.json; then
+            echo "::error::Real NHL/NFL source collection failed; no source archive claim"
+            exit 1
+          fi
+          node - <<'NODE'
+          const fs=require('node:fs'),r=require('/tmp/nhl-nfl-0600-result.json');
+          if(!['saved_private_only','already_complete_morning_snapshot'].includes(r.status)||
+             !r.archiveDir)throw Error('No genuine full-board source');
+          const d=JSON.parse(fs.readFileSync(r.archiveDir+'/manifest.json','utf8'));
+          if(d.pacificDate!=='2026-11-10'||d.captureSlotPacific!=='06:00'||
+             d.completePagination!==true||d.actualCaptureInRequestedHour!==true||
+             d.hasBelowMorningMinimumInventory!==false||
+             !['NHL','NFL'].every(s=>d.sports.some(x=>x.sport===s&&x.rawCount>0&&
+                x.belowMorningMinimumInventory!==true&&x.missingPlayers===0&&x.missingGames===0)))
+            throw Error('No complete original 6 AM NHL+NFL dual-sport capture');
+          fs.appendFileSync(process.env.GITHUB_ENV,'ARCHIVE_DIR='+r.archiveDir+'\n');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'status='+r.status+'\n');
+          console.log(JSON.stringify({validatedOriginalSource:true,
+            actualCaptureAt:d.captureFinishedUTC,counts:Object.fromEntries(d.sports.map(x=>[x.sport,x.rawCount])),
+            originalPrizePicksAppAuthenticated:false,privateOnly:true}));
+          NODE
+      - name: Publish original NHL NFL source only to PRIVATE remote Git first
+        if: steps.observe.outputs.status == 'saved_private_only'
+        working-directory: private
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$ARCHIVE_DIR"
+          if git diff --cached --quiet; then
+            echo "::error::New observed rows were not staged, no source capture success";exit 1
+          fi
+          git commit -m "data: verified real six AM November 10 original NHL and NFL full partner boards" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main;then
+              echo "PASS: original NHL + NFL source lines and timestamps durably archived PRIVATE"
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::No confirmed private remote commit of original NHL/NFL capture";exit 1
+      - name: Build BOTH sports' original Higher Lower research using this exact archived source
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          if ! node scripts/freeze-partner-nhl-pregame.cjs "$ARCHIVE_DIR" > /tmp/nhl-0600-direction.json 2>/tmp/nhl-0600-error.log; then
+            echo "::error::NHL original 6 AM pregame Higher/Lower freeze unavailable; no predictions invented"
+            tail -n 6 /tmp/nhl-0600-error.log | sed -E 's/(Bearer|Token) .*/[redacted]/'
+            exit 1
+          fi
+          if ! node scripts/build-nfl-partner-board-research.cjs "$ARCHIVE_DIR" > /tmp/nfl-0600-preview.json 2>/tmp/nfl-0600-preview-errors.log; then
+            echo "::error::NFL actual original source history/forecast unavailable"
+            exit 1
+          fi
+          preview="$(node -e "process.stdout.write(require('/tmp/nfl-0600-preview.json').snapshot)")"
+          if ! node scripts/freeze-nfl-partner-pregame.cjs "$preview" > /tmp/nfl-0600-direction.json 2>/tmp/nfl-0600-error.log; then
+            echo "::error::NFL original Standard pregame Higher/Lower freeze unavailable"
+            exit 1
+          fi
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const nhl=require('/tmp/nhl-0600-direction.json'),nfl=require('/tmp/nfl-0600-direction.json');
+          const original=require('/tmp/nfl-0600-preview.json');
+          if(!nhl.snapshotPath||nhl.selected<1||!nfl.path||nfl.selected<1||!original.snapshot)
+            throw Error('Original NHL or NFL directional selections missing');
+          fs.appendFileSync(process.env.GITHUB_ENV,'NHL_FROZEN='+nhl.snapshotPath+'\nNFL_FROZEN='+nfl.path+'\nNFL_PREVIEW='+original.snapshot+'\n');
+          console.log(JSON.stringify({NHLOriginalDirections:nhl.selected,
+            NFLOriginalDirections:nfl.selected,officialWagers:0,calibrated:false}));
+          NODE
+      - name: Commit and push BOTH ORIGINAL selections at least fifteen minutes before all kickoffs
+        working-directory: private
+        run: |
+          set -euo pipefail
+          verify() {
+            node - <<'NODE'
+          const fs=require('node:fs');
+          const a=JSON.parse(fs.readFileSync(process.env.NHL_FROZEN,'utf8'));
+          const b=JSON.parse(fs.readFileSync(process.env.NFL_FROZEN,'utf8'));
+          const now=Date.now(),lead=15*60000;
+          if(!a.individualPropSelections?.length||!b.selections?.length||
+             a.individualPropSelections.some(x=>Date.parse(x.gameStartAt)-now<lead)||
+             b.selections.some(x=>Date.parse(x.eventStartsAt)-now<lead))
+            throw Error('Missing eligible NHL or NFL selection or too late for original freeze');
+          NODE
+          }
+          verify
+          git add -f "$NHL_FROZEN" "$NFL_PREVIEW" "$NFL_FROZEN"
+          git commit -m "research: NHL NFL originally frozen 6 AM Higher Lower November 10" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            verify
+            node - <<'NODE'
+          const fs=require('node:fs'),cp=require('node:child_process');
+          const t=Date.parse(cp.execFileSync('git',['log','-1','--format=%cI'],{encoding:'utf8'}).trim());
+          const a=JSON.parse(fs.readFileSync(process.env.NHL_FROZEN,'utf8'));
+          const b=JSON.parse(fs.readFileSync(process.env.NFL_FROZEN,'utf8'));
+          if(!Number.isFinite(t)||[...a.individualPropSelections.map(x=>x.gameStartAt),
+            ...b.selections.map(x=>x.eventStartsAt)].some(x=>Date.parse(x)-t<15*60000))
+            throw Error('Original Git commit did not predate every event by at least 15 minutes');
+          NODE
+            if git push -q origin HEAD:main;then
+              echo "PASS: both NHL and NFL ORIGINAL pregame Higher/Lower directions first Git saved in PRIVATE main. No wager submitted."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Original NHL+NFL freeze remote Git evidence missing";exit 1

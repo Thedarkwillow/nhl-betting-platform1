@@ -1,0 +1,112 @@
+name: Freeze prospective NFL margin-abstention shadow before kickoff
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - 'Freeze actual-time NHL and NFL pregame Higher Lower research'
+      - 'Freeze standalone NFL Standard research from genuine private morning board'
+    types: [completed]
+permissions:
+  contents: read
+concurrency:
+  group: private-nfl-original-future-shadow-commit
+  cancel-in-progress: false
+jobs:
+  precommit-shadow:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 13
+    steps:
+      - name: Require narrowly scoped original research access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private NFL original snapshot access missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate immutable original NFL identity and future policy before any shadow
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node --test test/nfl-prospective-freeze.test.cjs test/nfl-prospective-shadow.test.cjs test/nfl-shadow-postgame-grade.test.cjs >"$log" 2>&1; then
+            echo "::error::NFL strictly original future-only side or policy test failure"
+            exit 1
+          fi
+          echo "PASS: no original side flips, unverified outcomes or retrospective trial credits."
+      - name: Freeze only still-fresh upcoming NFL first-Git Standard research
+        id: propose
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node scripts/freeze-nfl-prospective-shadows.cjs > /tmp/nfl-new-shadow-summary.json 2>"$log"; then
+            echo "::error::Strict original NFL prospective challenger preflight failed"
+            exit 1
+          fi
+          node - <<'NODE'
+          const fs=require('node:fs'),d=require('/tmp/nfl-new-shadow-summary.json');
+          if(!['created_pending_first_remote_git_precommit',
+             'skipped_existing_original_shadow',
+             'skipped_no_recent_original_frozen_nfl_board'].includes(d.status))
+            throw Error('NFL shadow status unknown; no model evidence credited');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'status='+d.status+'\n');
+          if(d.status==='created_pending_first_remote_git_precommit')
+            fs.appendFileSync(process.env.GITHUB_ENV,'NFL_SHADOW='+d.output+'\n');
+          console.log(d.status==='created_pending_first_remote_git_precommit'?
+            'PASS: candidate was constructed for a NEW source; NOT prospective until remote Git first commit':
+            'SKIP: no NEW qualifying NFL prospective shadow; never relabel older observations.');
+          NODE
+      - name: Verify kickoff and FIRST Git commit, push future-only policy to private main
+        if: steps.propose.outputs.status == 'created_pending_first_remote_git_precommit'
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          guard() {
+            node - <<'NODE'
+          const fs=require('node:fs');
+          const s=JSON.parse(fs.readFileSync(process.env.NFL_SHADOW,'utf8'));
+          if(s.kind!=='nfl_standard_margin_abstention_first_git_shadow_v1'||
+             !s.selected.length||s.selected.some(x=>
+             Date.parse(x.eventStartsAt)-Date.now()<15*60000))
+             throw Error('Future NFL model policy freeze is too late');
+          NODE
+          }
+          guard
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$NFL_SHADOW"
+          git commit -m "research(nfl): independently preregister original Standard margin abstention before games" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            guard
+            node - <<'NODE'
+          const fs=require('node:fs'),cp=require('node:child_process');
+          const when=cp.execFileSync('git',['log','-1','--format=%cI'],{encoding:'utf8'}).trim();
+          const s=JSON.parse(fs.readFileSync(process.env.NFL_SHADOW,'utf8'));
+          const p=require('./src/nfl-prospective-shadow.cjs').verifyShadow(s,when);
+          if(!p.verified)throw Error('Shadow original Git timestamp or future policy invalid: '+p.reason);
+          NODE
+            if git push -q origin HEAD:main; then
+              echo 'PASS: distinct original NFL forward shadow policy first-Git-pushed PRIVATE before games; original 115 directions unchanged.'
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::No remote original NFL shadow first Git proof."
+          exit 1
+      - name: Never count a successful skip as new prospective selection evidence
+        if: always()
+        run: echo "Future-only shadow, no probability calibration, private source, no automatic wager or promised betting edge."

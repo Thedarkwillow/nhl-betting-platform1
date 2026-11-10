@@ -1,3 +1,4 @@
+# 2026-11-10: postgame backfill for newly finished November 9 NHL slate; keep official FINAL checks.
 name: Private NHL official stats and projections on free public runner
 on:
   workflow_dispatch:

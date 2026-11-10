@@ -1,0 +1,75 @@
+name: Verify private daily NHL NFL cross-day source movement
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/verify-private-nhl-nfl-daily-line-movement.yml']
+permissions:
+  contents: read
+jobs:
+  private-line-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - name: Require private research access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private token missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: feat/daily-nfl-nhl-cross-day-line-movement-20261110
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify cross-day NFL and NHL movements against real full archives
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node --test test/daily-nhl-nfl-cross-day-line-movement.test.cjs test/nhl-nfl-partner-direct-collection.test.cjs test/partner-prizepicks-board.test.cjs > "$log" 2>&1; then
+            echo "::error::NFL/NHL cross-day, source timestamps, or true 6-9 provenance tests failed"
+            grep -A 8 '^not ok' "$log" | head -n 55 || true
+            exit 1
+          fi
+          echo "PASS: daily historical move comparison and genuine same-day six-to-nine original source distinctions."
+      - name: Protect existing NHL NFL MLB research suite
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! npm test > "$log" 2>&1; then
+            echo "::error::Private model research regression failed"
+            grep -A 6 '^not ok' "$log" | head -n 40 || true
+            exit 1
+          fi
+          echo "PASS: private full Node research regression."
+      - name: Validate actual November 10 6 AM vs previous verified November 9 9 AM board
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          node - <<'NODE'
+          const {findBaseline,loadCapture}=require('./scripts/diff-live-partner-captures.cjs');
+          const c='outputs/manual-board-captures/2026-11-10/20261110T142019Z';
+          const b=findBaseline(c);
+          if(!b)throw Error('Expected genuine prior original day before Nov 10 NHL/NFL 6AM');
+          const prior=loadCapture(b.rel),curr=loadCapture(c);
+          if(prior.manifest.pacificDate!=='2026-11-09'||
+             curr.manifest.pacificDate!=='2026-11-10'||
+             prior.manifest.completePagination!==true||
+             curr.manifest.captureSlotPacific!=='06:00')
+            throw Error('Actual source timing or NHL/NFL 6 AM 2026-11-10 archive invalid');
+          console.log(JSON.stringify({verifiedPreviousFullBoardDay:b.manifest.pacificDate,
+            previousSlot:b.manifest.captureSlotPacific,
+            currentDay:curr.manifest.pacificDate,currentSlot:curr.manifest.captureSlotPacific,
+            originalCurrentNHL:curr.rows.NHL.size,originalCurrentNFL:curr.rows.NFL.size,
+            oldOrCurrentModelDirectionsRewritten:false,
+            sixToNineAlreadyProven:false,privateOnly:true}));
+          NODE

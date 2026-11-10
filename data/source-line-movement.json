@@ -1,8 +1,8 @@
 {
   "kind": "public_safe_nhl_nfl_board_line_movement_counts_v1",
   "schemaVersion": 1,
-  "generatedAt": "2026-11-10T14:53:41.730Z",
-  "earlierCaptureAt": "2026-11-10T04:01:55.084Z",
+  "generatedAt": "2026-11-10T15:00:40.045Z",
+  "earlierCaptureAt": "2026-11-09T17:22:17.036Z",
   "laterCaptureAt": "2026-11-10T14:20:19.838Z",
   "comparisonKind": "cross_day_previous_full_source",
   "sourceDays": {
@@ -13,26 +13,26 @@
   "crossDayComparison": true,
   "sports": {
     "NHL": {
-      "firstObserved": 1425,
+      "firstObserved": 927,
       "secondObserved": 1859,
-      "newSourceOfferIDs": 575,
-      "noLongerSeenSourceIDsUnverified": 141,
-      "existingLineChanged": 10,
-      "existingTierChanged": 5,
-      "existingSideAvailabilityChanged": 52,
+      "newSourceOfferIDs": 1859,
+      "noLongerSeenSourceIDsUnverified": 927,
+      "existingLineChanged": 0,
+      "existingTierChanged": 0,
+      "existingSideAvailabilityChanged": 0,
       "existingStartChanged": 0,
-      "unchanged": 1227
+      "unchanged": 0
     },
     "NFL": {
-      "firstObserved": 2382,
+      "firstObserved": 1808,
       "secondObserved": 2997,
-      "newSourceOfferIDs": 749,
-      "noLongerSeenSourceIDsUnverified": 134,
-      "existingLineChanged": 133,
+      "newSourceOfferIDs": 1983,
+      "noLongerSeenSourceIDsUnverified": 794,
+      "existingLineChanged": 98,
       "existingTierChanged": 0,
-      "existingSideAvailabilityChanged": 24,
+      "existingSideAvailabilityChanged": 6,
       "existingStartChanged": 0,
-      "unchanged": 2104
+      "unchanged": 910
     }
   },
   "originalOffersFromPartnerSourceNotVerifiedPrizePicksApp": true,

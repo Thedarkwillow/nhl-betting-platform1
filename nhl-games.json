@@ -2,31 +2,59 @@
   "schemaVersion": 1,
   "kind": "public_official_nhl_game_status_not_prop_lines",
   "source": "NHL Web API",
-  "endpoint": "https://api-web.nhle.com/v1/score/2026-11-09",
-  "pacificDate": "2026-11-09",
-  "observedAtUTC": "2026-11-10T00:40:07.810Z",
+  "endpoint": "https://api-web.nhle.com/v1/score/2026-11-10",
+  "pacificDate": "2026-11-10",
+  "observedAtUTC": "2026-11-10T20:46:07.399Z",
   "note": "Public NHL scores only. No player props, model predictions or platform settlements.",
   "games": [
     {
-      "gameId": 2026020283,
-      "startTimeUTC": "2026-11-10T01:00:00Z",
-      "state": "PRE",
-      "away": "NYR",
-      "home": "EDM"
+      "gameId": 2026020286,
+      "startTimeUTC": "2026-11-11T00:00:00Z",
+      "state": "FUT",
+      "away": "COL",
+      "home": "TOR"
     },
     {
-      "gameId": 2026020284,
-      "startTimeUTC": "2026-11-10T02:30:00Z",
+      "gameId": 2026020287,
+      "startTimeUTC": "2026-11-11T00:00:00Z",
       "state": "FUT",
-      "away": "PHI",
-      "home": "VAN"
+      "away": "MIN",
+      "home": "MTL"
     },
     {
-      "gameId": 2026020285,
-      "startTimeUTC": "2026-11-10T03:00:00Z",
+      "gameId": 2026020288,
+      "startTimeUTC": "2026-11-11T00:00:00Z",
       "state": "FUT",
-      "away": "NYI",
-      "home": "SJS"
+      "away": "WSH",
+      "home": "OTT"
+    },
+    {
+      "gameId": 2026020291,
+      "startTimeUTC": "2026-11-11T00:00:00Z",
+      "state": "FUT",
+      "away": "NJD",
+      "home": "WPG"
+    },
+    {
+      "gameId": 2026020289,
+      "startTimeUTC": "2026-11-11T00:30:00Z",
+      "state": "FUT",
+      "away": "FLA",
+      "home": "CBJ"
+    },
+    {
+      "gameId": 2026020290,
+      "startTimeUTC": "2026-11-11T01:00:00Z",
+      "state": "FUT",
+      "away": "DET",
+      "home": "STL"
+    },
+    {
+      "gameId": 2026020292,
+      "startTimeUTC": "2026-11-11T03:00:00Z",
+      "state": "FUT",
+      "away": "NSH",
+      "home": "LAK"
     }
   ]
 }

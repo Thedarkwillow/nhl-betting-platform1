@@ -37,6 +37,18 @@
    sourceFresh:recent,calibrated:false,platformOffersVerified:false,
    paidLineupEVAvailable:false,underdogConnected:false};
  }
+ function healthView(d,now=Date.now()){
+  if(d?.schemaVersion!==1||
+     d.kind!=="public_nhl_nfl_pacific_morning_collection_health_v1")
+   return "6 AM / 9 AM collection status: unavailable";
+  const date=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Los_Angeles",
+   year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(now));
+  if(d.pacificDate!==date)
+   return "6 AM / 9 AM archive monitor: previous day's record; not today's board";
+  const status=k=>d.slots?.[k]?.status==="privately_archived_complete"?"archived":"missing / unverified";
+  return "6 AM "+status("06:00")+" · 9 AM "+status("09:00")+
+   " · 6-to-9 comparison "+(d.sixToNineChangesVerified===true?"archived":"unavailable");
+ }
  function render(rootEl,view){
   if(!rootEl)return;
   const byId=x=>rootEl.querySelector('[data-multi="'+x+'"]');
@@ -61,6 +73,14 @@
   const picker=host.querySelector("#multiSportPicker");
   let status=null;
   const draw=()=>render(host,viewModel(status,picker?.value||"NHL"));
+  const ops=host.querySelector('[data-multi="operations"]');
+  if(ops){
+   ops.textContent=healthView(null);
+   fetch("./data/collection-health.json",{cache:"no-store"})
+    .then(r=>{if(!r.ok)throw Error("Health unavailable");return r.json();})
+    .then(d=>{ops.textContent=healthView(d);})
+    .catch(()=>{ops.textContent=healthView(null);});
+  }
   if(picker)picker.addEventListener("change",draw);
   draw();
   fetch("./data/nhl-nfl-freeze-status.json",{cache:"no-store"})
@@ -72,5 +92,5 @@
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);
   else init();
  }
- return {viewModel,render};
+ return {viewModel,healthView,render};
 });

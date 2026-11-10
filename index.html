@@ -7,6 +7,7 @@
 <title>NHL Research Desk | Player Props & Lineups</title>
 <link rel="stylesheet" href="./assets/dashboard.css">
 <link rel="stylesheet" href="./assets/six-priority-desk.css">
+<link rel="stylesheet" href="./assets/multi-sport-roadmap.css">
 </head>
 <body>
 <header class="app-header"><div class="topbar">
@@ -46,6 +47,24 @@
 <div class="evidence-legend" id="evidenceLegend">
 <p class="minor">Model estimates, third-party observations, retrospective evaluations, saved pregame selections and NHL official stats are different evidence categories.</p>
 </div></section>
+</section>
+<section class="desk-section multi-sport-evidence" id="multiSportEvidence" aria-label="NHL and NFL prospective research archive">
+<div class="section-head"><div><div class="section-kicker">SPORTS / VERIFIED ARCHIVE</div>
+<h2>NHL &amp; NFL pregame research</h2>
+<p class="section-sub">Original model directions, archived before games. Source observations are not authenticated current fantasy-platform offers.</p></div>
+<label class="multi-sport-select" for="multiSportPicker">Sport
+<select id="multiSportPicker" aria-label="Choose sport for original pregame research status"><option value="NHL">NHL</option><option value="NFL">NFL</option></select></label></div>
+<p class="minor" role="status" aria-live="polite" data-multi="status">Checking pregame evidence…</p>
+<div class="multi-stat-grid" role="group" aria-label="Frozen research summary">
+<div class="card">Frozen Higher/Lower research<strong data-multi="frozen">—</strong></div>
+<div class="card">Standard-market directions<strong data-multi="standard">—</strong></div>
+<div class="card">Distinct future games at freeze<strong data-multi="games">—</strong></div>
+<div class="card">Independent source offers observed<strong data-multi="offers">—</strong></div>
+</div>
+<h3 data-multi="title">Verified pregame data unavailable</h3>
+<p class="minor" data-multi="description">Checking original archive and Git chronology.</p>
+<p class="minor" data-multi="scope">Detailed prop listings below are NHL-only. This panel is an aggregate NHL/NFL archive, not a live two-sport picking feed.</p>
+<p class="minor">Original pregame ≠ graded result ≠ verified platform settlement. Probability calibration, Underdog quotes, payout EV and automatic betting remain unavailable.</p>
 </section>
 <section class="desk-section" id="researchOperationsDesk" aria-label="NHL collection, model and lineup validation">
 <div class="section-head"><div><div class="section-kicker">EVIDENCE / OPERATIONS</div>
@@ -140,6 +159,7 @@
 </main>
 <script src="./assets/lineup-workspace.js"></script>
 <script src="./assets/research-status.js"></script>
+<script src="./assets/multi-sport-roadmap.js"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);

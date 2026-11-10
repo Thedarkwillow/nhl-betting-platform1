@@ -101,6 +101,7 @@ jobs:
           node --check scripts/collect-live-partner-nhl-nfl.cjs
           node --check scripts/diff-live-partner-captures.cjs
           node --test test/nhl-nfl-partner-direct-collection.test.cjs
+          node --test test/daily-nhl-nfl-cross-day-line-movement.test.cjs
       - name: Capture full NEW NHL and NFL source responses inside private checkout
         if: steps.gate.outputs.allowed == 'true'
         id: snapshot

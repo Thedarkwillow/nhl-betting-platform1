@@ -50,3 +50,22 @@ jobs:
             exit 1
           fi
           echo "PASS: full private Node regression."
+      - name: Smoke integrated private seven-track research ledger without publishing raw records
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/report-seven-roadmap-readiness.cjs >"$log" 2>&1; then
+            echo "::error::Integrated seven-track research report failed; no raw details published."
+            exit 1
+          fi
+          node - <<'NODE'
+          const r=require('./outputs/health/seven-roadmap-readiness-latest.json');
+          if(r.kind!=='private_seven_roadmap_tracks_integrated_readiness_v1'||
+             r.tracks.specialtyMarketModels.readyAutomaticMarkets!==0||
+             r.tracks.lineupOptimization.payoutEV!==null||
+             r.originalPlatformPayoutExpectedValue!==null)
+            throw Error('Integrated research gate violated');
+          console.log('PASS: seven private workstreams audited, no fabricated calibration or EV.');
+          NODE

@@ -1,4 +1,4 @@
-# Retry private branch after kickoff-cutoff fixture preserves original 15-minute Git proof.
+# Validate merged NFL prospective diagnostic and future-only shadow research from private main.
 name: Private NFL original Higher bias audit and future shadow regression
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: feat/nfl-higher-bias-prospective-shadow-20261110
+          ref: main
           path: private
           fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}

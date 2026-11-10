@@ -1,0 +1,111 @@
+name: NFL archived pregame forecast and finals grading via public free runner
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nfl-final-refresh-and-precommit-grading.yml']
+  schedule:
+    - cron: '40 5 * * 1,2'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: nfl-current-season-final-grading-private-only
+  cancel-in-progress: false
+jobs:
+  refresh-and-grade:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Require private repo authorization
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private research checkout unavailable"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test precommitted NFL source and outcome integrity before fetching
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --test test/nfl-precommitted-grading.test.cjs test/nfl-prospective-freeze.test.cjs >"$log" 2>&1 ||
+            { echo "::error::NFL original chronology or grading regression"; exit 1; }
+          python -m unittest discover -s test -p 'test_nfl_2026_refresh.py' >"$log" 2>&1 ||
+            { echo "::error::NFL history preservation regression"; exit 1; }
+          echo "PASS: original pregame NFL chronology and source-preservation tests."
+      - name: Install no-cost public nflverse client
+        run: python -m pip install 'nflreadpy>=0.1,<2' --quiet
+      - name: Try to refresh 2026 official-derived weekly results without erasing prior seasons
+        id: refresh
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if python scripts/refresh-nfl-2026-final-history.py >"$log" 2>&1; then
+            echo "refreshed=true" >> "$GITHUB_OUTPUT"
+            echo "PASS: 2026 NFL weekly/schedule research history refreshed; provider settlements NOT verified."
+          else
+            echo "refreshed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Fresh nflverse results unavailable or incomplete; immutable previous archive retained. Grader runs pending-safe."
+            # Restore any in-memory partial files if history refresh failed.
+            git restore -- outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/history/manifest.json
+          fi
+      - name: Grade only first-Git-original numeric and explicit directional NFL research
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/grade-nfl-precommitted.cjs >"$log" 2>&1; then
+            echo "::error::NFL precommitted outcome audit failed; no success claim."
+            exit 1
+          fi
+          node - <<'NODE'
+          const r=require('./outputs/nfl/backtests/pregame-forecast-proof-latest.json');
+          if(r.kind!=='nfl_private_pregame_evidence_separated_outcome_audit_v1'||
+             r.nflverseFinalStatsNotPlatformSettlement!==true||
+             r.neverClaimNumericSideAsPreviouslyFrozenHigherLower!==true||
+             r.explicitFrozenDirections?.platformPayoutSettlementsVerified!==false)
+           throw Error('NFL evidence classification missing');
+          console.log(JSON.stringify({numericDecided:r.numeric.decided,
+             frozenSelectedDecided:r.explicitFrozenDirections.decided,
+             frozenStillPending:r.explicitFrozenDirections.pending,
+             officialSettlementVerified:false,calibrated:false}));
+          NODE
+      - name: Commit source-refresh and graded forecast report privately only
+        working-directory: private
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nfl/history/manifest.json outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/backtests/pregame-forecast-proof-latest.json
+          if git diff --cached --quiet; then
+            echo "PASS: NFL private report unchanged."
+            exit 0
+          fi
+          git commit -m "audit(nfl): strictly original-pregame forecasts versus current final statistics" >/dev/null
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main; then
+              echo "PASS: official-stat-only NFL grading privately archived; not app settlement."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::NFL private grading report archival failed"
+          exit 1

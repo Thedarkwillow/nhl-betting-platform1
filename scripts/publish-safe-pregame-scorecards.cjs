@@ -45,7 +45,43 @@ function futureMarkets(x){
    successNotEstablished:true};
  });
 }
-function build(nhl,nfl,triple,{now=new Date().toISOString()}={}){
+function publicNFLBias(d,fi,originalGradeAt){
+ if(!d)return null;
+ const a=d.overall;
+ if(d.kind!=="nfl_original_frozen_direction_diagnostic_v1"||
+    d.evidence!=="original_first_git_only"||
+    d.sourceGradeAt!==originalGradeAt||
+    d.originalDirectionsCanNeverBeRevised!==true||
+    d.officialPlatformSettlementsVerified!==false||
+    d.productionModelPromotionApproved!==false||
+    !Array.isArray(d.firstGitCommits)||!d.firstGitCommits.length||
+    !a||!["registered","decided","correct","incorrect","pushes","pending",
+     "higherChosen","higherCorrect","higherWrong","lowerChosen","lowerCorrect","lowerWrong",
+     "overForecast","underForecast","exactForecast","actualHigher","actualLower",
+     "distinctFinalGames"].every(k=>num(a[k]))||
+    a.registered!==fi.registered||a.decided!==fi.decided||
+    a.correct!==fi.correct||a.incorrect!==fi.incorrect||
+    a.pushes!==fi.pushes||a.pending!==fi.pending||
+    a.actualHigher!==fi.alwaysHigherOnExactSameSelectedLines||
+    a.actualLower!==fi.alwaysLowerOnExactSameSelectedLines||
+    a.distinctFinalGames!==fi.distinctFinalGames||
+    a.higherChosen+a.lowerChosen!==a.decided||
+    a.higherCorrect+a.lowerCorrect!==a.correct||
+    a.higherWrong+a.lowerWrong!==a.incorrect||
+    a.overForecast+a.underForecast+a.exactForecast!==a.decided)
+  throw Error("Refuse mismatched original first Git NFL Higher bias count evidence");
+ return {decided:a.decided,correct:a.correct,
+  higherChosen:a.higherChosen,higherCorrect:a.higherCorrect,
+  higherWrong:a.higherWrong,
+  lowerChosen:a.lowerChosen,lowerCorrect:a.lowerCorrect,
+  lowerWrong:a.lowerWrong,
+  projectedAboveActual:a.overForecast,
+  distinctFinalGames:a.distinctFinalGames,
+  sameSelectedLineOnly:true,notAnIndependentNFLGameSample:true,
+  diagnosedAfterGameNotAPregameFilter:true,
+  platformSettlementsVerified:false,calibrated:false,payoutEV:null};
+}
+function build(nhl,nfl,triple,{now=new Date().toISOString(),nflDirectionalDiagnostic=null}={}){
  if(nhl?.kind!==NHL_KIND||nhl.evidenceValid!==true||
     nhl.status!=="valid_original_git_precommitted_selection_cohort"||
     nfl?.kind!==NFL_KIND||
@@ -97,6 +133,7 @@ function build(nhl,nfl,triple,{now=new Date().toISOString()}={}){
     modelObservedRate:rate(fi.correct,fi.decided),
     platformSettlementVerified:false,calibrated:false,
     expectedValue:null},
+   frozenHigherBiasAudit:publicNFLBias(nflDirectionalDiagnostic,fi,nfl.generatedAt),
    separateNumericForecasts:{registered:nu.registered,
     decided:nu.decided,push:nu.pushes,pending:nu.pending,
     meanAbsoluteError:Number.isFinite(nu.meanAbsoluteError)?nu.meanAbsoluteError:null,
@@ -121,7 +158,10 @@ function main([privateRoot,publicRoot]=process.argv.slice(2),now=new Date().toIS
  const read=p=>JSON.parse(fs.readFileSync(path.join(privateRoot,p),"utf8"));
  const data=build(read("outputs/health/nhl-frozen-baseline-challenge-latest.json"),
   read("outputs/nfl/backtests/pregame-forecast-proof-latest.json"),
-  read("outputs/health/nhl-standard-triple-challenger-latest.json"),{now});
+  read("outputs/health/nhl-standard-triple-challenger-latest.json"),{
+   now,
+   nflDirectionalDiagnostic:read("outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json")
+  });
  const target=path.join(publicRoot,"data/model-scorecards.json");
  fs.mkdirSync(path.dirname(target),{recursive:true});
  fs.writeFileSync(target,JSON.stringify(data,null,2)+"\n");
@@ -132,4 +172,4 @@ function main([privateRoot,publicRoot]=process.argv.slice(2),now=new Date().toIS
  return data;
 }
 if(require.main===module)try{main()}catch(e){console.error(e.message);process.exitCode=1;}
-module.exports={build,main,group,futureMarkets};
+module.exports={build,main,group,futureMarkets,publicNFLBias};

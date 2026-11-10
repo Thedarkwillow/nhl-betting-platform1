@@ -1,0 +1,171 @@
+name: Record daily NHL NFL source line moves and publish counts
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-nfl-daily-line-movement.yml']
+  workflow_run:
+    workflows: ['Public Free Runners - Private NHL and NFL 6 and 9 AM Boards']
+    types: [completed]
+  schedule:
+    - cron: '5 7 * * *'
+      timezone: America/Los_Angeles
+    - cron: '5 10 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: write
+concurrency:
+  group: private-nhl-nfl-cross-day-source-movement-archive
+  cancel-in-progress: false
+jobs:
+  archive-and-publish:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check public website counts-only publisher
+        uses: actions/checkout@v4
+        with:
+          path: public
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Require authorized private original-source access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private partner-source checkout unavailable"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test the genuine source to same-original-offer comparison and public allowlist
+        run: |
+          set -euo pipefail
+          umask 077
+          node --test private/test/daily-nhl-nfl-cross-day-line-movement.test.cjs             private/test/partner-prizepicks-board.test.cjs
+          node --test public/scripts/test-publish-safe-nhl-nfl-line-movement.cjs
+      - name: Select only today's verified and recently archived NHL+NFL complete capture
+        id: select
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs'),path=require('node:path');
+          const {verifiedSlot}=require('./src/partner-prizepicks-board.cjs');
+          const {findBaseline}=require('./scripts/diff-live-partner-captures.cjs');
+          const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',
+            year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+          const z=Object.fromEntries(p.map(x=>[x.type,x.value]));
+          const day=z.year+'-'+z.month+'-'+z.day,dir='outputs/manual-board-captures/'+day;
+          const possible=[];
+          if(fs.existsSync(dir))for(const name of fs.readdirSync(dir)){
+            const relative=dir+'/'+name,file=relative+'/manifest.json';
+            if(!fs.existsSync(file))continue;
+            let doc;try{doc=JSON.parse(fs.readFileSync(file))}catch{continue}
+            const t=Date.parse(doc.captureFinishedUTC);
+            if(!verifiedSlot(doc)||!Number.isFinite(t)||t>Date.now()||
+              Date.now()-t>3*3600000)continue;
+            const target='outputs/partner-source/line-delta/'+day+'/'+
+              doc.captureFinishedUTC.slice(0,19).replace(/[-:]/g,'')+'Z.json';
+            if(fs.existsSync(target))continue;
+            const prior=findBaseline(relative);
+            if(!prior)continue;
+            possible.push({relative,t,target,prior});
+          }
+          possible.sort((a,b)=>b.t-a.t);
+          if(!possible.length){
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,'status=no_new_certified_comparison\n');
+            console.log('SKIP: no new genuine complete source pair; never assert a fabricated line move.');
+            process.exit(0);
+          }
+          const a=possible[0];
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'status=verified_source_pair\n');
+          fs.appendFileSync(process.env.GITHUB_ENV,'PRIVATE_CURRENT='+a.relative+'\n');
+          console.log(JSON.stringify({status:'two_original_full_sources_confirmed',
+            priorAt:a.prior.manifest.captureFinishedUTC,
+            currentFrom:a.relative,exactMorningSlot:a.prior.manifest.captureSlotPacific,
+            sourcePayloadRowsPublic:0}));
+          NODE
+      - name: Compute private NHL+NFL cross-day or same-day line changes
+        if: steps.select.outputs.status == 'verified_source_pair'
+        id: delta
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/diff-live-partner-captures.cjs "$PRIVATE_CURRENT" >/tmp/nhl-nfl-private-line-movement.json
+          node - <<'NODE'
+          const fs=require('node:fs'),d=require('/tmp/nhl-nfl-private-line-movement.json');
+          if(d.status!=='verified_original_source_line_delta_saved_privately'||
+             !['NHL','NFL'].every(s=>Number.isInteger(d.summary?.[s]?.existingLineChanged))||
+             !d.output)
+            throw Error('Original source line comparison incomplete');
+          fs.appendFileSync(process.env.GITHUB_ENV,'PRIVATE_DELTA='+d.output+'\n');
+          console.log(JSON.stringify({kind:d.comparisonKind,old:d.baselineCaptureAt,
+            latest:d.currentCaptureAt,
+            NHLChangedLines:d.summary.NHL.existingLineChanged,
+            NFLChangedLines:d.summary.NFL.existingLineChanged,
+            sameDaySixToNine:d.sixToNineVerified,
+            postedLinesOrPlayerIDsPublished:0}));
+          NODE
+      - name: Prepare ONLY counts-only public board movement; never source offers
+        if: steps.select.outputs.status == 'verified_source_pair'
+        run: |
+          set -euo pipefail
+          umask 077
+          node public/scripts/publish-safe-nhl-nfl-line-movement.cjs "$GITHUB_WORKSPACE/private/$PRIVATE_DELTA" "$GITHUB_WORKSPACE/public"
+          node - <<'NODE'
+          const x=require('./public/data/source-line-movement.json');
+          if(x.privateOfferIDsPublished!==0||x.rawLinesPublished!==0||
+             x.previouslyFrozenDirectionsRetained!==true||
+             x.originalOffersFromPartnerSourceNotVerifiedPrizePicksApp!==true)
+            throw Error('Unsafe private offer ID or fantasy app inference in public source stats');
+          console.log('PASS: no private original offer IDs or player-level line data published.');
+          NODE
+      - name: First Git-archive original source comparison privately
+        if: steps.select.outputs.status == 'verified_source_pair'
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$PRIVATE_DELTA"
+          git commit -m "data: archived original NHL NFL daily source line and side changes" >/dev/null
+          for i in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main;then
+              echo "PASS: original line movement private Git report archived."
+              exit 0
+            fi
+            sleep "$i"
+          done
+          echo "::error::Private line movement first Git not confirmed"
+          exit 1
+      - name: Publish non-sensitive NHL NFL line movement counts to website repository
+        if: steps.select.outputs.status == 'verified_source_pair'
+        working-directory: public
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/source-line-movement.json
+          git commit -m "status: audited NHL NFL cross-day or six-to-nine line movement counts" >/dev/null
+          for i in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main;then
+              echo "PASS: NHL NFL movement counts published; original raw source remains private."
+              exit 0
+            fi
+            sleep "$i"
+          done
+          echo "::error::Counts-only movement publication unconfirmed"
+          exit 1

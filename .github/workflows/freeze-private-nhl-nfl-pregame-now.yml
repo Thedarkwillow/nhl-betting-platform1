@@ -1,3 +1,4 @@
+# November 10 06:20 Pacific dual-sport original source archived; rerun offline freezes after genuine scheduled-manifest converter fix.
 name: Freeze actual-time NHL and NFL pregame Higher Lower research
 on:
   workflow_dispatch:
@@ -45,7 +46,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! node --test test/nhl-partner-pregame-freeze.test.cjs test/nfl-prospective-freeze.test.cjs test/nfl-precommitted-grading.test.cjs > "$log" 2>&1; then
+          if ! node --test test/nhl-partner-pregame-freeze.test.cjs test/partner-prizepicks-board.test.cjs test/nfl-prospective-freeze.test.cjs test/nfl-precommitted-grading.test.cjs > "$log" 2>&1; then
             echo "::error::Private pregame research regression failed, no original selection claim."
             exit 1
           fi

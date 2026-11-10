@@ -55,3 +55,25 @@ test("the public market list includes all markets without tiny-market hit-rate s
  assert.ok(markets[1].modelRate!==null);
  assert.equal(markets.every(x=>x.successNotEstablished),true);
 });
+
+test("only original first-Git NFL side-bias diagnostics with exact same graded counts may be public",()=>{
+ const d={kind:"nfl_original_frozen_direction_diagnostic_v1",
+   evidence:"original_first_git_only",sourceGradeAt:nfl.generatedAt,
+   firstGitCommits:["2026-11-09T17:26:51Z"],
+   originalDirectionsCanNeverBeRevised:true,
+   officialPlatformSettlementsVerified:false,productionModelPromotionApproved:false,
+   overall:{registered:3,decided:1,correct:1,incorrect:0,pushes:0,pending:2,
+    higherChosen:1,higherCorrect:1,higherWrong:0,
+    lowerChosen:0,lowerCorrect:0,lowerWrong:0,
+    overForecast:1,underForecast:0,exactForecast:0,
+    actualHigher:1,actualLower:0,distinctFinalGames:1}};
+ const a=build(nhl,nfl,triple,{nflDirectionalDiagnostic:d});
+ assert.equal(a.nfl.frozenHigherBiasAudit.higherWrong,0);
+ assert.equal(a.nfl.frozenHigherBiasAudit.projectedAboveActual,1);
+ assert.equal(a.nfl.frozenHigherBiasAudit.payoutEV,null);
+ assert.equal(JSON.stringify(a).includes('"firstGitCommits"'),false);
+ assert.throws(()=>build(nhl,nfl,triple,{nflDirectionalDiagnostic:{...d,
+  overall:{...d.overall,higherWrong:1}}}),/mismatched/);
+ assert.throws(()=>build(nhl,nfl,triple,{nflDirectionalDiagnostic:{...d,
+  sourceGradeAt:"2026-11-10T12:00:00Z"}}),/mismatched/);
+});

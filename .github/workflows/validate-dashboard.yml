@@ -16,6 +16,9 @@ on:
       - 'scripts/test-multi-sport-roadmap.cjs'
       - 'data/nhl-nfl-freeze-status.json'
       - 'data/model-scorecards.json'
+      - 'data/source-line-movement.json'
+      - 'scripts/publish-safe-nhl-nfl-line-movement.cjs'
+      - 'scripts/test-publish-safe-nhl-nfl-line-movement.cjs'
       - 'scripts/publish-safe-pregame-scorecards.cjs'
       - 'scripts/test-publish-safe-pregame-scorecards.cjs'
       - 'scripts/test-model-scorecards.cjs'
@@ -46,5 +49,7 @@ jobs:
         run: node --test scripts/test-multi-sport-roadmap.cjs
       - name: Test public NHL NFL original-precommit model grades and sanitized release
         run: node --test scripts/test-model-scorecards.cjs scripts/test-publish-safe-pregame-scorecards.cjs
+      - name: Verify NHL NFL cross-day/same-day source line movement without private data leaks
+        run: node --test scripts/test-publish-safe-nhl-nfl-line-movement.cjs
       - name: Validate no double provider probes before morning full captures
         run: node --test scripts/test-public-capture-schedule.cjs

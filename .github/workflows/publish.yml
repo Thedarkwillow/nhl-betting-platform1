@@ -1,6 +1,14 @@
 name: Publish NHL Dashboard
 on:
   workflow_dispatch:
+  # GitHub Actions GITHUB_TOKEN commits do not reliably trigger push workflows.
+  # Completed trusted publishers explicitly redeploy the counts-only website.
+  workflow_run:
+    workflows:
+      - 'Publish sanitized NHL NFL frozen model scorecards'
+      - 'Publish honest NHL NFL six nine AM board health'
+      - 'Verify both original NFL NHL freezes and publish safe status'
+    types: [completed]
   push:
     branches: [main]
     paths:
@@ -21,6 +29,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

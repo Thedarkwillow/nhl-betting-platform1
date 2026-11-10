@@ -1,3 +1,4 @@
+# Private NFL matchup challenger is now on main; fail closed on stale historical boards.
 name: Freeze future NFL opponent offense usage matchup challenger research
 on:
   workflow_dispatch:

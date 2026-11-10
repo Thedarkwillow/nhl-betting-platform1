@@ -1,3 +1,4 @@
+# November 10 postgame: republish genuine NHL 3/3 finals and completed NFL game outcomes from first-Git frozen selections.
 name: Publish sanitized NHL NFL frozen model scorecards
 on:
   workflow_dispatch:

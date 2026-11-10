@@ -13,6 +13,8 @@ on:
       - 'scripts/validate-dashboard.cjs'
       - 'scripts/test-lineup-workspace.cjs'
       - 'scripts/test-six-priority-desk.cjs'
+      - 'scripts/test-multi-sport-roadmap.cjs'
+      - 'data/nhl-nfl-freeze-status.json'
       - '.github/workflows/validate-dashboard.yml'
 permissions:
   contents: read
@@ -35,3 +37,5 @@ jobs:
         run: node scripts/test-research-status.cjs
       - name: Test phone-ready six-roadmap evidence, freshness and unverified payout safeguards
         run: node scripts/test-six-priority-desk.cjs
+      - name: Test NHL NFL sport selector, verified precommit status and stale-source warnings
+        run: node --test scripts/test-multi-sport-roadmap.cjs

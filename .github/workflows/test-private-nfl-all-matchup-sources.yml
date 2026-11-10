@@ -1,3 +1,4 @@
+# Recheck final private branch after licensed site registry, archival joins, and forward-only grader landed.
 name: Verify NFL four matchup features and agreed source websites privately
 on:
   workflow_dispatch:

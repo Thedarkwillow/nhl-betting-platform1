@@ -1,0 +1,47 @@
+{
+  "kind": "public_safe_nhl_nfl_board_line_movement_counts_v1",
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-10T14:53:41.730Z",
+  "earlierCaptureAt": "2026-11-10T04:01:55.084Z",
+  "laterCaptureAt": "2026-11-10T14:20:19.838Z",
+  "comparisonKind": "cross_day_previous_full_source",
+  "sourceDays": {
+    "earlier": "2026-11-09",
+    "later": "2026-11-10"
+  },
+  "genuineSixToNineComparison": false,
+  "crossDayComparison": true,
+  "sports": {
+    "NHL": {
+      "firstObserved": 1425,
+      "secondObserved": 1859,
+      "newSourceOfferIDs": 575,
+      "noLongerSeenSourceIDsUnverified": 141,
+      "existingLineChanged": 10,
+      "existingTierChanged": 5,
+      "existingSideAvailabilityChanged": 52,
+      "existingStartChanged": 0,
+      "unchanged": 1227
+    },
+    "NFL": {
+      "firstObserved": 2382,
+      "secondObserved": 2997,
+      "newSourceOfferIDs": 749,
+      "noLongerSeenSourceIDsUnverified": 134,
+      "existingLineChanged": 133,
+      "existingTierChanged": 0,
+      "existingSideAvailabilityChanged": 24,
+      "existingStartChanged": 0,
+      "unchanged": 2104
+    }
+  },
+  "originalOffersFromPartnerSourceNotVerifiedPrizePicksApp": true,
+  "removedOfferNotProvenByMissingSourceID": true,
+  "privatePlayerNamesPublished": 0,
+  "privateOfferIDsPublished": 0,
+  "rawLinesPublished": 0,
+  "probabilitiesPublished": 0,
+  "previouslyFrozenDirectionsRetained": true,
+  "platformPayoutVerified": false,
+  "automaticWagersPlaced": 0
+}

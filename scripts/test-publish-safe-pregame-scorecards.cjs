@@ -2,8 +2,8 @@
 const test=require("node:test"),assert=require("node:assert/strict"),
  {build,group,futureMarkets}=require("./publish-safe-pregame-scorecards.cjs");
 const metric=(n=20,w=11,g=4)=>({observedSelected:n+3,
- ungraded:2,decided:n,pushes:1,modelWins:w,alwaysHigherWins:9,
- alwaysLowerWins:n-9,distinctGames:g});
+ ungraded:2,decided:n,pushes:1,modelWins:w,alwaysHigherWins:Math.min(n,9),
+ alwaysLowerWins:n-Math.min(n,9),distinctGames:g});
 const nhl={kind:"nhl_frozen_same_threshold_baselines_v1",evidenceValid:true,
  status:"valid_original_git_precommitted_selection_cohort",
  historicalSameSelectedLines:{allFrozenSelections:metric(20,11),

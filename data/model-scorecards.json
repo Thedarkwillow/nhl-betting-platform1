@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "kind": "public_nhl_nfl_original_git_frozen_model_scorecards_v1",
-  "generatedAt": "2026-11-10T00:39:18.610Z",
+  "generatedAt": "2026-11-10T09:38:35.496Z",
   "sources": {
     "nhlOriginalFrozenBaselineAt": "2026-11-10T00:38:59.221Z",
-    "nflFirstGitForecastAuditAt": "2026-11-10T00:07:02.892Z",
-    "nhlForwardChallengerAuditAt": "2026-11-10T00:39:00.011Z"
+    "nflFirstGitForecastAuditAt": "2026-11-10T09:38:15.755Z",
+    "nhlForwardChallengerAuditAt": "2026-11-10T02:26:05.721Z"
   },
   "nhl": {
     "sport": "NHL",
@@ -119,10 +119,10 @@
       }
     ],
     "threeChallengerFuture": {
-      "registered": 12,
+      "registered": 38,
       "decided": 0,
       "push": 0,
-      "pending": 12,
+      "pending": 38,
       "championPromoted": false
     },
     "source": "NHL official-stat directional outcomes only",
@@ -132,25 +132,25 @@
     "sport": "NFL",
     "explicitlyFrozenDirections": {
       "frozenSelections": 115,
-      "decided": 0,
-      "correct": 0,
-      "incorrect": 0,
-      "push": 0,
-      "pending": 115,
-      "distinctFinalGames": 0,
-      "hypotheticalHigherWins": 0,
-      "hypotheticalLowerWins": 0,
-      "modelObservedRate": null,
+      "decided": 29,
+      "correct": 15,
+      "incorrect": 14,
+      "push": 1,
+      "pending": 85,
+      "distinctFinalGames": 1,
+      "hypotheticalHigherWins": 6,
+      "hypotheticalLowerWins": 23,
+      "modelObservedRate": 0.517241,
       "platformSettlementVerified": false,
       "calibrated": false,
       "expectedValue": null
     },
     "separateNumericForecasts": {
       "registered": 332,
-      "decided": 176,
-      "push": 4,
-      "pending": 152,
-      "meanAbsoluteError": 17.410488126197432,
+      "decided": 226,
+      "push": 5,
+      "pending": 101,
+      "meanAbsoluteError": 17.28182713066499,
       "retrospectiveDerivedDirectionCannotBeCountedAsFrozen": true,
       "modelSelectedHigherLowerHitRate": null
     },

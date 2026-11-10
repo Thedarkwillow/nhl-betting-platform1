@@ -1,0 +1,52 @@
+name: Seven roadmap tracks private regression on public free runner
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/roadmap-seven-private-regression.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Require private checkout permission
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Missing private checkout permission"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: feat/roadmap-seven-tracks-20261109
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test seven-priority private gates including same-line audits, lineup and market rules
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-paired-shadow-research.test.cjs test/nfl-frozen-structural-lineups.test.cjs test/sport-market-release-readiness.test.cjs test/nhl-platform-line-shop.test.cjs test/nfl-precommitted-grading.test.cjs >"$log" 2>&1; then
+            echo "::error::Targeted private roadmap regression failed"
+            grep -E '^not ok|^  error:|^  expected:|^  actual:|^# tests|^# fail' "$log" | head -n 40 || true
+            exit 1
+          fi
+          echo "PASS: all targeted same-line, NFL grading, lineup, market and comparison tests."
+      - name: Run entire private Node regression without source leakage
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Full private Node suite failed"
+            grep -E '^not ok|^# fail' "$log" | head -n 30 || true
+            exit 1
+          fi
+          echo "PASS: full private Node regression."

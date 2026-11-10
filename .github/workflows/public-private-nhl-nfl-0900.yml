@@ -9,11 +9,7 @@ on:
         required: true
         default: probe_now
         options: [probe_now, capture_0600, capture_0900]
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/probe-nhl-nfl-prop-feed.cjs'
-      - '.github/workflows/public-private-nhl-nfl-0900.yml'
+  # No push trigger: a 4 PM Git change is NOT a failed 6 AM/9 AM scheduled capture.
   schedule:
     - cron: '0 6 * * *'
       timezone: 'America/Los_Angeles'
@@ -63,7 +59,7 @@ jobs:
           node scripts/probe-nhl-nfl-prop-feed.cjs
       - name: Require actual 6 AM or 9 AM and private-only token for full archive
         id: gate
-        if: github.event_name == 'schedule' || github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'capture_0900' || inputs.mode == 'capture_0600'))
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'capture_0900' || inputs.mode == 'capture_0600'))
         env:
           PRIVATE_RESEARCH_REPO_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           REQUESTED_MODE: ${{ inputs.mode }}

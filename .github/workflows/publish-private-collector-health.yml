@@ -1,0 +1,77 @@
+name: Publish honest NHL NFL six nine AM board health
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-private-collector-health.yml'
+      - 'scripts/collector-health-summary.cjs'
+      - 'scripts/test-collector-health-summary.cjs'
+  schedule:
+    - cron: '58 6 * * *'
+      timezone: America/Los_Angeles
+    - cron: '58 9 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: write
+concurrency:
+  group: public-nhl-nfl-archived-capture-health
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Require trusted private read
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private research access missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify public status source only exposes aggregated capture facts
+        working-directory: public
+        run: |
+          set -euo pipefail
+          node --test scripts/test-collector-health-summary.cjs
+          node --check scripts/collector-health-summary.cjs
+      - name: Compute actual local-day complete 6 and 9 capture evidence
+        run: |
+          set -euo pipefail
+          node public/scripts/collector-health-summary.cjs "$GITHUB_WORKSPACE/private" "$GITHUB_WORKSPACE/public"
+      - name: Commit public counts-only health including explicit missed captures
+        working-directory: public
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/collection-health.json
+          if git diff --cached --quiet; then
+            echo "PASS: no changed public board status."
+            exit 0
+          fi
+          git commit -m "status: observed private six/nine NHL NFL board provenance (counts only)" >/dev/null
+          for i in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main; then
+              echo "PASS: public archive health published; a green health job is NOT evidence a board was captured."
+              exit 0
+            fi
+            sleep "$i"
+          done
+          echo "::error::Public morning source status was not archived"
+          exit 1

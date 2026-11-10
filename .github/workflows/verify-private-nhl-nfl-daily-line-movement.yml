@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: feat/daily-nfl-nhl-cross-day-line-movement-20261110
+          ref: fix/nfl-nhl-daily-only-certified-morning-baselines-20261110
           path: private
           fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
@@ -62,6 +62,8 @@ jobs:
           if(!b)throw Error('Expected genuine prior original day before Nov 10 NHL/NFL 6AM');
           const prior=loadCapture(b.rel),curr=loadCapture(c);
           if(prior.manifest.pacificDate!=='2026-11-09'||
+             prior.manifest.captureSlotPacific!=='09:00'||
+             prior.manifest.notSixOrNineAmSlot!==false||
              curr.manifest.pacificDate!=='2026-11-10'||
              prior.manifest.completePagination!==true||
              curr.manifest.captureSlotPacific!=='06:00')

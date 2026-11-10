@@ -1,3 +1,4 @@
+# Retry private branch after kickoff-cutoff fixture preserves original 15-minute Git proof.
 name: Private NFL original Higher bias audit and future shadow regression
 on:
   workflow_dispatch:

@@ -1,3 +1,4 @@
+# Validate final roadmap documentation and full private suite after seven-track code and docs landed on branch.
 name: Seven roadmap tracks private regression on public free runner
 on:
   workflow_dispatch:

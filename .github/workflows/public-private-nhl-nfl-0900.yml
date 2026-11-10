@@ -23,6 +23,8 @@ on:
       timezone: 'America/Los_Angeles'
     - cron: '43 6 * * *'
       timezone: 'America/Los_Angeles'
+    - cron: '51 6 * * *'
+      timezone: 'America/Los_Angeles'
     - cron: '0 9 * * *'
       timezone: 'America/Los_Angeles'
     - cron: '12 9 * * *'
@@ -30,6 +32,8 @@ on:
     - cron: '27 9 * * *'
       timezone: 'America/Los_Angeles'
     - cron: '43 9 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '51 9 * * *'
       timezone: 'America/Los_Angeles'
 permissions:
   contents: read
@@ -49,8 +53,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Observe NHL and NFL public source COUNTS; no player records saved
-        continue-on-error: true
+      - name: Diagnostic count-only probe on EXPLICIT probe_now, never before scheduled capture
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'probe_now'
+        continue-on-error: false
         working-directory: public
         run: |
           node --check scripts/probe-nhl-nfl-prop-feed.cjs

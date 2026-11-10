@@ -1,0 +1,162 @@
+name: Freeze standalone NFL Standard research from genuine private morning board
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Public Free Runners - Private NHL and NFL 6 and 9 AM Boards']
+    types: [completed]
+permissions:
+  contents: read
+# Serialize against the existing two-sport freezer: one observed source must
+# create at most one immutable ORIGINAL NFL Standard cohort.
+concurrency:
+  group: private-nhl-nfl-original-pregame-freeze
+  cancel-in-progress: false
+jobs:
+  freeze-original-nfl:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Require private original research credentials
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::No private write authorization"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify frozen NFL original threshold/model source protections
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node --test test/nfl-prospective-freeze.test.cjs test/nfl-precommitted-grading.test.cjs test/nfl-prospective-shadow.test.cjs > "$log" 2>&1; then
+            echo "::error::First Git original pregame NFL test failure"
+            exit 1
+          fi
+          echo "PASS: NFL past-only original Standard research freeze rules."
+      - name: Find a newly observed, privately committed full-board source
+        id: archive
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs'),path=require('node:path');
+          const root='outputs/manual-board-captures',at=Date.now(),valid=[];
+          if(fs.existsSync(root))for(const day of fs.readdirSync(root)){
+            const d=path.join(root,day);if(!fs.statSync(d).isDirectory())continue;
+            for(const name of fs.readdirSync(d)){
+              const p=path.join(d,name),f=path.join(p,'manifest.json');
+              if(!fs.existsSync(f))continue;
+              let m;try{m=JSON.parse(fs.readFileSync(f,'utf8'))}catch{continue;}
+              const t=Date.parse(m.captureFinishedUTC);
+              if(m.completePagination!==true||m.actualCaptureInRequestedHour!==true||
+                 !['06:00','09:00'].includes(m.captureSlotPacific)||
+                 !Number.isFinite(t)||t>at||at-t>28*60000||
+                 !['NHL','NFL'].every(s=>m.sports?.some(x=>x.sport===s&&
+                   Number.isInteger(x.rawCount)&&x.rawCount>0&&
+                   x.belowMorningMinimumInventory!==true)))continue;
+              valid.push({p,t,m});
+            }
+          }
+          valid.sort((a,b)=>b.t-a.t);
+          if(!valid.length){
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,'status=no_fresh_actual_archive\n');
+            console.log('SKIP: no genuinely fresh 6/9 AM private committed NHL/NFL source.');
+            process.exit(0);
+          }
+          const cur=valid[0],observed=cur.m.sports.find(x=>x.sport==='NFL').sourceObservedAt;
+          const prior='outputs/nfl/prospective',exists=fs.existsSync(prior)&&
+            fs.readdirSync(prior).filter(f=>f.endsWith('.json')).some(f=>{
+              try{return JSON.parse(fs.readFileSync(path.join(prior,f),'utf8')).sourceBoardAsOfAt===observed}
+              catch{return false}
+            });
+          if(exists){
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,'status=already_frozen_same_original_board\n');
+            console.log('SKIP: authentic NFL pregame directions already frozen from this exact source.');
+          }else{
+            fs.appendFileSync(process.env.GITHUB_ENV,'PRIVATE_ARCHIVE='+cur.p+'\n');
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,'status=source_ready\n');
+            console.log('PASS: new actual-time, previously privately Git-archived source ready.');
+          }
+          NODE
+      - name: Calculate original NFL Standard side hypotheses strictly before kickoff
+        id: candidate
+        if: steps.archive.outputs.status == 'source_ready'
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          if ! node scripts/build-nfl-partner-board-research.cjs "$PRIVATE_ARCHIVE" > /tmp/nfl-original-only-preview.json 2>"$log"; then
+            echo "::error::Original NFL board prior-week numeric research failed"
+            exit 1
+          fi
+          preview="$(node -e "process.stdout.write(require('/tmp/nfl-original-only-preview.json').snapshot)")"
+          if ! node scripts/freeze-nfl-partner-pregame.cjs "$preview" > /tmp/nfl-original-only-snapshot.json 2>"$log"; then
+            echo "::warning::No eligible NFL Standard original directions; don't invent an offered side."
+            exit 1
+          fi
+          node - <<'NODE'
+          const fs=require('node:fs'),x=require('/tmp/nfl-original-only-snapshot.json'),
+            p=require('/tmp/nfl-original-only-preview.json');
+          if(!x.path||!Number.isInteger(x.selected)||x.selected<1||
+             !p.snapshot||p.calibratedProbabilities!==false)
+            throw Error('No actual original first Git future NFL source to archive');
+          fs.appendFileSync(process.env.GITHUB_ENV,
+            'NFL_PREVIEW='+p.snapshot+'\nNFL_FROZEN='+x.path+'\n');
+          console.log('PASS: original first Git eligible NFL Standard Higher/Lower candidate exists.');
+          NODE
+      - name: Commit original NFL research first Git, independently of NHL model coverage
+        if: steps.archive.outputs.status == 'source_ready'
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          verify() {
+            node - <<'NODE'
+          const fs=require('node:fs');
+          const {verifyCommitChronology}=require('./src/nfl-prospective-freeze.cjs');
+          const f=JSON.parse(fs.readFileSync(process.env.NFL_FROZEN,'utf8'));
+          const now=Date.now();
+          if(f.kind!=='nfl_independent_partner_standard_directional_original_research_v1'||
+           f.selections.length<1||
+           f.selections.some(x=>Date.parse(x.eventStartsAt)-now<15*60000))
+            throw Error('New original NFL Standard directions are no longer pregame');
+          NODE
+          }
+          verify
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$NFL_PREVIEW" "$NFL_FROZEN"
+          git commit -m "data(nfl): new genuine morning first Git Standard Higher Lower research" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            verify
+            node - <<'NODE'
+          const fs=require('node:fs'),{execFileSync}=require('node:child_process');
+          const when=execFileSync('git',['log','-1','--format=%cI'],{encoding:'utf8'}).trim();
+          const snap=JSON.parse(fs.readFileSync(process.env.NFL_FROZEN,'utf8'));
+          const ok=require('./src/nfl-prospective-freeze.cjs').verifyCommitChronology(snap,when);
+          if(!ok.verified)throw Error('Original NFL Git precommit did not precede every event');
+          NODE
+            if git push -q origin HEAD:main; then
+              echo 'PASS: NEW original NFL research directions archived remotely before kickoff; private only.'
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::No confirmed NFL remote original first Git freeze."
+          exit 1
+      - name: Distinguish no new board from true original freeze
+        if: always()
+        run: echo "A successful no-source/duplicate skip is NOT evidence a new NFL pregame snapshot was added. No raw data/public player IDs or wagers."

@@ -105,6 +105,29 @@ jobs:
                 throw Error('Stored shadow does not exactly match original standard pregame selection');
               registered.add(key);
             }
+            // SOG opportunity/attempt features must be in the original
+            // single Git snapshot AFTER the new policy was first committed.
+            // Older shadows are not retrofitted or counted as forward scores.
+            const sogPolicyCommit=execFileSync('git',['log','--diff-filter=A','-1',
+              '--format=%cI','--','src/nhl-sog-opportunity-challengers.cjs'],
+              {encoding:'utf8'}).trim();
+            if(Number.isFinite(Date.parse(sogPolicyCommit))&&generated>=Date.parse(sogPolicyCommit)){
+              const sog=shadow.rows.filter(x=>x.market==='shotsOnGoal');
+              for(const r of sog){
+                if(r.sogShadowPolicyVersion!=='sog-unfitted-opportunity-attempts-v1'||
+                   !r.variants?.sogOpportunity?.status||
+                   !r.variants?.sogAttempts?.status||
+                   !Object.hasOwn(r.decisions||{},'sogOpportunity')||
+                   !Object.hasOwn(r.decisions||{},'sogAttempts')||
+                   r.automaticRecommendationEligible!==false||
+                   r.verifiedPayoutEV!==null)
+                  throw Error('SOG original Git-frozen challenger, abstention or safety fields missing');
+              }
+              console.log(JSON.stringify({sogOriginalPrecommittedRows:sog.length,
+                sogOpportunitySupported:sog.filter(x=>x.variants.sogOpportunity.status==='research_only').length,
+                sogAttemptSupported:sog.filter(x=>x.variants.sogAttempts.status==='research_only').length,
+                noRetroactiveSogForecasts:true,modelPromoted:false}));
+            }
             console.log('PASS: new Standard challengers originally Git frozen with selected lines.');
             console.log(JSON.stringify({originalStandardShadowRows:shadow.rows.length,
               shadowOriginalFirstGitProven:true,modelPromoted:false,

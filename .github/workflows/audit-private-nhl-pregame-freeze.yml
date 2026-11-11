@@ -123,6 +123,43 @@ jobs:
                    r.verifiedPayoutEV!==null)
                   throw Error('SOG original Git-frozen challenger, abstention or safety fields missing');
               }
+              // A movement policy committed only AFTER the old snapshots
+              // cannot be retrospectively attributed to earlier predictions.
+              const movementFirst=execFileSync('git',['log','--diff-filter=A','-1',
+                '--format=%cI','--','src/nhl-sog-line-movement.cjs'],
+                {encoding:'utf8'}).trim();
+              if(Number.isFinite(Date.parse(movementFirst))&&generated>=Date.parse(movementFirst)){
+                let covered=0,abstained=0;
+                for(const r of sog){
+                  const variant=r.variants?.sogMovement;
+                  if(r.sogMovementPolicyVersion!=='nhl-sog-25pct-line-delta-capped-half-shot-v1'||
+                     !variant?.status||!Object.hasOwn(r.decisions||{},'sogMovement')||
+                     r.automaticRecommendationEligible!==false)
+                    throw Error('New SOG movement shadow missing in original frozen quote');
+                  if(variant.status==='research_only'){
+                    const evidence=variant.sourceOfferMovement,
+                      prior=Date.parse(evidence?.previousObservedAt),
+                      current=Date.parse(evidence?.currentObservedAt),
+                      previousGit=Date.parse(evidence?.previousFirstGitAt),
+                      currentGit=Date.parse(evidence?.currentFirstGitAt);
+                    if(evidence?.status!=='exact_pregame_same_offer_quote'||
+                       !Number.isFinite(prior)||!Number.isFinite(current)||
+                       !Number.isFinite(previousGit)||!Number.isFinite(currentGit)||
+                       prior>=current||current>generated||previousGit>generated||
+                       currentGit>generated||currentGit>=Date.parse(r.gameStartAt)||
+                       previousGit>=Date.parse(r.gameStartAt)||
+                       variant.currentLine!==r.line||
+                       !Number.isFinite(variant.additiveLineAdjustment)||
+                       Math.abs(variant.additiveLineAdjustment)>.5)
+                       throw Error('Original SOG movement lacks two timely Git-archived source observations');
+                    covered++;
+                  }else abstained++;
+                }
+                console.log(JSON.stringify({sogMovementRowsOriginallyFrozen:sog.length,
+                  originalTwoQuoteMatchedSogMovement:covered,
+                  missingOrConflictedSourceAbstentions:abstained,
+                  noSourceMovementReconstruction:true,noModelPromotion:true}));
+              }
               console.log(JSON.stringify({sogOriginalPrecommittedRows:sog.length,
                 sogOpportunitySupported:sog.filter(x=>x.variants.sogOpportunity.status==='research_only').length,
                 sogAttemptSupported:sog.filter(x=>x.variants.sogAttempts.status==='research_only').length,

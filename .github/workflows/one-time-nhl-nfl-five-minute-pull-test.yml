@@ -1,0 +1,105 @@
+name: One-time actual-time NHL NFL auto pull (private archive, five-minute test)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'automation-triggers/nhl-nfl-20261110-five-minute-smoke.txt'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: one-time-nhl-nfl-20261110-five-minute-smoke
+  cancel-in-progress: false
+jobs:
+  fetch-both-sports-private:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - name: Confirm private archival token is available
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          test -n "$TOKEN" || { echo "::error::Private source archive credential missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          path: private
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate original NHL/NFL collection identity, pagination and manual-label safeguards
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          node --test test/nhl-nfl-partner-direct-collection.test.cjs test/partner-prizepicks-board.test.cjs
+      - name: Pull fresh complete source for BOTH NHL and NFL at actual run time
+        id: capture
+        working-directory: private
+        env:
+          PARTNER_CAPTURE_SLOT: manual
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/collect-live-partner-nhl-nfl.cjs > /tmp/real-actual-time-nhl-nfl-pull.json
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const d=require('/tmp/real-actual-time-nhl-nfl-pull.json');
+          if(d.status!=='saved_private_only'||!d.archiveDir||
+             d.completePagination!==true||d.originalPlatformVerified!==false||
+             d.rawPublicWrites!==0)
+            throw Error('Full original NHL+NFL observed source not archived privately');
+          const manifest=JSON.parse(fs.readFileSync(d.archiveDir+'/manifest.json','utf8'));
+          if(manifest.source!=='partner-api.prizepicks.com'||
+             manifest.notSixOrNineAmSlot!==true||
+             manifest.captureSlotPacific!==null||
+             manifest.actualCaptureInRequestedHour!==false||
+             manifest.completePagination!==true||
+             !Array.isArray(manifest.sports)||
+             !['NHL','NFL'].every(s=>manifest.sports.some(x=>x.sport===s&&
+               x.rawCount>0&&x.missingPlayers===0&&x.missingGames===0))||
+             manifest.hasBelowMorningMinimumInventory!==false)
+             throw Error('Not a complete BOTH-SPORTS real-time MANUAL TEST source snapshot');
+          fs.appendFileSync(process.env.GITHUB_ENV,'PRIVATE_ARCHIVE='+d.archiveDir+'\n');
+          console.log(JSON.stringify({
+            status:'source_complete_pending_remote_private_git',
+            observedAt:manifest.captureFinishedUTC,
+            sportCounts:Object.fromEntries(manifest.sports.map(x=>[x.sport,x.rawCount])),
+            archivedOnPublicRepo:false,actualTimeOnly:true,
+            thisIsNOTa6AMor9AMSnapshot:true,preGameDirectionsFrozen:false,
+            wagersPlaced:0
+          }));
+          NODE
+      - name: Confirm source commit is saved remotely in PRIVATE repository
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$PRIVATE_ARCHIVE"
+          if git diff --cached --quiet; then
+            echo "::error::No new original source archive is staged"
+            exit 1
+          fi
+          git commit -m 'data: one-time actual-time 5min automatic NHL and NFL private source smoke capture' >/dev/null
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main
+            if git push -q origin HEAD:main; then
+              remote="$(git ls-remote origin refs/heads/main | cut -f1)"
+              local="$(git rev-parse HEAD)"
+              test "$remote" = "$local" ||
+                { echo "::error::Remote source archive commit unverified"; exit 1; }
+              echo 'PASS: BOTH NHL/NFL original response parts and timestamps first-Git archived to PRIVATE repository at actual observation time.'
+              echo 'No 6/9 AM backdating, no original Higher/Lower picks changed, no wagers, no private raw offers in public repo.'
+              exit 0
+            fi
+            sleep "$((attempt*2))"
+          done
+          echo "::error::No durable private remote NHL+NFL original source archive"
+          exit 1

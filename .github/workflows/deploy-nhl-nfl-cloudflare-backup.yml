@@ -76,3 +76,4 @@ jobs:
             echo "::notice::Backup scheduler tests were run, but the external live Worker is NOT verified retargeted. Native GitHub 6/9 retry plus original source watchdog are the current working safeguards."
           fi
 # November 10: all three required public scheduler secrets independently verified present; attempt Cloudflare retarget deployment.
+# Recheck after user updated Cloudflare API token: redeploy pretested public NHL+NFL morning dispatcher; no secrets logged.

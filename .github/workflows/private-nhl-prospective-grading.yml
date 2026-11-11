@@ -1,3 +1,4 @@
+# Refresh yesterday Pacific official NHL player outcomes BEFORE prospective grading; no game may be falsely final.
 # November 10 official FINAL backfill verified (Nov 9 NHL: 3/3 final), grade original frozen research only.
 # Manual postgame audit trigger 2026-11-09 (no backdated predictions; grade official finals only).
 name: Private NHL prospective grading and baseline audit via public runner
@@ -47,6 +48,60 @@ jobs:
             echo "::error::Private precommit / settlement-grading regression failed."
             exit 1
           fi
+      - name: Collect only yesterday's FINAL official NHL games before any grading
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          # Yesterday is computed in actual Pacific time, never from UTC.
+          # Official results may still be incomplete right after midnight;
+          # fail closed and let the scheduled 02:10/08:20 retries recover.
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const parts=new Intl.DateTimeFormat('en-US',{
+            timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'
+          }).formatToParts(new Date());
+          const p=Object.fromEntries(parts.map(x=>[x.type,x.value]));
+          const utc=Date.UTC(Number(p.year),Number(p.month)-1,Number(p.day))-86400000;
+          const prior=new Date(utc).toISOString().slice(0,10);
+          if(!/^202[6-9]-\\d{2}-\\d{2}$/.test(prior))
+            throw Error('Unexpected official NHL finals calendar date');
+          fs.appendFileSync(process.env.GITHUB_ENV,'OFFICIAL_FINAL_DATE='+prior+'\\n');
+          console.log(JSON.stringify({officialDate:prior,
+            purpose:'complete_yesterday_pacific_official_nhl_boxscores_before_grading'}));
+          NODE
+          # The existing official NHL importer saves faceoffs, hits, saves,
+          # time on ice, goalie fantasy evidence and stats, with bounded retries.
+          if ! node scripts/collect-player-stats.cjs "$OFFICIAL_FINAL_DATE" > /tmp/nhl-final-collection.log 2>&1; then
+            echo "::error::Official NHL player statistics refresh failed; refusing stale postgame grade."
+            tail -n 5 /tmp/nhl-final-collection.log | cut -c 1-200
+            exit 1
+          fi
+          node - <<'NODE'
+          const fs=require('node:fs'),day=process.env.OFFICIAL_FINAL_DATE;
+          const doc=JSON.parse(fs.readFileSync('outputs/player-stats/'+day+'.json','utf8'));
+          if(doc.requestedDate!==day||doc.source!=='NHL public API'||
+             doc.sourceSchemaVersion!==5||
+             !Number.isInteger(doc.scheduledGames)||doc.scheduledGames<0||
+             doc.completedGames!==doc.scheduledGames||
+             doc.collectedGames!==doc.scheduledGames||
+             !Array.isArray(doc.errors)||doc.errors.length!==0||
+             !Array.isArray(doc.players)||
+             (doc.scheduledGames>0 &&
+               (doc.players.length===0||
+                 new Set(doc.players.map(x=>x.gameId)).size!==doc.scheduledGames)))
+            throw Error('Not all official NHL games have complete player boxscores; no prospective grade');
+          console.log(JSON.stringify({officialSource:'NHL public API',
+            originalGameDay:day,scheduled:doc.scheduledGames,
+            allOfficiallyFinal:doc.scheduledGames===doc.completedGames,
+            boxscoresCollected:doc.collectedGames,
+            originalPlayerRowsPrivate:doc.players.length,
+            unsupportedSupplementalFieldsRemainUnverified:(doc.supplementalWarnings||[]).length,
+            verifiedPlatformSettlement:false}));
+          NODE
+          node scripts/build-player-history.cjs >/tmp/nhl-official-history.log 2>&1 ||
+            { echo "::error::Cannot rebuild NHL player history with yesterday official finals"; exit 1; }
       - name: Grade only officially final NHL games and analyze frozen baseline challengers
         working-directory: private
         shell: bash
@@ -75,6 +130,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           shopt -s nullglob
           files=(outputs/grading/nhl-latest.json
+            "outputs/player-stats/${OFFICIAL_FINAL_DATE}.json"
+            outputs/history/players.json
             outputs/research/registry/nhl-precommitted-ledger-latest.json
             outputs/health/nhl-roadmap-readiness-latest.json
             outputs/health/nhl-source-coverage-latest.json

@@ -1,3 +1,4 @@
+# Explicit user-provided secrets readiness check and safe Cloudflare activation attempt; report secret NAMES only.
 name: Test and activate independent public NHL NFL morning scheduler
 on:
   workflow_dispatch:
@@ -40,7 +41,10 @@ jobs:
             echo "PASS: Cloudflare and dedicated public GitHub dispatch credentials available."
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Independent Cloudflare backup NOT deployed: public repository is missing a required Cloudflare or public GitHub dispatch secret. Github-native off-peak retries and watchdog remain active. Do not claim reliable external timing."
+            test -n "$CF_API_TOKEN" || echo "::warning::Missing public repository secret name: CLOUDFLARE_API_TOKEN"
+            test -n "$CF_ACCOUNT_ID" || echo "::warning::Missing public repository secret name: CLOUDFLARE_ACCOUNT_ID"
+            test -n "$GH_PUBLIC_DISPATCH" || echo "::warning::Missing public repository secret name: PUBLIC_GITHUB_DISPATCH_TOKEN"
+            echo "::warning::Independent Cloudflare backup NOT deployed: configure all three secret names in the PUBLIC repo, not the private repo. Never paste actual values in logs or chat."
           fi
       - name: Replace EXISTING Cloudflare worker with public-free-runner NHL NFL dispatcher
         if: steps.credentials.outputs.ready == 'true'

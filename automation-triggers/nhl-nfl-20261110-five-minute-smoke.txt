@@ -1,0 +1,4 @@
+ONE-TIME ACTUAL-TIME NHL + NFL partner-source automatic collection smoke test.
+This is NOT a genuine 6 AM or 9 AM Pacific capture, and must not be backdated or labeled as one.
+Collect both sports with complete pagination and archive raw evidence only to the private repository.
+This is NOT a wager. Do not place bets or alter any production selections.

@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: public
-          ref: fix/nfl-nhl-morning-schedule-fail-closed-20261110
+          ref: main
           persist-credentials: false
       - name: Require private original-source read access
         env:

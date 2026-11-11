@@ -1,3 +1,4 @@
+# Retry after exact source-ID and synthetic fixture fixes.
 name: Verify Private NHL SOG Line-Movement Research Branch
 on:
   workflow_dispatch:

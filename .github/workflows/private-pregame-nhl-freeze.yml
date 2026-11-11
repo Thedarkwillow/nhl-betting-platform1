@@ -52,7 +52,7 @@ jobs:
           umask 077
           log="$(mktemp)"
           trap 'rm -f "$log"' EXIT
-          if ! node --test test/partner-prizepicks-board.test.cjs test/partner-compact-0903.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nhl-nfl-five-priorities.test.cjs >"$log" 2>&1; then
+          if ! node --test test/nhl-sog-opportunity-challengers.test.cjs test/partner-prizepicks-board.test.cjs test/partner-compact-0903.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nhl-nfl-five-priorities.test.cjs >"$log" 2>&1; then
             echo "::error::Private pregame gate tests failed; no new selection created."
             exit 1
           fi

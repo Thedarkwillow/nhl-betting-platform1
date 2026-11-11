@@ -1,0 +1,73 @@
+name: Test and activate independent public NHL NFL morning scheduler
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/deploy-nhl-nfl-cloudflare-backup.yml']
+permissions:
+  contents: read
+concurrency:
+  group: cloudflare-nhl-nfl-existing-worker-replacement
+  cancel-in-progress: false
+jobs:
+  test-and-activate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out public safe scheduler and tests
+        uses: actions/checkout@v4
+        with:
+          ref: fix/nfl-nhl-morning-schedule-fail-closed-20261110
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Simulate actual 6AM/9AM Pacific UTC timezone and old native queue failures
+        run: |
+          set -euo pipefail
+          node --test scheduler/nhl-board-dispatcher/test/dispatcher.test.mjs
+          node --test scripts/test-pacific-morning-capture-gate.cjs scripts/test-public-capture-schedule.cjs
+      - name: Identify available deployment credentials without printing values
+        id: credentials
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GH_PUBLIC_DISPATCH: ${{ secrets.PUBLIC_GITHUB_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if test -n "$CF_API_TOKEN" && test -n "$CF_ACCOUNT_ID" && test -n "$GH_PUBLIC_DISPATCH";then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "PASS: Cloudflare and dedicated public GitHub dispatch credentials available."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Independent Cloudflare backup NOT deployed: public repository is missing a required Cloudflare or public GitHub dispatch secret. Github-native off-peak retries and watchdog remain active. Do not claim reliable external timing."
+          fi
+      - name: Replace EXISTING Cloudflare worker with public-free-runner NHL NFL dispatcher
+        if: steps.credentials.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deploy --config scheduler/nhl-board-dispatcher/wrangler.jsonc
+      - name: Install dedicated narrowly-scoped public GitHub workflow dispatcher token in worker
+        if: steps.credentials.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GH_PUBLIC_DISPATCH: ${{ secrets.PUBLIC_GITHUB_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GH_PUBLIC_DISPATCH" |
+            npx --yes wrangler@4 secret put GITHUB_DISPATCH_TOKEN               --config scheduler/nhl-board-dispatcher/wrangler.jsonc
+          echo "PASS: Cloudflare Worker deployed and public-only GitHub Actions dispatch secret uploaded. Future actual timed original archives still require independent source verification."
+      - name: Summarize independent-scheduler readiness accurately
+        if: always()
+        env:
+          CONFIGURED: ${{ steps.credentials.outputs.ready }}
+        run: |
+          if test "$CONFIGURED" = true;then
+            echo "::notice::Cloudflare deploy attempted. Verify a genuine scheduled 6/9 AM public workflow_dispatch plus complete both-sport original archive before claiming reliable recovery."
+          else
+            echo "::notice::Backup scheduler tests were run, but the external live Worker is NOT verified retargeted. Native GitHub 6/9 retry plus original source watchdog are the current working safeguards."
+          fi

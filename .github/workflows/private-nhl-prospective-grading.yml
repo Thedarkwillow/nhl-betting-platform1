@@ -61,7 +61,7 @@ jobs:
           [[ "$OFFICIAL_FINAL_DATE" =~ ^202[6-9]-[0-9]{2}-[0-9]{2}$ ]] ||
             { echo "::error::Unexpected previous-Pacific-day date"; exit 1; }
           export OFFICIAL_FINAL_DATE
-          printf 'OFFICIAL_FINAL_DATE=%s\\n' "$OFFICIAL_FINAL_DATE" >> "$GITHUB_ENV"
+          printf 'OFFICIAL_FINAL_DATE=%s\n' "$OFFICIAL_FINAL_DATE" >> "$GITHUB_ENV"
           echo "Official NHL full-final day selected: $OFFICIAL_FINAL_DATE"
           # The existing official NHL importer saves faceoffs, hits, saves,
           # time on ice, goalie fantasy evidence and stats, with bounded retries.

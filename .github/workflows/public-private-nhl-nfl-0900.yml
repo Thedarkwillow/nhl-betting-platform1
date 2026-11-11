@@ -1,4 +1,4 @@
-# Rate-limit recovery: retry current private collector only during the real capture hour.
+# GitHub schedule can be hours late or dropped; schedule only off top-of-hour.\n# True original Pacific hour / scheduled slot matching is independently tested.\n# A late event reports a NO-CAPTURE SKIP, not a GitHub red capture failure.
 name: Public Free Runners - Private NHL and NFL 6 and 9 AM Boards
 on:
   workflow_dispatch:
@@ -11,25 +11,25 @@ on:
         options: [probe_now, capture_0600, capture_0900]
   # No push trigger: a 4 PM Git change is NOT a failed 6 AM/9 AM scheduled capture.
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '7 6 * * *'
       timezone: 'America/Los_Angeles'
-    - cron: '12 6 * * *'
+    - cron: '17 6 * * *'
       timezone: 'America/Los_Angeles'
-    - cron: '27 6 * * *'
+    - cron: '29 6 * * *'
       timezone: 'America/Los_Angeles'
-    - cron: '43 6 * * *'
+    - cron: '41 6 * * *'
       timezone: 'America/Los_Angeles'
-    - cron: '51 6 * * *'
+    - cron: '53 6 * * *'
       timezone: 'America/Los_Angeles'
-    - cron: '0 9 * * *'
+    - cron: '7 9 * * *'
       timezone: 'America/Los_Angeles'
-    - cron: '12 9 * * *'
+    - cron: '17 9 * * *'
       timezone: 'America/Los_Angeles'
-    - cron: '27 9 * * *'
+    - cron: '29 9 * * *'
       timezone: 'America/Los_Angeles'
-    - cron: '43 9 * * *'
+    - cron: '41 9 * * *'
       timezone: 'America/Los_Angeles'
-    - cron: '51 9 * * *'
+    - cron: '53 9 * * *'
       timezone: 'America/Los_Angeles'
 permissions:
   contents: read
@@ -57,33 +57,19 @@ jobs:
           node --check scripts/probe-nhl-nfl-prop-feed.cjs
           node --test scripts/test-public-nhl-nfl-prop-health.cjs
           node scripts/probe-nhl-nfl-prop-feed.cjs
-      - name: Require actual 6 AM or 9 AM and private-only token for full archive
+      - name: Verify the ORIGINAL scheduled slot is the ACTUAL Pacific source hour
         id: gate
         if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'capture_0900' || inputs.mode == 'capture_0600'))
         env:
           PRIVATE_RESEARCH_REPO_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
           REQUESTED_MODE: ${{ inputs.mode }}
         run: |
           set -euo pipefail
-          if test -z "$PRIVATE_RESEARCH_REPO_TOKEN"; then
-            echo "::error::Missing PRIVATE_RESEARCH_REPO_TOKEN. Public counts are NOT private archived boards."
-            exit 1
-          fi
-          actual_hour="$(TZ=America/Los_Angeles date +%H)"
-          case "$actual_hour" in
-            06) requested="06:00";;
-            09) requested="09:00";;
-            *) echo "::error::Not in an actual Pacific 6 AM or 9 AM capture hour."; exit 1;;
-          esac
-          if test "$GITHUB_EVENT_NAME" = workflow_dispatch; then
-            case "$REQUESTED_MODE" in
-              capture_0600) test "$requested" = "06:00";;
-              capture_0900) test "$requested" = "09:00";;
-              *) exit 1;;
-            esac || { echo "::error::Requested slot conflicts with actual Pacific time."; exit 1; }
-          fi
-          echo "slot=$requested" >> "$GITHUB_OUTPUT"
-          echo "allowed=true" >> "$GITHUB_OUTPUT"
+          # A 9AM schedule that starts at 2:33PM must be a harmless SKIP.
+          # A delayed 6AM schedule that finally starts at 9:07 must NOT
+          # be relabeled as a real 9AM capture.
+          node public/scripts/pacific-morning-capture-gate.cjs
       - name: Checkout private repository ONLY on trusted schedule/manual dispatch
         if: steps.gate.outputs.allowed == 'true'
         uses: actions/checkout@v4

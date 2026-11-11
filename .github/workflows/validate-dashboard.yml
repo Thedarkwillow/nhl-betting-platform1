@@ -23,6 +23,12 @@ on:
       - 'scripts/test-publish-safe-pregame-scorecards.cjs'
       - 'scripts/test-model-scorecards.cjs'
       - 'scripts/test-public-capture-schedule.cjs'
+      - 'scripts/pacific-morning-capture-gate.cjs'
+      - 'scripts/test-pacific-morning-capture-gate.cjs'
+      - 'scripts/audit-private-morning-archives.cjs'
+      - 'scripts/test-audit-private-morning-archives.cjs'
+      - 'scheduler/nhl-board-dispatcher/**'
+      - '.github/workflows/public-private-nhl-nfl-0900.yml'
       - '.github/workflows/validate-dashboard.yml'
 permissions:
   contents: read
@@ -51,5 +57,9 @@ jobs:
         run: node --test scripts/test-model-scorecards.cjs scripts/test-publish-safe-pregame-scorecards.cjs
       - name: Verify NHL NFL cross-day/same-day source line movement without private data leaks
         run: node --test scripts/test-publish-safe-nhl-nfl-line-movement.cjs
-      - name: Validate no double provider probes before morning full captures
-        run: node --test scripts/test-public-capture-schedule.cjs
+      - name: Verify all daily NHL NFL actual-source slot, fail-closed archive, and Cloudflare backup safeguards
+        run: |
+          node --test scripts/test-public-capture-schedule.cjs \
+            scripts/test-pacific-morning-capture-gate.cjs \
+            scripts/test-audit-private-morning-archives.cjs
+          node --test scheduler/nhl-board-dispatcher/test/dispatcher.test.mjs

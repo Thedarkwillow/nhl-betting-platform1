@@ -70,7 +70,10 @@ jobs:
             if(!fs.existsSync(file))continue;
             let doc;try{doc=JSON.parse(fs.readFileSync(file))}catch{continue}
             const t=Date.parse(doc.captureFinishedUTC);
-            if(!verifiedSlot(doc)||!Number.isFinite(t)||t>Date.now()||
+            // Manual 2PM/8PM sources are valid observations but NOT a
+            // scheduled morning baseline; otherwise a delayed daily audit
+            // throws on its own honest manual capture.
+            if(!isCertifiedMorning(doc)||!Number.isFinite(t)||t>Date.now()||
               Date.now()-t>3*3600000)continue;
             const target='outputs/partner-source/line-delta/'+day+'/'+
               doc.captureFinishedUTC.slice(0,19).replace(/[-:]/g,'')+'Z.json';

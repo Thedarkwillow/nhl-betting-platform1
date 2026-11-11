@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/wrangler.json",
+  "name": "nhl-board-dispatcher",
+  "main": "src/index.mjs",
+  "workers_dev": false,
+  "compatibility_date": "2026-11-10",
+  "observability": { "enabled": true },
+  "triggers": {
+    "crons": ["5,15,25,35,45 13,14,16,17 * * *"]
+  }
+}

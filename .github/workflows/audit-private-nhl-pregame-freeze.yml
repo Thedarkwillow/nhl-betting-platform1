@@ -155,9 +155,16 @@ jobs:
                     covered++;
                   }else abstained++;
                 }
+                const sourceExclusions={};
+                for(const r of sog){
+                  const reason=r.variants.sogMovement.status;
+                  if(reason==='research_only')continue;
+                  sourceExclusions[reason]=(sourceExclusions[reason]||0)+1;
+                }
                 console.log(JSON.stringify({sogMovementRowsOriginallyFrozen:sog.length,
                   originalTwoQuoteMatchedSogMovement:covered,
                   missingOrConflictedSourceAbstentions:abstained,
+                  sourceExclusionSummary:sourceExclusions,
                   noSourceMovementReconstruction:true,noModelPromotion:true}));
               }
               console.log(JSON.stringify({sogOriginalPrecommittedRows:sog.length,

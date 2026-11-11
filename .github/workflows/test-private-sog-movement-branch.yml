@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
-          persist-credentials: false
+          persist-credentials: true
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -39,13 +39,24 @@ jobs:
           node --check src/nhl-sog-line-movement.cjs
           node --check src/nhl-sog-opportunity-challengers.cjs
           node --check scripts/freeze-partner-nhl-pregame.cjs
+          save_private_failure() {
+            mkdir -p outputs/health
+            cp "$log" outputs/health/sog-movement-branch-test-failure.txt
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -f outputs/health/sog-movement-branch-test-failure.txt
+            git commit -m "audit: private SOG movement development failure evidence" >/dev/null
+            git push origin HEAD:research/nhl-sog-verified-line-movement-20261111 >/dev/null
+          }
           if ! node --test test/nhl-sog-line-movement.test.cjs test/nhl-sog-opportunity-challengers.test.cjs test/nhl-standard-triple-challenger.test.cjs test/nhl-partner-pregame-freeze.test.cjs > "$log" 2>&1; then
-            echo "::error::Private targeted movement tests failed; details remain private."
+            save_private_failure
+            echo "::error::Private targeted movement tests failed; detailed failure committed privately."
             exit 1
           fi
           echo "PASS: exact pregame source match, missing/changed ID, no lookahead and frozen grading."
           if ! npm test > "$log" 2>&1; then
-            echo "::error::Private full research regression failed; details remain private."
+            save_private_failure
+            echo "::error::Private full research regression failed; details committed privately."
             exit 1
           fi
           echo "PASS: private complete Node regression suite."

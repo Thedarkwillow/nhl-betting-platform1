@@ -1,21 +1,21 @@
 {
   "schemaVersion": 1,
   "kind": "public_nhl_nfl_original_git_frozen_model_scorecards_v1",
-  "generatedAt": "2026-11-11T09:16:51.886Z",
+  "generatedAt": "2026-11-11T17:52:23.294Z",
   "sources": {
-    "nhlOriginalFrozenBaselineAt": "2026-11-11T09:16:27.546Z",
+    "nhlOriginalFrozenBaselineAt": "2026-11-11T17:51:57.963Z",
     "nflFirstGitForecastAuditAt": "2026-11-10T20:35:28.639Z",
-    "nhlForwardChallengerAuditAt": "2026-11-11T09:16:29.673Z"
+    "nhlForwardChallengerAuditAt": "2026-11-11T17:52:00.042Z"
   },
   "nhl": {
     "sport": "NHL",
     "allOriginalSelections": {
-      "frozenSelections": 771,
+      "frozenSelections": 825,
       "decided": 612,
       "correct": 371,
       "incorrect": 241,
       "push": 1,
-      "pending": 158,
+      "pending": 212,
       "distinctGames": 18,
       "modelObservedRate": 0.606209,
       "hypotheticalHigherWins": 373,
@@ -27,12 +27,12 @@
       "originalPlatformSettlementVerified": false
     },
     "standardOriginalSelections": {
-      "frozenSelections": 203,
+      "frozenSelections": 218,
       "decided": 156,
       "correct": 78,
       "incorrect": 78,
       "push": 1,
-      "pending": 46,
+      "pending": 61,
       "distinctGames": 17,
       "modelObservedRate": 0.5,
       "hypotheticalHigherWins": 80,
@@ -44,12 +44,12 @@
       "originalPlatformSettlementVerified": false
     },
     "postPolicyStandardOnly": {
-      "frozenSelections": 173,
+      "frozenSelections": 188,
       "decided": 127,
       "correct": 65,
       "incorrect": 62,
       "push": 0,
-      "pending": 46,
+      "pending": 61,
       "distinctGames": 13,
       "modelObservedRate": 0.511811,
       "hypotheticalHigherWins": 65,
@@ -63,10 +63,10 @@
     "postPolicyMarkets": [
       {
         "market": "assists",
-        "frozenSelections": 28,
+        "frozenSelections": 29,
         "decided": 19,
         "push": 0,
-        "pending": 9,
+        "pending": 10,
         "distinctGames": 10,
         "modelCorrect": 12,
         "modelRate": 0.631579,
@@ -77,10 +77,10 @@
       },
       {
         "market": "blockedShots",
-        "frozenSelections": 23,
+        "frozenSelections": 29,
         "decided": 18,
         "push": 0,
-        "pending": 5,
+        "pending": 11,
         "distinctGames": 10,
         "modelCorrect": 9,
         "modelRate": 0.5,
@@ -119,10 +119,10 @@
       },
       {
         "market": "shotsOnGoal",
-        "frozenSelections": 80,
+        "frozenSelections": 88,
         "decided": 58,
         "push": 0,
-        "pending": 22,
+        "pending": 30,
         "distinctGames": 13,
         "modelCorrect": 30,
         "modelRate": 0.517241,
@@ -133,10 +133,10 @@
       }
     ],
     "threeChallengerFuture": {
-      "registered": 148,
+      "registered": 163,
       "decided": 103,
       "push": 0,
-      "pending": 45,
+      "pending": 60,
       "championPromoted": false
     },
     "source": "NHL official-stat directional outcomes only",

@@ -1,0 +1,72 @@
+name: Auto-test real 6AM and 9AM NHL NFL private source reliability
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/test-nhl-nfl-morning-capture-reliability.yml']
+  schedule:
+    - cron: '16 7 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '16 10 * * *'
+      timezone: 'America/Los_Angeles'
+permissions:
+  contents: read
+concurrency:
+  group: audit-real-original-nhl-nfl-morning-source
+  cancel-in-progress: false
+jobs:
+  verify-original-board:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          ref: fix/nfl-nhl-morning-schedule-fail-closed-20261110
+          persist-credentials: false
+      - name: Require private original-source read access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private source checkout permission unavailable"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          path: private
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Simulate on-time, delayed and wrong-slot GitHub events across Pacific DST
+        working-directory: public
+        run: |
+          set -euo pipefail
+          node --test scripts/test-pacific-morning-capture-gate.cjs             scripts/test-public-capture-schedule.cjs             scripts/test-audit-private-morning-archives.cjs
+          echo "PASS: late GitHub scheduling cannot trigger a false or mislabelled NHL/NFL source collection."
+      - name: Verify independent original-source collector and cross-day source comparisons
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --test test/nhl-nfl-partner-direct-collection.test.cjs             test/daily-nhl-nfl-cross-day-line-movement.test.cjs             test/partner-prizepicks-board.test.cjs
+          echo "PASS: original private source offer IDs, full pagination and legitimate both-sport provenance."
+      - name: Smoke-audit real archived Nov 10 NHL+NFL 6AM source (independent private Git proof)
+        working-directory: public
+        run: |
+          set -euo pipefail
+          node scripts/audit-private-morning-archives.cjs ../private 06:00 2026-11-10
+      - name: Automatically FAIL if today's 6 or 9 morning source is missing after its hour
+        if: github.event_name == 'schedule'
+        working-directory: public
+        env:
+          CRON_EXPRESSION: ${{ github.event.schedule }}
+        run: |
+          set -euo pipefail
+          case "$CRON_EXPRESSION" in
+            "16 7 * * *") expected="06:00";;
+            "16 10 * * *") expected="09:00";;
+            *) echo "::error::Unsupported morning source watchdog cron";exit 1;;
+          esac
+          node scripts/audit-private-morning-archives.cjs ../private "$expected" ||
+            { echo "::error::No independently verified complete NHL+NFL $expected Pacific source today. A green capture workflow is NOT sufficient."; exit 1; }

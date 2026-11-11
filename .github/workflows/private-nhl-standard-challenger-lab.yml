@@ -45,7 +45,7 @@ jobs:
           umask 077
           log="$(mktemp)"
           trap 'rm -f "$log"' EXIT
-          if ! node --test test/nhl-standard-triple-challenger.test.cjs test/nhl-partner-pregame-freeze.test.cjs >"$log" 2>&1; then
+          if ! node --test test/nhl-sog-opportunity-challengers.test.cjs test/nhl-standard-triple-challenger.test.cjs test/nhl-partner-pregame-freeze.test.cjs >"$log" 2>&1; then
             cp "$log" /tmp/private-standard-research-failure.log
             echo "::warning::Private new challenger regressions FAILED; details committed privately."
             echo "status=failed" >> "$GITHUB_OUTPUT"

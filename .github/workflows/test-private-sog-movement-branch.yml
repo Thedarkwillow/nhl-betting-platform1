@@ -1,0 +1,54 @@
+name: Verify Private NHL SOG Line-Movement Research Branch
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/test-private-sog-movement-branch.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-sog-movement-branch-validation
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 29
+    steps:
+      - name: Require scoped private token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Missing private repository read token"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/nhl-sog-verified-line-movement-20261111
+          fetch-depth: 0
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check exact identity and private existing full suite
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --check src/nhl-sog-line-movement.cjs
+          node --check src/nhl-sog-opportunity-challengers.cjs
+          node --check scripts/freeze-partner-nhl-pregame.cjs
+          if ! node --test test/nhl-sog-line-movement.test.cjs test/nhl-sog-opportunity-challengers.test.cjs test/nhl-standard-triple-challenger.test.cjs test/nhl-partner-pregame-freeze.test.cjs > "$log" 2>&1; then
+            echo "::error::Private targeted movement tests failed; details remain private."
+            exit 1
+          fi
+          echo "PASS: exact pregame source match, missing/changed ID, no lookahead and frozen grading."
+          if ! npm test > "$log" 2>&1; then
+            echo "::error::Private full research regression failed; details remain private."
+            exit 1
+          fi
+          echo "PASS: private complete Node regression suite."
+      - name: Never release private source
+        if: always()
+        run: echo "No private quotes, model source, bets, tokens or archives published."

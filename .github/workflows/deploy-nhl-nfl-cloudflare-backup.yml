@@ -17,7 +17,7 @@ jobs:
       - name: Check out public safe scheduler and tests
         uses: actions/checkout@v4
         with:
-          ref: fix/nfl-nhl-morning-schedule-fail-closed-20261110
+          ref: main
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:

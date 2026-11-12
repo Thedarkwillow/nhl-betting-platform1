@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: research/nhl-standard-forward-diagnostics-calibration-20261112
+          ref: main
           path: private
           fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
@@ -79,6 +79,28 @@ jobs:
              d.prospectiveFixedCalibration?.all?.decided!==0)
             throw Error('Forward report has an unsupported promotion or retroactive original calibration grade');
           console.log('PASS: private report complete; old snapshots get zero new calibration credit');
+          NODE
+          node - <<'NODE'
+          const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process');
+          const dirname='outputs/research/snapshots';
+          const all=fs.readdirSync(dirname).filter(x=>/^\\d{8}T\\d{6}Z\\.json$/.test(x)).sort();
+          const latest=all.at(-1);
+          if(!latest)throw Error('No first-Git pregame snapshot exists');
+          const doc=JSON.parse(fs.readFileSync(path.join(dirname,latest),'utf8'));
+          const shadow=doc.standardForwardCalibrationShadow;
+          const original=doc.individualPropSelections?.filter(x=>x.tier==='Standard')||[];
+          const first=cp.execFileSync('git',['log','--diff-filter=A','-1','--format=%cI','--',path.join(dirname,latest)],{encoding:'utf8'}).trim();
+          const policy=cp.execFileSync('git',['log','--diff-filter=A','-1','--format=%cI','--','src/nhl-standard-forward-calibration.cjs'],{encoding:'utf8'}).trim();
+          const count=Number(cp.execFileSync('git',['rev-list','--count','HEAD','--',path.join(dirname,latest)],{encoding:'utf8'}).trim());
+          if(!Number.isFinite(Date.parse(first))||!Number.isFinite(Date.parse(policy))||
+             Date.parse(first)<=Date.parse(policy)||count!==1||
+             shadow?.kind!=='nhl_standard_forward_fixed_shrink_original_git_v1'||
+             shadow?.createdAt!==doc.generatedAt||!Array.isArray(shadow.rows)||
+             original.length===0||shadow.rows.length!==original.length||
+             original.some(x=>Date.parse(x.gameStartAt)-Date.parse(first)<15*60000)||
+             shadow.rows.some(x=>x.calibrated!==false||x.changedOriginalSelectedSide!==false))
+            throw Error('Latest real original pregame fixed-shrink shadow missing or insufficient Git/source/time proof');
+          console.log('PASS: new genuine future NHL Standard calibration shadow first-Git archived ahead of puck drop');
           NODE
       - name: Private inputs and model parameters never published here
         if: always()

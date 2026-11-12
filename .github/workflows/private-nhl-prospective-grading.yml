@@ -150,3 +150,4 @@ jobs:
             sleep "$attempt"
           done
           echo "::error::NHL private grading archive push failed";exit 1
+# Requested 2026-11-12 Pacific: refresh and grade only official FINAL NHL games from 2026-11-11; existing safety gates unchanged.

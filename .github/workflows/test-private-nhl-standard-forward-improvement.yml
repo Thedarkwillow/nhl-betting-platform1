@@ -39,16 +39,7 @@ jobs:
           log="$(mktemp)"
           trap 'rm -f "$log"' EXIT
           private_failure() {
-            mkdir -p outputs/health
-            cp "$log" outputs/health/nhl-standard-forward-validation-errors.txt
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add -f outputs/health/nhl-standard-forward-validation-errors.txt
-            git diff --cached --quiet || {
-              git commit -m 'audit: private NHL Standard forward sprint development failure details' >/dev/null
-              git -c rebase.autoStash=true pull --rebase -X theirs origin research/nhl-standard-forward-diagnostics-calibration-20261112 >/dev/null
-              git push origin HEAD:research/nhl-standard-forward-diagnostics-calibration-20261112 >/dev/null
-            }
+            echo 'Detailed private diagnostic remains in the ephemeral runner; no source or failure log exported.'
           }
           for file in src/nhl-standard-forward-diagnostics.cjs src/nhl-standard-forward-calibration.cjs src/nhl-standard-forward-scoreboard.cjs scripts/report-nhl-standard-forward-improvement.cjs; do
             node --check "$file" >"$log" 2>&1 || { private_failure; echo "::error::Private forward source syntax failed"; exit 1; }
@@ -83,7 +74,7 @@ jobs:
           node - <<'NODE'
           const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process');
           const dirname='outputs/research/snapshots';
-          const all=fs.readdirSync(dirname).filter(x=>/^\\d{8}T\\d{6}Z\\.json$/.test(x)).sort();
+          const all=fs.readdirSync(dirname).filter(x=>/^\d{8}T\d{6}Z\.json$/.test(x)).sort();
           const latest=all.at(-1);
           if(!latest)throw Error('No first-Git pregame snapshot exists');
           const doc=JSON.parse(fs.readFileSync(path.join(dirname,latest),'utf8'));

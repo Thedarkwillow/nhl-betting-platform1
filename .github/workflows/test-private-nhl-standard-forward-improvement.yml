@@ -1,0 +1,85 @@
+name: Verify Private NHL Forward Standard Research Sprint
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/test-private-nhl-standard-forward-improvement.yml']
+permissions:
+  contents: read
+concurrency:
+  group: verify-private-nhl-forward-sprint
+  cancel-in-progress: false
+jobs:
+  test-private-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    steps:
+      - name: Require scoped private GitHub access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private checkout token is missing"; exit 1; }
+      - name: Checkout approved private development branch ONLY
+        uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/nhl-standard-forward-diagnostics-calibration-20261112
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run synthetic research safety tests, entire private suite, and offline report
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          private_failure() {
+            mkdir -p outputs/health
+            cp "$log" outputs/health/nhl-standard-forward-validation-errors.txt
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add -f outputs/health/nhl-standard-forward-validation-errors.txt
+            git diff --cached --quiet || {
+              git commit -m 'audit: private NHL Standard forward sprint development failure details' >/dev/null
+              git -c rebase.autoStash=true pull --rebase -X theirs origin research/nhl-standard-forward-diagnostics-calibration-20261112 >/dev/null
+              git push origin HEAD:research/nhl-standard-forward-diagnostics-calibration-20261112 >/dev/null
+            }
+          }
+          for file in src/nhl-standard-forward-diagnostics.cjs src/nhl-standard-forward-calibration.cjs src/nhl-standard-forward-scoreboard.cjs scripts/report-nhl-standard-forward-improvement.cjs; do
+            node --check "$file" >"$log" 2>&1 || { private_failure; echo "::error::Private forward source syntax failed"; exit 1; }
+          done
+          if ! node --test test/nhl-standard-forward-improvement.test.cjs >"$log" 2>&1; then
+            private_failure
+            echo "::error::Private NHL Standard synthetic forward tests failed. Details saved private."
+            exit 1
+          fi
+          echo "PASS: new frozen quote, no retrospective attribution and fixed calibration tests"
+          if ! npm test >"$log" 2>&1; then
+            private_failure
+            echo "::error::Private NHL/NFL/MLB existing full Node regression failed. Details private."
+            exit 1
+          fi
+          echo "PASS: entire private Node regression suite"
+          if ! node scripts/report-nhl-standard-forward-improvement.cjs >"$log" 2>&1; then
+            private_failure
+            echo "::error::Private existing-ledger offline forward report failed. Details private."
+            exit 1
+          fi
+          node - <<'NODE'
+          const d=require('./outputs/health/nhl-standard-forward-improvement-latest.json');
+          if(d.researchOnly!==true||d.originalChampionUnchanged!==true||
+             d.noLiveProbabilityPromotion!==true||d.independentlyVerifiedOriginalPlatformSettlement!==false||
+             d.diagnostics?.status!=='descriptive_original_precommitted_only'||
+             d.exactLineChallengerScoreboard?.status!=='prospective_original_commit_same_line_only'||
+             d.prospectiveFixedCalibration?.all?.decided!==0)
+            throw Error('Forward report has an unsupported promotion or retroactive original calibration grade');
+          console.log('PASS: private report complete; old snapshots get zero new calibration credit');
+          NODE
+      - name: Private inputs and model parameters never published here
+        if: always()
+        run: echo "Public repository stores workflow code and PASS/FAIL only, no wagers."

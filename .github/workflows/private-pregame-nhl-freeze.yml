@@ -180,3 +180,4 @@ jobs:
       - name: Do not claim settlement or official availability
         if: always()
         run: echo "This workflow never places wagers, certifies original app quotes, or publishes raw private props."
+# 2026-11-12: integrate newly merged NHL Standard fixed-shrink future-only original Git shadow; fail-closed pregame.

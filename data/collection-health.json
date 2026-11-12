@@ -1,23 +1,23 @@
 {
   "schemaVersion": 1,
   "kind": "public_nhl_nfl_pacific_morning_collection_health_v1",
-  "generatedAt": "2026-11-11T23:57:29.439Z",
-  "pacificDate": "2026-11-11",
+  "generatedAt": "2026-11-12T21:37:26.803Z",
+  "pacificDate": "2026-11-12",
   "slots": {
     "06:00": {
       "status": "privately_archived_complete",
-      "observedAt": "2026-11-11T14:05:25.155Z",
-      "nhlOffers": 1625,
-      "nflOffers": 4741
+      "observedAt": "2026-11-12T14:05:40.861Z",
+      "nhlOffers": 2836,
+      "nflOffers": 6248
     },
     "09:00": {
       "status": "privately_archived_complete",
-      "observedAt": "2026-11-11T17:05:23.950Z",
-      "nhlOffers": 1873,
-      "nflOffers": 5212
+      "observedAt": "2026-11-12T17:05:29.479Z",
+      "nhlOffers": 2873,
+      "nflOffers": 6324
     }
   },
-  "latestCompleteSourceAt": "2026-11-11T17:05:23.950Z",
+  "latestCompleteSourceAt": "2026-11-12T17:05:29.479Z",
   "latestSourceFreshWithin30Minutes": false,
   "originalPregameFreezeVerifiedForToday": false,
   "frozenSelectionCounts": null,

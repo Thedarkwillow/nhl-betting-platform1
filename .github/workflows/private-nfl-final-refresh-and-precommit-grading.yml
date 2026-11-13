@@ -93,6 +93,8 @@ jobs:
              r.nflverseFinalStatsNotPlatformSettlement!==true||
              r.neverClaimNumericSideAsPreviouslyFrozenHigherLower!==true||
              r.explicitFrozenDirections?.platformPayoutSettlementsVerified!==false||
+             r.explicitFrozenDirections?.firstDistinctThresholdGrade?.kind!=='nfl_original_first_distinct_threshold_official_stat_audit_v1'||
+             r.explicitFrozenDirections?.firstDistinctThresholdGrade?.releaseApproved!==false||
              require('./outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json').productionModelPromotionApproved!==false||
              require('./outputs/nfl/backtests/frozen-shadow-prospective-grading-latest.json').payoutAdjustedEV!==null||
              require('./outputs/nfl/backtests/matchup-context-forward-grade-latest.json').productionChampionUnchanged!==true)
@@ -100,6 +102,8 @@ jobs:
           console.log(JSON.stringify({numericDecided:r.numeric.decided,
              frozenSelectedDecided:r.explicitFrozenDirections.decided,
              frozenStillPending:r.explicitFrozenDirections.pending,
+             distinctThresholdDecided:r.explicitFrozenDirections.firstDistinctThresholdGrade.earliestPerPlayerGameMarketAndLine.decided,
+             distinctThresholdCorrect:r.explicitFrozenDirections.firstDistinctThresholdGrade.earliestPerPlayerGameMarketAndLine.correct,
              officialSettlementVerified:false,calibrated:false}));
           NODE
       - name: Commit source-refresh and graded forecast report privately only

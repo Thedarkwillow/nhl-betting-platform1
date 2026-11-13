@@ -1,0 +1,66 @@
+name: Verify Private NFL First Git Repeat Freeze Repair
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/test-private-nfl-first-git-repeat-fix.yml']
+permissions:
+  contents: read
+jobs:
+  private-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Confirm private access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: fix/nfl-duplicate-original-freeze-20261113
+          fetch-depth: 0
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify no-past-edit de-duplication and full research suite
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          logfile="$(mktemp)"; trap 'rm -f "$logfile"' EXIT
+          node --check src/nfl-original-freeze-identity.cjs
+          for script in src/nfl-precommitted-grading.cjs src/nfl-frozen-direction-diagnostic.cjs src/nfl-shadow-postgame-grade.cjs src/nfl-matchup-shadow-grading.cjs; do node --check "$script"; done
+          if ! node --test test/nfl-original-freeze-dedup.test.cjs test/nfl-precommitted-grading.test.cjs test/nfl-frozen-direction-diagnostic.test.cjs test/nfl-shadow-postgame-grade.test.cjs test/nfl-matchup-shadow-grading.test.cjs >"$logfile" 2>&1; then
+            echo "::error::Private targeted NFL frozen quote duplicate, matchup or bias tests failed"
+            exit 1
+          fi
+          echo "PASS: earliest verified Git source identity, no retroactive winner edits"
+          if ! npm test >"$logfile" 2>&1; then
+            echo "::error::Complete private NFL/NHL/MLB regression failed"
+            exit 1
+          fi
+          echo "PASS: entire private Node regression suite"
+          for script in scripts/grade-nfl-precommitted.cjs scripts/report-nfl-frozen-direction-diagnostic.cjs scripts/report-nfl-shadow-postgame.cjs scripts/report-nfl-matchup-shadow.cjs; do
+            if ! node "$script" >"$logfile" 2>&1; then
+              echo "::error::Private no-provider original-Git grader failed at $script"
+              exit 1
+            fi
+            echo "PASS: private original NFL offline stage $script"
+          done
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const r=JSON.parse(fs.readFileSync('outputs/nfl/backtests/pregame-forecast-proof-latest.json','utf8'));
+          if(r.explicitFrozenDirections?.firstGitExactDuplicateObservationsNotCounted<1||
+            r.explicitFrozenDirections?.platformPayoutSettlementsVerified!==false||
+            !r.neverClaimNumericSideAsPreviouslyFrozenHigherLower)
+              throw Error('Repeated first Git snapshot was not safely deduplicated');
+          console.log('PASS: deduplicated source previews, no falsely verified payouts');
+          NODE
+      - name: No source rows or tokens enter public repository
+        if: always()
+        run: echo "Only verification status public; raw quotes and NFL player forecasts remain private."

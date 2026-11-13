@@ -153,3 +153,4 @@ jobs:
           echo "::error::NHL private grading archive push failed";exit 1
 # Requested 2026-11-12 Pacific: refresh and grade only official FINAL NHL games from 2026-11-11; existing safety gates unchanged.
 # 2026-11-12: validate Pacific-date pending Standard picks and latest forward model research report.
+# 2026-11-13: owner-requested strict final-only grading for Pacific Nov 12 slate.

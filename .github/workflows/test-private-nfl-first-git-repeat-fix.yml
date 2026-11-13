@@ -37,6 +37,7 @@ jobs:
           for script in src/nfl-precommitted-grading.cjs src/nfl-frozen-direction-diagnostic.cjs src/nfl-shadow-postgame-grade.cjs src/nfl-matchup-shadow-grading.cjs; do node --check "$script"; done
           if ! node --test test/nfl-original-freeze-dedup.test.cjs test/nfl-precommitted-grading.test.cjs test/nfl-frozen-direction-diagnostic.test.cjs test/nfl-shadow-postgame-grade.test.cjs test/nfl-matchup-shadow-grading.test.cjs >"$logfile" 2>&1; then
             echo "::error::Private targeted NFL frozen quote duplicate, matchup or bias tests failed"
+            grep "^not ok " "$logfile" | cut -c 1-155 || true
             exit 1
           fi
           echo "PASS: earliest verified Git source identity, no retroactive winner edits"

@@ -79,12 +79,14 @@ jobs:
           fi
           # Only first-Git original and future-abstention evidence, never
           # backdated directional preferences or player-level public output.
-          if ! node scripts/report-nfl-frozen-direction-diagnostic.cjs >"$log" 2>&1 ||
-             ! node scripts/report-nfl-shadow-postgame.cjs >"$log" 2>&1 ||
-             ! node scripts/report-nfl-matchup-shadow.cjs >"$log" 2>&1; then
-            echo "::error::NFL frozen Higher/Lower bias or independent shadow grading failed."
-            exit 1
-          fi
+          for report in scripts/report-nfl-frozen-direction-diagnostic.cjs scripts/report-nfl-shadow-postgame.cjs scripts/report-nfl-matchup-shadow.cjs; do
+            if ! node "$report" >"$log" 2>&1; then
+              echo "::error::NFL first-Git-safe postgame report failed at: $report"
+              # Never print raw private player quotes or private tracebacks into public runner logs.
+              exit 1
+            fi
+            echo "PASS: completed private NFL research-only stage: $report"
+          done
           node - <<'NODE'
           const r=require('./outputs/nfl/backtests/pregame-forecast-proof-latest.json');
           if(r.kind!=='nfl_private_pregame_evidence_separated_outcome_audit_v1'||

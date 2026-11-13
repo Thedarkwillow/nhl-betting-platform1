@@ -1,0 +1,42 @@
+name: Validate private NHL accuracy research branch
+on:
+  workflow_dispatch:
+    inputs:
+      private_ref:
+        description: Private repository branch or commit to validate
+        required: true
+        default: research/paired-game-cluster-validation-20261113
+        type: string
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-nhl-accuracy-pr.yml']
+permissions:
+  contents: read
+concurrency:
+  group: validate-private-nhl-accuracy-research
+  cancel-in-progress: false
+jobs:
+  test-private-branch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Require private repository read access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private repository access secret missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          path: private
+          ref: ${{ inputs.private_ref || 'research/paired-game-cluster-validation-20261113' }}
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax-check private paired accuracy scorer
+        working-directory: private
+        run: node --check src/nhl-standard-forward-scoreboard.cjs
+      - name: Test original freeze, identical-line scoring, clustered inference, and regression gates
+        working-directory: private
+        run: node --test test/nhl-standard-forward-improvement.test.cjs test/nhl-standard-triple-challenger.test.cjs test/nhl-frozen-baseline-challenge.test.cjs test/nhl-prospective-validation.test.cjs

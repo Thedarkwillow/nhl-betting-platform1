@@ -1,3 +1,4 @@
+# Include Friday after Thursday Night Football to evaluate settled pregame directions.
 # 2026-11-10: postgame nflverse refresh and original first-Git NFL frozen directional grade attempt.
 # Model branch merged: verify private main NFL original + matchup shadow grading.
 name: NFL archived pregame forecast and finals grading via public free runner
@@ -7,7 +8,7 @@ on:
     branches: [main]
     paths: ['.github/workflows/private-nfl-final-refresh-and-precommit-grading.yml']
   schedule:
-    - cron: '40 5 * * 1,2'
+    - cron: '40 5 * * 1,2,5'
       timezone: America/Los_Angeles
 permissions:
   contents: read

@@ -2,89 +2,24 @@
   "schemaVersion": 1,
   "kind": "public_official_nhl_game_status_not_prop_lines",
   "source": "NHL Web API",
-  "endpoint": "https://api-web.nhle.com/v1/score/2026-11-12",
-  "pacificDate": "2026-11-12",
-  "observedAtUTC": "2026-11-12T22:41:52.224Z",
+  "endpoint": "https://api-web.nhle.com/v1/score/2026-11-13",
+  "pacificDate": "2026-11-13",
+  "observedAtUTC": "2026-11-13T20:51:00.219Z",
   "note": "Public NHL scores only. No player props, model predictions or platform settlements.",
   "games": [
     {
-      "gameId": 2026020309,
-      "startTimeUTC": "2026-11-12T17:00:00Z",
-      "state": "OFF",
-      "away": "CAR",
-      "home": "SEA",
-      "awayScore": 4,
-      "homeScore": 1
+      "gameId": 2026020310,
+      "startTimeUTC": "2026-11-14T02:00:00Z",
+      "state": "FUT",
+      "away": "NYR",
+      "home": "VAN"
     },
     {
-      "gameId": 2026020299,
-      "startTimeUTC": "2026-11-13T00:00:00Z",
+      "gameId": 2026020311,
+      "startTimeUTC": "2026-11-14T03:00:00Z",
       "state": "FUT",
-      "away": "MTL",
-      "home": "BOS"
-    },
-    {
-      "gameId": 2026020300,
-      "startTimeUTC": "2026-11-13T00:00:00Z",
-      "state": "FUT",
-      "away": "MIN",
-      "home": "TOR"
-    },
-    {
-      "gameId": 2026020301,
-      "startTimeUTC": "2026-11-13T00:00:00Z",
-      "state": "FUT",
-      "away": "COL",
-      "home": "OTT"
-    },
-    {
-      "gameId": 2026020303,
-      "startTimeUTC": "2026-11-13T00:00:00Z",
-      "state": "FUT",
-      "away": "WSH",
-      "home": "NJD"
-    },
-    {
-      "gameId": 2026020304,
-      "startTimeUTC": "2026-11-13T00:00:00Z",
-      "state": "FUT",
-      "away": "TBL",
-      "home": "CBJ"
-    },
-    {
-      "gameId": 2026020302,
-      "startTimeUTC": "2026-11-13T00:30:00Z",
-      "state": "FUT",
-      "away": "DET",
-      "home": "FLA"
-    },
-    {
-      "gameId": 2026020305,
-      "startTimeUTC": "2026-11-13T01:00:00Z",
-      "state": "FUT",
-      "away": "BUF",
-      "home": "CHI"
-    },
-    {
-      "gameId": 2026020306,
-      "startTimeUTC": "2026-11-13T01:00:00Z",
-      "state": "FUT",
-      "away": "WPG",
-      "home": "DAL"
-    },
-    {
-      "gameId": 2026020307,
-      "startTimeUTC": "2026-11-13T02:00:00Z",
-      "state": "FUT",
-      "away": "STL",
-      "home": "UTA"
-    },
-    {
-      "gameId": 2026020308,
-      "startTimeUTC": "2026-11-13T03:00:00Z",
-      "state": "FUT",
-      "away": "NYI",
-      "home": "LAK"
+      "away": "NSH",
+      "home": "VGK"
     }
   ]
 }

@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: ['.github/workflows/private-nfl-postgame-research-audit.yml']
   schedule:
-    - cron: '25 4 * * 1,2'
+    - cron: '50 10 * * *'
       timezone: America/Los_Angeles
 permissions:
   contents: read
@@ -38,7 +38,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! node --test test/nfl-historical-stats-backtest.test.cjs test/nfl-quote-evidence.test.cjs test/nfl-research-history-board.test.cjs >"$log" 2>&1; then
+          if ! node --test test/nfl-historical-stats-backtest.test.cjs test/nfl-development-model-selection.test.cjs test/nfl-quote-evidence.test.cjs test/nfl-research-history-board.test.cjs >"$log" 2>&1; then
             echo "::error::Private NFL research regression failed; no raw data sent to public logs."
             exit 1
           fi

@@ -10,6 +10,9 @@ on:
   push:
     branches: [main]
     paths: ['.github/workflows/validate-private-nhl-accuracy-pr.yml']
+  schedule:
+    - cron: '30 10 * * *'
+      timezone: America/Los_Angeles
 permissions:
   contents: read
 concurrency:
@@ -28,7 +31,7 @@ jobs:
         with:
           repository: Thedarkwillow/nhl-betting-platform
           path: private
-          ref: ${{ inputs.private_ref || 'research/paired-game-cluster-validation-20261113' }}
+          ref: ${{ github.event_name == 'push' && 'research/paired-game-cluster-validation-20261113' || inputs.private_ref || 'main' }}
           fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
       - uses: actions/setup-node@v4

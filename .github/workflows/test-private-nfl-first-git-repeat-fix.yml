@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: fix/nfl-duplicate-original-freeze-20261113
+          ref: fix/nfl-distinct-threshold-game-grade-20261113
           fetch-depth: 0
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
@@ -34,6 +34,7 @@ jobs:
           umask 077
           logfile="$(mktemp)"; trap 'rm -f "$logfile"' EXIT
           node --check src/nfl-original-freeze-identity.cjs
+          node --check src/nfl-distinct-frozen-thresholds.cjs
           for script in src/nfl-precommitted-grading.cjs src/nfl-frozen-direction-diagnostic.cjs src/nfl-shadow-postgame-grade.cjs src/nfl-matchup-shadow-grading.cjs; do node --check "$script"; done
           if ! node --test test/nfl-original-freeze-dedup.test.cjs test/nfl-precommitted-grading.test.cjs test/nfl-frozen-direction-diagnostic.test.cjs test/nfl-shadow-postgame-grade.test.cjs test/nfl-matchup-shadow-grading.test.cjs >"$logfile" 2>&1; then
             echo "::error::Private targeted NFL frozen quote duplicate, matchup or bias tests failed"
@@ -58,6 +59,7 @@ jobs:
           const r=JSON.parse(fs.readFileSync('outputs/nfl/backtests/pregame-forecast-proof-latest.json','utf8'));
           if(r.explicitFrozenDirections?.firstGitExactDuplicateObservationsNotCounted<1||
             r.explicitFrozenDirections?.platformPayoutSettlementsVerified!==false||
+            !r.explicitFrozenDirections?.firstDistinctThresholdGrade?.earliestPerPlayerGameMarketAndLine||
             !r.neverClaimNumericSideAsPreviouslyFrozenHigherLower)
               throw Error('Repeated first Git snapshot was not safely deduplicated');
           console.log('PASS: deduplicated source previews, no falsely verified payouts');

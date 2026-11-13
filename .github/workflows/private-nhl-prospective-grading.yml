@@ -44,7 +44,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)";trap 'rm -f "$log"' EXIT
-          if ! node --test test/grade-nhl-predictions.test.cjs test/nhl-frozen-individual-props.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nhl-prospective-validation.test.cjs test/nhl-frozen-baseline-challenge.test.cjs test/nhl-standard-market-diagnostics.test.cjs test/nhl-standard-triple-challenger.test.cjs test/nhl-sog-opportunity-challengers.test.cjs test/nhl-sog-line-movement.test.cjs test/nhl-simple-pregame-challengers.test.cjs > "$log" 2>&1; then
+          if ! node --test test/grade-nhl-predictions.test.cjs test/nhl-frozen-individual-props.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nhl-prospective-validation.test.cjs test/nhl-frozen-baseline-challenge.test.cjs test/nhl-standard-market-diagnostics.test.cjs test/nhl-standard-triple-challenger.test.cjs test/nhl-standard-forward-improvement.test.cjs test/nhl-sog-opportunity-challengers.test.cjs test/nhl-sog-line-movement.test.cjs test/nhl-simple-pregame-challengers.test.cjs > "$log" 2>&1; then
             echo "::error::Private precommit / settlement-grading regression failed."
             exit 1
           fi

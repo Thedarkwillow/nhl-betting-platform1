@@ -5,7 +5,7 @@ on:
       private_ref:
         description: Private repository branch or commit to validate
         required: true
-        default: research/paired-game-cluster-validation-20261113
+        default: research/nhl-standard-reliability-diagnostics-20261113
         type: string
   push:
     branches: [main]
@@ -31,7 +31,7 @@ jobs:
         with:
           repository: Thedarkwillow/nhl-betting-platform
           path: private
-          ref: ${{ inputs.private_ref || 'main' }}
+          ref: ${{ inputs.private_ref || 'research/nhl-standard-reliability-diagnostics-20261113' }}
           fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
       - uses: actions/setup-node@v4

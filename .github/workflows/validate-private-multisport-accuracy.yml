@@ -31,7 +31,7 @@ jobs:
         with:
           repository: Thedarkwillow/nhl-betting-platform
           path: private
-          ref: ${{ github.event_name == 'push' && 'research/nfl-partner-observation-audit-20261113' || inputs.private_ref || 'main' }}
+          ref: ${{ inputs.private_ref || 'main' }}
           fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
       - uses: actions/setup-node@v4

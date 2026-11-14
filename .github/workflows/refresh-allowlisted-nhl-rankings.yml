@@ -117,6 +117,16 @@ jobs:
           if(d.kind!=='public_nhl_research_cards_not_internal_model'||
              d.performance.modelCalibrated!==false||d.performance.originalPlatformSettlementVerified!==false)
             throw Error('Public contract violation');
+          // Counts/timestamps only: distinguish stale, missing, failed contract and no eligible rows.
+          const read=rel=>{try{return JSON.parse(fs.readFileSync(rel,'utf8'));}catch{return null;}};
+          const source=read('outputs/free-source/nhl/latest.json'),preview=read('outputs/free-source/nhl/research-preview-latest.json');
+          const safeTime=x=>typeof x==='string'&&Number.isFinite(Date.parse(x))&&Date.parse(x)<=now?new Date(Date.parse(x)).toISOString():null;
+          const boardAt=safeTime(source?.generatedAt);
+          const sourceContract=source?.provider==='prizepicksapi.com'&&source?.snapshotMode==='immutable_as_of'&&source?.completePagination===true&&source?.sourceStatus==='fresh';
+          const reason=!source?'approved_archive_missing':!sourceContract?'approved_archive_contract_unverified':!fresh(boardAt)?'approved_archive_stale':!approved?'fresh_archive_export_not_approved':!d.props.length?'no_eligible_public_rows':'fresh_approved_rows';
+          const safe={kind:'public_nhl_freshness_diagnostic_v1',generatedAt:new Date(now).toISOString(),approvedArchiveAt:boardAt,approvedArchiveAgeMinutes:boardAt?Math.floor((now-Date.parse(boardAt))/60000):null,approvedArchiveContractVerified:sourceContract,previewAt:safeTime(preview?.generatedAt),publicExportApproved:approved,publishedRows:d.props.length,reason,liveProviderCallMade:false,originalPlatformAvailabilityVerified:false};
+          fs.mkdirSync('../public/data',{recursive:true});
+          fs.writeFileSync('../public/data/nhl-freshness-diagnostic.json',JSON.stringify(safe)+'\n');
           fs.writeFileSync('../public/data.json',JSON.stringify(d)+'\n');
           console.log(approved?'Approved fresh source export prepared.':'No approved fresh feed; stale rankings withheld.');
           NODE
@@ -133,7 +143,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data.json
+          git add data.json data/nhl-freshness-diagnostic.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'data: refresh approved NHL research rankings and suppress stale cards' >/dev/null
           for attempt in 1 2 3 4; do

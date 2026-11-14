@@ -1,0 +1,119 @@
+name: Independent NFL Standard scoped private preview
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/independent-nfl-standard-private-preview.yml']
+permissions:
+  contents: read
+concurrency:
+  group: independent-nfl-standard-private-preview
+  cancel-in-progress: false
+jobs:
+  preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test independent NFL identity and immutable source gates
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nfl-independent-source-preview.test.cjs test/prizepicksapi-asof-board.test.cjs >"$log" 2>&1; then echo '::error::Offline tests failed; no provider requests.'; exit 1; fi
+      - name: Capture only the Standard-filtered NFL scope under legacy quota and build private preview
+        working-directory: private
+        env:
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node - >"$log" 2>&1 <<'NODE'
+          const fs=require('node:fs'),path=require('node:path');
+          const {providerUsage}=require('./src/prizepicksapi-nhl-request.cjs');
+          const {fetchAsOfBoard,requestAsOfPage}=require('./scripts/collect-prizepicks-asof-nhl.cjs');
+          const {dataset}=require('./scripts/build-nfl-partner-board-research.cjs');
+          const {buildIndependentNflPreview}=require('./src/nfl-independent-source-preview.cjs');
+          const key=process.env.PRIZEPICKSAPI_KEY;
+          let calls=0,pages=0,last=0,phase='preflight';
+          const headers={Authorization:'Bearer '+key,Accept:'application/json','X-User-Request':'Check a bounded Standard NFL research integration'};
+          async function guarded(url,options){
+            if(!key||calls>=36)throw Error('budget_or_secret');
+            const u=new URL(url);
+            if(u.origin!=='https://prizepicksapi.com'||!['/api/v1/coverage','/api/v1/board'].includes(u.pathname))throw Error('endpoint');
+            const wait=Math.max(0,7000-(Date.now()-last));if(wait)await new Promise(r=>setTimeout(r,wait));
+            last=Date.now();calls++;
+            if(u.pathname.endsWith('/board')){pages++;u.searchParams.set('league','NFL');u.searchParams.set('tier','standard');}
+            const r=await fetch(u,{...options,headers,signal:AbortSignal.timeout(30000)});
+            if(!r.ok)throw Error('provider_http_'+r.status);
+            const q=providerUsage(r.headers);
+            if(q.unit!=='requests'||!Number.isInteger(q.requestsRemaining)||q.requestsRemaining<(pages===0?150:110))throw Error('quota_gate');
+            return r;
+          }
+          async function coverage(){
+            const r=await guarded('https://prizepicksapi.com/api/v1/coverage',{});
+            const d=await r.json(),x=d.data?.find(r=>r.league==='NFL'),t=Date.parse(x?.last_observed_at);
+            if(d.meta?.mode!=='live'||d.meta?.source_status!=='fresh'||x?.status!=='fresh'||
+              !Number.isFinite(t)||Date.now()-t<0||Date.now()-t>1800000||!Number.isInteger(x.projection_count)||x.projection_count<1)throw Error('coverage');
+            return {time:t,count:x.projection_count};
+          }
+          (async()=>{
+            const a=await coverage();await new Promise(r=>setTimeout(r,12000));const b=await coverage();
+            if(a.time!==b.time||a.count!==b.count)throw Error('unstable_coverage');
+            phase='scoped_board';
+            const pin=new Date().toISOString();
+            const board=await fetchAsOfBoard(key,{at:pin,fetchPage:(k,o)=>requestAsOfPage(k,{...o,client:guarded})});
+            if(board.completePagination!==true||board.quotaUnit!=='requests'||board.chargedCredits!==0||!board.offers.length||
+              board.offers.some(x=>x.league!=='NFL'||!Array.isArray(x.selections)||!x.selections.some(s=>s.tier==='standard')))
+              throw Error('scoped_contract');
+            const generatedAt=new Date().toISOString(),doc={provider:'prizepicksapi.com',league:'NFL',
+              scope:'standard_full_game_replay',requestedTier:'standard',fullNFLBoardVerified:false,snapshotMode:'immutable_as_of',
+              sourceStatus:'fresh',completePagination:true,generatedAt,boardAsOfAt:board.asOf,offers:board.offers};
+            const stamp=generatedAt.slice(0,19).replace(/[-:]/g,'')+'Z';
+            fs.mkdirSync('outputs/nfl/independent-source/snapshots',{recursive:true});
+            fs.writeFileSync('outputs/nfl/independent-source/snapshots/'+stamp+'.json',JSON.stringify(doc)+'\n',{flag:'wx'});
+            fs.writeFileSync('outputs/nfl/independent-source/latest.json',JSON.stringify(doc)+'\n');
+            phase='prior_only_preview';
+            const weeklyRows=[2024,2025,2026].flatMap(y=>dataset(y,'player_weekly')),schedule=dataset(2026,'schedule');
+            const report=buildIndependentNflPreview({board:doc,weeklyRows,schedule});
+            fs.writeFileSync('outputs/nfl/independent-source/research-preview-latest.json',JSON.stringify(report)+'\n');
+            console.log(JSON.stringify({phase:'private_nfl_preview',scopedOffers:doc.offers.length,matchedRows:report.matchedRows,
+              pages:board.pagesFetched,requests:calls,credits:0,fullBoard:false,publicRelease:false,calibrated:false}));
+          })().catch(e=>{
+            const reason=['budget_or_secret','endpoint','quota_gate','coverage','unstable_coverage','scoped_contract'].includes(e.message)?e.message:/^provider_http_[0-9]{3}$/.test(e.message)?e.message:'source_or_preview_contract';
+            console.error('NFL_SCOPE_FAILURE '+phase+' '+reason+' requests='+calls+' pages='+pages);process.exitCode=1;
+          });
+          NODE
+          then
+            grep -E '^NFL_SCOPE_FAILURE [a-z_]+ [a-z_0-9]+ requests=[0-9]+ pages=[0-9]+$' "$log" || true
+            echo '::error::No complete verified Standard scope and preview; no public release.'
+            exit 1
+          fi
+          grep -E '^\{"phase":"private_nfl_preview","scopedOffers":[0-9]+,"matchedRows":[0-9]+,"pages":[0-9]+,"requests":[0-9]+,"credits":0,"fullBoard":false,"publicRelease":false,"calibrated":false\}$' "$log"
+      - name: Archive only to private Git
+        working-directory: private
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nfl/independent-source/latest.json outputs/nfl/independent-source/research-preview-latest.json outputs/nfl/independent-source/snapshots/*.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'data: private independent NFL Standard scope and conditional research preview' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: private NFL scoped archive and preview saved.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

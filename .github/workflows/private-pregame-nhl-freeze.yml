@@ -182,7 +182,7 @@ jobs:
               echo "Private research candidate committed and pushed before earliest puck drop."
               node - <<'NODE'
           const s=require('./'+process.env.FREEZE_SNAPSHOT),f=s.privateFormatLineupResearch;
-          console.log(JSON.stringify({powerScenarioCount:Object.values(f?.power||{}).filter(Boolean).length,flexScenarioCount:Object.values(f?.flex||{}).filter(Boolean).length,individualSpecialistResearchCount:s.specialistIndividualResearch?.rows?.length||0,officialPlatformSettlementVerified:false}));
+          console.log(JSON.stringify({powerScenarioCount:Object.values(f?.power||{}).filter(Boolean).length,flexScenarioCount:Object.values(f?.flex||{}).filter(Boolean).length,individualSpecialistResearchCount:s.specialistIndividualResearch?.rows?.length||0,specialistExclusionCounts:s.specialistIndividualResearch?.excluded||{},specialistStatus:s.specialistIndividualResearch?.kind||s.specialistIndividualResearch?.status||'missing',officialPlatformSettlementVerified:false}));
           NODE
               exit 0
             fi

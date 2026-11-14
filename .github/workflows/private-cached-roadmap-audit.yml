@@ -36,7 +36,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          git merge-base --is-ancestor 37340f848e32085501633ad0a992720fc319741e HEAD
+          git merge-base --is-ancestor 767fcc0d3ab51bdacd363d125775a07a700fd9b0 HEAD
           export AUDITED_COMMIT="$(git rev-parse HEAD)"
           for report in scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nfl-independent-forward.cjs scripts/report-nhl-pregame-close-research.cjs; do
             if ! node "$report" >"$log" 2>&1; then echo '::error::Cached audit failed; private data withheld.'; exit 1; fi

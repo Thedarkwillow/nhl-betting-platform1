@@ -1,0 +1,42 @@
+name: Validate private PR 120 expanded models
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-pr120.yml']
+permissions:
+  contents: read
+concurrency:
+  group: validate-private-pr120
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 525ce03ee8be03c85a1d0360f207eb53a90c7840
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Private regression tests (aggregate status only)
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG="$(mktemp)"
+          trap 'rm -f "$LOG"' EXIT
+          if node --test test/expanded-forward-distributions.test.cjs test/nhl-standard-forward-improvement.test.cjs test/nhl-standard-triple-challenger.test.cjs test/nhl-frozen-baseline-challenge.test.cjs test/nhl-prospective-validation.test.cjs >"$LOG" 2>&1; then
+            grep -E '^# (tests|suites|pass|fail|cancelled|skipped|todo) [0-9]+$' "$LOG" || true
+            echo 'Private targeted regression suite passed.'
+          else
+            grep -E '^# (tests|suites|pass|fail|cancelled|skipped|todo) [0-9]+$' "$LOG" || true
+            echo '::error::Private targeted regression suite failed. No private test payload printed.'
+            exit 1
+          fi

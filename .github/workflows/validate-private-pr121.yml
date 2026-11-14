@@ -34,7 +34,14 @@ jobs:
             exit 1
           fi
           grep -E '^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 3
+          # Refresh the derived original grade against the same archived weekly source,
+          # so new first-Git frames cannot be joined to a stale cached grade.
+          if ! node scripts/grade-nfl-precommitted.cjs >"$log" 2>&1; then
+            echo "::error::Original private grade rebuild failed."
+            exit 1
+          fi
           if ! node scripts/report-nfl-matchup-shadow.cjs >"$log" 2>&1; then
+            grep -Ex "Original precommitted NFL final outcomes not verified|Original context challenger did not have first Git pregame proof|Context projection did not match same original Git-frozen NFL line|Invalid original game final outcome for context audit|Invalid official probability outcome|Official probability outcome inconsistent with original threshold" "$log" || true
             echo '::error::Original private outcome audit failed.'
             exit 1
           fi

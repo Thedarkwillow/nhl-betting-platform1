@@ -79,7 +79,7 @@ jobs:
           fi
           # Only first-Git original and future-abstention evidence, never
           # backdated directional preferences or player-level public output.
-          for report in scripts/report-nfl-frozen-direction-diagnostic.cjs scripts/report-nfl-shadow-postgame.cjs scripts/report-nfl-matchup-shadow.cjs; do
+          for report in scripts/report-nfl-frozen-direction-diagnostic.cjs scripts/report-nfl-shadow-postgame.cjs scripts/report-nfl-matchup-shadow.cjs scripts/report-nfl-independent-forward.cjs; do
             if ! node "$report" >"$log" 2>&1; then
               echo "::error::NFL first-Git-safe postgame report failed at: $report"
               # Never print raw private player quotes or private tracebacks into public runner logs.
@@ -112,7 +112,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f outputs/nfl/history/manifest.json outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/backtests/pregame-forecast-proof-latest.json outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json outputs/nfl/backtests/frozen-shadow-prospective-grading-latest.json outputs/nfl/backtests/matchup-context-forward-grade-latest.json
+          git add -f outputs/nfl/history/manifest.json outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/backtests/pregame-forecast-proof-latest.json outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json outputs/nfl/backtests/frozen-shadow-prospective-grading-latest.json outputs/nfl/backtests/matchup-context-forward-grade-latest.json outputs/nfl/backtests/independent-source-forward-latest.json
           if git diff --cached --quiet; then
             echo "PASS: NFL private report unchanged."
             exit 0

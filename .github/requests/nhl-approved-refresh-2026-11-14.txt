@@ -1,0 +1,1 @@
+Owner-approved recovery attempt for 2026-11-14 Pacific: existing request allowance only; stricter 200-request preflight; max 36 calls; no additional projection credits; do not edit or repeat this marker.

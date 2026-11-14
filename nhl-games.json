@@ -4,24 +4,26 @@
   "source": "NHL Web API",
   "endpoint": "https://api-web.nhle.com/v1/score/2026-11-14",
   "pacificDate": "2026-11-14",
-  "observedAtUTC": "2026-11-14T19:02:31.511Z",
+  "observedAtUTC": "2026-11-14T21:25:18.293Z",
   "note": "Public NHL scores only. No player props, model predictions or platform settlements.",
   "games": [
     {
       "gameId": 2026020321,
       "startTimeUTC": "2026-11-14T18:00:00Z",
-      "state": "LIVE",
+      "state": "OFF",
       "away": "SEA",
       "home": "CAR",
-      "awayScore": 0,
-      "homeScore": 2
+      "awayScore": 1,
+      "homeScore": 5
     },
     {
       "gameId": 2026020312,
       "startTimeUTC": "2026-11-14T20:30:00Z",
-      "state": "FUT",
+      "state": "LIVE",
       "away": "WPG",
-      "home": "CHI"
+      "home": "CHI",
+      "awayScore": 0,
+      "homeScore": 3
     },
     {
       "gameId": 2026020313,

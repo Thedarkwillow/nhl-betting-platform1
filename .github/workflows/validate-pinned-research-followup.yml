@@ -1,0 +1,103 @@
+name: Validate pinned research follow-up on free public runners
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-pinned-research-followup.yml']
+permissions:
+  contents: read
+concurrency:
+  group: pinned-research-followup
+  cancel-in-progress: false
+jobs:
+  private-tests:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 0af4243b66ce54ab42cb3446e36677915150b423
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Offline private tests; suppress all private output
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(git rev-parse HEAD)" = 0af4243b66ce54ab42cb3446e36677915150b423
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Private test suite failed; private test details withheld."
+            grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          echo 'PASS: full private offline Node suite.'
+  public-tests:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 1af9cc088f4dae9ac9bdb1197063c709be20441a
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test public dashboard and publisher without private checkout
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 1af9cc088f4dae9ac9bdb1197063c709be20441a
+          node --test scripts/test-*.cjs
+          node scripts/validate-dashboard.cjs
+          node --test scheduler/nhl-board-dispatcher/test/dispatcher.test.mjs
+  status:
+    if: always() && github.ref == 'refs/heads/main'
+    needs: [private-tests, public-tests]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Record only aggregate job conclusions; no private data
+        env:
+          PRIVATE_RESULT: ${{ needs.private-tests.result }}
+          PUBLIC_RESULT: ${{ needs.public-tests.result }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const allowed=['success','failure','cancelled','skipped'];
+          const checked=v=>allowed.includes(v)?v:'unknown';
+          fs.mkdirSync('data',{recursive:true});
+          fs.writeFileSync('data/pinned-research-validation.json',JSON.stringify({
+            kind:'offline_pinned_validation_status_v1',batch:'nov14-private131-public34',
+            recordedAt:new Date().toISOString(),runId:process.env.RUN_ID,
+            privateTests:checked(process.env.PRIVATE_RESULT),publicTests:checked(process.env.PUBLIC_RESULT),
+            liveCaptureVerified:false,calibrated:false
+          })+'\n');
+          NODE
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/pinned-research-validation.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'status: pinned offline research validation conclusions'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

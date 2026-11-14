@@ -1,0 +1,52 @@
+name: Private NHL November 14 archived research shortlist
+on:
+  push:
+    branches: ['ci/nhl-research-shortlist-20261114']
+    paths: ['.github/workflows/ci-nhl-research-shortlist-20261114.yml']
+permissions:
+  contents: read
+jobs:
+  shortlist:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 65b5517921ea81bd80a8a345338c24e85a97010d
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - name: Extract private exact observed Standard shortlist
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node - >"$log" 2>&1 <<'JS'
+          const fs=require('node:fs'),p='outputs/partner-source/research-preview/2026-11-14T17-05-26-748Z.json',s=JSON.parse(fs.readFileSync(p));
+          const now=Date.now(),schedule=JSON.parse(fs.readFileSync('outputs/official-nhl/season-schedules/2026-27.json'));
+          const date='2026-11-14',games=new Map(schedule.games.filter(g=>g.gameDate===date&&Date.parse(g.startTimeUTC)>now+900000).map(g=>[g.id,g]));
+          const sources=JSON.parse(fs.readFileSync('outputs/approved-nhl-sources/latest.json'));
+          const all=Array.isArray(s.rankedProps)?s.rankedProps:[];
+          const selections=Array.isArray(s.individualPropSelections)?s.individualPropSelections:[];
+          const eligible=all.filter(p=>p.tier==='Standard'&&['Higher','Lower'].includes(p.lean)&&Number.isFinite(p.probability)&&p.probability>.5&&p.probability<1&&games.has(p.gameId)&&p.researchEligibility!=='watchlist'&&p.roleEvidence?.eligibleForResearchLineup!==false&&p.probabilitySafety?.researchLineupEligible!==false&&p.market!=='saves'&&p.observations>=8);
+          const sort=eligible.sort((a,b)=>b.probability-a.probability||b.observations-a.observations),seen=new Set(),out=[];
+          for(const p of sort){
+            if(seen.has(p.playerId))continue;
+            const g=games.get(p.gameId);
+            const blocked=sources.nhlEditorial?.games?.find(x=>x.gameId===p.gameId)?.teams?.flatMap(t=>t.availability||[])?.some(a=>a.playerId===p.playerId);
+            if(blocked)continue;
+            seen.add(p.playerId);
+            out.push({player:p.player,team:p.team,opponent:p.opponent,market:p.market,line:p.line,lean:p.lean,probability:p.probability,projection:p.projection,observations:p.observations,last5:p.last5,last10:p.last10,tier:p.tier,source:p.source,capturedAt:p.capturedAt,gameId:p.gameId,gameStart:g.startTimeUTC,originalExplicit:selections.some(o=>o.gameId===p.gameId&&o.playerId===p.playerId&&o.market===p.market&&o.line===p.line&&o.lean===p.lean),gameState:g.gameState});
+            if(out.length===12)break;
+          }
+          const report={kind:'archived_research_shortlist_not_current_offer_verification',at:new Date(now).toISOString(),sourceFile:p,sourceGeneratedAt:s.generatedAt,boardAt:s.boardGeneratedAt||s.boardAsOfAt,rankedRows:all.length,eligibleRows:eligible.length,remainingGames:games.size,keys:Object.keys(s),sourceHealthCapturedAt:sources.generatedAt,rows:out,calibrated:false,liveAppAvailabilityVerified:false};
+          fs.mkdirSync('outputs/health',{recursive:true});fs.writeFileSync('outputs/health/nhl-research-shortlist-20261114.json',JSON.stringify(report,null,2)+'\n');
+          JS
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b research/nhl-shortlist-20261114
+          git add -f outputs/health/nhl-research-shortlist-20261114.json
+          git commit -m 'research: private Nov14 archived exact-line shortlist' >/dev/null
+          git push -q origin HEAD:research/nhl-shortlist-20261114
+          echo "Private shortlist saved; no player or proprietary model data published."

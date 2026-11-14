@@ -4,7 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['.github/workflows/publish-nhl-nfl-model-scorecards.yml']
+    paths:
+      - '.github/workflows/publish-nhl-nfl-model-scorecards.yml'
+      - 'scripts/publish-safe-pregame-scorecards.cjs'
+      - 'scripts/test-publish-safe-pregame-scorecards.cjs'
   workflow_run:
     workflows:
       - 'Private NHL prospective grading and baseline audit via public runner'
@@ -62,6 +65,7 @@ jobs:
           if(s.kind!=='public_nhl_nfl_original_git_frozen_model_scorecards_v1'||
            s.nfl.separateNumericForecasts.modelSelectedHigherLowerHitRate!==null||
            s.evidenceWarnings.rawPropRowsExposed!==0||
+           !Array.isArray(s.nhl.originalTierCounts)||s.nhl.originalTierCounts.length!==3||
            s.evidenceWarnings.calibratedHigherLowerProbabilities!==false||
            s.evidenceWarnings.payoutAdjustedEV!==null)
             throw Error('No safe public graded-sample evidence');

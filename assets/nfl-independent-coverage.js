@@ -12,3 +12,32 @@
   node.textContent=d.scopedOffers.toLocaleString("en-US")+" Standard-scope offers archived · "+d.conditionalResearchRows.toLocaleString("en-US")+" conditional model rows matched · "+stamp+" Pacific. "+(now-at<=1800000?"Recent archived source capture.":"Historical capture, no current availability claim.")+" Full NFL board, player-level rankings and calibrated probabilities are not yet released.";
  }).catch(()=>{node.textContent="Verified independent NFL scope coverage is not currently published. NHL rankings are unaffected.";});
 })();
+
+(function(){
+ const status=document.getElementById("nflResearchStatus"),list=document.getElementById("nflResearchCards");
+ if(!status||!list)return;
+ const node=(tag,text,cls)=>{const el=document.createElement(tag);el.textContent=text;if(cls)el.className=cls;return el;};
+ const stamp=x=>Date.parse(x);
+ let saved=null;
+ function render(){
+  list.replaceChildren();
+  const now=Date.now(),at=stamp(saved?.asOf);
+  if(saved?.kind!=="public_nfl_derived_research_cards_v1"||saved?.calibrated!==false||saved?.conditionalOnPlaying!==true||
+     !Number.isFinite(at)||at>now||now-at>1800000||!Array.isArray(saved.cards)||saved.cards.length>12){
+    status.textContent="No fresh independent NFL ranked research. Expired cards are withheld.";return;
+  }
+  const active=saved.cards.filter(p=>typeof p.player==="string"&&Number.isFinite(p.line)&&Number.isFinite(p.modelProjection)&&
+    Number.isFinite(p.conditionalModelProbability)&&p.conditionalModelProbability>.5&&p.conditionalModelProbability<1&&
+    ["Higher","Lower"].includes(p.side)&&stamp(p.eventStartsAt)-now>=900000);
+  status.textContent=active.length+" limited derived research cards · Independent PrizePicks source · Not calibrated, not verified payout or availability.";
+  for(const p of active){
+   const card=node("article","","card");
+   card.append(node("strong",p.player+" · "+p.team),node("p",p.market.replaceAll("_"," ")+" · "+p.side+" "+p.line),
+    node("p","Projection "+p.modelProjection+" · "+(100*p.conditionalModelProbability).toFixed(1)+"% conditional estimate","minor"),
+    node("p","vs "+p.opponent+" · "+p.priorGames+" prior games","minor"));
+   list.append(card);
+  }
+ }
+ async function refresh(){try{const response=await fetch("data/nfl-research-cards.json",{cache:"no-store"});if(!response.ok)throw Error("unavailable");saved=await response.json();}catch{saved=null;}render();}
+ refresh();setInterval(refresh,60000);
+})();

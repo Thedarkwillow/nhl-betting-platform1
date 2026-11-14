@@ -6,7 +6,7 @@ const fs=require("node:fs"),path=require("node:path");
 const dt=x=>typeof x==="string"?Date.parse(x):NaN;
 const EMPTY=now=>({kind:"public_nfl_derived_research_cards_v1",builtAt:now,asOf:null,scope:"Standard-filtered full-game research only",status:"no_fresh_approved_research",cards:[],calibrated:false,conditionalOnPlaying:true,firstPartyOfferVerified:false,platformSettlementVerified:false,expectedValue:null});
 const good=x=>typeof x==="string"&&x.trim()&&x.length<=100;
-function sanitize(board,preview,now=new Date().toISOString(),requestedTier="standard"){
+function sanitize(board,preview,now=new Date().toISOString(),requestedTier="standard",currentRisk=()=>false){
  const t=dt(now),cap=dt(board?.generatedAt),pin=dt(board?.boardAsOfAt),created=dt(preview?.generatedAt),empty=EMPTY(now);
  if(!["standard","goblin","demon"].includes(requestedTier))return empty;
  const tier=requestedTier[0].toUpperCase()+requestedTier.slice(1);
@@ -27,7 +27,7 @@ function sanitize(board,preview,now=new Date().toISOString(),requestedTier="stan
      o.player?.name!==p.player||o.player?.team!==p.team||o.event?.opponent!==p.opponent||o.event?.starts_at!==p.eventStartsAt||
      p.capturedAt!==board.generatedAt||p.observedAt!==o.observed_at||!Number.isFinite(dt(p.observedAt))||dt(p.observedAt)>pin+1000||
      !Array.isArray(o.selections)||o.selections.filter(x=>x.tier===requestedTier&&x.side===side&&x.available===true).length!==1||
-     ![p.player,p.team,p.opponent,p.market].every(good)||!p.gameId||!p.historicalPlayerId||!side||p.tier!==tier||requestedTier!=="standard"&&side!=="more"||p.availability?.blocksResearch===true||
+     ![p.player,p.team,p.opponent,p.market].every(good)||!p.gameId||!p.historicalPlayerId||!side||p.tier!==tier||requestedTier!=="standard"&&side!=="more"||p.availability?.blocksResearch===true||currentRisk(p)===true||
      p.conditionalOnPlaying!==true||p.calibrated!==false||p.researchOnly!==true||p.autoPickEligible!==false||
      p.originalPlatformSettlementVerified!==false||!Number.isFinite(p.line)||p.line<0||!Number.isFinite(p.projection)||
      !Number.isFinite(p.probability)||p.probability<=(requestedTier==="standard"?.5:0)||p.probability>=1||!Number.isInteger(p.priorGames)||p.priorGames<8||
@@ -51,11 +51,15 @@ function main(){
  const privateRoot=process.argv[2],publicRoot=process.argv[3];
  if(!privateRoot||!publicRoot)throw Error("Private input and public target required");
  const read=p=>{try{return JSON.parse(fs.readFileSync(path.join(privateRoot,"outputs/nfl/independent-source",p),"utf8"));}catch{return null;}};
- const result=sanitize(read("latest.json"),read("research-preview-latest.json"));
+ const now=new Date().toISOString();
+ const {attachNflAvailability}=require(path.resolve(privateRoot,"src/nfl-current-injury-evidence.cjs"));
+ const direct=read("../availability/official-report-latest.json");
+ const risk=p=>attachNflAvailability(p,direct,now).blocksResearch===true;
+ const result=sanitize(read("latest.json"),read("research-preview-latest.json"),now,"standard",risk);
  const output=path.join(publicRoot,"data/nfl-research-cards.json");fs.mkdirSync(path.dirname(output),{recursive:true});
  fs.writeFileSync(output,JSON.stringify(result)+"\n");
  console.log(JSON.stringify({status:result.status,publishedDerivedCards:result.cards.length,rawFeedRowsPublished:0,calibrated:false}));
- for(const tier of ["goblin","demon"]){const r=sanitize(read("alternates/"+tier+"/latest.json"),read("alternates/"+tier+"/research-preview-latest.json"),new Date().toISOString(),tier);fs.writeFileSync(path.join(publicRoot,"data/nfl-"+tier+"-research-cards.json"),JSON.stringify(r)+"\n");console.log(JSON.stringify({tier,status:r.status,publishedDerivedCards:r.cards.length,rawFeedRowsPublished:0,calibrated:false}));}
+ for(const tier of ["goblin","demon"]){const r=sanitize(read("alternates/"+tier+"/latest.json"),read("alternates/"+tier+"/research-preview-latest.json"),now,tier,risk);fs.writeFileSync(path.join(publicRoot,"data/nfl-"+tier+"-research-cards.json"),JSON.stringify(r)+"\n");console.log(JSON.stringify({tier,status:r.status,publishedDerivedCards:r.cards.length,rawFeedRowsPublished:0,calibrated:false}));}
 }
 if(require.main===module)main();
 module.exports={sanitize};

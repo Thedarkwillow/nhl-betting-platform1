@@ -21,6 +21,11 @@ on:
       - 'scripts/test-publish-safe-nhl-nfl-line-movement.cjs'
       - 'scripts/publish-safe-pregame-scorecards.cjs'
       - 'scripts/test-publish-safe-pregame-scorecards.cjs'
+      - 'scripts/publish-safe-nfl-research-cards.cjs'
+      - 'scripts/test-publish-safe-nfl-research-cards.cjs'
+      - '.github/workflows/publish-nfl-independent-coverage.yml'
+      - '.github/workflows/refresh-allowlisted-nhl-rankings.yml'
+      - '.github/workflows/verified-independent-nhl-capture.yml'
       - 'scripts/test-model-scorecards.cjs'
       - 'scripts/test-public-capture-schedule.cjs'
       - 'scripts/pacific-morning-capture-gate.cjs'
@@ -55,6 +60,8 @@ jobs:
         run: node --test scripts/test-multi-sport-roadmap.cjs
       - name: Test public NHL NFL original-precommit model grades and sanitized release
         run: node --test scripts/test-model-scorecards.cjs scripts/test-publish-safe-pregame-scorecards.cjs
+      - name: Test capped NFL card publishing and current injury veto
+        run: node --test scripts/test-publish-safe-nfl-research-cards.cjs
       - name: Verify NHL NFL cross-day/same-day source line movement without private data leaks
         run: node --test scripts/test-publish-safe-nhl-nfl-line-movement.cjs
       - name: Verify all daily NHL NFL actual-source slot, fail-closed archive, and Cloudflare backup safeguards

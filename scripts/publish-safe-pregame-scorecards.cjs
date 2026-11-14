@@ -31,6 +31,22 @@ function group(x){
   hypotheticalLowerRate:rate(x.alwaysLowerWins,x.decided),
   payoutAdjustedEV:null,calibrated:false,originalPlatformSettlementVerified:false};
 }
+function tierCounts(h){
+ if(!h.goblinHigherOnly&&!h.demonHigherOnly)return null;
+ if(!h.goblinHigherOnly||!h.demonHigherOnly)throw Error("Incomplete original special-tier cohort");
+ const cohorts=[["Standard",h.standardDirectional],["Goblin",h.goblinHigherOnly],["Demon",h.demonHigherOnly]];
+ const total=validateGroup(h.allFrozenSelections);
+ for(const [,s] of cohorts)validateGroup(s);
+ for(const k of ["observedSelected","ungraded","decided","pushes","modelWins","alwaysHigherWins","alwaysLowerWins"]){
+  if(cohorts.reduce((sum,[,v])=>sum+v[k],0)!==total[k])throw Error("Original tier totals do not reconcile");
+ }
+ if(cohorts.slice(1).some(([,v])=>v.modelWins!==v.alwaysHigherWins||v.lowerModelChoices!==0||v.higherModelChoices!==v.decided))
+  throw Error("Original special-tier direction scope not verified");
+ return cohorts.map(([tier,v])=>({tier,decided:v.decided,correct:v.modelWins,incorrect:v.decided-v.modelWins,
+  pending:v.ungraded,push:v.pushes,distinctGames:v.distinctGames,
+  modelObservedRate:rate(v.modelWins,v.decided),frozenSelections:v.observedSelected,
+  originalCohortHigherOnly:tier!=="Standard",platformSettlementVerified:false,payoutAdjustedROI:null}));
+}
 function futureMarkets(x){
  if(!x||typeof x!=="object")return [];
  return Object.entries(x).sort(([a],[b])=>a.localeCompare(b)).map(([market,raw])=>{
@@ -115,6 +131,7 @@ function build(nhl,nfl,triple,{now=new Date().toISOString(),nflDirectionalDiagno
    sport:"NHL",
    allOriginalSelections:group(h.allFrozenSelections),
    standardOriginalSelections:group(h.standardDirectional),
+   originalTierCounts:tierCounts(h),
    postPolicyStandardOnly:group(post.standardDirectional),
    postPolicyMarkets:futureMarkets(post.byStandardMarket),
    threeChallengerFuture:{registered:challenge.registered,
@@ -172,4 +189,4 @@ function main([privateRoot,publicRoot]=process.argv.slice(2),now=new Date().toIS
  return data;
 }
 if(require.main===module)try{main()}catch(e){console.error(e.message);process.exitCode=1;}
-module.exports={build,main,group,futureMarkets,publicNFLBias};
+module.exports={build,main,group,futureMarkets,publicNFLBias,tierCounts};

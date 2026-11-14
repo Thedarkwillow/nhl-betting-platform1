@@ -150,6 +150,10 @@ jobs:
           const fs=require('node:fs');
           const s=JSON.parse(fs.readFileSync(process.env.FREEZE_SNAPSHOT,'utf8'));
           const picks=s.individualPropSelections;
+          const f=s.privateFormatLineupResearch;
+          const formats=['power','flex'].flatMap(format=>Object.values(f?.[format]||{}).filter(Boolean));
+          if(formats.some(l=>!Array.isArray(l.picks)||l.picks.some(p=>!Number.isFinite(Date.parse(p.gameStartAt))||Date.parse(p.gameStartAt)-Date.now()<15*60000)))
+            throw Error('Cannot freeze a format scenario within 15 minutes of puck drop');
           if(!Array.isArray(picks)||!picks.length||
              picks.some(p=>!Number.isFinite(Date.parse(p.gameStartAt))||
               Date.parse(p.gameStartAt)-Date.now()<15*60000))
@@ -173,6 +177,10 @@ jobs:
             if git push origin HEAD:main; then
               check_time
               echo "Private research candidate committed and pushed before earliest puck drop."
+              node - <<'NODE'
+          const s=require('./'+process.env.FREEZE_SNAPSHOT),f=s.privateFormatLineupResearch;
+          console.log(JSON.stringify({powerScenarioCount:Object.values(f?.power||{}).filter(Boolean).length,flexScenarioCount:Object.values(f?.flex||{}).filter(Boolean).length,officialPlatformSettlementVerified:false}));
+          NODE
               exit 0
             fi
             sleep "$attempt"

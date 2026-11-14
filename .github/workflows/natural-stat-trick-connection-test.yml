@@ -1,0 +1,57 @@
+name: Natural Stat Trick approved historical connection test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nst-historical-connection-test
+  cancel-in-progress: false
+jobs:
+  test-historical-endpoint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Check secret and request only the provider-listed historical test game
+        env:
+          NST_ACCESS_KEY: ${{ secrets.NST_ACCESS_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, re, urllib.parse, urllib.request, urllib.error, json
+          key = os.environ.get("NST_ACCESS_KEY", "").strip()
+          if not key:
+              print("::error::Configure NST_ACCESS_KEY in this public repository's Actions secrets.")
+              raise SystemExit(1)
+          if not re.fullmatch(r"[A-Za-z0-9_-]{16,128}", key):
+              print("::error::Access key format requires review.")
+              raise SystemExit(1)
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, *args, **kwargs):
+                  return None
+          args = urllib.parse.urlencode({"season":"20172018","game":"21138","key":key})
+          request = urllib.request.Request("https://data.naturalstattrick.com/game.php?" + args, headers={"User-Agent":"Private-NHL-Research/1.0"})
+          try:
+              with urllib.request.build_opener(NoRedirect()).open(request, timeout=25) as response:
+                  payload = response.read(4_000_001)
+                  if len(payload) > 4_000_000:
+                      raise ValueError("size")
+                  text = payload.decode("utf-8", errors="replace")
+          except urllib.error.HTTPError as err:
+              print("::error::Provider returned HTTP " + str(err.code) + "; no key or body logged.")
+              raise SystemExit(1)
+          except Exception:
+              print("::error::Connection or bounded response check failed; no key or body logged.")
+              raise SystemExit(1)
+          lower = text.lower()
+          if not text.strip() or any(x in lower[:4000] for x in ("invalid key","access denied","key is pending","rate limit exceeded","insufficient tokens","not authorized")):
+              print("::warning::Historical endpoint returned a possible access or quota notice; data access not established.")
+              raise SystemExit(1)
+          try:
+              parsed = json.loads(text)
+              shape = "JSON array" if isinstance(parsed,list) else "JSON object" if isinstance(parsed,dict) else "JSON scalar"
+          except ValueError:
+              shape = "HTML table-like" if "<table" in lower else "other unverified text"
+          print("Historical test endpoint returned HTTP success; response format: " + shape + ".")
+          print("Historical schema, key activation and current-season access still require separate verification.")
+          PY

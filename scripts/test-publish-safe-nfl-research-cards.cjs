@@ -39,3 +39,10 @@ test("alternate cards are capped and Higher-only, even for a sub-half estimate",
   r.rows=r.rows.map(o=>({...o,side:"Lower",probability:.6}));assert.equal(sanitize(b,r,now,tier).cards.length,0);
  }
 });
+
+test("newly reported availability risk suppresses a previously frozen card without changing its record",()=>{
+ const {board,preview}=fixture(2);
+ const r=sanitize(board,preview,now,"standard",p=>p.historicalPlayerId==="secret_0");
+ assert.equal(r.cards.length,1);assert.equal(r.cards[0].player,"Player 1");
+ assert.equal(preview.rows.length,2);
+});

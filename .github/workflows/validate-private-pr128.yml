@@ -1,0 +1,34 @@
+name: Validate private original NFL evidence PR 128
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-pr128.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 10cd5e0b6c6caee1f2805c27451822abc6821b3d
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Full regression plus cached independent and kicker audit
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$|^not ok [0-9]+ ' "$log" | tail -n 12; exit 1; fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 3
+          if ! node scripts/report-nfl-independent-forward.cjs >"$log" 2>&1; then echo '::error::Offline original and kicker audit failed.'; exit 1; fi
+          cat "$log"

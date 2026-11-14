@@ -35,7 +35,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! node --test test/prizepicksapi-board.test.cjs test/prizepicksapi-asof-board.test.cjs test/nhl-public-dashboard-payload.test.cjs >"$log" 2>&1; then
+          if ! node --test test/prizepicksapi-board.test.cjs test/prizepicksapi-asof-board.test.cjs test/prizepicksapi-normalize.test.cjs test/nhl-public-dashboard-payload.test.cjs >"$log" 2>&1; then
             echo '::error::Collector or public contract tests failed; no API calls.'
             exit 1
           fi
@@ -53,7 +53,7 @@ jobs:
           const fs=require('node:fs');
           const {providerUsage}=require('./src/prizepicksapi-nhl-request.cjs');
           const realFetch=global.fetch;
-          let calls=0,last=0,boardCalls=0,lastHttp=null;
+          let calls=0,last=0,boardCalls=0,lastHttp=null,phase='initial',lastPageRows=null,lastPageHasNext=null;
           global.fetch=async(url,options)=>{
             const u=new URL(url);
             if(u.origin!=='https://prizepicksapi.com'||!['/api/v1/coverage','/api/v1/board'].includes(u.pathname)||calls>=36)
@@ -69,6 +69,11 @@ jobs:
                  (u.pathname==='/api/v1/coverage'&&q.requestsRemaining<100))
                 throw Error('legacy_request_quota_not_verified');
             }
+            if(r.ok&&u.pathname==='/api/v1/board'){
+              phase='board_pagination';
+              try{const d=await r.clone().json();lastPageRows=Array.isArray(d.data)?d.data.length:null;lastPageHasNext=d.meta?.next_cursor!=null;}catch{}
+              if(lastPageHasNext===false)phase='terminal_page_received';
+            }
             return r;
           };
           (async()=>{
@@ -83,18 +88,20 @@ jobs:
                 return;
               }
             }catch{}
+            phase='coverage_preflight';
             await require('./scripts/collect-prizepicks-asof-nhl.cjs').main();
+            phase='private_archive_contract';
             const b=JSON.parse(fs.readFileSync('outputs/free-source/nhl/latest.json','utf8'));
             if(b.provider!=='prizepicksapi.com'||b.snapshotMode!=='immutable_as_of'||b.completePagination!==true||b.quotaUnit!=='requests'||b.chargedCredits!==0)
               throw Error('board_contract');
             console.log(JSON.stringify({phase:'private_verified_capture',offers:b.totalOffers,rows:b.normalizedRows,pages:b.pagesFetched,requests:calls,credits:0,boardAt:b.generatedAt}));
           })().catch(e=>{const m=String(e.message||'');
-            const reasons=[['legacy_request_quota_not_verified','legacy_request_quota_not_verified'],['request_budget_or_endpoint','request_budget_or_endpoint'],['stale_model','stale_model'],['coverage_required','coverage_required'],['board_contract','board_contract'],['As-of NHL provider board is not fresh and live','board_stale_or_nonlive'],['Immutable NHL board pin mismatch or plan truncation','pin_mismatch_or_plan_truncated'],['Duplicate, unidentified or future NHL offer','duplicate_missing_or_future_offer'],['Malformed immutable NHL board page','malformed_page'],['Malformed or repeated as-of board pagination cursor','bad_cursor'],['exceeds bounded pagination cap','pagination_cap'],['missing identity fields','identity_fields_missing'],['No usable pregame NHL offers','no_pregame_offers'],['NHL capture skipped before paid pagination','coverage_gate_refused'],['Insufficient requests','request_reserve_exhausted'],['ENOSPC','disk_space']];
+            const reasons=[['legacy_request_quota_not_verified','legacy_request_quota_not_verified'],['request_budget_or_endpoint','request_budget_or_endpoint'],['stale_model','stale_model'],['coverage_required','coverage_required'],['board_contract','board_contract'],['As-of NHL provider board is not fresh and live','board_stale_or_nonlive'],['Immutable NHL board pin mismatch or plan truncation','pin_mismatch_or_plan_truncated'],['Duplicate, unidentified or future NHL offer','duplicate_missing_or_future_offer'],['Malformed immutable NHL board page','malformed_page'],['Malformed or repeated as-of board pagination cursor','bad_cursor'],['exceeds bounded pagination cap','pagination_cap'],['Invalid NHL normalization clock or verified as-of provenance','normalization_clock_or_pin'],['missing identity fields','identity_fields_missing'],['Immutable NHL board pagination incomplete','incomplete_pagination'],['Unverified board request allowance','missing_request_allowance'],['Unverified board quota unit','missing_quota_unit'],['fetch failed','network_fetch_failed'],['No usable pregame NHL offers','no_pregame_offers'],['NHL capture skipped before paid pagination','coverage_gate_refused'],['Insufficient requests','request_reserve_exhausted'],['ENOSPC','disk_space']];
             const reason=reasons.find(([prefix])=>m.includes(prefix))?.[1]||([400,401,403,429,503].includes(lastHttp)?'provider_HTTP_'+lastHttp:'source_or_contract_not_ready');
-            console.error('CAPTURE_FAILURE '+reason+' calls='+calls+' boardCalls='+boardCalls+' lastHttp='+String(lastHttp??'none'));process.exitCode=1;});
+            console.error('CAPTURE_FAILURE '+reason+' calls='+calls+' boardCalls='+boardCalls+ ' lastHttp='+String(lastHttp??'none')+' phase='+phase+' lastPageRows='+String(lastPageRows??'none')+' lastPageHasNext='+String(lastPageHasNext??'none'));process.exitCode=1;});
           NODE
           then
-            grep -E '^CAPTURE_FAILURE [a-zA-Z0-9_]+ calls=[0-9]+ boardCalls=[0-9]+ lastHttp=([0-9]{3}|none)$' "$log" || true
+            grep -E '^CAPTURE_FAILURE [a-zA-Z0-9_]+ calls=[0-9]+ boardCalls=[0-9]+ lastHttp=([0-9]{3}|none) phase=[a-z_]+ lastPageRows=([0-9]+|none) lastPageHasNext=(true|false|none)$' "$log" || true
             echo '::error::Private capture did not verify a complete current board.'
             exit 1
           fi

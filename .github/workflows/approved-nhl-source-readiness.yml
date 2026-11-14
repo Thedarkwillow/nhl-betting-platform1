@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths: ['.github/workflows/approved-nhl-source-readiness.yml']
+# Rerun coverage-only readiness after owner configured the runner secret.
 permissions:
   contents: read
 jobs:

@@ -1,0 +1,37 @@
+name: Isolated private all-tier forecast diagnostics tests
+on:
+  push:
+    branches: ['ci/nhl-all-tier-reliability-20261114']
+    paths: ['.github/workflows/ci-nhl-all-tier-reliability-20261114.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 3a4dfdb062ae0892f273e52d8686a3230604a274
+          path: private
+          persist-credentials: false
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run private synthetic tests without exposing private output
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if node --check src/nhl-all-tier-reliability.cjs >"$log" 2>&1 &&
+             node --check scripts/report-nhl-frozen-baseline-challenge.cjs >>"$log" 2>&1 &&
+             node --test test/nhl-all-tier-reliability.test.cjs test/nhl-frozen-baseline-challenge.test.cjs test/nhl-standard-market-diagnostics.test.cjs test/nhl-standard-forward-improvement.test.cjs >>"$log" 2>&1; then
+            echo "Pinned private syntax and targeted synthetic tests passed."
+          else
+            echo "::error::Private syntax or synthetic regression failed; raw output withheld."
+            exit 1
+          fi

@@ -1,0 +1,104 @@
+name: Validate ten-roadmap follow-up without provider requests
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-pinned-ten-roadmap.yml']
+permissions:
+  contents: read
+concurrency:
+  group: pinned-ten-roadmap-validation
+  cancel-in-progress: false
+jobs:
+  private-tests:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: e03bd01b678066a4fada6d619aabb67594a1364c
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Full private tests and cached historical audits; never upload private logs
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(git rev-parse HEAD)" = e03bd01b678066a4fada6d619aabb67594a1364c
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+            echo '::error::Private test suite failed; no private logs published.'
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          for report in scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nfl-independent-forward.cjs scripts/report-nhl-pregame-close-research.cjs; do
+            if ! node "$report" >"$log" 2>&1; then
+              echo '::error::An offline cached historical audit failed.'
+              exit 1
+            fi
+          done
+          echo 'PASS: private tests and three offline cached historical audits.'
+  public-tests:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 44f372eb69c9db08a249bda9b03bb867ea353852
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Public offline dashboard tests
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 44f372eb69c9db08a249bda9b03bb867ea353852
+          node --test scripts/test-*.cjs
+          node scripts/validate-dashboard.cjs
+          node --test scheduler/nhl-board-dispatcher/test/dispatcher.test.mjs
+  status:
+    if: always() && github.ref == 'refs/heads/main'
+    needs: [private-tests, public-tests]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Archive pass or fail only
+        env:
+          PRIVATE_RESULT: ${{ needs.private-tests.result }}
+          PUBLIC_RESULT: ${{ needs.public-tests.result }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const check=x=>['success','failure','cancelled','skipped'].includes(x)?x:'unknown';
+          fs.mkdirSync('data',{recursive:true});
+          fs.writeFileSync('data/ten-roadmap-validation.json',JSON.stringify({kind:'offline_ten_roadmap_validation_v1',privateHead:'e03bd01b678066a4fada6d619aabb67594a1364c',publicHead:'44f372eb69c9db08a249bda9b03bb867ea353852',recordedAt:new Date().toISOString(),runId:process.env.RUN_ID,privateTestsAndCachedAudits:check(process.env.PRIVATE_RESULT),publicTests:check(process.env.PUBLIC_RESULT),liveCaptureVerified:false,calibrated:false})+'\n');
+          NODE
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/ten-roadmap-validation.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'status: ten-roadmap pinned offline validation'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

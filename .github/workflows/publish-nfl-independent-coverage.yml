@@ -55,15 +55,20 @@ jobs:
           fs.writeFileSync('./public/data/nfl-independent-coverage.json',JSON.stringify(out)+'\n');
           console.log(JSON.stringify(out));
           NODE
-      - name: Commit aggregate only
+      - name: Test and build capped derived product cards; no raw feed export
+        run: |
+          set -euo pipefail
+          node --test public/scripts/test-publish-safe-nfl-research-cards.cjs
+          node public/scripts/publish-safe-nfl-research-cards.cjs private public
+      - name: Commit aggregate and limited derived cards only
         working-directory: public
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/nfl-independent-coverage.json
+          git add data/nfl-independent-coverage.json data/nfl-research-cards.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'status: independently captured NFL Standard-scope aggregate' >/dev/null
+          git commit -m 'status: independently captured NFL scope and limited derived product cards' >/dev/null
           for attempt in 1 2 3; do
             git fetch -q origin main
             git rebase -q origin/main || { git rebase --abort; exit 1; }

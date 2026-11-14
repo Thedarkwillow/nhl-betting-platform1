@@ -1,0 +1,21 @@
+name: Validate public tier scorecard branch
+on:
+  push:
+    branches: ['ci/tier-scorecard-20261114']
+    paths: ['.github/workflows/ci-tier-scorecard-20261114.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cbd9082a0c943ec9f1251a319c5616db12a8b411
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test scripts/test-model-scorecards.cjs scripts/test-publish-safe-pregame-scorecards.cjs
+      - run: node scripts/validate-dashboard.cjs

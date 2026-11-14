@@ -1,0 +1,74 @@
+name: Private NHL specialist exclusion and historical model audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-specialist-exclusion-audit.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Inspect original exclusion metadata and archived source inventory only
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node - >"$log" 2>&1 <<'NODE'
+          const fs=require('node:fs');
+          const {loadCapture}=require('./scripts/build-partner-board-preview.cjs');
+          const {resolveMarket}=require('./src/nhl-market-registry.cjs');
+          const {INDIVIDUAL_MARKETS,prepareExperimentalMarketOffer}=require('./src/nhl-experimental-offer-bridge.cjs');
+          const {nameKey,canonicalTeam}=require('./src/nhl-pregame-intel.cjs');
+          const read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+          const s=read('outputs/research/snapshots/20261114T202432Z.json'),f=s.specialistIndividualResearch;
+          const a=loadCapture('outputs/manual-board-captures/2026-11-14/20261114T202422Z',{now:s.generatedAt}).boards.NHL;
+          const files={priorityShadow:'outputs/projections/nhl-four-priority-shadow-latest.json',extraShadow:'outputs/projections/nhl-extra-market-shadow-latest.json',officialHistory:'outputs/history/players.json'};
+          const extension=Object.fromEntries(Object.entries(files).map(([k,p])=>[k,fs.existsSync(p)?read(p):null]));
+          const projection=read('outputs/projections/players.json'),players=Object.values(projection.players);
+          const counts={},reasons={},aliases={};
+          function add(m,k){m[k]=(m[k]||0)+1;}
+          for(const r of a.rows){
+            const market=resolveMarket(r.market),rule=INDIVIDUAL_MARKETS[market];
+            if(!rule){if(!market&&/hit|face.?off|time on ice|fantasy|power.?play|goals? (allowed|against)|plus.?minus/i.test(r.market||''))add(aliases,String(r.market).slice(0,80));continue;}
+            add(counts,market);
+            const matches=players.filter(p=>nameKey(p.name)===nameKey(r.player)&&canonicalTeam(p.team)===canonicalTeam(r.team));
+            if(matches.length!==1){add(reasons,market+'|exact_name_or_team_unmatched');continue;}
+            const e=prepareExperimentalMarketOffer({market,player:matches[0],row:r,source:'PrizePicks',extension});
+            add(reasons,market+'|'+(e.eligible?'model_bridge_eligible':e.reason));
+          }
+          const safe={originalSnapshotAt:s.generatedAt,originalSpecialistStatus:f?.status||f?.kind||'missing',originalRegistered:f?.rows?.length||0,
+            originalExclusions:f?.excluded||{},originalSourceExclusions:f?.sourceExclusions||{},normalizedSourceInventory:counts,marketLabelCandidates:aliases,
+            currentModelMetadata:Object.fromEntries(Object.entries(extension).filter(([k])=>k!=='officialHistory').map(([k,v])=>[k,{exists:!!v,builtAt:v?.builtAt||null,players:Object.keys(v?.players||{}).length}])),
+            offlineCurrentModelAgainstArchivedSourceReasons:reasons,noNewPredictions:true,noProviderRequests:true};
+          console.log(JSON.stringify(safe));
+          NODE
+          then echo '::error::Private archived-source diagnostic failed.'; exit 1; fi
+          cat "$log"
+      - name: Re-run specialist walk-forward and existing prior-only reports
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for s in scripts/report-nhl-priority-market-walkforward.cjs scripts/build-nhl-period-combo-models.cjs scripts/report-nhl-standard-forward-improvement.cjs; do
+            if ! node "$s" >"$log" 2>&1; then echo "::error::Historical research failed: $s"; exit 1; fi
+            echo "PASS: $s"
+          done
+          node - <<'NODE'
+          const a=require('./outputs/backtests/nhl-priority-market-walkforward-latest.json'),p=require('./outputs/backtests/nhl-period-walkforward-latest.json');
+          console.log(JSON.stringify({priorityMarkets:Object.fromEntries(Object.entries(a.markets).map(([k,v])=>[k,{games:v.scoredPlayerGames,mae5:v.last5MeanAbsoluteError,mae10:v.last10MeanAbsoluteError}])),periodMarkets:Object.keys(p.byMarket).length,researchOnly:true,productionPromotion:false}));
+          NODE

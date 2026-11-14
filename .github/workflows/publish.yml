@@ -10,6 +10,7 @@ on:
       - 'Verify both original NFL NHL freezes and publish safe status'
       - 'Record daily NHL NFL source line moves and publish counts'
       - 'Refresh allowlisted NHL public research rankings'
+      - 'Publish safe NFL independent research coverage'
     types: [completed]
   push:
     branches: [main]
@@ -21,6 +22,7 @@ on:
       - 'data/collection-health.json'
       - 'data/model-scorecards.json'
       - 'data/source-line-movement.json'
+      - 'data/nfl-independent-coverage.json'
       - 'nhl-games.json'
       - '.github/workflows/publish.yml'
 permissions:

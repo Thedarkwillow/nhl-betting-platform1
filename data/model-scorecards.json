@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_nhl_nfl_original_git_frozen_model_scorecards_v1",
-  "generatedAt": "2026-11-14T18:12:56.555Z",
+  "generatedAt": "2026-11-14T18:15:31.205Z",
   "sources": {
     "nhlOriginalFrozenBaselineAt": "2026-11-14T18:12:16.534Z",
     "nflFirstGitForecastAuditAt": "2026-11-13T16:35:56.468Z",
@@ -43,6 +43,50 @@
       "calibrated": false,
       "originalPlatformSettlementVerified": false
     },
+    "originalTierCounts": [
+      {
+        "tier": "Standard",
+        "decided": 361,
+        "correct": 193,
+        "incorrect": 168,
+        "pending": 144,
+        "push": 1,
+        "distinctGames": 34,
+        "modelObservedRate": 0.534626,
+        "frozenSelections": 506,
+        "originalCohortHigherOnly": false,
+        "platformSettlementVerified": false,
+        "payoutAdjustedROI": null
+      },
+      {
+        "tier": "Goblin",
+        "decided": 752,
+        "correct": 530,
+        "incorrect": 222,
+        "pending": 292,
+        "push": 0,
+        "distinctGames": 35,
+        "modelObservedRate": 0.704787,
+        "frozenSelections": 1044,
+        "originalCohortHigherOnly": true,
+        "platformSettlementVerified": false,
+        "payoutAdjustedROI": null
+      },
+      {
+        "tier": "Demon",
+        "decided": 209,
+        "correct": 86,
+        "incorrect": 123,
+        "pending": 81,
+        "push": 0,
+        "distinctGames": 35,
+        "modelObservedRate": 0.411483,
+        "frozenSelections": 290,
+        "originalCohortHigherOnly": true,
+        "platformSettlementVerified": false,
+        "payoutAdjustedROI": null
+      }
+    ],
     "postPolicyStandardOnly": {
       "frozenSelections": 476,
       "decided": 332,

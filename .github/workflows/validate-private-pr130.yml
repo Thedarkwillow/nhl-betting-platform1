@@ -1,0 +1,40 @@
+name: Validate first-party status report PR 130
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-pr130.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: dee92b50ba14f08f7fd747020fd74777cd8181b3
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Full private regression, source markup tests and current report probe
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$|^not ok [0-9]+ ' "$log" | tail -n 15; exit 1; fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 3
+          python -m unittest discover -s test -p 'test_official_pregame_status.py'
+          for s in scripts/collect-nfl-official-game-status.py scripts/collect-nhl-official-preview-status.py; do
+            if python "$s" >"$log" 2>&1; then grep -E '^\{"(officialReportedStatuses|officialNhlPreviewGames)"' "$log"
+            else echo "::warning::Actual current report source probe refused by strict guards: $s"; grep -E '^(REPORT_REFUSED [0-9]+ [A-Za-z_]+ [a-z_]+|ValueError: [a-z_]+)' "$log" | tail -n 4 || true
+            fi
+          done

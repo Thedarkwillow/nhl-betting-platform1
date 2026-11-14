@@ -1,0 +1,54 @@
+name: Private NHL projection training retrospective validation
+on:
+  push:
+    branches: ['ci/nhl-trained-usage-matchup-20261114']
+    paths: ['.github/workflows/ci-nhl-trained-usage-matchup-20261114.yml']
+permissions:
+  contents: read
+jobs:
+  test-and-research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 311611cb72bda8bf8935b6bf074934ba6611cc70
+          path: private
+          persist-credentials: true
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate historical training lab and test cached official data
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! node --check src/nhl-trained-usage-matchup.cjs >"$log" 2>&1 ||
+             ! node --check scripts/report-nhl-trained-usage-matchup.cjs >>"$log" 2>&1 ||
+             ! node --test test/nhl-trained-usage-matchup.test.cjs >>"$log" 2>&1; then
+            echo "::error::Projection lab synthetic validation failed; raw private output withheld."
+            exit 1
+          fi
+          echo "Chronological isolation and matched-cohort tests passed."
+          if ! node scripts/report-nhl-trained-usage-matchup.cjs >"$log" 2>&1; then
+            echo "::error::Real private archive test failed; raw private output withheld."
+            exit 1
+          fi
+          echo "Actual archived historical-stat comparison generated."
+      - name: Save research output on the private PR branch only
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/backtests/nhl-trained-usage-matchup-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'research: archived chronological usage and matchup comparison' >/dev/null
+          git push -q origin HEAD:research/nhl-trained-usage-matchup-20261114
+          echo "Private aggregate research report archived."

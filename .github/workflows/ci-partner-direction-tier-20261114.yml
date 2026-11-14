@@ -1,0 +1,37 @@
+name: Isolated private alternate direction evidence validation
+on:
+  push:
+    branches: ['ci/partner-direction-tier-20261114']
+    paths: ['.github/workflows/ci-partner-direction-tier-20261114.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 2f110d07430c9cc653123b7c11a8bc3efccded70
+          path: private
+          persist-credentials: false
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate syntax and isolated synthetic tests
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if node --check scripts/report-partner-direction-tier-evidence.cjs >"$log" 2>&1 &&
+             node --check scripts/report-nhl-alternate-probability-coherence.cjs >>"$log" 2>&1 &&
+             node --test test/partner-direction-tier-evidence.test.cjs test/nhl-alternate-probability-coherence.test.cjs >>"$log" 2>&1; then
+            echo "Private syntax checks and synthetic tests passed."
+          else
+            echo "::error::Private syntax or test validation failed; raw logs withheld."
+            exit 1
+          fi

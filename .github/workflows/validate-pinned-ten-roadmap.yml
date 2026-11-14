@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 5725a5a6e1456180b2c3bfb6b0f21a8dc39e93e7
+          ref: 8e7cd4c940b87533bccc373231fc703ea52ab972
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          test "$(git rev-parse HEAD)" = 5725a5a6e1456180b2c3bfb6b0f21a8dc39e93e7
+          test "$(git rev-parse HEAD)" = 8e7cd4c940b87533bccc373231fc703ea52ab972
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           if ! npm test >"$log" 2>&1; then
             grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
@@ -55,7 +55,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 44f372eb69c9db08a249bda9b03bb867ea353852
+          ref: 92272804eea119471a27bdacbb2fa1cec251177b
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -63,7 +63,7 @@ jobs:
       - name: Public offline dashboard tests
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 44f372eb69c9db08a249bda9b03bb867ea353852
+          test "$(git rev-parse HEAD)" = 92272804eea119471a27bdacbb2fa1cec251177b
           node --test scripts/test-*.cjs
           node scripts/validate-dashboard.cjs
           node --test scheduler/nhl-board-dispatcher/test/dispatcher.test.mjs
@@ -91,7 +91,7 @@ jobs:
           const fs=require('node:fs');
           const check=x=>['success','failure','cancelled','skipped'].includes(x)?x:'unknown';
           fs.mkdirSync('data',{recursive:true});
-          fs.writeFileSync('data/ten-roadmap-validation.json',JSON.stringify({kind:'offline_ten_roadmap_validation_v1',privateHead:'5725a5a6e1456180b2c3bfb6b0f21a8dc39e93e7',publicHead:'44f372eb69c9db08a249bda9b03bb867ea353852',recordedAt:new Date().toISOString(),runId:process.env.RUN_ID,privateTestsAndCachedAudits:check(process.env.PRIVATE_RESULT),publicTests:check(process.env.PUBLIC_RESULT),liveCaptureVerified:false,calibrated:false})+'\n');
+          fs.writeFileSync('data/ten-roadmap-validation.json',JSON.stringify({kind:'offline_ten_roadmap_validation_v1',privateHead:'8e7cd4c940b87533bccc373231fc703ea52ab972',publicHead:'92272804eea119471a27bdacbb2fa1cec251177b',recordedAt:new Date().toISOString(),runId:process.env.RUN_ID,privateTestsAndCachedAudits:check(process.env.PRIVATE_RESULT),publicTests:check(process.env.PUBLIC_RESULT),liveCaptureVerified:false,calibrated:false})+'\n');
           NODE
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'

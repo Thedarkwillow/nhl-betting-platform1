@@ -1,0 +1,134 @@
+name: Verified independent NHL capture and private preview
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/verified-independent-nhl-capture.yml']
+permissions:
+  contents: read
+concurrency:
+  group: verified-independent-nhl-capture
+  cancel-in-progress: false
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate collector and preview before any source calls
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/prizepicksapi-board.test.cjs test/nhl-public-dashboard-payload.test.cjs >"$log" 2>&1; then
+            echo '::error::Collector or public contract tests failed; no API calls.'
+            exit 1
+          fi
+          echo 'PASS: existing collector and public export contract tests.'
+      - name: One bounded legacy-request capture and private preview
+        working-directory: private
+        env:
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node - >"$log" 2>&1 <<'NODE'
+          const fs=require('node:fs');
+          const {providerUsage}=require('./src/prizepicksapi-nhl-request.cjs');
+          const realFetch=global.fetch;
+          let calls=0,last=0;
+          global.fetch=async(url,options)=>{
+            const u=new URL(url);
+            if(u.origin!=='https://prizepicksapi.com'||!['/api/v1/coverage','/api/v1/board'].includes(u.pathname)||calls>=36)
+              throw Error('request_budget_or_endpoint');
+            if(calls===0&&u.pathname!=='/api/v1/coverage')throw Error('coverage_required');
+            const wait=Math.max(0,7000-(Date.now()-last));
+            if(wait)await new Promise(r=>setTimeout(r,wait));
+            last=Date.now();calls++;
+            const r=await realFetch(url,options);
+            if(r.ok){
+              const q=providerUsage(r.headers);
+              if(q.unit!=='requests'||!Number.isInteger(q.requestsRemaining)||
+                 (u.pathname==='/api/v1/coverage'&&q.requestsRemaining<100))
+                throw Error('legacy_request_quota_not_verified');
+            }
+            return r;
+          };
+          (async()=>{
+            const m=JSON.parse(fs.readFileSync('outputs/projections/players.json','utf8'));
+            const now=Date.now(), t=Date.parse(m.builtAt);
+            if(!Number.isFinite(t)||t>now||now-t>47*3600000)throw Error('stale_model');
+            try{
+              const b=JSON.parse(fs.readFileSync('outputs/free-source/nhl/latest.json','utf8'));
+              const a=Date.parse(b.generatedAt);
+              if(b.provider==='prizepicksapi.com'&&b.snapshotMode==='immutable_as_of'&&b.completePagination===true&&b.sourceStatus==='fresh'&&a<=now&&now-a<20*60000){
+                console.log('Already current; no additional board requests.');
+                return;
+              }
+            }catch{}
+            await require('./scripts/collect-prizepicks-asof-nhl.cjs').main();
+            const b=JSON.parse(fs.readFileSync('outputs/free-source/nhl/latest.json','utf8'));
+            if(b.provider!=='prizepicksapi.com'||b.snapshotMode!=='immutable_as_of'||b.completePagination!==true||b.quotaUnit!=='requests'||b.chargedCredits!==0)
+              throw Error('board_contract');
+            console.log(JSON.stringify({phase:'private_verified_capture',offers:b.totalOffers,rows:b.normalizedRows,pages:b.pagesFetched,requests:calls,credits:0,boardAt:b.generatedAt}));
+          })().catch(e=>{const message=String(e.message||'');console.error('CAPTURE_FAILURE '+(/legacy_request_quota_not_verified|request_budget_or_endpoint|stale_model|coverage_required|board_contract/.test(message)?message:message.includes('HTTP 429')?'provider_HTTP_429':message.includes('HTTP 403')?'provider_HTTP_403':message.includes('HTTP 401')?'provider_HTTP_401':message.includes('HTTP 400')?'provider_HTTP_400':'source_or_contract_not_ready'));process.exitCode=1;});
+          NODE
+          then
+            grep -E '^CAPTURE_FAILURE (legacy_request_quota_not_verified|request_budget_or_endpoint|stale_model|coverage_required|board_contract|provider_HTTP_[0-9]{3}|source_or_contract_not_ready)$' "$log" || true
+            echo '::error::Private capture did not verify a complete current board.'
+            exit 1
+          fi
+          grep -E '^\{"phase":"private_verified_capture","offers":[0-9]+,"rows":[0-9]+,"pages":[0-9]+,"requests":[0-9]+,"credits":0,"boardAt":"[0-9T:.Z-]+"\}$|^Already current; no additional board requests\.$' "$log" || true
+      - name: Archive complete board privately before model preview
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/free-source/nhl/latest.json outputs/free-source/nhl/snapshots/*.json outputs/free-source/nhl/raw-snapshots/*.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data: archive complete independent NHL board privately' >/dev/null
+            for attempt in 1 2 3; do
+              git fetch -q origin main
+              git rebase -q origin/main || { git rebase --abort; exit 1; }
+              if git push -q origin HEAD:main; then echo 'PASS: private independent board archived.'; exit 0; fi
+              sleep "$attempt"
+            done
+            exit 1
+          fi
+      - name: Build and archive prior-only research preview privately
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/build-nhl-source-preview.cjs >"$log" 2>&1; then echo '::error::Preview failed; complete private board retained.'; exit 1; fi
+          node - <<'NODE'
+          const p=require('./outputs/free-source/nhl/research-preview-latest.json');
+          console.log(JSON.stringify({phase:'private_preview',matched:p.matchedRows,prospective:false,calibrated:false,publicRelease:false}));
+          NODE
+          git add -f outputs/free-source/nhl/research-preview-latest.json outputs/free-source/nhl/research-preview-snapshots/*.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'data: private independent NHL research preview' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: private preview archived.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

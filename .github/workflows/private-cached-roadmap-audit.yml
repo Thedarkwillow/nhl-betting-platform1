@@ -1,6 +1,12 @@
 name: Archive offline model comparisons and diagnose source workflows
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ['Verified independent NHL capture and private preview', 'Independent NFL Standard scoped private preview', 'Independent NFL alternate tier scoped private previews', 'Private NHL specialist period history backfill via public runner', 'Private NHL prospective grading and baseline audit via public runner', 'NFL archived pregame forecast and finals grading via public free runner']
+    types: [completed]
+  schedule:
+    - cron: '5 7,10,16 * * *'
+      timezone: America/Los_Angeles
   push:
     branches: [main]
     paths: ['.github/workflows/private-cached-roadmap-audit.yml']
@@ -11,6 +17,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   cached-audit:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -72,6 +79,7 @@ jobs:
           done
           exit 1
   source-status:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-24.04
     timeout-minutes: 6
     permissions:

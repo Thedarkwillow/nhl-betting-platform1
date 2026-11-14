@@ -6,6 +6,7 @@ on:
     paths: ['.github/workflows/refresh-allowlisted-nhl-rankings.yml']
   workflow_run:
     workflows:
+      - 'Verified independent NHL capture and private preview'
       - 'Private pregame NHL freeze on public free runner'
       - 'Freeze actual-time NHL and NFL pregame Higher Lower research'
       - 'Public Free Runners - Private NHL and NFL 6 and 9 AM Boards'

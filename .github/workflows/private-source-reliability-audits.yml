@@ -1,0 +1,80 @@
+name: Private source coverage and alternate forecast consistency audits
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-source-reliability-audits.yml']
+  schedule:
+    - cron: '45 10 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-source-reliability-audits
+  cancel-in-progress: false
+jobs:
+  audit-private:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate combined private research and generate aggregate audits offline
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          for script in scripts/report-partner-direction-tier-evidence.cjs scripts/report-nhl-alternate-probability-coherence.cjs; do
+            if ! node --check "$script" >"$log" 2>&1; then
+              echo "::error::Private audit syntax check failed."
+              exit 1
+            fi
+          done
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Combined private regression failed; no audit publication."
+            exit 1
+          fi
+          echo "Combined private regression passed."
+          for script in scripts/report-partner-direction-tier-evidence.cjs scripts/report-nhl-alternate-probability-coherence.cjs; do
+            if ! node "$script" >"$log" 2>&1; then
+              echo "::error::Offline private audit failed; raw output withheld."
+              exit 1
+            fi
+          done
+          echo "Both offline reports generated."
+      - name: Commit only private aggregate audit reports
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/partner-direction-tier-evidence-latest.json outputs/health/nhl-alternate-probability-coherence-latest.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "audit: private source direction coverage and forecast coherence" >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            if ! git rebase -q origin/main; then
+              git rebase --abort >/dev/null 2>&1 || true
+              echo "::error::Concurrent private audit conflict; refusing overwrite."
+              exit 1
+            fi
+            if git push -q origin HEAD:main; then
+              echo "Private aggregate reports saved."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Private archive push not confirmed."
+          exit 1

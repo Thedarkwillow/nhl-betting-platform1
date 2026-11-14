@@ -5,7 +5,7 @@ on:
       private_ref:
         description: Private repository branch or commit to validate
         required: true
-        default: research/nhl-standard-market-calibration-audit-20261113
+        default: research/paired-game-cluster-validation-20261113
         type: string
   push:
     branches: [main]

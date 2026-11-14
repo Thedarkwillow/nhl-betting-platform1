@@ -1,0 +1,118 @@
+name: Refresh allowlisted NHL public research rankings
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/refresh-allowlisted-nhl-rankings.yml']
+  workflow_run:
+    workflows:
+      - 'Private pregame NHL freeze on public free runner'
+      - 'Freeze actual-time NHL and NFL pregame Higher Lower research'
+      - 'Public Free Runners - Private NHL and NFL 6 and 9 AM Boards'
+    types: [completed]
+  schedule:
+    - cron: '27 6,9,12,15 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: write
+concurrency:
+  group: refresh-allowlisted-nhl-rankings
+  cancel-in-progress: false
+jobs:
+  publish-approved-only:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run existing approved export and freshness safeguards, privately
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-public-dashboard-payload.test.cjs >"$log" 2>&1; then
+            echo "::error::Approved private public-export tests failed."
+            exit 1
+          fi
+          # No provider calls, no raw offers or private artifacts uploaded.
+          # The existing independent-feed source allowlist is not broadened.
+          if ! node scripts/export-public-nhl-data.cjs >"$log" 2>&1; then
+            echo "::error::Existing approved export failed; no publication."
+            exit 1
+          fi
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const {sanitizePublicDashboard}=require('./src/nhl-public-dashboard-payload.cjs');
+          const input=JSON.parse(fs.readFileSync('site/data.json','utf8'));
+          const d=sanitizePublicDashboard(input);
+          const now=Date.now(), fresh=t=>{
+            const a=Date.parse(t);return Number.isFinite(a)&&a<=now&&now-a<=30*60000;
+          };
+          const approved=input.dataProvider==='prizepicksapi.com independent feed'&&
+            ['independent_nonprecommitted_model_preview','original_git_frozen_source_research'].includes(input.liveResearchOrigin)&&
+            input.researchFreshAtBuild===true&&input.boardCoverage?.apiPaginationComplete===true&&
+            fresh(d.researchAt)&&fresh(d.boardAt);
+          const eligible=p=>p&&fresh(p.capturedAt)&&Number.isFinite(Date.parse(p.eventStartsAt))&&
+            Date.parse(p.eventStartsAt)>now&&p.researchEligibility!=='watchlist'&&
+            Number.isFinite(p.probability)&&p.probability>=0&&p.probability<=1;
+          const sorted=xs=>(xs||[]).filter(eligible).sort((a,b)=>b.probability-a.probability||
+            (b.observations||0)-(a.observations||0));
+          d.props=approved?sorted(d.props):[];
+          d.featuredIndividualProps=approved&&d.featuredPropsSourceFresh?sorted(d.featuredIndividualProps).slice(0,8):[];
+          d.featuredPropsSourceFresh=d.featuredIndividualProps.length>0;
+          d.previewResearchProps=approved&&d.previewResearchOnly?sorted(d.previewResearchProps).slice(0,8):[];
+          d.previewResearchOnly=d.previewResearchProps.length>0;
+          if(!approved){
+            d.researchFreshAtBuild=false;d.comparisons=[];
+          }
+          for(const n of [2,3,4,5,6]){
+            const l=d.lineups?.[n];
+            if(!approved||!l||l.picks.length!==n||!l.picks.every(eligible)||l.distinctGames!==n||
+               l.correlationRisk!=='same_game_excluded')d.lineups[n]=null;
+          }
+          if(d.kind!=='public_nhl_research_cards_not_internal_model'||
+             d.performance.modelCalibrated!==false||d.performance.originalPlatformSettlementVerified!==false)
+            throw Error('Public contract violation');
+          fs.writeFileSync('../public/data.json',JSON.stringify(d)+'\n');
+          console.log(approved?'Approved fresh source export prepared.':'No approved fresh feed; stale rankings withheld.');
+          NODE
+      - name: Validate the public dashboard before publishing
+        working-directory: public
+        run: |
+          node scripts/validate-dashboard.cjs
+          node scripts/test-lineup-workspace.cjs
+          node scripts/test-six-priority-desk.cjs
+      - name: Archive only the allowlisted data.json
+        working-directory: public
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'data: refresh approved NHL research rankings and suppress stale cards' >/dev/null
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; echo "::error::Public data changed concurrently; no overwrite."; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: approved public research export saved.'; exit 0; fi
+            sleep "$attempt"
+          done
+          echo "::error::Public ranking archive push not confirmed."
+          exit 1

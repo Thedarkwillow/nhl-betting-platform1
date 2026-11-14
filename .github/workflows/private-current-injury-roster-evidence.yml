@@ -1,0 +1,67 @@
+name: Private current NFL injury and official NHL roster evidence
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-current-injury-roster-evidence.yml']
+  schedule:
+    - cron: '20 5,12 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-current-injury-roster-evidence
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Current report-derived NFL injuries and official NHL current roster evidence
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --test test/availability-tier-lineup-gates.test.cjs >"$log" 2>&1
+          ok=0
+          if python scripts/collect-nfl-current-injuries.py >"$log" 2>&1; then
+            grep -E '^\{"records":' "$log"; ok=1
+          else
+            echo '::warning::Fresh timestamped NFL injury source unavailable; no medical clearance inferred.'
+          fi
+          if node scripts/collect-nhl-official-roster-crosswalk.cjs >"$log" 2>&1; then
+            grep -E '^\{"officialRosterTeams":' "$log"; ok=1
+          else
+            echo '::warning::Official current NHL roster crosswalk unavailable.'
+          fi
+          if [ "$ok" -eq 0 ]; then exit 1; fi
+      - name: Save verified evidence privately
+        working-directory: private
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for d in outputs/nfl/availability outputs/pregame-availability/official-roster-crosswalk-latest.json outputs/pregame-availability/roster-snapshots; do if [ -e "$d" ]; then git add -f "$d"; fi; done
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'data: current NFL reported injury evidence and official NHL roster crosswalk' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: private availability and identity evidence saved.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

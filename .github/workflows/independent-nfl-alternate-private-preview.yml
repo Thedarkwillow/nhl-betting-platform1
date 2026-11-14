@@ -1,9 +1,6 @@
 name: Independent NFL alternate tier scoped private previews
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/independent-nfl-alternate-private-preview.yml']
   schedule:
     # Most regular-season game days; avoid unnecessary metered daily replays.
     - cron: '45 7 * * 0,1,4'
@@ -100,7 +97,11 @@ jobs:
             fs.writeFileSync(base+'/latest.json',JSON.stringify(doc)+'\n');
             phase='prior_only_preview';
             const weeklyRows=[2024,2025,2026].flatMap(y=>dataset(y,'player_weekly')),schedule=dataset(2026,'schedule');
-            let injuryReport=null;try{injuryReport=JSON.parse(fs.readFileSync('outputs/nfl/availability/latest.json','utf8'));}catch{}
+            let injuryReport=null;
+            for(const file of ['official-report-latest.json','latest.json'])try{
+              const r=JSON.parse(fs.readFileSync('outputs/nfl/availability/'+file,'utf8'));
+              if(Number.isFinite(Date.parse(r.capturedAt))&&Date.now()-Date.parse(r.capturedAt)>=0&&Date.now()-Date.parse(r.capturedAt)<=12*3600000){injuryReport=r;break;}
+            }catch{}
             const report=buildIndependentNflPreview({board:doc,weeklyRows,schedule,injuryReport});
             fs.writeFileSync(base+'/research-preview-latest.json',JSON.stringify(report)+'\n');
             const years=[2024,2025,2026];

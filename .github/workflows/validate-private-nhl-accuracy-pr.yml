@@ -5,7 +5,7 @@ on:
       private_ref:
         description: Private repository branch or commit to validate
         required: true
-        default: research/paired-game-cluster-validation-20261113
+        default: research/nhl-standard-market-calibration-audit-20261113
         type: string
   push:
     branches: [main]
@@ -40,6 +40,9 @@ jobs:
       - name: Syntax-check private paired accuracy scorer
         working-directory: private
         run: node --check src/nhl-standard-forward-scoreboard.cjs
+      - name: Syntax-check private NHL Standard diagnostics
+        working-directory: private
+        run: node --check src/nhl-standard-forward-diagnostics.cjs
       - name: Test original freeze, identical-line scoring, clustered inference, and regression gates
         working-directory: private
         run: node --test test/nhl-standard-forward-improvement.test.cjs test/nhl-standard-triple-challenger.test.cjs test/nhl-frozen-baseline-challenge.test.cjs test/nhl-prospective-validation.test.cjs

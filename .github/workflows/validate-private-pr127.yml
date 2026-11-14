@@ -1,0 +1,38 @@
+name: Validate specialist probability research PR 127
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-pr127.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 2ab8d9b84fb4ac0958352cd260d64ce6c10381e4
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regression and retrospective probability lab
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$|^not ok [0-9]+ ' "$log" | tail -n 12; exit 1; fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 3
+          if ! node - >"$log" 2>&1 <<'NODE'
+          const {study}=require('./src/nhl-specialist-probability-lab.cjs');
+          const r=study(require('./outputs/history/players.json'));
+          console.log(JSON.stringify({specialistProbabilityLab:r.byMarket,realPlatformLinesUsed:false,modelPromoted:false}));
+          NODE
+          then echo '::error::Offline probability lab failed'; exit 1; fi
+          cat "$log"

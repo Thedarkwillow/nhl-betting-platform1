@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
     paths: ['.github/workflows/verified-independent-nhl-capture.yml']
+  # Separate from genuine 06:00/09:00 partner capture; one quota-bounded daily source attempt.
+  schedule:
+    - cron: '35 9 * * *'
+      timezone: America/Los_Angeles
 permissions:
   contents: read
 concurrency:
@@ -31,7 +35,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! node --test test/prizepicksapi-board.test.cjs test/nhl-public-dashboard-payload.test.cjs >"$log" 2>&1; then
+          if ! node --test test/prizepicksapi-board.test.cjs test/prizepicksapi-asof-board.test.cjs test/nhl-public-dashboard-payload.test.cjs >"$log" 2>&1; then
             echo '::error::Collector or public contract tests failed; no API calls.'
             exit 1
           fi
@@ -85,7 +89,7 @@ jobs:
               throw Error('board_contract');
             console.log(JSON.stringify({phase:'private_verified_capture',offers:b.totalOffers,rows:b.normalizedRows,pages:b.pagesFetched,requests:calls,credits:0,boardAt:b.generatedAt}));
           })().catch(e=>{const m=String(e.message||'');
-            const reasons=[['legacy_request_quota_not_verified','legacy_request_quota_not_verified'],['request_budget_or_endpoint','request_budget_or_endpoint'],['stale_model','stale_model'],['coverage_required','coverage_required'],['board_contract','board_contract'],['As-of NHL provider board is not fresh and live','board_stale_or_nonlive'],['Duplicate, unidentified or future NHL offer','duplicate_missing_or_future_offer'],['Malformed immutable NHL board page','malformed_page'],['Malformed or repeated as-of board pagination cursor','bad_cursor'],['exceeds bounded pagination cap','pagination_cap'],['missing identity fields','identity_fields_missing'],['No usable pregame NHL offers','no_pregame_offers'],['NHL capture skipped before paid pagination','coverage_gate_refused'],['Insufficient requests','request_reserve_exhausted'],['ENOSPC','disk_space']];
+            const reasons=[['legacy_request_quota_not_verified','legacy_request_quota_not_verified'],['request_budget_or_endpoint','request_budget_or_endpoint'],['stale_model','stale_model'],['coverage_required','coverage_required'],['board_contract','board_contract'],['As-of NHL provider board is not fresh and live','board_stale_or_nonlive'],['Immutable NHL board pin mismatch or plan truncation','pin_mismatch_or_plan_truncated'],['Duplicate, unidentified or future NHL offer','duplicate_missing_or_future_offer'],['Malformed immutable NHL board page','malformed_page'],['Malformed or repeated as-of board pagination cursor','bad_cursor'],['exceeds bounded pagination cap','pagination_cap'],['missing identity fields','identity_fields_missing'],['No usable pregame NHL offers','no_pregame_offers'],['NHL capture skipped before paid pagination','coverage_gate_refused'],['Insufficient requests','request_reserve_exhausted'],['ENOSPC','disk_space']];
             const reason=reasons.find(([prefix])=>m.includes(prefix))?.[1]||([400,401,403,429,503].includes(lastHttp)?'provider_HTTP_'+lastHttp:'source_or_contract_not_ready');
             console.error('CAPTURE_FAILURE '+reason+' calls='+calls+' boardCalls='+boardCalls+' lastHttp='+String(lastHttp??'none'));process.exitCode=1;});
           NODE

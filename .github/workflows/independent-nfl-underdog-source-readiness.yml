@@ -1,0 +1,48 @@
+name: Independent NFL and Underdog metadata-only source readiness
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/independent-nfl-underdog-source-readiness.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read documented non-projection coverage and odds metadata only
+        env:
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          UNDERDOG_DERIVED_PUBLIC_DISPLAY_AUTHORIZED: ${{ secrets.UNDERDOG_DERIVED_PUBLIC_DISPLAY_AUTHORIZED }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          (async()=>{
+            const out={nfl:{status:'missing_secret'},underdog:{status:'missing_secret'},projectionCalls:0,oddsEventCalls:0,paidProjectionCredits:0};
+            if(process.env.PRIZEPICKSAPI_KEY)try{
+              const r=await fetch('https://prizepicksapi.com/api/v1/coverage',{headers:{Authorization:'Bearer '+process.env.PRIZEPICKSAPI_KEY,Accept:'application/json','X-User-Request':'Check current NFL league coverage and quota for an independent research integration'},signal:AbortSignal.timeout(15000)});
+              const remaining=r.headers.get('x-ratelimit-remaining'),unit=r.headers.get('x-usage-unit');
+              const d=r.ok?await r.json():null,row=d?.data?.find(x=>x.league==='NFL');
+              out.nfl={status:r.ok?'responded':'http_error',httpStatus:r.status,live:d?.meta?.mode==='live',
+                sourceFresh:d?.meta?.source_status==='fresh'&&row?.status==='fresh'&&Date.now()-Date.parse(row.last_observed_at)>=0&&Date.now()-Date.parse(row.last_observed_at)<1800000,offers:Number.isInteger(row?.projection_count)?row.projection_count:null,
+                markets:Array.isArray(row?.markets)?row.markets.length:0,quotaUnit:unit==='requests'?'requests':unit==='credits'?'credits':'unknown',
+                legacyAllowanceAtLeast150:unit==='requests'&&remaining!==null&&/^\d+$/.test(remaining)&&Number(remaining)>=150};
+            }catch{out.nfl={status:'network_or_schema_error'};}
+            if(process.env.ODDS_API_KEY)try{
+              const url=new URL('https://api.the-odds-api.com/v4/sports');url.searchParams.set('apiKey',process.env.ODDS_API_KEY);
+              const r=await fetch(url,{signal:AbortSignal.timeout(15000)}),remaining=r.headers.get('x-requests-remaining');
+              const d=r.ok?await r.json():null;
+              out.underdog={status:r.ok?'metadata_authenticated':'http_error',httpStatus:r.status,
+                nhlListed:Array.isArray(d)&&d.some(x=>x.key==='icehockey_nhl'),
+                nflListed:Array.isArray(d)&&d.some(x=>x.key==='americanfootball_nfl'),
+                enoughForExistingBoundedPilot:remaining!==null&&/^\d+$/.test(remaining)&&Number(remaining)>=354,
+                derivedDisplayExplicitlyAuthorized:process.env.UNDERDOG_DERIVED_PUBLIC_DISPLAY_AUTHORIZED==='true'};
+            }catch{out.underdog={status:'network_or_schema_error'};}
+            console.log(JSON.stringify(out));
+          })().catch(()=>{console.error('Metadata readiness failed without projection requests');process.exitCode=1});
+          NODE

@@ -1,0 +1,58 @@
+name: Verify expanded private forecast PR 120
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/verify-private-expanded-forecast-pr120.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-expanded-forecast-validation
+  cancel-in-progress: false
+jobs:
+  private-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 0ece138222fe2f90276274ab78d58b4b5066f381
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run targeted and full private regression with no public private logs
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          node --check src/nhl-forward-expanded-market.cjs
+          node --check src/nhl-all-tier-exact-mass-calibration.cjs
+          if ! node --test test/expanded-forward-distributions.test.cjs test/nhl-all-tier-exact-mass-calibration.test.cjs test/nhl-partner-pregame-freeze.test.cjs >"$log" 2>&1; then
+            echo "::error::Targeted private regression failed; details not published."
+            exit 1
+          fi
+          echo "PASS: targeted expanded model and all-tier tests."
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Full private offline regression failed; details not published."
+            exit 1
+          fi
+          echo "PASS: full private offline regression."
+          if ! node scripts/report-nhl-standard-forward-improvement.cjs >"$log" 2>&1; then
+            echo "::error::Private forward grading report failed."
+            exit 1
+          fi
+          node - <<'NODE'
+          const d=require('./outputs/health/nhl-standard-forward-improvement-latest.json');
+          if(d.researchOnly!==true||d.originalChampionUnchanged!==true||d.noLiveProbabilityPromotion!==true||
+             !d.expandedMarketAllTierShadow||!d.allTierExactMassCalibration||d.allTierExactMassCalibration.modelPromoted!==false)
+            throw Error('Expanded report safety gate failed');
+          console.log('PASS: private prospective report and calibration shadow safety.');
+          NODE

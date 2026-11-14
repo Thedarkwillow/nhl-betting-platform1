@@ -1,0 +1,41 @@
+name: Validate private NFL probability evidence PR 121
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-pr121.yml']
+permissions:
+  contents: read
+jobs:
+  offline-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: c467518130caa57c05fcad37d18fd3c435f38e3f
+          fetch-depth: 0
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate all private tests and original NFL data without printing raw rows
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          test "$(git rev-parse HEAD)" = c467518130caa57c05fcad37d18fd3c435f38e3f
+          if ! npm test >"$log" 2>&1; then
+            grep -E '^not ok [0-9]+|^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 12
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 3
+          if ! node scripts/report-nfl-matchup-shadow.cjs >"$log" 2>&1; then
+            echo '::error::Original private outcome audit failed.'
+            exit 1
+          fi
+          echo 'PASS: offline private full tests and original NFL probability audit.'

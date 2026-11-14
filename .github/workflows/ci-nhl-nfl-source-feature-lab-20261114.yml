@@ -1,0 +1,74 @@
+name: Private NHL NFL source-feature validation
+on:
+  push:
+    branches: ['ci/nhl-nfl-source-feature-lab-20261114']
+    paths: ['.github/workflows/ci-nhl-nfl-source-feature-lab-20261114.yml']
+permissions:
+  contents: read
+jobs:
+  validate-and-research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: bfe6147f981513d9438b84afcd41d5b34f71330e
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check statistical research tests and original freeze regressions
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! python test/test_cross_sport_source_feature_lab.py >"$log" 2>&1 ||
+             ! node --test test/nhl-forward-opponent-rate.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nhl-standard-forward-improvement.test.cjs >>"$log" 2>&1 ||
+             ! node --check scripts/report-nhl-standard-forward-improvement.cjs >>"$log" 2>&1; then
+            echo "::error::Private synthetic or freeze regression validation failed."
+            exit 1
+          fi
+          echo "Private synthetic and pregame freeze regression tests passed."
+      - name: Evaluate approved published NHL archive and cached NFL historical datasets
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          failed=0
+          files=()
+          if python scripts/research-nhl-additional-markets.py >"$log" 2>&1; then
+            files+=(outputs/backtests/nhl-extended-market-context-latest.json)
+            echo "NHL historical research generated."
+          else
+            echo "::error::NHL archive research failed; raw output kept private."
+            failed=1
+          fi
+          if python scripts/research-nfl-lagged-source-ablation.py >"$log" 2>&1; then
+            files+=(outputs/nfl/backtests/lagged-ngs-pfr-ablation-latest.json)
+            echo "NFL historical research generated."
+          else
+            echo "::error::NFL cached source research failed; raw output kept private."
+            failed=1
+          fi
+          if [ "${#files[@]}" -gt 0 ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add -f -- "${files[@]}"
+            if ! git diff --cached --quiet; then
+              git commit -m 'research: private NHL and NFL source-feature comparison' >/dev/null
+              git push -q origin HEAD:research/nhl-nfl-source-feature-lab-20261114
+            fi
+            echo "Generated aggregate reports archived on private research branch."
+          fi
+          exit "$failed"

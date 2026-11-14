@@ -27,3 +27,15 @@ test("stale, incomplete and substituted offers fail closed",()=>{
  assert.equal(sanitize({...board,completePagination:false},preview,now).cards.length,0);
  preview.rows[0].line=900;assert.equal(sanitize(board,preview,now).cards.length,0);
 });
+
+test("alternate cards are capped and Higher-only, even for a sub-half estimate",()=>{
+ const {board,preview}=fixture();
+ for(const tier of ["goblin","demon"]){
+  const tierName=tier[0].toUpperCase()+tier.slice(1);
+  const b={...board,requestedTier:tier,scope:tier+"_full_game_replay",offers:board.offers.map(o=>({...o,selections:[{tier,side:"more",available:true},{tier,side:"less",available:true}]}))};
+  const r={...preview,requestedTier:tier,kind:"nfl_independent_alternate_research_preview_v1",rows:preview.rows.map(o=>({...o,tier:tierName,probability:.4,probabilities:{higher:.4,lower:.6,push:0}}))};
+  assert.equal(sanitize(b,r,now,tier).cards.length,4);
+  assert.equal(sanitize(b,r,now).cards.length,0);
+  r.rows=r.rows.map(o=>({...o,side:"Lower",probability:.6}));assert.equal(sanitize(b,r,now,tier).cards.length,0);
+ }
+});

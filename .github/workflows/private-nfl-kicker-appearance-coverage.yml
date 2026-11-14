@@ -1,0 +1,77 @@
+name: Private NFL kicker zero-attempt evidence coverage
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nfl-kicker-appearance-coverage.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check historical exact-ID participation evidence without inferring zero attempts
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node - >"$log" 2>&1 <<'NODE'
+          const {dataset}=require('./scripts/build-nfl-partner-board-research.cjs');
+          const text=x=>typeof x==='string'&&x.trim()?x.trim():null;
+          const num=x=>x===null||x===undefined||x===''?NaN:Number(x);
+          const key=(...x)=>JSON.stringify(x);
+          for(const season of [2024,2025,2026]){
+            const schedule=dataset(season,'schedule'),rosters=dataset(season,'weekly_rosters'),snaps=dataset(season,'snap_counts'),
+              kicks=dataset(season,'kicking_pbp'),teams=dataset(season,'team_weekly');
+            const games=new Map(),cross=new Map(),attempts=new Set();
+            for(const g of schedule){
+              if(g.game_type!=='REG'||!Number.isFinite(num(g.home_score))||!Number.isFinite(num(g.away_score)))continue;
+              games.set(g.game_id,g);
+            }
+            for(const r of rosters){
+              if(r.position!=='K')continue;
+              const pfr=text(r.pfr_id)||text(r.pfr_player_id),gsis=text(r.gsis_id)||text(r.player_id),wk=num(r.week);
+              if(!pfr||!gsis||!Number.isInteger(wk)||!text(r.team))continue;
+              const k=key(wk,r.team,pfr);if(!cross.has(k))cross.set(k,new Set());cross.get(k).add(gsis);
+            }
+            for(const r of kicks){
+              if(num(r.field_goal_attempt)!==1&&num(r.extra_point_attempt)!==1)continue;
+              if(text(r.game_id)&&text(r.kicker_player_id))attempts.add(key(r.game_id,r.kicker_player_id));
+            }
+            const counts={season,finalRegularGames:games.size,kickerPositiveSpecialTeamsSnapRows:0,exactIdMatchedAppearances:0,
+              exactMatchedWithRecordedAttempt:0,exactMatchedWithoutRecordedAttempt:0,missingOrAmbiguousAppearanceIdentity:0,
+              verifiedZeroAttemptGames:0};
+            const seen=new Set();
+            for(const r of snaps){
+              if(r.position!=='K'||!(num(r.st_snaps)>0))continue;
+              counts.kickerPositiveSpecialTeamsSnapRows++;
+              const g=games.get(r.game_id),wk=num(r.week),pfr=text(r.pfr_player_id)||text(r.pfr_id);
+              const ids=cross.get(key(wk,r.team,pfr));
+              if(!g||num(g.week)!==wk||![g.home_team,g.away_team].includes(r.team)||ids?.size!==1){counts.missingOrAmbiguousAppearanceIdentity++;continue;}
+              const id=[...ids][0],k=key(r.game_id,id);
+              if(seen.has(k))continue;seen.add(k);
+              counts.exactIdMatchedAppearances++;
+              if(attempts.has(k))counts.exactMatchedWithRecordedAttempt++;else counts.exactMatchedWithoutRecordedAttempt++;
+            }
+            const teamFieldNames=Object.keys(teams[0]||{}).filter(k=>/^(fg_|pat_|xp_|field_goal|extra_point)/.test(k));
+            console.log(JSON.stringify({...counts,independentReconciliationFieldNames:teamFieldNames,
+              noZeroImputation:true,providerRequests:0,productionPromotion:false}));
+          }
+          NODE
+          then
+            echo '::error::Private participation source audit failed; no zero-attempt rows inferred.'
+            exit 1
+          fi
+          cat "$log"

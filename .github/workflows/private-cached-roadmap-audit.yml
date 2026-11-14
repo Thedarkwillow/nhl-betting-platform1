@@ -1,0 +1,123 @@
+name: Archive offline model comparisons and diagnose source workflows
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-cached-roadmap-audit.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-cached-roadmap-audit
+  cancel-in-progress: false
+jobs:
+  cached-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate private historical research comparisons without provider calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          git merge-base --is-ancestor 37340f848e32085501633ad0a992720fc319741e HEAD
+          export AUDITED_COMMIT="$(git rev-parse HEAD)"
+          for report in scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nfl-independent-forward.cjs scripts/report-nhl-pregame-close-research.cjs; do
+            if ! node "$report" >"$log" 2>&1; then echo '::error::Cached audit failed; private data withheld.'; exit 1; fi
+          done
+          node - <<'NODE' >"$log" 2>&1
+          const fs=require('node:fs');
+          const read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+          const nhl=read('outputs/health/nhl-standard-forward-improvement-latest.json');
+          const nfl=read('outputs/nfl/backtests/independent-source-forward-latest.json');
+          const near=read('outputs/health/nhl-pregame-source-close-latest.json');
+          if(!nhl.retrospectiveFixedEnsemble||!nhl.retrospectiveTierCalibration||!nfl.kicking?.opportunityResearch||!nhl.formatCoverage||!nfl.formatCoverage)throw Error('Expected merged research report missing');
+          const report={kind:'private_cached_roadmap_comparison_v1',generatedAt:new Date().toISOString(),auditedCommit:process.env.AUDITED_COMMIT,
+            nhl:{ensemble:nhl.retrospectiveFixedEnsemble,tierCalibration:nhl.retrospectiveTierCalibration,
+              dependence:nhl.retrospectiveGameScriptDependence,formats:nhl.formatCoverage,
+              exactMass:Object.fromEntries(Object.entries(nhl.allTierExactMassCalibration?.byTier||{}).map(([k,v])=>[k,v.overall])),
+              latestOfficialGradedDate:nhl.dateOfLatestGradedSlate},
+            nfl:{kickerOpportunity:nfl.kicking.opportunityResearch,dependence:nfl.retrospectiveGameScriptDependence,formats:nfl.formatCoverage,
+              forwardByTier:nfl.forward.byTier},nearStartSourceMovement:near,
+            currentFinalsRefreshed:false,providerCallsMade:0,calibrated:false,modelPromoted:false};
+          fs.writeFileSync('outputs/health/cached-roadmap-comparison-latest.json',JSON.stringify(report,null,2)+'\n');
+          NODE
+          echo 'PASS: private comparison report built from cached official histories.'
+      - name: Archive aggregate comparison privately; do not overwrite grading outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/cached-roadmap-comparison-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'audit: archive cached NHL NFL roadmap comparisons privately' >"$log" 2>&1
+          # Restore other modified generated files before rebasing, preserve unrelated source work.
+          git restore --worktree -- .
+          for attempt in 1 2 3; do
+            if ! git fetch -q origin main >"$log" 2>&1; then exit 1; fi
+            if ! git rebase -q origin/main >"$log" 2>&1; then git rebase --abort >"$log" 2>&1 || true; echo '::error::Concurrent private comparison changed; no overwrite.'; exit 1; fi
+            if git push -q origin HEAD:main >"$log" 2>&1; then echo 'PASS: private cached comparison durably archived.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1
+  source-status:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Review recent public workflow outcomes without calling any data provider
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const paths={nhlCapture:'verified-independent-nhl-capture.yml',nflStandard:'independent-nfl-standard-private-preview.yml',nflAlternates:'independent-nfl-alternate-private-preview.yml',
+            nhlRanking:'refresh-allowlisted-nhl-rankings.yml',nflRanking:'publish-nfl-independent-coverage.yml',periodBackfill:'private-nhl-period-backfill.yml',
+            nhlGrading:'private-nhl-prospective-grading.yml',nflGrading:'private-nfl-final-refresh-and-precommit-grading.yml'};
+          (async()=>{
+            const results={};
+            for(const [k,file] of Object.entries(paths)){
+              try{
+                const r=await fetch('https://api.github.com/repos/'+process.env.GITHUB_REPOSITORY+'/actions/workflows/'+file+'/runs?branch=main&per_page=4',{headers:{Authorization:'Bearer '+process.env.GH_TOKEN,Accept:'application/vnd.github+json'}});
+                if(!r.ok){results[k]={apiHttp:r.status,runs:[]};continue;}
+                const d=await r.json();
+                results[k]={apiHttp:200,runs:(d.workflow_runs||[]).slice(0,4).map(x=>({id:x.id,event:x.event,status:x.status,conclusion:x.conclusion,createdAt:x.created_at,startedAt:x.run_started_at,updatedAt:x.updated_at}))};
+              }catch{results[k]={apiHttp:null,runs:[]};}
+            }
+            fs.mkdirSync('data',{recursive:true});fs.writeFileSync('data/roadmap-workflow-health.json',JSON.stringify({kind:'public_workflow_status_only_v1',generatedAt:new Date().toISOString(),results,providerCalls:0,successfulRunDoesNotProveFreshSource:true})+'\n');
+          })().catch(()=>{process.exitCode=1});
+          NODE
+      - name: Save public workflow metadata only
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/roadmap-workflow-health.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'status: public research workflow health' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

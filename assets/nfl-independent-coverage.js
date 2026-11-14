@@ -41,3 +41,26 @@
  async function refresh(){try{const response=await fetch("data/nfl-research-cards.json",{cache:"no-store"});if(!response.ok)throw Error("unavailable");saved=await response.json();}catch{saved=null;}render();}
  refresh();setInterval(refresh,60000);
 })();
+
+(function(){
+ const node=(tag,value,cls)=>{const e=document.createElement(tag);e.textContent=value;if(cls)e.className=cls;return e;};
+ async function render(tier){
+  const name=tier[0].toUpperCase()+tier.slice(1),status=document.getElementById("nfl"+name+"Status"),list=document.getElementById("nfl"+name+"Cards");
+  if(!status||!list)return;
+  try{
+   const res=await fetch("data/nfl-"+tier+"-research-cards.json",{cache:"no-store"});if(!res.ok)throw Error("unavailable");
+   const d=await res.json(),now=Date.now(),at=Date.parse(d.asOf);
+   if(d.kind!=="public_nfl_derived_research_cards_v1"||d.tier!==name||d.calibrated!==false||d.conditionalOnPlaying!==true||
+    !Number.isFinite(at)||at>now||now-at>1800000||!Array.isArray(d.cards)||d.cards.length>4)throw Error("stale");
+   const cards=d.cards.filter(p=>p.tier===name&&p.side==="Higher"&&typeof p.player==="string"&&typeof p.market==="string"&&Number.isFinite(p.line)&&
+    Number.isFinite(p.modelProjection)&&Number.isFinite(p.conditionalModelProbability)&&p.conditionalModelProbability>0&&p.conditionalModelProbability<1&&Date.parse(p.eventStartsAt)-now>=900000);
+   list.replaceChildren();status.textContent=cards.length+" fresh scoped research cards · Conditional, uncalibrated estimates.";
+   for(const p of cards){
+    const card=node("article","","card");card.append(node("strong",p.player+" · "+p.team),node("p",p.market.replaceAll("_"," ")+" · Higher "+p.line),
+     node("p","Projection "+p.modelProjection+" · "+(100*p.conditionalModelProbability).toFixed(1)+"% conditional estimate","minor"),
+     node("p","vs "+p.opponent+" · "+p.priorGames+" prior games","minor"));list.append(card);
+   }
+  }catch{list.replaceChildren();status.textContent="No fresh verified "+name+" scope; expired or incomplete research withheld.";}
+ }
+ const refresh=()=>Promise.all(["goblin","demon"].map(render));refresh();setInterval(refresh,60000);
+})();

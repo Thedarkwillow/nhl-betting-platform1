@@ -1,0 +1,40 @@
+name: Validate private four research priorities PR 126
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-pr126.yml']
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 96ca70c47356dce005e87986920fe0807080fcd9
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test full private regression and cached original evidence
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$|^not ok [0-9]+ ' "$log" | tail -n 12; exit 1; fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 3
+          if ! node scripts/report-nhl-standard-forward-improvement.cjs >"$log" 2>&1; then echo '::error::Private original evidence refused'; exit 1; fi
+          if ! node scripts/build-nhl-platform-line-shop.cjs >"$log" 2>&1; then echo '::error::Private comparison audit refused'; exit 1; fi
+          node - <<'NODE'
+          const r=require('./outputs/health/nhl-standard-forward-improvement-latest.json'),p=require('./outputs/comparisons/nhl-platform-line-shop-latest.json');
+          const m=r.separateSpecialistIndividualEvidence;
+          if(m?.separateFromChampion!==true||m.modelPromoted!==false||r.noLiveProbabilityPromotion!==true)throw Error('Private contract failed');
+          console.log(JSON.stringify({tierEvidence:Object.fromEntries(Object.entries(r.allTierExactMassCalibration.byTier).map(([k,v])=>[k,{registered:v.overall.registered,resolved:v.overall.resolved,games:v.overall.distinctGames,minimumEvidence:v.overall.minimumEvidenceSizeReached}])),specialistRegistered:m.summary.selected,specialistDecided:m.summary.decided,underdogStatus:p.status,standardMatches:p.standardSideMatches,privateUnverifiedTierMatches:p.unverifiedTierThresholdMatchCount,productionPromotion:false}));
+          NODE

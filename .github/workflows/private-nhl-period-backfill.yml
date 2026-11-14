@@ -103,3 +103,5 @@ jobs:
             sleep "$attempt"
           done
           exit 1
+
+# Owner-requested bounded continuation: next missing official prior-season dates only; existing concurrency and five-date cap unchanged.

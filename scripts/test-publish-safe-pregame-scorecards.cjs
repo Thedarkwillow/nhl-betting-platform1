@@ -77,3 +77,27 @@ test("only original first-Git NFL side-bias diagnostics with exact same graded c
  assert.throws(()=>build(nhl,nfl,triple,{nflDirectionalDiagnostic:{...d,
   sourceGradeAt:"2026-11-10T12:00:00Z"}}),/mismatched/);
 });
+
+
+test("tier counts reconcile exactly and withhold unsafe field values",()=>{
+ const {tierCounts}=require("./publish-safe-pregame-scorecards.cjs");
+ const h={standardDirectional:metric(20,11),goblinHigherOnly:{...metric(10,9,4),higherModelChoices:10,lowerModelChoices:0},
+  demonHigherOnly:{...metric(10,9,4),higherModelChoices:10,lowerModelChoices:0},
+  allFrozenSelections:{observedSelected:49,ungraded:6,decided:40,pushes:3,modelWins:29,alwaysHigherWins:27,alwaysLowerWins:13,distinctGames:5}};
+ const rows=tierCounts(h);assert.equal(rows.length,3);
+ assert.equal(rows[1].correct,9);assert.equal(rows[1].modelObservedRate,.9);assert.equal(rows[1].originalCohortHigherOnly,true);
+ assert.equal(rows[2].payoutAdjustedROI,null);
+ assert.throws(()=>tierCounts({...h,demonHigherOnly:{...h.demonHigherOnly,modelWins:8}}),/reconcile/);
+ assert.throws(()=>tierCounts({...h,goblinHigherOnly:{...h.goblinHigherOnly,lowerModelChoices:1}}),/scope/);
+ assert.equal(tierCounts(nhl.historicalSameSelectedLines),null);
+});
+test("public renderer only shows validated all-tier aggregate rows",()=>{
+ const {tierView}=require("../assets/model-scorecards.js");
+ const row=(tier)=>({tier,frozenSelections:5,decided:3,correct:2,incorrect:1,push:0,pending:2,distinctGames:2,
+  originalCohortHigherOnly:tier!=="Standard",platformSettlementVerified:false,payoutAdjustedROI:null});
+ const rows=["Standard","Goblin","Demon"].map(row);
+ assert.equal(tierView(rows)[1].rate,2/3);
+ assert.deepEqual(tierView(rows.slice(1)),[]);
+ assert.deepEqual(tierView([rows[0],{...rows[1],correct:3},rows[2]]),[]);
+ assert.deepEqual(tierView([rows[0],{...rows[1],payoutAdjustedROI:.2},rows[2]]),[]);
+});

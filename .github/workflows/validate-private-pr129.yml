@@ -1,0 +1,40 @@
+name: Validate availability tier identity and lineup PR 129
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-pr129.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: a8becb97bd35a3b697eeb8ade7fc60cdc28be754
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Full regression and cached finals without provider calls
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$|^not ok [0-9]+ ' "$log" | tail -n 15; exit 1; fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 3
+          for script in scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nfl-independent-forward.cjs; do
+            if ! node "$script" >"$log" 2>&1; then echo "::error::Offline report refused: $script"; exit 1; fi
+            echo "PASS: $script"
+          done
+          node - <<'NODE'
+          const a=require('./outputs/health/nhl-standard-forward-improvement-latest.json'),b=require('./outputs/nfl/backtests/independent-source-forward-latest.json');
+          console.log(JSON.stringify({nhlLineupResolved:a.lineupCalibrationResearch.records.length,nflLineupResolved:b.lineupCalibrationResearch.records.length,nhlCalibration:a.lineupCalibrationResearch.byFormat,nflCalibration:b.lineupCalibrationResearch.byFormat,calibrationApproved:false}));
+          NODE

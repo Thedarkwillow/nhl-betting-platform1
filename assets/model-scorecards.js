@@ -9,6 +9,16 @@
  const KIND="public_nhl_nfl_original_git_frozen_model_scorecards_v1";
  const count=x=>Number.isInteger(x)&&x>=0?x.toLocaleString("en-US"):"—";
  const percent=x=>typeof x==="number"&&x>=0&&x<=1?(100*x).toFixed(1)+"%":"Not yet established";
+ function tierView(rows){
+  if(!Array.isArray(rows)||rows.length!==3||
+   JSON.stringify(rows.map(x=>x?.tier))!==JSON.stringify(["Standard","Goblin","Demon"]))return [];
+  if(rows.some(x=>!["frozenSelections","decided","correct","incorrect","push","pending","distinctGames"].every(k=>Number.isInteger(x[k])&&x[k]>=0)||
+   x.decided!==x.correct+x.incorrect||x.frozenSelections!==x.decided+x.push+x.pending||
+   x.platformSettlementVerified!==false||x.payoutAdjustedROI!==null||
+   x.originalCohortHigherOnly!==(x.tier!=="Standard")))return [];
+  return rows.map(x=>({tier:x.tier,decided:x.decided,correct:x.correct,incorrect:x.incorrect,push:x.push,pending:x.pending,
+   distinctGames:x.distinctGames,rate:x.decided?x.correct/x.decided:null,originalCohortHigherOnly:x.originalCohortHigherOnly}));
+ }
  function viewModel(data,sport="NHL"){
   const name=sport==="NFL"?"NFL":"NHL";
   if(data?.kind!==KIND||data.schemaVersion!==1||
@@ -36,6 +46,7 @@
     detail:"Locked forward-policy cohort: "+count(p.correct)+"/"+count(p.decided)+
       " decided across "+count(p.distinctGames)+" games. Three new challengers: "+
       count(challenge.decided)+"/"+count(challenge.registered)+" decided. Neither comparison establishes an edge.",
+    tiers:tierView(data.nhl.originalTierCounts),
     markets:(data.nhl.postPolicyMarkets||[]).map(m=>({
       title:m.market,decided:m.decided,distinctGames:m.distinctGames,
       modelRate:m.modelRate,higher:m.hypotheticalAlwaysHigherRate,
@@ -67,6 +78,21 @@
   for(const [key,value] of [["summary",v.summary],["baseline",v.baseline],["detail",v.detail]]){
    const line=document.createElement("p");line.className="minor";
    line.dataset.scorecard=key;line.textContent=value;host.append(line);
+  }
+  if(v.tiers?.length){
+   const heading=document.createElement("h4");heading.textContent="Original NHL results by tier";
+   host.append(heading);
+   const ul=document.createElement("ul");ul.className="model-market-evidence";
+   for(const t of v.tiers){
+    const li=document.createElement("li");
+    li.textContent=t.tier+": "+count(t.correct)+"/"+count(t.decided)+" correct ("+percent(t.rate)+") · "+
+     count(t.incorrect)+" incorrect · "+count(t.push)+" pushes · "+count(t.pending)+" pending · "+count(t.distinctGames)+" games";
+    ul.append(li);
+   }
+   host.append(ul);
+   const note=document.createElement("p");note.className="minor";
+   note.textContent="Historical Goblin and Demon cohorts contain Higher-only selections. Different tiers have different payout terms; observed rates are not a ranking of profitability.";
+   host.append(note);
   }
   if(v.markets?.length){
    const heading=document.createElement("h4");heading.textContent="Post-policy Standard market evidence";
@@ -102,5 +128,5 @@
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);
   else init();
  }
- return {viewModel,render};
+ return {viewModel,render,tierView};
 });

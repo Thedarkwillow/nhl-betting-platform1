@@ -128,13 +128,13 @@
 <div class="section-head"><div><div class="section-kicker">02 / Lineup builder</div><h2>Explore 2–6 pick lineups</h2><p class="section-sub">Standard offers only. Lineups exclude repeat players; some five- and six-pick combinations may share a game.</p></div><span class="pill">Not a placed wager</span></div>
 <div class="slip-inner">
 <div class="lineup-toolbar">
-<div class="filters"><label for="lineupSize" class="muted">Picks</label><select id="lineupSize" aria-label="Lineup size"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
+<div class="filters"><label for="lineupSize" class="muted">Picks</label><select id="lineupSize" aria-label="Lineup size"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select><label for="lineupFormat" class="muted">Format</label><select id="lineupFormat" aria-label="Research lineup format"><option value="power">Power</option><option value="flex" disabled>Flex</option></select></div>
 <div class="lineup-toolbar-buttons"><button type="button" id="rebuildLineup">Rebuild from current props</button><button type="button" id="resetLineup">Reset edits</button><button type="button" id="saveLineupDraft">Save draft on this device</button><button type="button" id="restoreLineupDraft">Restore saved draft</button><button type="button" id="clearLineupDraft">Delete saved draft</button></div>
 </div>
 <p class="notice" id="lineupStatus" role="status" aria-live="polite">Checking eligible pregame props…</p>
 <div class="table-wrap lineup-table-wrap"><table class="lineup-table"><thead><tr><th>Player</th><th>Statistic</th><th>Line</th><th>Side</th><th>Est. probability*</th><th>Game</th><th>Research edits</th></tr></thead><tbody id="lineupPicks"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
 <div id="lineupSwapPanel" class="lineup-swap-panel" hidden><label for="lineupSwapOption" id="lineupSwapLabel">Choose a fresh replacement</label><select id="lineupSwapOption" aria-label="Fresh eligible replacement player"></select><div class="lineup-swap-actions"><button type="button" id="applyLineupSwap">Apply swap</button><button type="button" id="cancelLineupSwap">Cancel</button></div></div>
-<p id="lineupDetails" class="minor" aria-live="polite">Edits use only eligible fresh research offers.</p><p id="lineupFeedback" class="minor" role="status" aria-live="polite">Research drafts stay in this browser only. Saved offers must pass freshness checks again before restoration.</p>
+<p id="lineupDetails" class="minor" aria-live="polite">Edits use only eligible fresh research offers.</p><p id="lineupFeedback" class="minor" role="status" aria-live="polite">Research drafts stay in this browser only. Saved offers must pass freshness checks again before restoration. Drafts restore as Power; choose Flex again for 3–6 picks.</p>
 <p class="minor">Lineup joint probabilities, payout-specific expected value, and platform settlement are not established. Check the original platform's rules and availability independently.</p>
 <p class="minor" id="lineupDependencyNote">Pairs sharing a game can have unmeasured team, goalie/shooter and scoring interactions. No joint success rate or payout is inferred.</p>
 </div>
@@ -549,6 +549,7 @@ function restoreResearchDraft(){
   return;
  }
  $("lineupSize").value=String(result.size);
+ $("lineupFormat").value="power"; // legacy drafts store only pick references, default format
  editor.size=result.size;editor.picks=result.picks;editor.touched=true;
  editor.locks=new Set(result.lockedKeys);editor.excluded=new Set(result.excludedPlayers);
  editor.swapIndex=null;renderLineup();
@@ -588,13 +589,16 @@ function chooseLineup(at,candidates){
 }
 function renderLineup(){
  const n=Number($("lineupSize").value),at=Date.now(),body=$("lineupPicks");
+ const format=$("lineupFormat");format.options[1].disabled=n===2;
+ if(n===2)format.value="power";
+ const formatName=format.value==="flex"?"Flex":"Power";
  if(editor.size!==n)resetEditor(n);
  body.replaceChildren();
  const candidates=currentCandidates(at),result=chooseLineup(at,candidates),picks=result.picks||[];
  $("rebuildLineup").disabled=!candidates.length;
  $("saveLineupDraft").disabled=!candidates.length;
  $("lineupSwapPanel").hidden=true;
- $("lineupDetails").textContent="Standard research offers only · Edited picks are not recorded model predictions · No original-platform availability, joint probability or payout verified.";
+ $("lineupDetails").textContent=formatName+" format selected for research · Same uncalibrated research pool for both formats; format-specific optimization is not yet verified. No payout or joint probability inferred.";
  if(!picks.length){
   editor.picks=[];editor.swapIndex=null;
   $("lineupStatus").textContent=result.reason||"No eligible current lineup";
@@ -610,7 +614,7 @@ function renderLineup(){
   structural.categories.join(", ")+
   ". No measured correlation coefficient, joint success probability or payout EV.":
   "No shared-game pairs. Cross-game dependencies and exact fantasy-platform rules remain unverified.";
- $("lineupStatus").textContent=n+"-pick "+(editor.touched?"custom":"suggested")+
+ $("lineupStatus").textContent=n+"-pick "+formatName+" "+(editor.touched?"custom":"suggested")+
   " research lineup · "+structural.riskLevel+" · Availability and payout unverified.";
  const labels=["Player","Statistic","Line","Side","Model estimate","Game","Research edits"];
  for(let i=0;i<picks.length;i++){
@@ -837,6 +841,7 @@ $("restoreResearchView").addEventListener("click",restoreResearchView);
 $("resetResearchView").addEventListener("click",resetResearchView);
 $("cohortGroupBy").addEventListener("change",renderOriginalCohort);
 $("lineupSize").addEventListener("change",renderLineup);
+$("lineupFormat").addEventListener("change",renderLineup);
 $("rebuildLineup").addEventListener("click",()=>{
  editor.touched=true;editor.picks=[];editor.swapIndex=null;renderLineup();
 });

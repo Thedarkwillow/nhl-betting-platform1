@@ -90,52 +90,7 @@ jobs:
             console.error('CAPTURE_FAILURE '+reason+' calls='+calls+' boardCalls='+boardCalls+' lastHttp='+String(lastHttp??'none'));process.exitCode=1;});
           NODE
           then
-            grep -E '^CAPTURE_FAILURE [a-zA-Z0-9_]+ calls=[0-9]+ boardCalls=[0-9]+ lastHttp=([0-9]{3}|none) "$log" || true
-            echo '::error::Private capture did not verify a complete current board.'
-            exit 1
-          fi
-          grep -E '^\{"phase":"private_verified_capture","offers":[0-9]+,"rows":[0-9]+,"pages":[0-9]+,"requests":[0-9]+,"credits":0,"boardAt":"[0-9T:.Z-]+"\}$|^Already current; no additional board requests\.$' "$log" || true
-      - name: Archive complete board privately before model preview
-        working-directory: private
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f outputs/free-source/nhl/latest.json outputs/free-source/nhl/snapshots/*.json outputs/free-source/nhl/raw-snapshots/*.json
-          if ! git diff --cached --quiet; then
-            git commit -m 'data: archive complete independent NHL board privately' >/dev/null
-            for attempt in 1 2 3; do
-              git fetch -q origin main
-              git rebase -q origin/main || { git rebase --abort; exit 1; }
-              if git push -q origin HEAD:main; then echo 'PASS: private independent board archived.'; exit 0; fi
-              sleep "$attempt"
-            done
-            exit 1
-          fi
-      - name: Build and archive prior-only research preview privately
-        working-directory: private
-        shell: bash
-        run: |
-          set -euo pipefail
-          umask 077
-          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! node scripts/build-nhl-source-preview.cjs >"$log" 2>&1; then echo '::error::Preview failed; complete private board retained.'; exit 1; fi
-          node - <<'NODE'
-          const p=require('./outputs/free-source/nhl/research-preview-latest.json');
-          console.log(JSON.stringify({phase:'private_preview',matched:p.matchedRows,prospective:false,calibrated:false,publicRelease:false}));
-          NODE
-          git add -f outputs/free-source/nhl/research-preview-latest.json outputs/free-source/nhl/research-preview-snapshots/*.json
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'data: private independent NHL research preview' >/dev/null
-          for attempt in 1 2 3; do
-            git fetch -q origin main
-            git rebase -q origin/main || { git rebase --abort; exit 1; }
-            if git push -q origin HEAD:main; then echo 'PASS: private preview archived.'; exit 0; fi
-            sleep "$attempt"
-          done
-          exit 1
- "$log" || true
+            grep -E '^CAPTURE_FAILURE [a-zA-Z0-9_]+ calls=[0-9]+ boardCalls=[0-9]+ lastHttp=([0-9]{3}|none)$' "$log" || true
             echo '::error::Private capture did not verify a complete current board.'
             exit 1
           fi

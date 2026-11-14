@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 8e7cd4c940b87533bccc373231fc703ea52ab972
+          ref: bc8aac277a4bd8a0fd1b36e1b3d65a4b2b9cd1db
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          test "$(git rev-parse HEAD)" = 8e7cd4c940b87533bccc373231fc703ea52ab972
+          test "$(git rev-parse HEAD)" = bc8aac277a4bd8a0fd1b36e1b3d65a4b2b9cd1db
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           if ! npm test >"$log" 2>&1; then
             grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
@@ -91,7 +91,7 @@ jobs:
           const fs=require('node:fs');
           const check=x=>['success','failure','cancelled','skipped'].includes(x)?x:'unknown';
           fs.mkdirSync('data',{recursive:true});
-          fs.writeFileSync('data/ten-roadmap-validation.json',JSON.stringify({kind:'offline_ten_roadmap_validation_v1',privateHead:'8e7cd4c940b87533bccc373231fc703ea52ab972',publicHead:'92272804eea119471a27bdacbb2fa1cec251177b',recordedAt:new Date().toISOString(),runId:process.env.RUN_ID,privateTestsAndCachedAudits:check(process.env.PRIVATE_RESULT),publicTests:check(process.env.PUBLIC_RESULT),liveCaptureVerified:false,calibrated:false})+'\n');
+          fs.writeFileSync('data/ten-roadmap-validation.json',JSON.stringify({kind:'offline_ten_roadmap_validation_v1',privateHead:'bc8aac277a4bd8a0fd1b36e1b3d65a4b2b9cd1db',publicHead:'92272804eea119471a27bdacbb2fa1cec251177b',recordedAt:new Date().toISOString(),runId:process.env.RUN_ID,privateTestsAndCachedAudits:check(process.env.PRIVATE_RESULT),publicTests:check(process.env.PUBLIC_RESULT),liveCaptureVerified:false,calibrated:false})+'\n');
           NODE
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'

@@ -60,6 +60,8 @@ jobs:
         run: node --test scripts/test-multi-sport-roadmap.cjs
       - name: Test public NHL NFL original-precommit model grades and sanitized release
         run: node --test scripts/test-model-scorecards.cjs scripts/test-publish-safe-pregame-scorecards.cjs
+      - name: Test consolidated source evidence and historical chart
+        run: node --test scripts/test-roadmap-evidence-desk.cjs
       - name: Test capped NFL card publishing and current injury veto
         run: node --test scripts/test-publish-safe-nfl-research-cards.cjs
       - name: Verify NHL NFL cross-day/same-day source line movement without private data leaks

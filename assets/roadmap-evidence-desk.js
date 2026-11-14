@@ -1,0 +1,41 @@
+"use strict";
+// Counts and timestamps from already allowlisted public reports only.
+(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.RoadmapEvidenceDesk=api;})(typeof globalThis==="undefined"?this:globalThis,function(){
+ const parse=s=>typeof s==="string"?Date.parse(s):NaN;
+ const count=x=>Number.isInteger(x)&&x>=0;
+ function age(at,now){const t=parse(at);return Number.isFinite(t)&&Number.isFinite(now)&&t<=now?Math.floor((now-t)/60000):null;}
+ function model({health,board,standard,goblin,demon,movement}={},now=Date.now()){
+  const rows=[];
+  const archive=health?.kind==="public_nhl_nfl_pacific_morning_collection_health_v1"&&age(health.generatedAt,now)!==null;
+  for(const [label,k] of [["6 AM","06:00"],["9 AM","09:00"]]){const s=archive?health.slots?.[k]:null;rows.push({label:label+" archive",value:s?.status==="privately_archived_complete"&&count(s.nhlOffers)&&count(s.nflOffers)&&age(s.observedAt,now)!==null?"NHL "+s.nhlOffers+" / NFL "+s.nflOffers:"Unverified",ageMinutes:age(s?.observedAt,now)});}
+  const a=board?.kind==="public_nhl_research_cards_not_internal_model"?age(board.boardAt,now):null;
+  const live=a!==null&&a<30&&board.researchFreshAtBuild===true&&Array.isArray(board.props);
+  rows.push({label:"NHL rankings",value:live?board.props.length+" fresh-source research rows":"No fresh approved rows",ageMinutes:a});
+  for(const [label,d] of [["Standard",standard],["Goblin",goblin],["Demon",demon]]){
+   const minutes=d?.kind==="public_nfl_derived_research_cards_v1"&&d?.tier===label?age(d.asOf,now):null;
+   const ready=minutes!==null&&minutes<30&&d.status==="fresh_derived_research_only"&&Array.isArray(d.cards);
+   rows.push({label:"NFL "+label,value:ready?d.cards.length+" fresh-source research cards":"No fresh approved cards",ageMinutes:minutes});
+  }
+  if(movement?.kind==="public_safe_nhl_nfl_board_line_movement_counts_v1"&&movement.rawLinesPublished===0&&movement.privateOfferIDsPublished===0&&age(movement.laterCaptureAt,now)!==null){
+   for(const sport of ["NHL","NFL"]){const m=movement.sports?.[sport];if(m&&["existingLineChanged","newSourceOfferIDs","noLongerSeenSourceIDsUnverified","existingTierChanged","existingSideAvailabilityChanged"].every(k=>count(m[k])))rows.push({label:sport+" archived changes",value:m.existingLineChanged+" line / "+m.existingTierChanged+" tier / "+m.existingSideAvailabilityChanged+" side / "+m.newSourceOfferIDs+" new / "+m.noLongerSeenSourceIDsUnverified+" absent (not confirmed removed)",ageMinutes:age(movement.laterCaptureAt,now)});}
+  }
+  return {rows,quotaRemaining:null,providerFailureReason:null,scope:"Archive evidence only; no verified live app availability or provider quota."};
+ }
+ function historyChart(values,cutoff){
+  const at=parse(cutoff);if(!Number.isFinite(at)||!Array.isArray(values))return [];
+  const eligible=values.filter(x=>x&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)&&Number.isFinite(parse(x.date))&&x.date<cutoff.slice(0,10)&&Number.isFinite(x.value)&&x.value>=0);
+  if(new Set(eligible.map(x=>x.date)).size!==eligible.length)return [];
+  return eligible.sort((a,b)=>a.date.localeCompare(b.date)).slice(-10);
+ }
+ async function init(){
+  const host=document.getElementById("roadmapDailyEvidence");if(!host)return;
+  const paths={health:"data/collection-health.json",board:"data.json",standard:"data/nfl-research-cards.json",goblin:"data/nfl-goblin-research-cards.json",demon:"data/nfl-demon-research-cards.json",movement:"data/source-line-movement.json"};
+  const result=Object.fromEntries(await Promise.all(Object.entries(paths).map(async ([k,p])=>{try{const r=await fetch("./"+p,{cache:"no-store"});return [k,r.ok?await r.json():null];}catch{return [k,null];}})));
+  function draw(){const v=model(result);host.replaceChildren();const dl=document.createElement("dl");dl.className="roadmap-health-grid";
+   for(const item of v.rows){const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=item.label;dd.textContent=item.value+(item.ageMinutes===null?"":" · "+item.ageMinutes+" min old");dl.append(dt,dd);}
+   const note=document.createElement("p");note.className="minor";note.textContent=v.scope+" Live quota and failure cause not reported.";host.append(dl,note);}
+  draw();
+ }
+ if(typeof document!=="undefined"){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();}
+ return {model,historyChart};
+});

@@ -1,0 +1,45 @@
+name: Validate private format outcome audit PR 123
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-pr123.yml']
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: e9966cacaf607b1837fc85be26b816bd1a384af7
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run complete regression and original snapshot audit privately
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          test "$(git rev-parse HEAD)" = e9966cacaf607b1837fc85be26b816bd1a384af7
+          if ! npm test >"$log" 2>&1; then
+            grep -E '^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 3
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 3
+          if ! node scripts/report-nhl-standard-forward-improvement.cjs >"$log" 2>&1; then
+            echo '::error::Original frame evidence audit refused; no source details emitted.'
+            exit 1
+          fi
+          node - <<'NODE'
+          const p=require('./outputs/health/nhl-standard-forward-improvement-latest.json').separatePowerFlexFormatEvidence;
+          if(p?.researchOnly!==true||p.platformSettlementVerified!==false||p.verifiedROI!==null)throw Error('Private format contract failed');
+          console.log(JSON.stringify({formatAudit:'passed',formatGroups:Object.keys(p.groups).length,registered:Object.values(p.groups).reduce((s,r)=>s+r.registered,0),decided:Object.values(p.groups).reduce((s,r)=>s+r.decided,0),productionEligible:false}));
+          NODE

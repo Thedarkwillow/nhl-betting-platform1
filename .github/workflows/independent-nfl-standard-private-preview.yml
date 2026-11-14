@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
     paths: ['.github/workflows/independent-nfl-standard-private-preview.yml']
+  schedule:
+    # Most regular-season game days; avoid unnecessary metered daily replays.
+    - cron: '15 7 * * 0,1,4'
+      timezone: America/Los_Angeles
 permissions:
   contents: read
 concurrency:
@@ -45,6 +49,7 @@ jobs:
           const {fetchAsOfBoard,requestAsOfPage}=require('./scripts/collect-prizepicks-asof-nhl.cjs');
           const {dataset}=require('./scripts/build-nfl-partner-board-research.cjs');
           const {buildIndependentNflPreview}=require('./src/nfl-independent-source-preview.cjs');
+          const {freeze}=require('./src/nfl-independent-forward-evidence.cjs');
           const key=process.env.PRIZEPICKSAPI_KEY;
           let calls=0,pages=0,last=0,transient503=0,phase='preflight';
           const headers={Authorization:'Bearer '+key,Accept:'application/json','X-User-Request':'Check a bounded Standard NFL research integration'};
@@ -89,6 +94,11 @@ jobs:
             const weeklyRows=[2024,2025,2026].flatMap(y=>dataset(y,'player_weekly')),schedule=dataset(2026,'schedule');
             const report=buildIndependentNflPreview({board:doc,weeklyRows,schedule});
             fs.writeFileSync('outputs/nfl/independent-source/research-preview-latest.json',JSON.stringify(report)+'\n');
+            const years=[2024,2025,2026];
+            const forward=freeze(report,{weeklyRows,schedule,teamWeekly:years.flatMap(y=>dataset(y,'team_weekly')),snapCounts:years.flatMap(y=>dataset(y,'snap_counts'))});
+            fs.mkdirSync('outputs/nfl/independent-source/forward-snapshots',{recursive:true});
+            fs.writeFileSync('outputs/nfl/independent-source/forward-snapshots/'+stamp+'.json',JSON.stringify(forward)+'\n',{flag:'wx'});
+            console.log(JSON.stringify({forwardRegistered:forward.rows.length,contextRegistered:forward.rows.filter(x=>x.context!==null).length,powerScenarios:Object.keys(forward.formats.power).length,flexScenarios:Object.keys(forward.formats.flex).length,calibrated:false}));
             console.log(JSON.stringify({phase:'private_nfl_preview',scopedOffers:doc.offers.length,matchedRows:report.matchedRows,
               pages:board.pagesFetched,requests:calls,credits:0,fullBoard:false,publicRelease:false,calibrated:false}));
             console.log('BOUNDED_503_RESPONSES '+transient503);
@@ -110,13 +120,19 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f outputs/nfl/independent-source/latest.json outputs/nfl/independent-source/research-preview-latest.json outputs/nfl/independent-source/snapshots/*.json
+          git add -f outputs/nfl/independent-source/latest.json outputs/nfl/independent-source/research-preview-latest.json outputs/nfl/independent-source/snapshots/*.json outputs/nfl/independent-source/forward-snapshots/*.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'data: private independent NFL Standard scope and conditional research preview' >/dev/null
           for attempt in 1 2 3; do
             git fetch -q origin main
             git rebase -q origin/main || { git rebase --abort; exit 1; }
-            if git push -q origin HEAD:main; then echo 'PASS: private NFL scoped archive and preview saved.'; exit 0; fi
+            node - <<'NODE'
+          const fs=require('node:fs'),d='outputs/nfl/independent-source/forward-snapshots';
+          const files=fs.readdirSync(d).filter(x=>/^\d{8}T\d{6}Z\.json$/.test(x)).sort();
+          const s=JSON.parse(fs.readFileSync(d+'/'+files.at(-1)));
+          if(!Array.isArray(s.rows)||s.rows.some(p=>!Number.isFinite(Date.parse(p.eventStartsAt))||Date.parse(p.eventStartsAt)-Date.now()<900000))throw Error('Prospective freeze lead time no longer valid');
+          NODE
+            if git push -q origin HEAD:main; then echo 'PASS: private NFL scoped archive and original forward research saved.'; exit 0; fi
             sleep "$attempt"
           done
           exit 1

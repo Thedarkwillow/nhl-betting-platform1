@@ -31,6 +31,7 @@ jobs:
           node - <<'NODE'
           const fs=require('node:fs');
           const {providerUsage,USER_CONTEXT}=require('./src/prizepicksapi-nhl-request.cjs');
+          const {inspectNhlCoverage,compareNhlCoverageSnapshots}=require('./src/prizepicksapi-nhl-coverage-stability.cjs');
           (async()=>{
             let board='missing';
             try{
@@ -52,6 +53,15 @@ jobs:
                 quotaUnit:q?.unit||'unknown',
                 enoughLegacyRequests:q?.unit==='requests'&&Number.isInteger(q.requestsRemaining)&&q.requestsRemaining>=100,
                 zeroCreditConfirmed:q?.unit==='credits'&&q.creditsCost===0};
+              if(r.ok){
+                const first=await r.json();
+                coverage.first=inspectNhlCoverage(first);
+                await new Promise(resolve=>setTimeout(resolve,12000));
+                const second=await fetch('https://prizepicksapi.com/api/v1/coverage',{
+                  headers:{Authorization:'Bearer '+key,Accept:'application/json','X-User-Request':USER_CONTEXT},signal:AbortSignal.timeout(15000)});
+                coverage.secondHttpStatus=second.status;
+                if(second.ok)coverage.stability=compareNhlCoverageSnapshots(first,await second.json());
+              }
             }
             console.log(JSON.stringify({board,coverage,projectionCalls:0,paidProjectionCredits:0,
               sourceAllowlistUnchanged:true,rawPublicOffers:0}));

@@ -1,0 +1,38 @@
+name: Validate private normalization and calibration PR 125
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-pr125.yml']
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: bfa709b4e383fb55a8f10017387e8379c48f2a5d
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Full regression and cached period diagnostic (no API calls)
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 3; exit 1; fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 3
+          if ! node scripts/build-nhl-period-combo-models.cjs >"$log" 2>&1; then echo '::error::Period diagnostic failed'; exit 1; fi
+          node - <<'NODE'
+          const r=require('./outputs/backtests/nhl-period-walkforward-latest.json');
+          const rows=Object.values(r.byMarket);
+          if(!rows.length||rows.some(x=>!x.fixedBlendResearch||x.fixedBlendResearch.approved!==false||x.fixedBlendResearch.syntheticThresholdsOnly!==true))throw Error('Missing fixed research evidence');
+          console.log(JSON.stringify({markets:rows.length,blendBetterBrierThanPoisson:rows.filter(x=>x.fixedBlendResearch.brier<x.poissonBrier).length,blendBetterLogLossThanPoisson:rows.filter(x=>x.fixedBlendResearch.logLoss<x.fixedBlendResearch.poissonLogLoss).length,minimumDiagnosticSample:rows.filter(x=>x.passesMinimumDiagnosticSize).length,clusterIntervalEntirelyBelowZero:rows.filter(x=>x.fixedBlendResearch.blendMinusPoissonGameCluster95?.upper<0).length,actualOfferedLines:false,promoted:false}));
+          NODE

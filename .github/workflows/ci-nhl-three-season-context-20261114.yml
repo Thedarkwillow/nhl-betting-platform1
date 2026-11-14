@@ -1,0 +1,68 @@
+name: Private three-season NHL historical research
+on:
+  push:
+    branches: ['ci/nhl-three-season-context-20261114']
+    paths: ['.github/workflows/ci-nhl-three-season-context-20261114.yml']
+permissions:
+  contents: read
+jobs:
+  research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: f0fa16c873830d5afdb020ca3994e1a14a7d305c
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test research logic with synthetic data
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! python test/test_nhl_three_season_context.py >"$log" 2>&1 ||
+             ! node --test test/nhl-dfo-goalie-starter-audit.test.cjs test/nhl-dfo-role-goalie-shadow.test.cjs test/nhl-moneypuck-game-lab.test.cjs test/nhl-moneypuck-goalie-game-lab.test.cjs >>"$log" 2>&1; then
+            echo "::error::Synthetic research checks failed; private details withheld."
+            exit 1
+          fi
+          echo "Synthetic chronology, role and goalie tests passed."
+      - name: Evaluate published season archives and cached pregame starter reports
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! python scripts/research-nhl-three-season-context.py >"$log" 2>&1; then
+            echo "::error::Historical archive evaluation failed; private details withheld."
+            exit 1
+          fi
+          if ! node scripts/audit-dfo-goalie-starters.cjs >>"$log" 2>&1; then
+            echo "::error::Cached starter audit failed; private details withheld."
+            exit 1
+          fi
+          echo "Private historical research and cached starter audit generated."
+      - name: Save aggregate reports exclusively on private research branch
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/backtests/nhl-three-season-context-latest.json outputs/backtests/nhl-dfo-goalie-starter-audit-latest.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'research: three-season numeric forecast and starter-context audits' >/dev/null
+          git push -q origin HEAD:research/nhl-three-season-context-20261114
+          echo "Private aggregate reports archived."

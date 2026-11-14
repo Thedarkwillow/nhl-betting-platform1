@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 0af4243b66ce54ab42cb3446e36677915150b423
+          ref: 432e6dab050559dae2f3e31b7dc3fc4e0047531c
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -29,7 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          test "$(git rev-parse HEAD)" = 0af4243b66ce54ab42cb3446e36677915150b423
+          test "$(git rev-parse HEAD)" = 432e6dab050559dae2f3e31b7dc3fc4e0047531c
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           if ! npm test >"$log" 2>&1; then
             echo "::error::Private test suite failed; private test details withheld."
@@ -83,7 +83,7 @@ jobs:
           const checked=v=>allowed.includes(v)?v:'unknown';
           fs.mkdirSync('data',{recursive:true});
           fs.writeFileSync('data/pinned-research-validation.json',JSON.stringify({
-            kind:'offline_pinned_validation_status_v1',batch:'nov14-private131-public34',
+            kind:'offline_pinned_validation_status_v1',batch:'nov14-private131-rev2-public34',
             recordedAt:new Date().toISOString(),runId:process.env.RUN_ID,
             privateTests:checked(process.env.PRIVATE_RESULT),publicTests:checked(process.env.PUBLIC_RESULT),
             liveCaptureVerified:false,calibrated:false

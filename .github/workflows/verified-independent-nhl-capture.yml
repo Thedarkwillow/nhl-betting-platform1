@@ -1,12 +1,12 @@
 name: Verified independent NHL capture and private preview
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/verified-independent-nhl-capture.yml']
-  # Separate from genuine 06:00/09:00 partner capture; one quota-bounded daily source attempt.
+  # Separate from genuine 06:00/09:00 partner capture. Do not consume quota on code pushes.
+  # Extra windows require a stricter existing-request reserve; no projection credits.
   schedule:
     - cron: '35 9 * * *'
+      timezone: America/Los_Angeles
+    - cron: '35 12,15 * * *'
       timezone: America/Los_Angeles
 permissions:
   contents: read
@@ -44,6 +44,7 @@ jobs:
         working-directory: private
         env:
           PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+          EXTRA_SOURCE_WINDOW: ${{ github.event_name == 'schedule' && github.event.schedule != '35 9 * * *' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -53,6 +54,7 @@ jobs:
           const fs=require('node:fs');
           const {providerUsage}=require('./src/prizepicksapi-nhl-request.cjs');
           const realFetch=global.fetch;
+          const minimumRemaining=process.env.EXTRA_SOURCE_WINDOW==='true'?200:100;
           let calls=0,last=0,boardCalls=0,lastHttp=null,phase='initial',lastPageRows=null,lastPageHasNext=null;
           global.fetch=async(url,options)=>{
             const u=new URL(url);
@@ -66,7 +68,7 @@ jobs:
             if(r.ok){
               const q=providerUsage(r.headers);
               if(q.unit!=='requests'||!Number.isInteger(q.requestsRemaining)||
-                 (u.pathname==='/api/v1/coverage'&&q.requestsRemaining<100))
+                 (u.pathname==='/api/v1/coverage'&&q.requestsRemaining<minimumRemaining))
                 throw Error('legacy_request_quota_not_verified');
             }
             if(r.ok&&u.pathname==='/api/v1/board'){

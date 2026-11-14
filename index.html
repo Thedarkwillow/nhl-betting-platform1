@@ -57,6 +57,7 @@
 <p class="minor" role="status" aria-live="polite" data-multi="status">Checking pregame evidence…</p>
 <p class="minor" role="status" aria-live="polite" data-multi="operations">Checking independently verified 6 AM and 9 AM source archives…</p>
 <p class="minor" role="status" aria-live="polite" data-multi="movement">Checking NHL/NFL daily archived line changes…</p>
+<details class="research-drawer"><summary>Daily source evidence and tier freshness</summary><div class="board-panel" id="roadmapDailyEvidence" aria-live="polite">Checking public archive evidence…</div></details>
 <div class="multi-stat-grid" role="group" aria-label="Frozen research summary">
 <div class="card">Frozen Higher/Lower research<strong data-multi="frozen">—</strong></div>
 <div class="card">Standard-market directions<strong data-multi="standard">—</strong></div>
@@ -165,6 +166,7 @@
 <script src="./assets/lineup-workspace.js"></script>
 <script src="./assets/research-status.js"></script>
 <script src="./assets/multi-sport-roadmap.js"></script>
+<script src="./assets/roadmap-evidence-desk.js"></script>
 <script src="./assets/model-scorecards.js"></script>
 <script>
 "use strict";
@@ -284,6 +286,14 @@ function showPlayerDetail(p){
    (insight.lastGameDate||"unknown")+
    ". Games dated on or after this quote's capture date are excluded. Historical averages are not projected outcomes.";
   host.append(grid,source);
+  const history=window.RoadmapEvidenceDesk?.historyChart(insight.recentOfficialValues,p.capturedAt)||[];
+  if(history.length){
+   const title=document.createElement("h3");title.textContent="Recent official game results";
+   const chart=document.createElement("div");chart.className="roadmap-history-chart";chart.setAttribute("role","group");chart.setAttribute("aria-label","Earlier official statistical results");
+   const maximum=Math.max(1,...history.map(x=>x.value));
+   for(const x of history){const row=document.createElement("div"),label=document.createElement("span"),meter=document.createElement("meter"),value=document.createElement("span");row.className="roadmap-history-row";label.textContent=x.date;meter.min=0;meter.max=maximum;meter.value=x.value;meter.setAttribute("aria-label",x.date+" stat total");value.textContent=String(x.value);row.append(label,meter,value);chart.append(row);}
+   host.append(title,chart);
+  }
  }
  const alternatives=(data.props||[]).filter(x=>x.player===p.player&&x.team===p.team&&
   x.matchup===p.matchup&&x.market===p.market&&x.lean===p.lean&&

@@ -1,0 +1,37 @@
+name: Isolated private NHL validation (synthetic tests only)
+on:
+  push:
+    branches: ['ci/nhl-slate-cluster-20261114']
+    paths: ['.github/workflows/ci-nhl-slate-cluster-20261114.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: b42796fa5989c8c8fb2e6df4552199667e7b01f4
+          path: private
+          persist-credentials: false
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and targeted synthetic regression tests
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if node --check src/nhl-slate-cluster-validation.cjs >"$log" 2>&1 &&
+             node --check scripts/report-nhl-standard-forward-improvement.cjs >>"$log" 2>&1 &&
+             node --test test/nhl-slate-cluster-validation.test.cjs test/nhl-standard-forward-improvement.test.cjs test/nhl-frozen-baseline-challenge.test.cjs test/nhl-prospective-validation.test.cjs >>"$log" 2>&1; then
+            echo "Pinned private commit syntax and targeted synthetic tests passed."
+          else
+            echo "::error::Private syntax or synthetic regression test failed. Raw private output intentionally withheld."
+            exit 1
+          fi

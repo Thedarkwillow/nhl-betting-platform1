@@ -35,7 +35,12 @@ jobs:
           for(const season of [2024,2025,2026]){
             const schedule=dataset(season,'schedule'),rosters=dataset(season,'weekly_rosters'),snaps=dataset(season,'snap_counts'),
               kicks=dataset(season,'kicking_pbp'),teams=dataset(season,'team_weekly');
-            const games=new Map(),cross=new Map(),attempts=new Set();
+            const games=new Map(),cross=new Map(),attempts=new Set(),teamAttempts=new Map(),teamStats=new Map(),candidateAppearances=[];
+            for(const r of teams){
+              const t=text(r.team)||text(r.recent_team),wk=num(r.week);
+              if(!t||!Number.isInteger(wk)||r.season_type&&r.season_type!=='REG')continue;
+              const k=key(wk,t);if(!teamStats.has(k))teamStats.set(k,[]);teamStats.get(k).push(r);
+            }
             for(const g of schedule){
               if(g.game_type!=='REG'||!Number.isFinite(num(g.home_score))||!Number.isFinite(num(g.away_score)))continue;
               games.set(g.game_id,g);
@@ -49,10 +54,18 @@ jobs:
             for(const r of kicks){
               if(num(r.field_goal_attempt)!==1&&num(r.extra_point_attempt)!==1)continue;
               if(text(r.game_id)&&text(r.kicker_player_id))attempts.add(key(r.game_id,r.kicker_player_id));
+              if(!text(r.game_id)||!text(r.posteam))continue;
+              const k=key(r.game_id,r.posteam),t=teamAttempts.get(k)||{fg:0,pat:0,unknownIdentity:0,invalid:0,plays:new Set()};
+              const fg=num(r.field_goal_attempt)===1,pat=num(r.extra_point_attempt)===1;
+              if(r.play_id==null||t.plays.has(String(r.play_id))||fg===pat)t.invalid++;
+              t.plays.add(String(r.play_id));t.fg+=Number(fg);t.pat+=Number(pat);
+              if(!text(r.kicker_player_id))t.unknownIdentity++;
+              if(fg&&!['made','missed','blocked'].includes(r.field_goal_result)||pat&&!['good','failed','blocked','missed'].includes(r.extra_point_result))t.invalid++;
+              teamAttempts.set(k,t);
             }
             const counts={season,finalRegularGames:games.size,kickerPositiveSpecialTeamsSnapRows:0,exactIdMatchedAppearances:0,
               exactMatchedWithRecordedAttempt:0,exactMatchedWithoutRecordedAttempt:0,missingOrAmbiguousAppearanceIdentity:0,
-              verifiedZeroAttemptGames:0};
+              verifiedZeroAttemptGames:0,crossDatasetReconciledZeroAttempts:0,unreconciledCandidates:0};
             const seen=new Set();
             for(const r of snaps){
               if(r.position!=='K'||!(num(r.st_snaps)>0))continue;
@@ -63,11 +76,22 @@ jobs:
               const id=[...ids][0],k=key(r.game_id,id);
               if(seen.has(k))continue;seen.add(k);
               counts.exactIdMatchedAppearances++;
-              if(attempts.has(k))counts.exactMatchedWithRecordedAttempt++;else counts.exactMatchedWithoutRecordedAttempt++;
+              if(attempts.has(k))counts.exactMatchedWithRecordedAttempt++;
+              else{
+                counts.exactMatchedWithoutRecordedAttempt++;
+                const t=teamAttempts.get(key(r.game_id,r.team))||{fg:0,pat:0,unknownIdentity:0,invalid:0};
+                const rows=teamStats.get(key(wk,r.team))||[],stat=rows[0];
+                const appearances=schedule.filter(x=>num(x.week)===wk&&x.game_type==='REG'&&[x.home_team,x.away_team].includes(r.team));
+                const fg=num(stat?.fg_att),pat=num(stat?.pat_att);
+                const reconciled=appearances.length===1&&appearances[0].game_id===r.game_id&&rows.length===1&&
+                  Number.isInteger(fg)&&fg>=0&&Number.isInteger(pat)&&pat>=0&&
+                  t.fg===fg&&t.pat===pat&&!t.unknownIdentity&&!t.invalid;
+                if(reconciled)counts.crossDatasetReconciledZeroAttempts++;else counts.unreconciledCandidates++;
+              }
             }
             const teamFieldNames=Object.keys(teams[0]||{}).filter(k=>/^(fg_|pat_|xp_|field_goal|extra_point)/.test(k));
             console.log(JSON.stringify({...counts,independentReconciliationFieldNames:teamFieldNames,
-              noZeroImputation:true,providerRequests:0,productionPromotion:false}));
+              noZeroImputation:true,sourceIndependenceNotEstablished:true,providerRequests:0,productionPromotion:false}));
           }
           NODE
           then

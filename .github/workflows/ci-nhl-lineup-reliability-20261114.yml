@@ -1,0 +1,55 @@
+name: Validate private NHL projected lineup source fallback
+on:
+  push:
+    branches: ['ci/nhl-lineup-reliability-20261114']
+    paths: ['.github/workflows/ci-nhl-lineup-reliability-20261114.yml']
+permissions:
+  contents: read
+jobs:
+  test-and-capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: d23b39a9531c60f764f51415ee862e64fd80aeaf
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate parsing, source isolation and fallback regressions
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-editorial-lineups.test.cjs test/collect-approved-nhl-sources.test.cjs test/nhl-approved-source-adapters.test.cjs test/nhl-dfo-role-goalie-shadow.test.cjs test/nhl-approved-source-shadow.test.cjs >"$log" 2>&1; then
+            echo "::error::Private lineup source regression failed."
+            exit 1
+          fi
+          echo "Private synthetic source and role fallback tests passed."
+      - name: Capture real pregame source data privately
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/collect-approved-nhl-sources.cjs >"$log" 2>&1; then
+            echo "::error::Private live source capture failed."
+            exit 1
+          fi
+          node - <<'JS'
+          const r=require('./outputs/approved-nhl-sources/latest.json');
+          if(!r.sourceHealth||!r.nhlEditorial)throw Error("Missing source health");
+          console.log("Source health recorded privately. No raw provider records exposed.");
+          JS
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/approved-nhl-sources/latest.json outputs/approved-nhl-sources/snapshots
+          if ! git diff --cached --quiet; then
+            git commit -m 'research: observed NHL lineup source reliability capture' >/dev/null
+            git push -q origin HEAD:research/nhl-lineup-source-reliability-20261114
+          fi
+          echo "Private source data and health archived; coverage still requires review."

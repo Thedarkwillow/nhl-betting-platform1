@@ -56,6 +56,10 @@ jobs:
           const report={...result,generatedAt:new Date().toISOString(),researchOnly:true};
           fs.writeFileSync('outputs/health/nhl-all-tier-reliability-latest.json',JSON.stringify(report,null,2)+'\n');
           console.log('PASS: all-tier original forecast reliability report; no statistical promotion.');
+          const lab=require('./src/nhl-specialist-probability-lab.cjs').study(JSON.parse(fs.readFileSync('outputs/history/players.json','utf8')));
+          if(lab.modelPromoted!==false||lab.realPlatformLinesUsed!==false)throw Error('Specialist research scope unsafe');
+          fs.writeFileSync('outputs/backtests/nhl-specialist-probability-lab-latest.json',JSON.stringify(lab,null,2)+'\n');
+          console.log('PASS: historical specialist probability evidence saved, no promotion.');
           NODE
       - name: Save aggregate diagnostics to private Git only
         working-directory: private
@@ -64,7 +68,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f outputs/health/nhl-all-tier-reliability-latest.json outputs/health/nhl-standard-forward-improvement-latest.json outputs/backtests/nhl-combo-period-release-gates-latest.json outputs/nfl/research/specialty-readiness-latest.json
+          git add -f outputs/health/nhl-all-tier-reliability-latest.json outputs/health/nhl-standard-forward-improvement-latest.json outputs/backtests/nhl-combo-period-release-gates-latest.json outputs/nfl/research/specialty-readiness-latest.json outputs/backtests/nhl-specialist-probability-lab-latest.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'audit: original all-tier and specialist model evidence' >/dev/null
           for attempt in 1 2 3; do

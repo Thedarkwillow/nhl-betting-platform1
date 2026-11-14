@@ -1,0 +1,87 @@
+name: Natural Stat Trick approved current-season access probe
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/natural-stat-trick-current-season-test.yml']
+permissions:
+  contents: read
+concurrency:
+  group: nst-current-season-probe
+  cancel-in-progress: false
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify one official completed game and one approved NST data response
+        env:
+          NST_ACCESS_KEY: ${{ secrets.NST_ACCESS_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, json, re, datetime, urllib.request, urllib.parse, urllib.error
+          from html.parser import HTMLParser
+          key=os.environ.get("NST_ACCESS_KEY","").strip()
+          if not re.fullmatch(r"[A-Za-z0-9_-]{16,128}",key):
+              raise SystemExit("::error::NST access key missing or format invalid; no request made.")
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,*args,**kwargs): return None
+          opener=urllib.request.build_opener(NoRedirect())
+          def read(url,limit):
+              req=urllib.request.Request(url,headers={"User-Agent":"Private-NHL-Research/1.0"})
+              with opener.open(req,timeout=50) as response:
+                  body=response.read(limit+1)
+                  if len(body)>limit: raise ValueError("bounded response exceeded")
+                  return body
+          try:
+              day="2026-11-13"
+              official=json.loads(read("https://api-web.nhle.com/v1/score/"+day,2_000_000))
+              game=next(g for g in official["games"] if g["id"]==2026020310 and g["gameState"] in ("FINAL","OFF"))
+              names=[str(game[k]["commonName"]["default"]) for k in ("awayTeam","homeTeam")]
+              if not all(n.strip() for n in names): raise ValueError("identity")
+          except Exception:
+              raise SystemExit("::error::Could not confirm the selected official current-season final; NST request not made.")
+          print("Official current-season completed game identity checked.")
+          args=urllib.parse.urlencode({"season":"20262027","game":str(game["id"]%100000),"key":key})
+          try:
+              body=read("https://data.naturalstattrick.com/game.php?"+args,12_000_000).decode("utf-8","replace")
+          except urllib.error.HTTPError as err:
+              raise SystemExit("::error::NST current-season provider HTTP "+str(err.code)+"; no response data logged.")
+          except Exception:
+              raise SystemExit("::error::NST current-season transport or bounded-response failure; no credentials logged.")
+          class Shape(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=True)
+                  self.tables=0; self.rows=0; self.headers=[]; self.text=[]; self.hidden=0; self.header=False
+              def handle_starttag(self,tag,attrs):
+                  if tag in ("script","style"): self.hidden+=1
+                  if self.hidden: return
+                  if tag=="table": self.tables+=1
+                  if tag=="tr": self.rows+=1
+                  if tag=="th": self.header=True
+              def handle_endtag(self,tag):
+                  if tag in ("script","style"): self.hidden=max(0,self.hidden-1)
+                  if tag=="th": self.header=False
+              def handle_data(self,data):
+                  if self.hidden: return
+                  self.text.append(data)
+                  if self.header: self.headers.append(data.strip().lower())
+          parser=Shape(); parser.feed(body)
+          visible=" ".join(" ".join(parser.text).split()).lower()
+          denied=("invalid key","access denied","key is pending","rate limit exceeded","not authorized","insufficient tokens")
+          if any(x in visible[:4000] for x in denied):
+              raise SystemExit("::error::Possible NST access or quota notice; current access unverified.")
+          print("NST current-season request returned HTTP success.")
+          date=datetime.date.fromisoformat(day)
+          date_variants=(day,date.strftime("%B %d, %Y"),date.strftime("%b %d, %Y"),date.strftime("%B %d %Y"),date.strftime("%b %d %Y"),date.strftime("%m/%d/%Y"))
+          expected_date=any(x.lower() in visible for x in date_variants)
+          teams=all(n.lower() in visible for n in names)
+          headers=set(parser.headers)
+          schema=parser.tables>0 and parser.rows>2 and ({"cf","ca"}.issubset(headers) or {"xgf","xga"}.issubset(headers))
+          print("Expected teams present:",teams,"; game date present:",expected_date,"; analytics table schema matched:",schema)
+          if not (teams and expected_date and schema):
+              raise SystemExit("::error::HTTP success does not prove current-season data identity and schema; review privately.")
+          print("Approved NST key returned a current-season game with the expected identity and analytics schema. No raw provider data logged.")
+          PY

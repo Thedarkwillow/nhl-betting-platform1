@@ -1,4 +1,4 @@
-name: Natural Stat Trick approved historical connection test
+name: Natural Stat Trick approved historical and current-season connection test
 on:
   workflow_dispatch:
   push:
@@ -13,10 +13,23 @@ jobs:
   test-historical-endpoint:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - season: '20172018'
+            game: '21138'
+            label: historical
+          - season: '20262027'
+            game: '20310'
+            label: current-season
     steps:
-      - name: Check secret and request only the provider-listed historical test game
+      - name: Check approval and request one exact game per season
         env:
           NST_ACCESS_KEY: ${{ secrets.NST_ACCESS_KEY }}
+          NST_TEST_SEASON: ${{ matrix.season }}
+          NST_TEST_GAME: ${{ matrix.game }}
+          NST_TEST_LABEL: ${{ matrix.label }}
         shell: bash
         run: |
           set -euo pipefail
@@ -32,7 +45,10 @@ jobs:
           class NoRedirect(urllib.request.HTTPRedirectHandler):
               def redirect_request(self, *args, **kwargs):
                   return None
-          args = urllib.parse.urlencode({"season":"20172018","game":"21138","key":key})
+          season, game, label = (os.environ["NST_TEST_SEASON"], os.environ["NST_TEST_GAME"], os.environ["NST_TEST_LABEL"])
+          if (season, game) not in (("20172018","21138"),("20262027","20310")):
+              raise SystemExit(1)
+          args = urllib.parse.urlencode({"season":season,"game":game,"key":key})
           request = urllib.request.Request("https://data.naturalstattrick.com/game.php?" + args, headers={"User-Agent":"Private-NHL-Research/1.0"})
           try:
               with urllib.request.build_opener(NoRedirect()).open(request, timeout=50) as response:
@@ -68,6 +84,15 @@ jobs:
           if shape not in ("JSON array", "JSON object", "HTML table-like"):
               print("::error::Unrecognized response format; no data logged.")
               raise SystemExit(1)
-          print("Historical test endpoint returned HTTP success; response format: " + shape + ".")
-          print("Historical schema, key activation and current-season access still require separate verification.")
+          if label == "current-season":
+              # Official private boxscore collection verified this VAN/NYR game final on Nov 13.
+              # Require both team identities plus an actual table/row-shaped response; do not log body.
+              is_van = bool(re.search(r"\bvancouver\b|\bcanucks\b|\bvan\b", lower))
+              is_nyr = bool(re.search(r"\brangers\b|\bnyr\b", lower))
+              structure = ("<table" in lower and "<tr" in lower) or shape in ("JSON object", "JSON array")
+              if not (is_van and is_nyr and structure):
+                  print("::error::Current-season response does not prove the expected completed game and table shape.")
+                  raise SystemExit(1)
+          print(label + " endpoint HTTP success; response format: " + shape + ".")
+          print("Connectivity and game identity only; model schema and storage/training/display rights remain separate gates.")
           PY

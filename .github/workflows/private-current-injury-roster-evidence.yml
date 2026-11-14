@@ -41,31 +41,7 @@ jobs:
           if python scripts/collect-nfl-current-injuries.py >"$log" 2>&1; then
             grep -E '^\{"records":' "$log"; ok=1
           else
-            grep -E '^(ValueError: (unexpected injury input size|unexpected decompressed size|injury schema mismatch|No timestamp-certified fresh injury records)|urllib.error.HTTPError: HTTP Error [0-9]{3}: [A-Za-z ]+)
-          fi
-          if node scripts/collect-nhl-official-roster-crosswalk.cjs >"$log" 2>&1; then
-            grep -E '^\{"officialRosterTeams":' "$log"; ok=1
-          else
-            echo '::warning::Official current NHL roster crosswalk unavailable.'
-          fi
-          if [ "$ok" -eq 0 ]; then exit 1; fi
-      - name: Save verified evidence privately
-        working-directory: private
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          for d in outputs/nfl/availability outputs/pregame-availability/official-roster-crosswalk-latest.json outputs/pregame-availability/roster-snapshots; do if [ -e "$d" ]; then git add -f "$d"; fi; done
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'data: current NFL reported injury evidence and official NHL roster crosswalk' >/dev/null
-          for attempt in 1 2 3; do
-            git fetch -q origin main
-            git rebase -q origin/main || { git rebase --abort; exit 1; }
-            if git push -q origin HEAD:main; then echo 'PASS: private availability and identity evidence saved.'; exit 0; fi
-            sleep "$attempt"
-          done
-          exit 1
- "$log" || true
+            grep -E '^(ValueError:|urllib.error.HTTPError: HTTP Error [0-9]{3}:)' "$log" | cut -c1-160 | head -n 1 || true
             echo '::warning::Fresh timestamped NFL injury source unavailable; no medical clearance inferred.'
           fi
           if node scripts/collect-nhl-official-roster-crosswalk.cjs >"$log" 2>&1; then

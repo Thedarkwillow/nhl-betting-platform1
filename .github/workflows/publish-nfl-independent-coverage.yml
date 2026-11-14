@@ -1,0 +1,73 @@
+name: Publish safe NFL independent research coverage
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-nfl-independent-coverage.yml']
+  workflow_run:
+    workflows: ['Independent NFL Standard scoped private preview']
+    types: [completed]
+permissions:
+  contents: write
+concurrency:
+  group: public-nfl-independent-coverage
+  cancel-in-progress: false
+jobs:
+  coverage:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Export strictly aggregate scope status
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs'),root='./private/outputs/nfl/independent-source/';
+          const b=JSON.parse(fs.readFileSync(root+'latest.json')),r=JSON.parse(fs.readFileSync(root+'research-preview-latest.json'));
+          const c=Date.parse(b.generatedAt),pin=Date.parse(b.boardAsOfAt),t=Date.parse(r.generatedAt),now=Date.now();
+          if(b.provider!=='prizepicksapi.com'||b.league!=='NFL'||b.scope!=='standard_full_game_replay'||
+            b.completePagination!==true||b.snapshotMode!=='immutable_as_of'||b.sourceStatus!=='fresh'||b.fullNFLBoardVerified!==false||
+            !Number.isFinite(c)||!Number.isFinite(pin)||!Number.isFinite(t)||pin>c||c-pin>300000||c>t||t>now||
+            t-pin>1800000||r.boardAt!==b.generatedAt||
+            r.kind!=='nfl_independent_standard_research_preview_v1'||r.publicReleaseApproved!==false||
+            r.calibrated!==false||r.autoPickEligible!==false||r.fullNFLBoardVerified!==false||r.completeScopedPagination!==true||
+            !Array.isArray(b.offers)||b.offers.length!==r.sourceOffers||!Array.isArray(r.rows)||r.rows.length!==r.matchedRows||
+            r.rows.some(x=>x.calibrated!==false||x.researchOnly!==true||x.autoPickEligible!==false))
+             throw Error('No authorized scoped aggregate evidence; refuse public export');
+          const out={kind:'public_nfl_independent_scope_coverage_v1',asOf:b.generatedAt,captureScope:'Standard-tier-filtered NFL source replay',
+            scopedOffers:b.offers.length,conditionalResearchRows:r.rows.length,completeScope:true,fullNflBoard:false,
+            playerPropsPublished:0,calibrated:false,originalPlatformSettlementVerified:false};
+          fs.mkdirSync('./public/data',{recursive:true});
+          fs.writeFileSync('./public/data/nfl-independent-coverage.json',JSON.stringify(out)+'\n');
+          console.log(JSON.stringify(out));
+          NODE
+      - name: Commit aggregate only
+        working-directory: public
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/nfl-independent-coverage.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'status: independently captured NFL Standard-scope aggregate' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: NFL aggregate only saved.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

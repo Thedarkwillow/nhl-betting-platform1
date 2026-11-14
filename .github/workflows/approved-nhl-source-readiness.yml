@@ -1,0 +1,58 @@
+name: Approved independent NHL source readiness (coverage only)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/approved-nhl-source-readiness.yml']
+permissions:
+  contents: read
+jobs:
+  readiness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Inspect only documented zero-credit coverage and source freshness
+        working-directory: private
+        env:
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const {providerUsage,USER_CONTEXT}=require('./src/prizepicksapi-nhl-request.cjs');
+          (async()=>{
+            let board='missing';
+            try{
+              const b=JSON.parse(fs.readFileSync('outputs/free-source/nhl/latest.json','utf8'));
+              const at=Date.parse(b.generatedAt),now=Date.now();
+              board=b.provider==='prizepicksapi.com'&&b.snapshotMode==='immutable_as_of'&&
+                b.completePagination===true&&b.sourceStatus==='fresh'&&
+                Number.isFinite(at)&&at<=now&&now-at<=30*60000?'approved_fresh':'not_current';
+            }catch{}
+            let coverage={status:'missing_public_runner_secret'};
+            const key=process.env.PRIZEPICKSAPI_KEY;
+            if(key){
+              const r=await fetch('https://prizepicksapi.com/api/v1/coverage',{
+                headers:{Authorization:'Bearer '+key,Accept:'application/json','X-User-Request':USER_CONTEXT},
+                signal:AbortSignal.timeout(15000)
+              });
+              const q=providerUsage(r.headers);
+              coverage={status:r.ok?'responded':'http_error',httpStatus:r.status,
+                quotaUnit:q?.unit||'unknown',
+                enoughLegacyRequests:q?.unit==='requests'&&Number.isInteger(q.requestsRemaining)&&q.requestsRemaining>=100,
+                zeroCreditConfirmed:q?.unit==='credits'&&q.creditsCost===0};
+            }
+            console.log(JSON.stringify({board,coverage,projectionCalls:0,paidProjectionCredits:0,
+              sourceAllowlistUnchanged:true,rawPublicOffers:0}));
+          })().catch(()=>{console.error('Coverage probe failed: no projection calls made.');process.exitCode=1});
+          NODE

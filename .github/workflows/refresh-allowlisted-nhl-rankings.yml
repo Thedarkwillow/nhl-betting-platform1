@@ -38,6 +38,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Rebuild preview only from a current approved immutable board
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          if node - <<'NODE'
+          const fs=require('node:fs');
+          try{
+            const b=JSON.parse(fs.readFileSync('outputs/free-source/nhl/latest.json','utf8'));
+            const t=Date.parse(b.generatedAt),now=Date.now();
+            if(b.provider!=='prizepicksapi.com'||b.snapshotMode!=='immutable_as_of'||
+               b.completePagination!==true||b.sourceStatus!=='fresh'||
+               !Number.isFinite(t)||t>now||now-t>30*60000)process.exitCode=1;
+          }catch{process.exitCode=1}
+          NODE
+          then
+            log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+            if node scripts/build-nhl-source-preview.cjs >"$log" 2>&1; then
+              echo 'PASS: current approved source preview regenerated privately.'
+            else
+              echo '::warning::Approved source preview not ready; existing export remains fail-closed.'
+            fi
+          else
+            echo 'No fresh approved immutable source available; no stale preview rebuilt.'
+          fi
       - name: Run existing approved export and freshness safeguards, privately
         working-directory: private
         shell: bash

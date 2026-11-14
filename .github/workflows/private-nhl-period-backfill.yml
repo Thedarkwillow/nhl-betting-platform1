@@ -1,0 +1,101 @@
+name: Private NHL specialist period history backfill via public runner
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-period-backfill.yml']
+  schedule:
+    - cron: '11 3 * * *'
+      timezone: America/Los_Angeles
+    - cron: '31 15 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-nhl-period-backfill-public-runner
+  cancel-in-progress: false
+jobs:
+  backfill:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test official period parsers and source gates
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-prior-season-period-backfill.test.cjs test/nhl-official-period-events.test.cjs test/nhl-period-count-model.test.cjs test/nhl-combo-period-release-evidence.test.cjs >"$log" 2>&1; then
+            echo '::error::Private period tests failed.'
+            exit 1
+          fi
+          echo 'PASS: period evidence and provenance tests.'
+      - name: Collect at most five prior-season dates with existing paced NHL collector
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm run backfill:period-prior >"$log" 2>&1; then
+            echo '::error::Official period collection failed.'
+            exit 1
+          fi
+          node - <<'NODE'
+          const r=require('./outputs/period-stats/prior-season-backfill-status-latest.json');
+          if(r.paidProviderRequests!==0||r.noProductionPlayerHistoryChanges!==true||
+             !Array.isArray(r.requested)||r.requested.length>5)throw Error('Historical source contract failed');
+          console.log(JSON.stringify({requested:r.requested.length,complete:r.completeDates.length,
+            empty:r.emptyDates.length,failed:r.failed.length,paidProviderRequests:0}));
+          NODE
+      - name: Archive isolated source outcomes privately
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/period-stats/prior-season-backfill-status-latest.json
+          for pattern in outputs/period-stats/dates/2025-*.json outputs/period-stats/dates/2026-0[1-6]-*.json outputs/period-stats/training-source/*.json outputs/period-stats/empty-dates/*.json; do
+            if test -f "$pattern"; then git add -f "$pattern"; fi
+          done
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'data: bounded private NHL prior-season period history' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; echo 'Concurrent source changes; no overwrite.'; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: private bounded period archive persisted.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1
+      - name: Rebuild private specialist models and evidence reports
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for command in 'npm run build:period-history' 'npm run build:period-combo-models' 'node scripts/report-nhl-combo-period-release.cjs'; do
+            if ! bash -c "$command" >"$log" 2>&1; then echo '::error::Private period model rebuild failed; source archive retained.'; exit 1; fi
+          done
+          git add -f outputs/period-stats/history.json outputs/projections/nhl-period-shadow-latest.json outputs/backtests/nhl-period-walkforward-latest.json outputs/backtests/nhl-combo-structured-offer-audit-latest.json outputs/backtests/nhl-period-offer-readiness-latest.json outputs/backtests/nhl-combo-period-release-gates-latest.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'audit: refresh private period and combo model evidence' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; echo 'Concurrent model evidence changes; no overwrite.'; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: private specialist research evidence updated.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

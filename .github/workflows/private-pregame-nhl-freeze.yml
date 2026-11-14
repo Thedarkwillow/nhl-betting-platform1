@@ -7,6 +7,8 @@ on:
     paths:
       - '.github/workflows/private-pregame-nhl-freeze.yml'
   schedule:
+    - cron: '12 6 * * *'
+      timezone: America/Los_Angeles
     - cron: '20 9 * * *'
       timezone: America/Los_Angeles
     - cron: '20 11 * * *'
@@ -181,3 +183,5 @@ jobs:
         if: always()
         run: echo "This workflow never places wagers, certifies original app quotes, or publishes raw private props."
 # 2026-11-12: integrate newly merged NHL Standard fixed-shrink future-only original Git shadow; fail-closed pregame.
+
+# Nov 14: refresh genuine actual-time private forecasts after merged expanded models; never relabel manual capture as morning slot.

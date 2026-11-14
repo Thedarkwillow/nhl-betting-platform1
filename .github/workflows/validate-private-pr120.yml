@@ -32,11 +32,11 @@ jobs:
           set -euo pipefail
           LOG="$(mktemp)"
           trap 'rm -f "$LOG"' EXIT
-          if node --test test/expanded-forward-distributions.test.cjs test/nhl-standard-forward-improvement.test.cjs test/nhl-standard-triple-challenger.test.cjs test/nhl-frozen-baseline-challenge.test.cjs test/nhl-prospective-validation.test.cjs >"$LOG" 2>&1; then
+          if npm test >"$LOG" 2>&1; then
             grep -E '^# (tests|suites|pass|fail|cancelled|skipped|todo) [0-9]+$' "$LOG" || true
-            echo 'Private targeted regression suite passed.'
+            echo 'Private full offline regression suite passed.'
           else
             grep -E '^# (tests|suites|pass|fail|cancelled|skipped|todo) [0-9]+$' "$LOG" || true
-            echo '::error::Private targeted regression suite failed. No private test payload printed.'
+            echo '::error::Private full offline regression suite failed. No private test payload printed.'
             exit 1
           fi

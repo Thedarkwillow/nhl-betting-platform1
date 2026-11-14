@@ -1,0 +1,35 @@
+name: Validate private immutable capture fix PR 124
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-pr124.yml']
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 10d9c9a273a64a387b5a35d718d3aec522476b7e
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate all private tests without emitting provider rows or making API calls
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          test "$(git rev-parse HEAD)" = 10d9c9a273a64a387b5a35d718d3aec522476b7e
+          if ! npm test >"$log" 2>&1; then
+            grep -E '^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 3
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 3

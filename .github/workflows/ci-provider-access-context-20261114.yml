@@ -1,0 +1,55 @@
+name: Validate additional private sports data connectors
+on:
+  push:
+    branches: ['ci/provider-access-context-20261114']
+    paths: ['.github/workflows/ci-provider-access-context-20261114.yml']
+permissions:
+  contents: read
+jobs:
+  private-source-research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: a4475494f2769492013893fb75617752365c02da
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test adapters and chronology
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! python test/test_nfl_expanded_context.py >"$log" 2>&1 ||
+             ! node --test test/provider-access.test.cjs >>"$log" 2>&1; then
+            echo "::error::Private adapter test failure"
+            exit 1
+          fi
+          echo "Synthetic adapter tests passed."
+      - name: Collect free documented nflverse sources only
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          python -m pip install 'nflreadpy>=0.1,<2' --quiet >"$log" 2>&1
+          status=0
+          python scripts/collect-nfl-expanded-context.py >"$log" 2>&1 || status=$?
+          node scripts/probe-approved-provider-access.cjs >>"$log" 2>&1
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nfl/context/source-captures outputs/health/provider-access/latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'research: private complementary source capture and connection status' >/dev/null
+            git push -q origin HEAD:research/provider-access-context-20261114
+          fi
+          echo "Private source coverage archived. No credentialed requests enabled."
+          exit "$status"

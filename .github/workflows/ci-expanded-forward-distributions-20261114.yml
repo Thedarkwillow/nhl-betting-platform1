@@ -1,0 +1,49 @@
+name: Validate private expanded NHL and NFL prediction shadows
+on:
+  push:
+    branches: ['ci/expanded-forward-distributions-20261114']
+    paths: ['.github/workflows/ci-expanded-forward-distributions-20261114.yml']
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 9e2d63293651e87c0956daaa8c2a4e49001048f5
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate private regression tests
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/expanded-forward-distributions.test.cjs test/nhl-forward-opponent-rate.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nhl-standard-forward-improvement.test.cjs test/nfl-pregame-matchup-challenger.test.cjs test/nfl-matchup-shadow-grading.test.cjs test/nhl-editorial-lineups.test.cjs >"$log" 2>&1; then
+            echo "::error::Private regression failed; no model changes deployed."
+            exit 1
+          fi
+          echo "Private prediction and source regression tests passed."
+      - name: Verify real archived history and forward-only report
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/report-nhl-standard-forward-improvement.cjs >"$log" 2>&1; then
+            echo "::error::Private forward grading report failed."
+            exit 1
+          fi
+          node - <<'JS'
+          const r=require('./outputs/health/nhl-standard-forward-improvement-latest.json');
+          if(!r.expandedMarketAllTierShadow||r.originalChampionUnchanged!==true||r.expandedMarketAllTierShadow.modelPromoted!==false)throw Error("Missing research guard");
+          console.log("New NHL report validated with original champion unchanged.");
+          JS
+          echo "Validation only; no newly frozen pregame results claimed."

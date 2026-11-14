@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: ['.github/workflows/publish-nfl-independent-coverage.yml']
   workflow_run:
-    workflows: ['Independent NFL Standard scoped private preview']
+    workflows: ['Independent NFL Standard scoped private preview', 'Independent NFL alternate tier scoped private previews']
     types: [completed]
 permissions:
   contents: write
@@ -66,7 +66,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/nfl-independent-coverage.json data/nfl-research-cards.json
+          git add data/nfl-independent-coverage.json data/nfl-research-cards.json data/nfl-goblin-research-cards.json data/nfl-demon-research-cards.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'status: independently captured NFL scope and limited derived product cards' >/dev/null
           for attempt in 1 2 3; do

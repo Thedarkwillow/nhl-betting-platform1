@@ -46,7 +46,7 @@ jobs:
           const {dataset}=require('./scripts/build-nfl-partner-board-research.cjs');
           const {buildIndependentNflPreview}=require('./src/nfl-independent-source-preview.cjs');
           const key=process.env.PRIZEPICKSAPI_KEY;
-          let calls=0,pages=0,last=0,phase='preflight';
+          let calls=0,pages=0,last=0,transient503=0,phase='preflight';
           const headers={Authorization:'Bearer '+key,Accept:'application/json','X-User-Request':'Check a bounded Standard NFL research integration'};
           async function guarded(url,options){
             if(!key||calls>=36)throw Error('budget_or_secret');
@@ -56,7 +56,8 @@ jobs:
             last=Date.now();calls++;
             if(u.pathname.endsWith('/board')){pages++;u.searchParams.set('league','NFL');u.searchParams.set('tier','standard');}
             const r=await fetch(u,{...options,headers,signal:AbortSignal.timeout(30000)});
-            if(!r.ok)throw Error('provider_http_'+r.status);
+            // Let the existing immutable page collector handle its bounded 503 retry, with the SAME pin and cursor.
+            if(!r.ok){if(r.status===503&&u.pathname.endsWith('/board')){transient503++;return r;}throw Error('provider_http_'+r.status);}
             const q=providerUsage(r.headers);
             if(q.unit!=='requests'||!Number.isInteger(q.requestsRemaining)||q.requestsRemaining<(pages===0?150:110))throw Error('quota_gate');
             return r;
@@ -90,9 +91,11 @@ jobs:
             fs.writeFileSync('outputs/nfl/independent-source/research-preview-latest.json',JSON.stringify(report)+'\n');
             console.log(JSON.stringify({phase:'private_nfl_preview',scopedOffers:doc.offers.length,matchedRows:report.matchedRows,
               pages:board.pagesFetched,requests:calls,credits:0,fullBoard:false,publicRelease:false,calibrated:false}));
+            console.log('BOUNDED_503_RESPONSES '+transient503);
           })().catch(e=>{
             const reason=['budget_or_secret','endpoint','quota_gate','coverage','unstable_coverage','scoped_contract'].includes(e.message)?e.message:/^provider_http_[0-9]{3}$/.test(e.message)?e.message:'source_or_preview_contract';
-            console.error('NFL_SCOPE_FAILURE '+phase+' '+reason+' requests='+calls+' pages='+pages);process.exitCode=1;
+            console.error('NFL_SCOPE_FAILURE '+phase+' '+reason+' requests='+calls+' pages='+pages);
+            console.log('BOUNDED_503_RESPONSES '+transient503);process.exitCode=1;
           });
           NODE
           then

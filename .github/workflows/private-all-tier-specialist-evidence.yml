@@ -1,0 +1,76 @@
+name: Private all-tier and specialist model evidence audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-all-tier-specialist-evidence.yml']
+  workflow_run:
+    workflows: ['Private NHL prospective grading and baseline audit via public runner', 'NFL archived pregame forecast and finals grading via public free runner']
+    types: [completed]
+permissions:
+  contents: read
+concurrency:
+  group: private-all-tier-specialist-evidence
+  cancel-in-progress: false
+jobs:
+  audit:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          fetch-depth: 0
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate private regressions and run original evidence audits
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Private full regression failed; no validation published."
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" | tail -n 3
+          for script in scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nhl-combo-period-release.cjs scripts/audit-nfl-specialty-readiness.cjs; do
+            if ! node "$script" >"$log" 2>&1; then
+              echo "::error::Private research stage failed: $script"
+              exit 1
+            fi
+            echo "PASS: $script"
+          done
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const {audit}=require('./src/nhl-all-tier-reliability.cjs');
+          const ledger=JSON.parse(fs.readFileSync('outputs/research/registry/nhl-precommitted-ledger-latest.json','utf8'));
+          const result=audit(ledger);
+          if(result.status!=='descriptive_original_forecasts_only')throw Error('Original tier evidence not valid');
+          const report={...result,generatedAt:new Date().toISOString(),researchOnly:true};
+          fs.writeFileSync('outputs/health/nhl-all-tier-reliability-latest.json',JSON.stringify(report,null,2)+'\n');
+          console.log('PASS: all-tier original forecast reliability report; no statistical promotion.');
+          NODE
+      - name: Save aggregate diagnostics to private Git only
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/nhl-all-tier-reliability-latest.json outputs/health/nhl-standard-forward-improvement-latest.json outputs/backtests/nhl-combo-period-release-gates-latest.json outputs/nfl/research/specialty-readiness-latest.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'audit: original all-tier and specialist model evidence' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; echo 'Concurrent private changes; refusing to overwrite newer reports.'; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: private evidence reports archived.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

@@ -49,7 +49,7 @@ jobs:
           const fs=require('node:fs');
           const {providerUsage}=require('./src/prizepicksapi-nhl-request.cjs');
           const realFetch=global.fetch;
-          let calls=0,last=0;
+          let calls=0,last=0,boardCalls=0,lastHttp=null;
           global.fetch=async(url,options)=>{
             const u=new URL(url);
             if(u.origin!=='https://prizepicksapi.com'||!['/api/v1/coverage','/api/v1/board'].includes(u.pathname)||calls>=36)
@@ -57,8 +57,8 @@ jobs:
             if(calls===0&&u.pathname!=='/api/v1/coverage')throw Error('coverage_required');
             const wait=Math.max(0,7000-(Date.now()-last));
             if(wait)await new Promise(r=>setTimeout(r,wait));
-            last=Date.now();calls++;
-            const r=await realFetch(url,options);
+            last=Date.now();calls++;if(u.pathname==='/api/v1/board')boardCalls++;
+            const r=await realFetch(url,options);lastHttp=r.status;
             if(r.ok){
               const q=providerUsage(r.headers);
               if(q.unit!=='requests'||!Number.isInteger(q.requestsRemaining)||
@@ -84,10 +84,58 @@ jobs:
             if(b.provider!=='prizepicksapi.com'||b.snapshotMode!=='immutable_as_of'||b.completePagination!==true||b.quotaUnit!=='requests'||b.chargedCredits!==0)
               throw Error('board_contract');
             console.log(JSON.stringify({phase:'private_verified_capture',offers:b.totalOffers,rows:b.normalizedRows,pages:b.pagesFetched,requests:calls,credits:0,boardAt:b.generatedAt}));
-          })().catch(e=>{const message=String(e.message||'');console.error('CAPTURE_FAILURE '+(/legacy_request_quota_not_verified|request_budget_or_endpoint|stale_model|coverage_required|board_contract/.test(message)?message:message.includes('HTTP 429')?'provider_HTTP_429':message.includes('HTTP 403')?'provider_HTTP_403':message.includes('HTTP 401')?'provider_HTTP_401':message.includes('HTTP 400')?'provider_HTTP_400':'source_or_contract_not_ready'));process.exitCode=1;});
+          })().catch(e=>{const m=String(e.message||'');
+            const reasons=[['legacy_request_quota_not_verified','legacy_request_quota_not_verified'],['request_budget_or_endpoint','request_budget_or_endpoint'],['stale_model','stale_model'],['coverage_required','coverage_required'],['board_contract','board_contract'],['As-of NHL provider board is not fresh and live','board_stale_or_nonlive'],['Duplicate, unidentified or future NHL offer','duplicate_missing_or_future_offer'],['Malformed immutable NHL board page','malformed_page'],['Malformed or repeated as-of board pagination cursor','bad_cursor'],['exceeds bounded pagination cap','pagination_cap'],['missing identity fields','identity_fields_missing'],['No usable pregame NHL offers','no_pregame_offers'],['NHL capture skipped before paid pagination','coverage_gate_refused'],['Insufficient requests','request_reserve_exhausted'],['ENOSPC','disk_space']];
+            const reason=reasons.find(([prefix])=>m.includes(prefix))?.[1]||([400,401,403,429,503].includes(lastHttp)?'provider_HTTP_'+lastHttp:'source_or_contract_not_ready');
+            console.error('CAPTURE_FAILURE '+reason+' calls='+calls+' boardCalls='+boardCalls+' lastHttp='+String(lastHttp??'none'));process.exitCode=1;});
           NODE
           then
-            grep -E '^CAPTURE_FAILURE (legacy_request_quota_not_verified|request_budget_or_endpoint|stale_model|coverage_required|board_contract|provider_HTTP_[0-9]{3}|source_or_contract_not_ready)$' "$log" || true
+            grep -E '^CAPTURE_FAILURE [a-zA-Z0-9_]+ calls=[0-9]+ boardCalls=[0-9]+ lastHttp=([0-9]{3}|none) "$log" || true
+            echo '::error::Private capture did not verify a complete current board.'
+            exit 1
+          fi
+          grep -E '^\{"phase":"private_verified_capture","offers":[0-9]+,"rows":[0-9]+,"pages":[0-9]+,"requests":[0-9]+,"credits":0,"boardAt":"[0-9T:.Z-]+"\}$|^Already current; no additional board requests\.$' "$log" || true
+      - name: Archive complete board privately before model preview
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/free-source/nhl/latest.json outputs/free-source/nhl/snapshots/*.json outputs/free-source/nhl/raw-snapshots/*.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data: archive complete independent NHL board privately' >/dev/null
+            for attempt in 1 2 3; do
+              git fetch -q origin main
+              git rebase -q origin/main || { git rebase --abort; exit 1; }
+              if git push -q origin HEAD:main; then echo 'PASS: private independent board archived.'; exit 0; fi
+              sleep "$attempt"
+            done
+            exit 1
+          fi
+      - name: Build and archive prior-only research preview privately
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/build-nhl-source-preview.cjs >"$log" 2>&1; then echo '::error::Preview failed; complete private board retained.'; exit 1; fi
+          node - <<'NODE'
+          const p=require('./outputs/free-source/nhl/research-preview-latest.json');
+          console.log(JSON.stringify({phase:'private_preview',matched:p.matchedRows,prospective:false,calibrated:false,publicRelease:false}));
+          NODE
+          git add -f outputs/free-source/nhl/research-preview-latest.json outputs/free-source/nhl/research-preview-snapshots/*.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'data: private independent NHL research preview' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: private preview archived.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1
+ "$log" || true
             echo '::error::Private capture did not verify a complete current board.'
             exit 1
           fi

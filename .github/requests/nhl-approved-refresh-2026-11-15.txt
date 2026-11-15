@@ -1,1 +1,3 @@
 Owner requested repair of stale approved NHL website source on 2026-11-15. One recovery attempt using the existing verified independent source and stricter legacy-request reserve, no projection-credit spending or new purchase. Fail closed on incomplete, stale or unauthorized source.
+
+Retry once following same-pin bounded network retry fix. Existing quota reserve and no projection credits unchanged.

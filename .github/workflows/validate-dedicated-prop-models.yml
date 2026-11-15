@@ -1,0 +1,101 @@
+name: Validate private dedicated prop models phase one
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-dedicated-prop-models.yml']
+permissions:
+  contents: read
+concurrency:
+  group: dedicated-prop-private-validation
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 3e8a0959dfc3541f3870b0d3df43691cbcf8af81
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regression and complete model inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          test "$(git rev-parse HEAD)" = 3e8a0959dfc3541f3870b0d3df43691cbcf8af81
+          if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true; echo '::error::Private regression failed.'; exit 1; fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          if ! python -m unittest discover -s test -p 'test_nhl_faceoff_opportunity.py' >"$log" 2>&1; then echo '::error::Faceoff fixtures failed.'; exit 1; fi
+          node -e 'require("fs").writeFileSync("outputs/health/dedicated-prop-model-inventory-latest.json",JSON.stringify(require("./src/dedicated-prop-model-roadmap.cjs").inventory(),null,2)+"\n")' >"$log" 2>&1
+          echo 'PASS: private inventory and specialist tests.'
+      - name: Three-season faceoff opportunity research using authorized archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! python scripts/research-nhl-faceoff-opportunity.py >"$log" 2>&1; then echo '::error::Historical faceoff evaluation failed.'; exit 1; fi
+          echo 'PASS: private historical coverage report generated (may abstain if source incomplete).'
+      - name: Archive private aggregate research only
+        shell: bash
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          files=(outputs/health/dedicated-prop-model-inventory-latest.json outputs/backtests/nhl-faceoff-opportunity-latest.json)
+          for file in "${files[@]}"; do test -s "$file"; cp "$file" "/tmp/$(basename "$file")"; done
+          git restore --worktree -- .
+          git fetch -q origin main >"$log" 2>&1
+          git checkout -q --detach origin/main >"$log" 2>&1
+          for file in "${files[@]}"; do cp "/tmp/$(basename "$file")" "$file"; done
+          git add -f -- "${files[@]}"
+          git diff --cached --quiet && exit 0
+          git commit -m 'audit: aggregate dedicated model inventory and faceoff research' >"$log" 2>&1
+          for attempt in 1 2 3; do
+            git fetch -q origin main >"$log" 2>&1
+            git rebase -q origin/main >"$log" 2>&1 || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main >"$log" 2>&1; then echo 'PASS: private aggregate research archived.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1
+  status:
+    if: always()
+    needs: [validate]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Public validation metadata only
+        env:
+          RESULT: ${{ needs.validate.result }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          node -e 'require("fs").writeFileSync("data/dedicated-prop-model-validation.json",JSON.stringify({kind:"dedicated_prop_model_validation_v1",privateHead:"3e8a0959dfc3541f3870b0d3df43691cbcf8af81",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),calibrated:false,modelPromoted:false})+"\n")'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/dedicated-prop-model-validation.json
+          git commit -m 'status: dedicated private model validation' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

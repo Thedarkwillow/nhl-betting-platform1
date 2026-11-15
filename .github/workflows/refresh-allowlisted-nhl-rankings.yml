@@ -136,6 +136,7 @@ jobs:
           node scripts/validate-dashboard.cjs
           node scripts/test-lineup-workspace.cjs
           node scripts/test-six-priority-desk.cjs
+          node --test scripts/test-roadmap-evidence-desk.cjs
       - name: Archive only the allowlisted data.json
         working-directory: public
         shell: bash

@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 8ea524c8c85a000049a5e151ed4dbbf67d1f0d
+          ref: 1dfd5553484fa57769b486c8d07d49e3986b7722
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           fetch-depth: 0
           persist-credentials: false
@@ -29,15 +29,47 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          test "$(git rev-parse HEAD)" = 8ea524c8c85a000049a5e151ed4dbbf67d1f0d
+          test "$(git rev-parse HEAD)" = 1dfd5553484fa57769b486c8d07d49e3986b7722
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           if ! npm test >"$log" 2>&1; then echo '::error::Private regression failed'; exit 1; fi
           grep -E '^# (tests|pass|fail) [0-9]+$' "$log"
           for script in scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nfl-independent-forward.cjs; do
-            if ! node "$script" >"$log" 2>&1; then echo '::error::Cached report validation failed'; exit 1; fi
+            if ! node "$script" >"$log" 2>&1; then echo "::error::Cached report failed: $script"; exit 1; fi
           done
           node - <<'NODE'
           const n=require('./outputs/health/nhl-standard-forward-improvement-latest.json'),f=require('./outputs/nfl/backtests/independent-source-forward-latest.json');
           if(n.playerContextCoverage?.kind!=='nhl_player_context_coverage_v1'||n.positionDefenseAblation?.kind!=='nhl_position_defense_ablation_v1'||f.playerContextCoverage?.kind!=='nfl_player_context_coverage_v1')throw Error('Missing report evidence');
           console.log('PASS: private context report structure verified.');
           NODE
+  status:
+    if: always()
+    needs: [validate]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Publish validation status only
+        env:
+          RESULT: ${{ needs.validate.result }}
+          RUN_ID: ${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          node -e 'require("fs").writeFileSync("data/player-context-validation.json",JSON.stringify({kind:"player_context_validation_status_v1",privateHead:"1dfd5553484fa57769b486c8d07d49e3986b7722",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),modelPromoted:false})+"\n")'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/player-context-validation.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'status: private player context validation' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

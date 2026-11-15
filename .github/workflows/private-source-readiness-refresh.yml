@@ -1,0 +1,51 @@
+name: Refresh private source readiness after collection and grading
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-source-readiness-refresh.yml']
+  workflow_run:
+    workflows:
+      - Bounded private NHL NFL sportsbook evidence refresh
+      - Private NHL prospective grading and baseline audit via public runner
+      - NFL archived pregame forecast and finals grading via public free runner
+      - Private NHL specialist period history backfill via public runner
+    types: [completed]
+permissions:
+  contents: read
+concurrency:
+  group: private-source-readiness-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Recalculate aggregate readiness against current private main
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git checkout -q --detach origin/main
+            if ! node scripts/report-source-completion-evidence.cjs >"$log" 2>&1; then echo '::error::Private readiness report refused'; exit 1; fi
+            git add -f outputs/health/source-completion-readiness-latest.json
+            git diff --cached --quiet && exit 0
+            git commit -m 'audit: refresh private source and settlement readiness' >/dev/null
+            if git push -q origin HEAD:main; then echo 'PASS: current readiness aggregate archived privately; no provider requests.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

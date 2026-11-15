@@ -103,7 +103,7 @@ jobs:
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           # Always rebuild the original Git-backed cohort from first commit history
           # AFTER the official final boxscores update; never reuse yesterday's ledger.
-          for script in scripts/grade-nhl-predictions.cjs scripts/build-nhl-private-ledger-and-labs.cjs scripts/report-nhl-prospective-model-release.cjs scripts/report-nhl-prospective-validation.cjs scripts/report-nhl-frozen-baseline-challenge.cjs scripts/report-nhl-frozen-simple-challengers.cjs scripts/report-nhl-standard-triple-challengers.cjs scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nhl-pregame-close-research.cjs; do
+          for script in scripts/grade-nhl-predictions.cjs scripts/build-nhl-private-ledger-and-labs.cjs scripts/report-nhl-prospective-model-release.cjs scripts/report-nhl-prospective-validation.cjs scripts/report-nhl-frozen-baseline-challenge.cjs scripts/report-nhl-frozen-simple-challengers.cjs scripts/report-nhl-standard-triple-challengers.cjs scripts/report-nhl-pregame-close-research.cjs scripts/report-nhl-standard-forward-improvement.cjs; do
             if ! node "$script" > "$log" 2>&1; then
               if [[ "$script" == "scripts/report-nhl-frozen-baseline-challenge.cjs" ]]; then
                 grep "^Refusing " "$log" | tail -n 1 | cut -c 1-180 || true
@@ -155,3 +155,5 @@ jobs:
 # Requested 2026-11-12 Pacific: refresh and grade only official FINAL NHL games from 2026-11-11; existing safety gates unchanged.
 # 2026-11-12: validate Pacific-date pending Standard picks and latest forward model research report.
 # 2026-11-13: owner-requested strict final-only grading for Pacific Nov 12 slate.
+
+# 2026-11-14: seed first-observed calibration state from official final-only records after PR 139.

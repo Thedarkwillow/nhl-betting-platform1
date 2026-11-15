@@ -1,6 +1,9 @@
 name: Bounded private NHL NFL sportsbook evidence refresh
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '40 8 * * *'
+      timezone: America/Los_Angeles
   push:
     branches: [main]
     paths: ['.github/workflows/private-bounded-sportsbook-quotes.yml']
@@ -33,6 +36,8 @@ jobs:
           node - <<'NODE'
           const fs=require('node:fs');
           const key=process.env.ODDS_API_KEY;
+          // Do not spend a second time in the same collection window, including workflow edits.
+          try{const prior=JSON.parse(fs.readFileSync('outputs/sportsbooks/bounded-live/status-latest.json','utf8'));const age=Date.now()-Date.parse(prior.generatedAt);if(prior.requests>0&&age>=0&&age<20*3600000){console.log('Existing bounded capture window; no further requests.');process.exit(0);}}catch{}
           const books=['draftkings','fanduel','betmgm','caesars'];
           const sports={NHL:{key:'icehockey_nhl',markets:{player_shots_on_goal:'shotsOnGoal',player_goals:'goals',player_assists:'assists',player_points:'points',player_blocked_shots:'blockedShots',player_total_saves:'saves'}},NFL:{key:'americanfootball_nfl',markets:{player_pass_yds:'passing_yards',player_rush_yds:'rushing_yards',player_reception_yds:'receiving_yards',player_receptions:'receptions',player_pass_tds:'passing_touchdowns',player_pass_completions:'passing_completions'}}};
           const status={kind:'bounded_sportsbook_capture_v1',generatedAt:new Date().toISOString(),scope:'one pregame event per sport at most; not full board',requests:0,quotaCreditsReported:0,results:{},newPurchase:false,verifiedLiveConsensus:false};

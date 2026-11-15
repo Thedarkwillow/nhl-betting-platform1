@@ -11,6 +11,7 @@ on:
       - 'Private current NFL injury and official NHL roster evidence'
       - 'Freeze actual-time NHL and NFL pregame Higher Lower research'
       - 'Public Free Runners - Private NHL and NFL 6 and 9 AM Boards'
+      - 'Private NHL compact ranking export and validation'
     types: [completed]
   schedule:
     - cron: '27 6,9,12,15 * * *'
@@ -125,6 +126,27 @@ jobs:
           const sourceContract=source?.provider==='prizepicksapi.com'&&source?.snapshotMode==='immutable_as_of'&&source?.completePagination===true&&source?.sourceStatus==='fresh';
           const reason=!source?'approved_archive_missing':!sourceContract?'approved_archive_contract_unverified':!fresh(boardAt)?'approved_archive_stale':!approved?'fresh_archive_export_not_approved':!d.props.length?'no_eligible_public_rows':'fresh_approved_rows';
           const safe={kind:'public_nhl_freshness_diagnostic_v1',generatedAt:new Date(now).toISOString(),approvedArchiveAt:boardAt,approvedArchiveAgeMinutes:boardAt?Math.floor((now-Date.parse(boardAt))/60000):null,approvedArchiveContractVerified:sourceContract,previewAt:safeTime(preview?.generatedAt),publicExportApproved:approved,publishedRows:d.props.length,reason,liveProviderCallMade:false,originalPlatformAvailabilityVerified:false};
+          // Partner and approved independent sources are distinct; publish counts/clock only.
+          const compact=read('outputs/research/compact-nhl/latest-status.json');
+          const validCompact=compact?.kind==='private_nhl_compact_status_v1';
+          const count=n=>Number.isInteger(n)&&n>=0?n:null;
+          let partner=null;
+          try{
+            const dir='outputs/manual-board-captures';
+            const days=fs.readdirSync(dir).filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)).sort().reverse().slice(0,2);
+            for(const day of days){
+              for(const name of fs.readdirSync(dir+'/'+day).filter(x=>/^\d{8}T\d{6}Z$/.test(x)).sort().reverse()){
+                const m=read(dir+'/'+day+'/'+name+'/manifest.json');
+                const nhl=m?.sports?.find(x=>x.sport==='NHL');
+                const at=safeTime(m?.captureFinishedUTC);
+                if(m?.source==='partner-api.prizepicks.com'&&m.completePagination===true&&at&&count(nhl?.normalizedCount)!==null){partner={observedAt:at,offerCount:nhl.normalizedCount,freshWithin30Minutes:fresh(at),eligibleForPublicSourceAllowlist:false};break;}
+              }
+              if(partner)break;
+            }
+          }catch{}
+          safe.partnerSource=partner;
+          safe.privateRankingExport=validCompact?{generatedAt:safeTime(compact.generatedAt),sourceResearchAt:safeTime(compact.sourceResearchAt),freshWithin30Minutes:compact.sourceFresh===true&&fresh(compact.sourceResearchAt),standardRows:count(compact.eligibleByTier?.Standard),goblinRows:count(compact.eligibleByTier?.Goblin),demonRows:count(compact.eligibleByTier?.Demon)}:null;
+          safe.validation=validCompact?{reportedAt:safeTime(compact.validationAt),standardGraded:count(compact.standardGraded),standardFutureHoldout:count(compact.standardFutureHoldout),standardTraining:count(compact.standardTraining),calibrationApproved:compact.calibrated===true}:null;
           fs.mkdirSync('../public/data',{recursive:true});
           fs.writeFileSync('../public/data/nhl-freshness-diagnostic.json',JSON.stringify(safe)+'\n');
           fs.writeFileSync('../public/data.json',JSON.stringify(d)+'\n');

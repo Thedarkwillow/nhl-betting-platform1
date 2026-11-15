@@ -4,7 +4,7 @@
   "source": "NHL Web API",
   "endpoint": "https://api-web.nhle.com/v1/score/2026-11-15",
   "pacificDate": "2026-11-15",
-  "observedAtUTC": "2026-11-15T19:41:38.965Z",
+  "observedAtUTC": "2026-11-15T21:43:15.942Z",
   "note": "Public NHL scores only. No player props, model predictions or platform settlements.",
   "games": [
     {

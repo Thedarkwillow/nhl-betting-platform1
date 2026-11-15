@@ -121,3 +121,5 @@ jobs:
 # November 15 owner-requested next bounded batch; keep same five-date cap and serial official-data pacing.
 
 # Owner-requested bounded November 15 continuation; existing five-date cap, pacing and serial concurrency unchanged.
+
+# Owner-requested November 15 continuation after 65 accounted dates; request another existing-cap batch, no cadence or provider changes.

@@ -4,7 +4,7 @@
  const parse=s=>typeof s==="string"?Date.parse(s):NaN;
  const count=x=>Number.isInteger(x)&&x>=0;
  function age(at,now){const t=parse(at);return Number.isFinite(t)&&Number.isFinite(now)&&t<=now?Math.floor((now-t)/60000):null;}
- function model({health,board,standard,goblin,demon,movement}={},now=Date.now()){
+ function model({health,board,standard,goblin,demon,movement,progress}={},now=Date.now()){
   const rows=[];
   const archive=health?.kind==="public_nhl_nfl_pacific_morning_collection_health_v1"&&age(health.generatedAt,now)!==null;
   for(const [label,k] of [["6 AM","06:00"],["9 AM","09:00"]]){const s=archive?health.slots?.[k]:null;rows.push({label:label+" archive",value:s?.status==="privately_archived_complete"&&count(s.nhlOffers)&&count(s.nflOffers)&&age(s.observedAt,now)!==null?"NHL "+s.nhlOffers+" / NFL "+s.nflOffers:"Unverified",ageMinutes:age(s?.observedAt,now)});}
@@ -19,6 +19,14 @@
   if(movement?.kind==="public_safe_nhl_nfl_board_line_movement_counts_v1"&&movement.rawLinesPublished===0&&movement.privateOfferIDsPublished===0&&age(movement.laterCaptureAt,now)!==null){
    for(const sport of ["NHL","NFL"]){const m=movement.sports?.[sport];if(m&&["existingLineChanged","newSourceOfferIDs","noLongerSeenSourceIDsUnverified","existingTierChanged","existingSideAvailabilityChanged"].every(k=>count(m[k])))rows.push({label:sport+" archived changes",value:m.existingLineChanged+" line / "+m.existingTierChanged+" tier / "+m.existingSideAvailabilityChanged+" side / "+m.newSourceOfferIDs+" new / "+m.noLongerSeenSourceIDsUnverified+" absent (not confirmed removed)",ageMinutes:age(movement.laterCaptureAt,now)});}
   }
+  if(progress?.kind==="public_research_progress_counts_v1"&&progress.proprietaryRowsPublished===0&&progress.calibrationApproved===false&&progress.modelPromoted===false&&age(progress.sourceReportAt,now)!==null){
+   const a=age(progress.sourceReportAt,now),p=progress.periodHistory;
+   if(p&&count(p.accountedDays)&&count(p.calendarDays)&&p.calendarDays>0&&p.accountedDays<=p.calendarDays)rows.push({label:"NHL historical periods",value:p.accountedDays+" / "+p.calendarDays+" dates accounted",ageMinutes:a});
+   for(const sport of ["nhl","nfl"]){const e=progress.evidence?.[sport];if(count(e?.firstObserved)&&count(e?.matchedCalibrationRows))rows.push({label:sport.toUpperCase()+" calibration evidence",value:e.firstObserved+" observed outcomes; "+e.matchedCalibrationRows+" held-out rows; not approved",ageMinutes:a});}
+   const o=progress.sportsbook;if(o&&count(o.strictMatched)&&count(o.conditionalArchived)&&o.verifiedLiveConsensus===false)rows.push({label:"Sportsbook benchmark evidence",value:o.strictMatched+" strict / "+o.conditionalArchived+" conditional archived matches; live availability unverified",ageMinutes:a});
+   for(const sport of ["NHL","NFL"]){const s=progress.lineupResearch?.[sport];if(count(s?.distinctResolvedSlates))rows.push({label:sport+" lineup evidence",value:s.distinctResolvedSlates+" distinct resolved slates; not calibrated",ageMinutes:a});}
+   if(count(progress.paper?.authenticatedSettledEntries)&&progress.paper.verifiedROI===null)rows.push({label:"Settlement evidence",value:progress.paper.authenticatedSettledEntries+" authenticated entries; verified ROI unavailable",ageMinutes:a});
+  }
   return {rows,quotaRemaining:null,providerFailureReason:null,scope:"Archive evidence only; no verified live app availability or provider quota."};
  }
  function historyChart(values,cutoff){
@@ -29,7 +37,7 @@
  }
  async function init(){
   const host=document.getElementById("roadmapDailyEvidence");if(!host)return;
-  const paths={health:"data/collection-health.json",board:"data.json",standard:"data/nfl-research-cards.json",goblin:"data/nfl-goblin-research-cards.json",demon:"data/nfl-demon-research-cards.json",movement:"data/source-line-movement.json"};
+  const paths={health:"data/collection-health.json",board:"data.json",standard:"data/nfl-research-cards.json",goblin:"data/nfl-goblin-research-cards.json",demon:"data/nfl-demon-research-cards.json",movement:"data/source-line-movement.json",progress:"data/research-evidence-progress.json"};
   const result=Object.fromEntries(await Promise.all(Object.entries(paths).map(async ([k,p])=>{try{const r=await fetch("./"+p,{cache:"no-store"});return [k,r.ok?await r.json():null];}catch{return [k,null];}})));
   function draw(){const v=model(result);host.replaceChildren();const dl=document.createElement("dl");dl.className="roadmap-health-grid";
    for(const item of v.rows){const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=item.label;dd.textContent=item.value+(item.ageMinutes===null?"":" · "+item.ageMinutes+" min old");dl.append(dt,dd);}

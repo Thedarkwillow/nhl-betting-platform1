@@ -1,0 +1,115 @@
+name: Validate three-season Standard research
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-standard-season-transfer.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-standard-season-transfer
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 0a73da1a689ab5b77004b741bbd418facf6065f5
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Private regression and bounded archive research
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          test "$(git rev-parse HEAD)" = 0a73da1a689ab5b77004b741bbd418facf6065f5
+          if ! npm test >"$work/tests" 2>&1; then
+            grep -E '^# (tests|pass|fail) [0-9]+$' "$work/tests" || true
+            grep -E '^not ok [0-9]+ - ' "$work/tests" | cut -c1-160 || true
+            echo '::error::Regression failed'; exit 1
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$work/tests" || true
+          if ! python scripts/stage-nhl-standard-transfer.py "$work/rows.jsonl" >"$work/source.log" 2>&1; then
+            echo '::error::Historical archive staging failed'; exit 1
+          fi
+          if ! node --max-old-space-size=4096 scripts/train-nhl-standard-transfer.cjs "$work/rows.jsonl" >"$work/train.log" 2>&1; then
+            echo '::error::Historical training or holdout insufficient'; exit 1
+          fi
+          rm -f "$work/rows.jsonl"
+          if ! node scripts/report-nhl-standard-forward-improvement.cjs >"$work/replay.log" 2>&1; then
+            echo '::error::Exact-line research report failed'; exit 1
+          fi
+          node - <<'NODE' >"$work/summary.log" 2>&1
+          const fs=require('node:fs'),r=require('./outputs/health/nhl-standard-forward-improvement-latest.json'),t=require('./outputs/backtests/nhl-standard-three-season-transfer-latest.json');
+          if(!r.threeSeasonTransferAvailability?.available||r.standardAdaptiveExactLineReplay?.retrospective!==true||t.codeCommit!=='0a73da1a689ab5b77004b741bbd418facf6065f5'||Object.keys(t.byMarket).length!==6)throw Error('Required historical or replay reports absent');
+          fs.writeFileSync('outputs/health/standard-season-transfer-validation-latest.json',JSON.stringify({kind:'private_three_season_standard_validation_v1',codeCommit:'0a73da1a689ab5b77004b741bbd418facf6065f5',generatedAt:new Date().toISOString(),historical:t,retrospectiveExactLines:r.standardAdaptiveExactLineReplay,prospective:r.standardAdaptiveProspective,modelPromoted:false},null,2)+'\n');
+          NODE
+          echo 'PASS: three-season model training and exact-line retrospective audit; no production promotion.'
+      - name: Archive only private aggregates
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          for f in outputs/health/standard-season-transfer-validation-latest.json outputs/backtests/nhl-standard-three-season-transfer-latest.json; do
+            test -s "$f"; cp "$f" "$work/"
+          done
+          git restore --worktree -- .
+          git fetch -q origin main >"$work/git.log" 2>&1
+          git checkout -q --detach origin/main >"$work/git.log" 2>&1
+          cp "$work/standard-season-transfer-validation-latest.json" outputs/health/
+          cp "$work/nhl-standard-three-season-transfer-latest.json" outputs/backtests/
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/standard-season-transfer-validation-latest.json outputs/backtests/nhl-standard-three-season-transfer-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'audit: private three-season Standard transfer aggregates' >"$work/git.log" 2>&1
+          for attempt in 1 2 3; do
+            git fetch -q origin main >"$work/git.log" 2>&1
+            git rebase -q origin/main >"$work/git.log" 2>&1 || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main >"$work/git.log" 2>&1; then echo 'PASS: private aggregates archived.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1
+  status:
+    if: always()
+    needs: [validate]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Public status only
+        env:
+          RESULT: ${{ needs.validate.result }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          node -e 'require("fs").writeFileSync("data/standard-season-transfer-validation.json",JSON.stringify({kind:"standard_season_transfer_validation_v1",privateHead:"0a73da1a689ab5b77004b741bbd418facf6065f5",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),modelPromoted:false})+"\n")'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/standard-season-transfer-validation.json
+          git commit -m 'status: private three-season Standard validation' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

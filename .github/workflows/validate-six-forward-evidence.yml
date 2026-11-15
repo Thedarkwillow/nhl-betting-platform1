@@ -1,0 +1,120 @@
+name: Validate six private forward-evidence upgrades
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-six-forward-evidence.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-six-forward-evidence
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: c256b58bb230b4a69dd903d4428dc16c06fcdd3f
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate the exact private branch and historical fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          test "$(git rev-parse HEAD)" = c256b58bb230b4a69dd903d4428dc16c06fcdd3f
+          if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true; echo '::error::Private Node regression failed.'; exit 1; fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          if ! python -m unittest discover -s test -p 'test_nhl_multi_season_specialist_counts.py' >"$log" 2>&1; then echo '::error::Specialist count historical fixtures failed.'; exit 1; fi
+          echo 'PASS: private regression and chronological specialist tests.'
+      - name: Run actual archived threshold and NFL matchup reports (cached inputs only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for report in scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nfl-independent-forward.cjs; do
+            if ! node "$report" >"$log" 2>&1; then echo "::error::Cached research stage failed: $report"; exit 1; fi
+          done
+          node - <<'NODE' >"$log" 2>&1
+          const fs=require('node:fs');
+          const nhl=JSON.parse(fs.readFileSync('outputs/health/nhl-standard-forward-improvement-latest.json','utf8'));
+          const nfl=JSON.parse(fs.readFileSync('outputs/nfl/backtests/independent-source-forward-latest.json','utf8'));
+          if(!nhl.recentRateOriginalForward||!nhl.recentRateRetrospectiveExactLine||!nfl.offenseDefenseUsageAblation)throw Error('Incomplete research output');
+          fs.writeFileSync('outputs/health/six-forward-evidence-latest.json',JSON.stringify({kind:'six_forward_evidence_private_research_v1',generatedAt:new Date().toISOString(),codeCommit:'c256b58bb230b4a69dd903d4428dc16c06fcdd3f',
+            nhl:{frozen:nhl.recentRateOriginalForward,retrospectiveExactLine:nhl.recentRateRetrospectiveExactLine,lineupCalibration:nhl.lineupCalibrationResearch.byFormat},
+            nfl:{offenseDefense:nfl.offenseDefenseUsageAblation,lineupCalibration:nfl.lineupCalibrationResearch.byFormat},sourceProviderRequests:0,calibrated:false,modelPromoted:false},null,2)+'\n');
+          NODE
+          echo 'PASS: cached exact-threshold and matchup research reports.'
+      - name: Run approved historical specialist archive evaluation
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! python scripts/research-nhl-multi-season-specialist-counts.py >"$log" 2>&1; then echo '::error::Specialist historical archive evaluation failed.'; exit 1; fi
+          echo 'PASS: specialist historical count report.'
+      - name: Privately archive isolated aggregate research, not production data
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          files=(outputs/health/six-forward-evidence-latest.json outputs/backtests/nhl-multi-season-specialist-counts-latest.json)
+          for file in "${files[@]}"; do test -s "$file"; cp "$file" "/tmp/$(basename "$file")"; done
+          git restore --worktree -- .
+          git fetch -q origin main >"$log" 2>&1
+          git checkout -q --detach origin/main >"$log" 2>&1
+          for file in "${files[@]}"; do cp "/tmp/$(basename "$file")" "$file"; done
+          git add -f -- "${files[@]}"
+          git diff --cached --quiet && exit 0
+          git commit -m 'audit: archive isolated six-priority historical research' >"$log" 2>&1
+          for attempt in 1 2 3; do
+            git fetch -q origin main >"$log" 2>&1
+            git rebase -q origin/main >"$log" 2>&1 || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main >"$log" 2>&1; then echo 'PASS: private aggregate research archived.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1
+  status:
+    if: always()
+    needs: [validate]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Publish validation metadata only
+        env:
+          RESULT: ${{ needs.validate.result }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          node -e 'require("fs").writeFileSync("data/six-forward-evidence-validation.json",JSON.stringify({kind:"six_forward_evidence_validation_v1",privateHead:"c256b58bb230b4a69dd903d4428dc16c06fcdd3f",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),calibrated:false,modelPromoted:false})+"\n")'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/six-forward-evidence-validation.json
+          git commit -m 'status: six private forward-evidence validations' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

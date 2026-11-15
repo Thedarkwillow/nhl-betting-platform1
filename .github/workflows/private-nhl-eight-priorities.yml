@@ -1,0 +1,112 @@
+name: Private NHL learned models and eight-priority validation
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-eight-priorities.yml']
+  workflow_run:
+    workflows: ['Private pregame NHL freeze on public free runner']
+    types: [completed]
+  schedule:
+    - cron: '48 5 * * 3'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-nhl-eight-priorities
+  cancel-in-progress: false
+jobs:
+  research:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test model and safety contracts
+        run: |
+          set -euo pipefail
+          umask 077
+          pin=1877d358c9e963f2fc131d9ff0e3ab267dd7193f
+          if ! test -f scripts/report-nhl-eight-priorities.cjs; then
+            git fetch -q origin "$pin"
+            for f in src/nhl-two-team-matchup-research.cjs src/nhl-learned-matchup-v1.cjs src/nhl-specialist-matchup-ablation.cjs src/nhl-tier-calibration-lineup-risk-v2.cjs scripts/report-nhl-eight-priorities.cjs test/nhl-eight-priorities.test.cjs; do git show "$pin:$f" > "$f"; done
+          fi
+          node --check scripts/report-nhl-eight-priorities.cjs
+          node --test test/nhl-eight-priorities.test.cjs test/nhl-two-team-matchup-and-quota.test.cjs test/nhl-sportsbook-event-bridge.test.cjs
+      - name: Current-season and archive-only validation
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/report-nhl-eight-priorities.cjs
+          node -e 'const f=require("./outputs/health/nhl-eight-priorities-latest.json");if(f.providerRequests!==0||f.modelPromoted!==false||f.promotion.productionAuthorized!==false)process.exit(1);'
+      - name: Private archive only
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/nhl-eight-priorities-latest.json
+          if test -d outputs/research/learned-matchup; then git add -f outputs/research/learned-matchup/*.json; fi
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: private eight-priority NHL forward validation and review gates'
+          git restore -- src/nhl-two-team-matchup-research.cjs
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1
+  historical:
+    if: github.event_name != 'workflow_run'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Historical three-season frozen holdout
+        run: |
+          set -euo pipefail
+          umask 077
+          pin=1877d358c9e963f2fc131d9ff0e3ab267dd7193f
+          if ! test -f scripts/stage-nhl-learned-market-history.py; then
+            git fetch -q origin "$pin"
+            for f in src/nhl-two-team-matchup-research.cjs src/nhl-learned-matchup-v1.cjs src/nhl-specialist-matchup-ablation.cjs src/nhl-tier-calibration-lineup-risk-v2.cjs scripts/report-nhl-eight-priorities.cjs scripts/stage-nhl-learned-market-history.py; do git show "$pin:$f" > "$f"; done
+          fi
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          python scripts/stage-nhl-learned-market-history.py "$work/games.jsonl"
+          node --max-old-space-size=4096 scripts/report-nhl-eight-priorities.cjs --three-season "$work/games.jsonl"
+      - name: Archive aggregated historical report privately
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/backtests/nhl-learned-three-season-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: private three-season learned matchup frozen-weight holdout'
+          git restore -- src/nhl-two-team-matchup-research.cjs
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

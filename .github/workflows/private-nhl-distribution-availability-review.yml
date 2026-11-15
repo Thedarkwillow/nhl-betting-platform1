@@ -66,3 +66,5 @@ jobs:
             sleep "$attempt"
           done
           exit 1
+
+# Activate merged distribution review and require post-policy frozen evidence.

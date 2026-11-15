@@ -1,0 +1,69 @@
+name: Private NHL validation and paper research audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-validation-paper-audit.yml']
+  workflow_run:
+    workflows: ['Private pregame NHL freeze on public free runner', 'Bounded private NHL NFL sportsbook evidence refresh']
+    types: [completed]
+  schedule:
+    - cron: '58 6,22 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-nhl-validation-paper-audit
+  cancel-in-progress: false
+jobs:
+  audit:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate audit contracts and run private research
+        run: |
+          set -euo pipefail
+          umask 077
+          pin=73a98e4140e73e7e874969cc54696d6b931c9f00
+          if ! test -f scripts/report-nhl-validation-and-paper-audit.cjs; then
+            git fetch -q origin "$pin"
+            work="$(mktemp -d)"
+            git worktree add --detach "$work" "$pin"
+            trap 'git worktree remove --force "$work" >/dev/null 2>&1 || true' EXIT
+            (cd "$work"; node --check scripts/report-nhl-validation-and-paper-audit.cjs; node --test test/nhl-validation-and-paper-audit.test.cjs test/nhl-sportsbook-original-name.test.cjs test/nhl-sportsbook-event-bridge.test.cjs)
+            tested="$pin"
+          else
+            node --check scripts/report-nhl-validation-and-paper-audit.cjs
+            node --test test/nhl-validation-and-paper-audit.test.cjs test/nhl-sportsbook-original-name.test.cjs test/nhl-sportsbook-event-bridge.test.cjs
+            tested="$(git rev-parse HEAD)"
+            node scripts/report-nhl-validation-and-paper-audit.cjs
+          fi
+          mkdir -p outputs/health
+          TESTED="$tested" node -e 'require("fs").writeFileSync("outputs/health/nhl-validation-paper-test-latest.json",JSON.stringify({testedCommit:process.env.TESTED,generatedAt:new Date().toISOString(),passed:true,paidRequests:0})+"\n")'
+      - name: Archive private evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/nhl-validation-paper-test-latest.json
+          if test -f outputs/health/nhl-validation-and-paper-audit-latest.json; then git add -f outputs/health/nhl-validation-and-paper-audit-latest.json; fi
+          if test -d outputs/research/market-calibration-v3; then git add -f outputs/research/market-calibration-v3/*.json; fi
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: private market calibration and paper format validation evidence'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

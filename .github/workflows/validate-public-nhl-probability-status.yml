@@ -2,6 +2,9 @@ name: Validate Public NHL Probability Status (No Secrets)
 on:
   pull_request:
     paths:
+      - 'index.html'
+      - 'assets/prop-evidence-gate.js'
+      - 'scripts/test-prop-evidence-gate.cjs'
       - 'assets/six-priority-desk.js'
       - 'scripts/test-six-priority-desk.cjs'
       - 'scripts/validate-dashboard.cjs'
@@ -20,6 +23,8 @@ jobs:
           node-version: '22'
       - name: Verify public-only probability validation, XSS-safe UI and data allowlist
         run: |
+          node --check assets/prop-evidence-gate.js
+          node --test scripts/test-prop-evidence-gate.cjs
           node --check assets/six-priority-desk.js
           node scripts/test-six-priority-desk.cjs
           node scripts/validate-dashboard.cjs

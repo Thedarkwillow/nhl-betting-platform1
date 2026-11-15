@@ -1,4 +1,4 @@
-name: Validate private dedicated prop models phase one
+name: Validate private dedicated prop models phase two
 on:
   workflow_dispatch:
   push:
@@ -12,12 +12,12 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 3e8a0959dfc3541f3870b0d3df43691cbcf8af81
+          ref: f4cfc12330867cbfb71eb9a8c7cba48efeb634a7
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
@@ -32,10 +32,11 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          test "$(git rev-parse HEAD)" = 3e8a0959dfc3541f3870b0d3df43691cbcf8af81
+          test "$(git rev-parse HEAD)" = f4cfc12330867cbfb71eb9a8c7cba48efeb634a7
           if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true; echo '::error::Private regression failed.'; exit 1; fi
           grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
           if ! python -m unittest discover -s test -p 'test_nhl_faceoff_opportunity.py' >"$log" 2>&1; then echo '::error::Faceoff fixtures failed.'; exit 1; fi
+          if ! python -m unittest discover -s test -p 'test_nhl_dedicated_skater_goalie.py' >"$log" 2>&1; then echo '::error::Dedicated NHL source fixtures failed.'; exit 1; fi
           node -e 'require("fs").writeFileSync("outputs/health/dedicated-prop-model-inventory-latest.json",JSON.stringify(require("./src/dedicated-prop-model-roadmap.cjs").inventory(),null,2)+"\n")' >"$log" 2>&1
           echo 'PASS: private inventory and specialist tests.'
       - name: Three-season faceoff opportunity research using authorized archives
@@ -45,7 +46,26 @@ jobs:
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           if ! python scripts/research-nhl-faceoff-opportunity.py >"$log" 2>&1; then echo '::error::Historical faceoff evaluation failed.'; exit 1; fi
-          echo 'PASS: private historical coverage report generated (may abstain if source incomplete).'
+          echo 'PASS: private faceoff coverage report generated (may abstain if source incomplete).'
+          if ! python scripts/research-nhl-dedicated-skater-goalie.py >"$log" 2>&1; then echo '::error::Historical NHL source ablation failed.'; exit 1; fi
+          echo 'PASS: nine NHL dedicated historical source trials.'
+      - name: Cached NHL specialty and NFL core automatic report validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for report in scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nfl-independent-forward.cjs; do
+            if ! node "$report" >"$log" 2>&1; then echo "::error::Cached report stage failed: $report"; exit 1; fi
+          done
+          node - <<'NODE' >"$log" 2>&1
+          const fs=require('node:fs');
+          const n=JSON.parse(fs.readFileSync('outputs/health/nhl-standard-forward-improvement-latest.json','utf8'));
+          const f=JSON.parse(fs.readFileSync('outputs/nfl/backtests/independent-source-forward-latest.json','utf8'));
+          if(!n.dedicatedSpecialtyHistoricalResearch||!n.originalMarketTierSideReliability||!f.dedicatedCoreHistoricalResearch||!f.forward.marketTierSideReliability)throw Error('Missing dedicated evidence');
+          fs.writeFileSync('outputs/health/dedicated-phase-two-cached-latest.json',JSON.stringify({kind:'private_dedicated_phase_two_cached_research_v1',generatedAt:new Date().toISOString(),codeCommit:'f4cfc12330867cbfb71eb9a8c7cba48efeb634a7',nhl:{specialty:n.dedicatedSpecialtyHistoricalResearch,reliability:n.originalMarketTierSideReliability},nfl:{core:f.dedicatedCoreHistoricalResearch,reliability:f.forward.marketTierSideReliability},liveModelPromoted:false,calibrated:false},null,2)+'\n');
+          NODE
+          echo 'PASS: cached dedicated NHL/NFL tracking and evidence audits.'
       - name: Archive private aggregate research only
         shell: bash
         run: |
@@ -53,7 +73,7 @@ jobs:
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          files=(outputs/health/dedicated-prop-model-inventory-latest.json outputs/backtests/nhl-faceoff-opportunity-latest.json)
+          files=(outputs/health/dedicated-prop-model-inventory-latest.json outputs/backtests/nhl-faceoff-opportunity-latest.json outputs/backtests/nhl-dedicated-market-source-latest.json outputs/health/dedicated-phase-two-cached-latest.json)
           for file in "${files[@]}"; do test -s "$file"; cp "$file" "/tmp/$(basename "$file")"; done
           git restore --worktree -- .
           git fetch -q origin main >"$log" 2>&1
@@ -61,7 +81,7 @@ jobs:
           for file in "${files[@]}"; do cp "/tmp/$(basename "$file")" "$file"; done
           git add -f -- "${files[@]}"
           git diff --cached --quiet && exit 0
-          git commit -m 'audit: aggregate dedicated model inventory and faceoff research' >"$log" 2>&1
+          git commit -m 'audit: aggregate dedicated phase two private model research' >"$log" 2>&1
           for attempt in 1 2 3; do
             git fetch -q origin main >"$log" 2>&1
             git rebase -q origin/main >"$log" 2>&1 || { git rebase --abort; exit 1; }
@@ -87,7 +107,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p data
-          node -e 'require("fs").writeFileSync("data/dedicated-prop-model-validation.json",JSON.stringify({kind:"dedicated_prop_model_validation_v1",privateHead:"3e8a0959dfc3541f3870b0d3df43691cbcf8af81",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),calibrated:false,modelPromoted:false})+"\n")'
+          node -e 'require("fs").writeFileSync("data/dedicated-prop-model-validation.json",JSON.stringify({kind:"dedicated_prop_model_validation_v1",privateHead:"f4cfc12330867cbfb71eb9a8c7cba48efeb634a7",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),calibrated:false,modelPromoted:false})+"\n")'
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/dedicated-prop-model-validation.json

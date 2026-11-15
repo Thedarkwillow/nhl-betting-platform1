@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
     paths: ['.github/workflows/private-free-cross-sport-sources.yml']
+  workflow_run:
+    workflows: ['Private NHL MoneyPuck and Daily Faceoff research via public runner', 'Private pregame NHL freeze on public free runner']
+    types: [completed]
   schedule:
     - cron: '50 5 * * 3'
       timezone: America/Los_Angeles
@@ -14,6 +17,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   research:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -34,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          pin=2594b0b2b4fb3b9ae178a2f00fcf191dc4b3ce8f
+          pin=f89c231b1befb3b9ede21032616a98ec44fb8970
           if ! test -f scripts/report-free-source-coverage.cjs; then
             git fetch -q origin "$pin"
             for file in scripts/research-nfl-free-efficiency.py test/test_nfl_free_efficiency.py src/free-source-integration.cjs src/nhl-open-shot-quality-shadow.cjs test/free-source-integration.test.cjs scripts/report-free-source-coverage.cjs; do
@@ -43,14 +47,17 @@ jobs:
           fi
           node --test test/free-source-integration.test.cjs
           python -m unittest discover -s test -p test_nfl_free_efficiency.py
-      - name: Derive free NFL efficiency features and NHL coverage
+      - name: Derive free NFL efficiency features weekly or on manual run
+        if: github.event_name != 'workflow_run' && github.event_name != 'push'
         shell: bash
         run: |
           set -euo pipefail
           umask 077
           python -m pip install --quiet nflreadpy
           python scripts/research-nfl-free-efficiency.py
-          node scripts/report-free-source-coverage.cjs
+      - name: Audit fresh NHL and NFL source evidence; create private shadow only if eligible
+        shell: bash
+        run: node scripts/report-free-source-coverage.cjs
       - name: Archive private research reports only
         shell: bash
         run: |

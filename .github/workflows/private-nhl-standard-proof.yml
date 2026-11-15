@@ -8,7 +8,7 @@ on:
     workflows: ['Private pregame NHL freeze on public free runner']
     types: [completed]
   schedule:
-    - cron: '51 6 * * *'
+    - cron: '51 6,23 * * *'
       timezone: America/Los_Angeles
 permissions:
   contents: read
@@ -67,3 +67,5 @@ jobs:
             sleep "$attempt"
           done
           exit 1
+
+# Merged Standard prospective policy; re-grade at the late-night and morning windows without pulling paid odds.

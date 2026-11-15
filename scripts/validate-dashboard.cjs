@@ -110,9 +110,20 @@ if(data.playerInsights!==undefined){
  for(const x of data.playerInsights){
   assert.equal(x.source,"Official NHL completed-game statistics");
   assert.ok(Number.isInteger(x.historicalGames)&&x.historicalGames>0);
-  assert.deepEqual(Object.keys(x).sort(),
-   ["player","team","market","last5","last10","last20","seasonAverage",
-    "historicalGames","seasonGames","lastGameDate","source"].sort());
+  const keys=["player","team","market","last5","last10","last20","seasonAverage",
+    "historicalGames","seasonGames","lastGameDate","source"];
+  if(Object.hasOwn(x,"recentOfficialValues")){
+   keys.push("recentOfficialValues");
+   assert.ok(Array.isArray(x.recentOfficialValues)&&x.recentOfficialValues.length<=10);
+   const dates=new Set();
+   for(const v of x.recentOfficialValues){
+    assert.deepEqual(Object.keys(v).sort(),["date","value"]);
+    assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(v.date)&&Number.isFinite(Date.parse(v.date))&&v.date<=x.lastGameDate);
+    assert.ok(Number.isFinite(v.value)&&v.value>=0);
+    assert.ok(!dates.has(v.date),"Duplicate official chart date");dates.add(v.date);
+   }
+  }
+  assert.deepEqual(Object.keys(x).sort(),keys.sort());
  }
 }
 if(data.movementSummary!==undefined){

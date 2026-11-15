@@ -43,7 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          if test "$NST_APPROVED" = true; then
+          if test "${{ github.event_name }}" = schedule && test "$NST_APPROVED" = true; then
             NST_MODE=current python scripts/collect-natural-stat-trick.py
           else
             NST_MODE=test python scripts/collect-natural-stat-trick.py
@@ -63,3 +63,5 @@ jobs:
             sleep "$attempt"
           done
           exit 1
+
+# Owner added the NST secret; run a token-free historical sample on this push.

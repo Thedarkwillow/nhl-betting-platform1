@@ -119,3 +119,5 @@ jobs:
 # Accelerated bounded continuation: eight nonoverlapping scheduled opportunities/day, same serial pacing and maximum five dates/run.
 
 # November 15 owner-requested next bounded batch; keep same five-date cap and serial official-data pacing.
+
+# Owner-requested bounded November 15 continuation; existing five-date cap, pacing and serial concurrency unchanged.

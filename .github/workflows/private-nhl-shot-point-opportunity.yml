@@ -41,9 +41,21 @@ jobs:
             work="$(mktemp -d)"
             git worktree add --detach "$work" "$pin"
             trap 'git worktree remove --force "$work" >/dev/null 2>&1 || true' EXIT
-            (cd "$work"; node --check scripts/report-nhl-shot-point-opportunity.cjs; node --test test/nhl-shot-point-opportunity.test.cjs; node scripts/report-nhl-shot-point-opportunity.cjs)
-            cp "$work/outputs/health/nhl-shot-point-opportunity-latest.json" outputs/health/nhl-shot-point-opportunity-latest.json
+            cd "$work"
+            set +e
+            node --check scripts/report-nhl-shot-point-opportunity.cjs && node --test test/nhl-shot-point-opportunity.test.cjs > "$work/test-output.txt" 2>&1
+            teststatus=$?
+            set -e
+            cd - >/dev/null
+            mkdir -p outputs/health
+            TESTED="$pin" STATUS="$teststatus" LOGFILE="$work/test-output.txt" node -e 'const fs=require("fs");const logfile=process.env.LOGFILE;const summary=fs.existsSync(logfile)?fs.readFileSync(logfile,"utf8").split("\\n").filter(x=>/^not ok|^# (tests|pass|fail|cancelled)|AssertionError|TypeError|SyntaxError/.test(x)).slice(0,20):[];fs.writeFileSync("outputs/health/nhl-shot-point-opportunity-diagnostic-latest.json",JSON.stringify({testedCommit:process.env.TESTED,generatedAt:new Date().toISOString(),passed:process.env.STATUS==="0",testSummary:summary,paidRequests:0})+"\\n")'
             tested="$pin"
+            if test "$teststatus" = 0; then
+              if (cd "$work"; node scripts/report-nhl-shot-point-opportunity.cjs); then cp "$work/outputs/health/nhl-shot-point-opportunity-latest.json" outputs/health/nhl-shot-point-opportunity-latest.json; else echo "Historical report failed after unit tests; preserving diagnostic"; fi
+            else
+              echo "Regression test failed; preserving diagnostic"
+              exit 0
+            fi
           else
             node --check scripts/report-nhl-shot-point-opportunity.cjs
             node --test test/nhl-shot-point-opportunity.test.cjs
@@ -55,7 +67,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f outputs/health/nhl-shot-point-opportunity-test-latest.json outputs/health/nhl-shot-point-opportunity-latest.json
+          for f in outputs/health/nhl-shot-point-opportunity-test-latest.json outputs/health/nhl-shot-point-opportunity-latest.json outputs/health/nhl-shot-point-opportunity-diagnostic-latest.json; do if test -f "$f"; then git add -f "$f"; fi; done
           if test -d outputs/research/shot-point-opportunity-v1; then git add -f outputs/research/shot-point-opportunity-v1/*.json; fi
           git diff --cached --quiet && exit 0
           git commit -qm 'research: private NHL shooter/scoring opportunity and PP holdout evidence'

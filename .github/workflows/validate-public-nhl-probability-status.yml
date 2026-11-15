@@ -5,6 +5,7 @@ on:
       - 'index.html'
       - 'assets/prop-evidence-gate.js'
       - 'scripts/test-prop-evidence-gate.cjs'
+      - 'assets/roadmap-evidence-desk.js'
       - 'assets/six-priority-desk.js'
       - 'scripts/test-six-priority-desk.cjs'
       - 'scripts/validate-dashboard.cjs'
@@ -23,6 +24,7 @@ jobs:
           node-version: '22'
       - name: Verify public-only probability validation, XSS-safe UI and data allowlist
         run: |
+          node --check assets/roadmap-evidence-desk.js
           node --check assets/prop-evidence-gate.js
           node --test scripts/test-prop-evidence-gate.cjs
           node --check assets/six-priority-desk.js

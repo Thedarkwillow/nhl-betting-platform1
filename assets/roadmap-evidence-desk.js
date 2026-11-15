@@ -33,7 +33,7 @@
   const at=parse(cutoff);if(!Number.isFinite(at)||!Array.isArray(values))return [];
   const eligible=values.filter(x=>x&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)&&Number.isFinite(parse(x.date))&&x.date<cutoff.slice(0,10)&&Number.isFinite(x.value)&&x.value>=0);
   if(new Set(eligible.map(x=>x.date)).size!==eligible.length)return [];
-  return eligible.sort((a,b)=>a.date.localeCompare(b.date)).slice(-10);
+  return eligible.sort((a,b)=>a.date.localeCompare(b.date)).slice(-20);
  }
  async function init(){
   const host=document.getElementById("roadmapDailyEvidence");if(!host)return;

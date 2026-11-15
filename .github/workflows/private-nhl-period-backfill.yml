@@ -105,3 +105,5 @@ jobs:
           exit 1
 
 # Owner-requested bounded continuation: next missing official prior-season dates only; existing concurrency and five-date cap unchanged.
+
+# Owner-requested continuation 2026-11-14: rebuild the next bounded five-date NHL period batch; no additional paid provider calls.

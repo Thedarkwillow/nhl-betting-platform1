@@ -1,0 +1,89 @@
+name: Validate private source completion evidence
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-source-completion-evidence.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-source-completion-validation
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 936e7ba77cd06c629ad380d499c63d2bcd13ad36
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regression and cached source evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          test "$(git rev-parse HEAD)" = 936e7ba77cd06c629ad380d499c63d2bcd13ad36
+          if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true; echo '::error::Private regression failed.'; exit 1; fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          if ! node scripts/report-source-completion-evidence.cjs >"$log" 2>&1; then echo '::error::Private readiness report failed.'; exit 1; fi
+          echo 'PASS: private source readiness and paper evidence fixture tests.'
+      - name: Archive aggregate report only
+        shell: bash
+        run: |
+          set -euo pipefail
+          f=outputs/health/source-completion-readiness-latest.json
+          test -s "$f"
+          cp "$f" /tmp/source-completion-readiness-latest.json
+          git restore --worktree -- .
+          git fetch -q origin main
+          git checkout -q --detach origin/main
+          cp /tmp/source-completion-readiness-latest.json "$f"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$f"
+          git diff --cached --quiet && exit 0
+          git commit -m 'audit: private consolidated source readiness evidence' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1
+  status:
+    if: always()
+    needs: [validate]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Public validation status only
+        env:
+          RESULT: ${{ needs.validate.result }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          node -e 'require("fs").writeFileSync("data/source-completion-validation.json",JSON.stringify({kind:"source_completion_validation_v1",privateHead:"936e7ba77cd06c629ad380d499c63d2bcd13ad36",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),modelPromoted:false})+"\n")'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/source-completion-validation.json
+          git commit -m 'status: private source completion validation' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

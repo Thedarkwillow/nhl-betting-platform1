@@ -29,7 +29,7 @@ jobs:
       - name: Validate parser and access policy
         run: |
           set -euo pipefail
-          pin=c53a5148a12e9b96ffbb21c952576a39575f6cb2
+          pin=d72b6693a5a1cf17ed006e7037f3319eee4bb473
           if ! grep -q -- "--retry-schema" scripts/collect-keyfree-sports-tables.py 2>/dev/null; then
             git fetch -q origin "$pin"
             for file in scripts/collect-keyfree-sports-tables.py test/test_keyfree_sports_tables.py; do git show "$pin:$file" > "$file"; done

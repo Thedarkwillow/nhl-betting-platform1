@@ -50,8 +50,7 @@ jobs:
             node --check scripts/collect-bounded-sportsbook-quotes.cjs
             node --test test/sportsbook-event-quota.test.cjs test/nhl-sportsbook-event-bridge.test.cjs test/nhl-sportsbook-original-name.test.cjs
           fi
-          mkdir -p outputs/sportsbooks/bounded-live
-          TESTED="$tested" node -e 'const fs=require("node:fs");fs.writeFileSync("outputs/sportsbooks/bounded-live/collector-test-status.json",JSON.stringify({generatedAt:new Date().toISOString(),testedCommit:process.env.TESTED,passed:true,providerRequests:0})+"\n")'
+          echo "ODDS_TESTED_REVISION=$tested" >> "$GITHUB_ENV"
       - name: Collect fresh exact-line sportsbook evidence within independent sport quota
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
@@ -61,6 +60,11 @@ jobs:
           umask 077
           if ! test -f scripts/collect-bounded-sportsbook-quotes.cjs; then echo 'Tests ran on pinned branch; paid collection requires merged main.'; exit 0; fi
           node scripts/collect-bounded-sportsbook-quotes.cjs
+      - name: Record passed regression evidence after collection
+        if: success()
+        run: |
+          mkdir -p outputs/sportsbooks/bounded-live
+          node -e 'const fs=require("node:fs");fs.writeFileSync("outputs/sportsbooks/bounded-live/collector-test-status.json",JSON.stringify({generatedAt:new Date().toISOString(),testedCommit:process.env.ODDS_TESTED_REVISION,passed:true,providerRequestsDuringTests:0})+"\n")'
       - name: Archive privately, no publicly exposed source quotes
         shell: bash
         run: |

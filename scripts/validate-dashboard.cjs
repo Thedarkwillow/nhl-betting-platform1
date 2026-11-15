@@ -72,8 +72,12 @@ assert.match(match[1],/localStorage\.setItem\(RESEARCH_FILTER_STORAGE/,
  "Saved filters must remain browser-local, not a remote account");
 assert.match(match[1],/minHistory===0\|\|Number\(p\.observations\)>=minHistory/,
  "Historical sample cutoff required");
-assert.match(match[1],/minEstimate===0\|\|Number\(p\.probability\)>=minEstimate/,
- "Estimated probability cutoff required");
+assert.match(match[1],/minEstimate===0\|\|\(approvedProbability\(p\)!==null&&approvedProbability\(p\)>=minEstimate\)/,
+ "Calibrated probability cutoff required; raw estimates must not be used");
+assert.match(match[1],/lineupApproved\(\)&&approvedProbability\(p\)!==null/,
+ "Unapproved props cannot enter the lineup builder");
+assert.match(match[1],/if\(!lineupApproved\(\)\)return \{picks:\[\]/,
+ "Unapproved lineup suggestions must be withheld");
 
 assert.match(html,/id="props"[\s\S]*?Add to lineup/,"Board action must be labelled");
 for(const forbidden of ["Everything behind the model","MoneyPuck",

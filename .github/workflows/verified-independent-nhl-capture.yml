@@ -4,13 +4,16 @@ on:
   # Explicit owner-approved one-time recovery marker; ordinary code changes do not trigger requests.
   push:
     branches: [main]
-    paths: ['.github/requests/nhl-approved-refresh-2026-11-14.txt']
+    paths: ['.github/requests/nhl-approved-refresh-2026-11-15.txt']
   # Separate from genuine 06:00/09:00 partner capture. Do not consume quota on code pushes.
   # Extra windows require a stricter existing-request reserve; no projection credits.
   schedule:
     - cron: '35 9 * * *'
       timezone: America/Los_Angeles
-    - cron: '35 12,15 * * *'
+    # Keep three daily windows, but cover the morning before games begin.
+    - cron: '18 6 * * *'
+      timezone: America/Los_Angeles
+    - cron: '35 13 * * *'
       timezone: America/Los_Angeles
 permissions:
   contents: read
@@ -25,7 +28,7 @@ jobs:
       - name: Verify explicit dated recovery request before any paid-provider access
         if: github.event_name == 'push'
         shell: bash
-        run: test "$(TZ=America/Los_Angeles date +%F)" = '2026-11-14'
+        run: test "$(TZ=America/Los_Angeles date +%F)" = '2026-11-15'
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-15T17:04:07.051Z",
-  "sourceReportAt": "2026-11-15T15:55:29.476Z",
+  "generatedAt": "2026-11-15T17:21:23.649Z",
+  "sourceReportAt": "2026-11-15T17:06:17.495Z",
   "periodHistory": {
     "accountedDays": 80,
     "calendarDays": 261,
@@ -26,7 +26,7 @@
   },
   "lineupResearch": {
     "NHL": {
-      "distinctResolvedSlates": null
+      "distinctResolvedSlates": 1
     },
     "NFL": {
       "distinctResolvedSlates": null

@@ -21,7 +21,7 @@
 <p class="hero-sub">Explore player props, compare available lines, and build 2–6-pick research lineups in one mobile-friendly place.</p>
 <div class="hero-actions"><a class="primary-action" href="#today">Explore top props</a><a class="secondary-action" href="#slips">Lineup builder</a></div>
 </div>
-<div class="caveat"><b>Research only.</b> Displayed probabilities are estimates, not verified historical success rates. Original-platform availability, settlement, and lineup payouts are not verified. No bet is guaranteed.</div>
+<div class="caveat"><b>Research only.</b> Unvalidated confidence ratings and lineup recommendations are withheld; historical success rates are not predictions. Original-platform availability, settlement, and lineup payouts are not verified. No bet is guaranteed.</div>
 <div class="cards" aria-label="Current research summary">
 <div class="card">Saved prop sides<strong id="propCount">—</strong></div>
 <div class="card">Available comparisons<strong id="matchCount">—</strong></div>
@@ -168,12 +168,16 @@
 <script src="./assets/multi-sport-roadmap.js"></script>
 <script src="./assets/roadmap-evidence-desk.js"></script>
 <script src="./assets/model-scorecards.js"></script>
+<script src="./assets/prop-evidence-gate.js"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
 const pct=x=>typeof x==="number"&&Number.isFinite(x)?(100*x).toFixed(1)+"%":"—";
 const cell=(tr,value,label)=>{const td=document.createElement("td");td.textContent=String(value??"—");if(label)td.dataset.label=label;tr.append(td);};
 let data={props:[],comparisons:[],lineups:{}};
+const approvedProbability=p=>window.PropEvidenceGate?.probability(data,p)??null;
+const probabilityLabel=p=>approvedProbability(p)===null?"Withheld":pct(approvedProbability(p));
+const lineupApproved=()=>window.PropEvidenceGate?.lineup(data)===true;
 function currentBoardIsFresh(){
  const now=Date.now(),research=Date.parse(data.researchAt),board=Date.parse(data.boardAt);
  return data.researchFreshAtBuild===true&&
@@ -213,12 +217,12 @@ function renderFeatured(){
  const host=$("featuredProps");host.replaceChildren();
  const frozen=(data.featuredPropsSourceFresh===true&&Array.isArray(data.featuredIndividualProps)?
   data.featuredIndividualProps:[]).filter(p=>isCurrentOffer(p)&&
-  p.researchEligibility!=="watchlist"&&p.probability>0.5).slice(0,8);
+  p.researchEligibility!=="watchlist"&&approvedProbability(p)!==null&&approvedProbability(p)>0.5).slice(0,8);
  const preview=(data.previewResearchOnly===true&&
   data.previewSelectionsOfficiallyPrecommitted===false&&
   Array.isArray(data.previewResearchProps)?data.previewResearchProps:[])
   .filter(p=>isCurrentOffer(p)&&p.researchEligibility!=="watchlist"&&
-   p.tier==="Standard"&&p.probability>0.5).slice(0,8);
+   p.tier==="Standard"&&approvedProbability(p)!==null&&approvedProbability(p)>0.5).slice(0,8);
  const usingPreview=frozen.length===0&&preview.length>0;
  const rows=frozen.length?frozen:preview;
  if(usingPreview){
@@ -228,8 +232,8 @@ function renderFeatured(){
  }
  if(!rows.length){
   const div=document.createElement("div");div.className="featured-empty";
-  const title=document.createElement("strong");title.textContent="No fresh pregame research picks right now";
-  const note=document.createElement("span");note.textContent="Historical observations remain available under Saved history. New picks appear only after a qualifying pregame snapshot.";
+  const title=document.createElement("strong");title.textContent="No validated featured picks available";
+  const note=document.createElement("span");note.textContent="Confidence and featured selections are withheld until exact market and tier calibration evidence is approved. Browse historical observations below.";
   div.append(title,note);host.append(div);return;
  }
  for(const p of rows){
@@ -239,8 +243,8 @@ function renderFeatured(){
   const who=document.createElement("div");who.className="featured-name";who.textContent=p.player||"Player";
   const stat=document.createElement("div");stat.className="featured-stat";stat.textContent=(p.market||"Stat")+" "+p.lean+" "+p.line;
   const foot=document.createElement("div");foot.className="featured-bottom";
-  const estimate=document.createElement("div");estimate.className="featured-number";estimate.textContent=pct(p.probability);
-  const small=document.createElement("small");small.textContent="Model estimate · unverified";estimate.append(small);
+  const estimate=document.createElement("div");estimate.className="featured-number";estimate.textContent=probabilityLabel(p);
+  const small=document.createElement("small");small.textContent="Approved calibration evidence · no guarantee";estimate.append(small);
   const details=document.createElement("button");details.type="button";details.className="player-detail-action";
   details.textContent="Player details";details.setAttribute("aria-label","View "+p.player+" historical NHL statistics");
   details.addEventListener("click",()=>showPlayerDetail(p));
@@ -288,10 +292,20 @@ function showPlayerDetail(p){
   host.append(grid,source);
   const history=window.RoadmapEvidenceDesk?.historyChart(insight.recentOfficialValues,p.capturedAt)||[];
   if(history.length){
-   const title=document.createElement("h3");title.textContent="Recent official game results";
+   const title=document.createElement("h3");title.textContent="Recent official game results vs "+p.line;
+   const stats=document.createElement("div");stats.className="detail-stats-grid";
+   for(const n of [5,10,15]){
+    const summary=window.PropEvidenceGate?.historySummary(history,p.line,n),card=document.createElement("div");card.className="detail-stat-card";
+    const label=document.createElement("span");label.textContent="Last "+n+" · historical only";
+    const count=document.createElement("strong");count.textContent=summary?summary.above+" above / "+summary.below+" below":"Unavailable";
+    const detail=document.createElement("small");detail.textContent=summary?summary.push+" ties · avg "+summary.average.toFixed(2):"Insufficient archived results";
+    card.append(label,count,detail);stats.append(card);
+   }
+   host.append(stats);
+   const unavailable=document.createElement("p");unavailable.className="minor";unavailable.textContent="Season threshold history, opponent filters, position-specific defense, injuries and similar-player context require separately verified source coverage. No values are inferred.";host.append(unavailable);
    const chart=document.createElement("div");chart.className="roadmap-history-chart";chart.setAttribute("role","group");chart.setAttribute("aria-label","Earlier official statistical results");
-   const maximum=Math.max(1,...history.map(x=>x.value));
-   for(const x of history){const row=document.createElement("div"),label=document.createElement("span"),meter=document.createElement("meter"),value=document.createElement("span");row.className="roadmap-history-row";label.textContent=x.date;meter.min=0;meter.max=maximum;meter.value=x.value;meter.setAttribute("aria-label",x.date+" stat total");value.textContent=String(x.value);row.append(label,meter,value);chart.append(row);}
+   const maximum=Math.max(1,...history.map(x=>x.value),Number.isFinite(p.line)?p.line:0);
+   for(const x of history){const row=document.createElement("div"),label=document.createElement("span"),meter=document.createElement("meter"),value=document.createElement("span");row.className="roadmap-history-row";label.textContent=x.date;meter.min=0;meter.max=maximum;meter.value=x.value;meter.setAttribute("aria-label",x.date+" stat total");value.textContent=String(x.value)+(Number.isFinite(p.line)?(x.value>p.line?" · above":x.value<p.line?" · below":" · tie"):"");row.append(label,meter,value);chart.append(row);}
    host.append(title,chart);
   }
  }
@@ -460,6 +474,12 @@ function renderResultBreakdown(){
 }
 
 function render(){
+ const calibratedAvailable=(data.props||[]).some(p=>approvedProbability(p)!==null);
+ $("minEstimate").disabled=!calibratedAvailable;
+ if(!calibratedAvailable)$("minEstimate").value="0";
+ const estimateSort=[...$("sortProps").options].find(o=>o.value==="estimate");
+ if(estimateSort)estimateSort.disabled=!calibratedAvailable;
+ if(!calibratedAvailable&&$("sortProps").value==="estimate")$("sortProps").value="game";
  const q=$("search").value.toLowerCase().trim(),tier=$("tier").value,
   market=$("market").value,side=$("direction").value,
   game=$("gameFilter").value,sortBy=$("sortProps").value,
@@ -473,13 +493,13 @@ function render(){
   (!side||p.lean===side)&&(!game||p.matchup===game)&&
   (!teamFilter||p.team===teamFilter)&&
   (!eligibility||p.researchEligibility===eligibility)&&
-  (minEstimate===0||Number(p.probability)>=minEstimate)&&
+  (minEstimate===0||(approvedProbability(p)!==null&&approvedProbability(p)>=minEstimate))&&
   (minHistory===0||Number(p.observations)>=minHistory))
   .sort((a,b)=>sortBy==="player"?
     String(a.player||"").localeCompare(String(b.player||"")):
     sortBy==="game"?
      (Date.parse(a.eventStartsAt)||0)-(Date.parse(b.eventStartsAt)||0):
-     (Number(b.probability)||0)-(Number(a.probability)||0));
+     (approvedProbability(b)??-1)-(approvedProbability(a)??-1));
  $("boardNotice").textContent=archiveMode?
   "Saved history only. These offers can be expired, changed, or unavailable.":
   currentBoardIsFresh()?
@@ -492,10 +512,10 @@ function render(){
   const tr=document.createElement("tr");
   const status=p.researchEligibility==="watchlist"?"Needs availability review":"Research only";
   [((p.player||"Player")+" ("+(p.team||"—")+")"),p.market,p.line,(p.tier||"Unknown")+" (provider-indicated)",p.lean,
-   pct(p.probability),p.observations,status].forEach((v,i)=>cell(tr,v,labels[i]));
+   probabilityLabel(p),p.observations,status].forEach((v,i)=>cell(tr,v,labels[i]));
   const td=document.createElement("td");td.dataset.label="Build";
   const button=document.createElement("button");button.type="button";
-  const canAdd=!archiveMode&&isCurrentOffer(p)&&workspace.eligible(p,Date.now());
+  const canAdd=lineupApproved()&&approvedProbability(p)!==null&&!archiveMode&&isCurrentOffer(p)&&workspace.eligible(p,Date.now());
   button.disabled=!canAdd;button.textContent=canAdd?"Add to lineup":"Unavailable";
   button.setAttribute("aria-label",canAdd?"Add "+(p.player||"player")+" to NHL research lineup":
    "Offer not eligible for current NHL lineup research");
@@ -514,7 +534,7 @@ const DRAFT_STORAGE_KEY="nhl-research-draft-v1";
 function setLineupFeedback(message){$("lineupFeedback").textContent=message;}
 function addBoardProp(p){
  const at=Date.now();
- if(!currentBoardIsFresh()||!isCurrentOffer(p)||!workspace.eligible(p,at)){
+ if(!lineupApproved()||approvedProbability(p)===null||!currentBoardIsFresh()||!isCurrentOffer(p)||!workspace.eligible(p,at)){
   setLineupFeedback("Offer is stale, ineligible or unavailable. No selection was added.");
   render();renderLineup();return;
  }
@@ -576,10 +596,11 @@ function resetEditor(size,clear=true){
  if(clear){editor.touched=false;editor.locks.clear();editor.excluded.clear();}
 }
 function currentCandidates(at){
- return currentBoardIsFresh()?workspace.candidates((data.props||[]).filter(isCurrentOffer),at):[];
+ return lineupApproved()&&currentBoardIsFresh()?workspace.candidates((data.props||[]).filter(p=>isCurrentOffer(p)&&approvedProbability(p)!==null).map(p=>({...p,probability:approvedProbability(p)})),at):[];
 }
 function chooseLineup(at,candidates){
  const size=editor.size,slip=data.lineups?.[String(size)];
+ if(!lineupApproved())return {picks:[],reason:"Lineup recommendations withheld: independent calibration, joint-outcome and settlement evidence is not approved."};
  if(!currentBoardIsFresh()||!candidates.length)
   return {picks:[],reason:"No fresh eligible Standard props. The research builder cannot use an archived board."};
  const ids=new Set(candidates.map(workspace.key));
@@ -609,7 +630,7 @@ function renderLineup(){
  $("rebuildLineup").disabled=!candidates.length;
  $("saveLineupDraft").disabled=!candidates.length;
  $("lineupSwapPanel").hidden=true;
- $("lineupDetails").textContent=formatName+" format selected for research · Same uncalibrated research pool for both formats; format-specific optimization is not yet verified. No payout or joint probability inferred.";
+ $("lineupDetails").textContent=lineupApproved()?formatName+" format selected for research; no outcome is guaranteed.":"Lineup suggestions and editing are paused until independent model and lineup validation is approved.";
  if(!picks.length){
   editor.picks=[];editor.swapIndex=null;
   $("lineupStatus").textContent=result.reason||"No eligible current lineup";
@@ -631,7 +652,7 @@ function renderLineup(){
  for(let i=0;i<picks.length;i++){
   const p=picks[i],tr=document.createElement("tr");
   [((p.player||"Player")+" ("+(p.team||"—")+")"),p.market,p.line,p.lean,
-   pct(p.probability),p.matchup].forEach((v,j)=>cell(tr,v,labels[j]));
+   probabilityLabel(p),p.matchup].forEach((v,j)=>cell(tr,v,labels[j]));
   const td=document.createElement("td");td.dataset.label="Research edits";
   const actions=document.createElement("div");actions.className="lineup-row-actions";
   const id=workspace.key(p),locked=editor.locks.has(id);
@@ -668,7 +689,7 @@ function renderSwapPanel(picks,at){
  const picker=$("lineupSwapOption");picker.replaceChildren();
  for(const p of options){
   const option=document.createElement("option");option.value=workspace.key(p);
-  option.textContent=p.player+" · "+p.market+" "+p.lean+" "+p.line+" · "+pct(p.probability);
+  option.textContent=p.player+" · "+p.market+" "+p.lean+" "+p.line+" · "+probabilityLabel(p);
   picker.append(option);
  }
  $("lineupSwapLabel").textContent="Replace "+picks[index].player+" with a fresh eligible selection";

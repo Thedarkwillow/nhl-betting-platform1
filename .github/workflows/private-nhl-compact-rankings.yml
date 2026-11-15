@@ -1,0 +1,88 @@
+name: Private NHL compact ranking export and validation
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-compact-rankings.yml']
+  workflow_run:
+    workflows:
+      - 'Private pregame NHL freeze on public free runner'
+      - 'Freeze actual-time NHL and NFL pregame Higher Lower research'
+      - 'Private NHL prospective grading and baseline audit via public runner'
+      - 'Public Free Runners - Private NHL and NFL 6 and 9 AM Boards'
+    types: [completed]
+  schedule:
+    - cron: '37 6,9,12,15 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-nhl-compact-ranking-export
+  cancel-in-progress: false
+jobs:
+  export-private:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test exact reviewed development revision without exposing private logs
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          # Only owner-authored pinned revision; no external PR code or inputs.
+          # Once merged, main is the source of truth; no fallback if its tests fail.
+          if test ! -f scripts/export-private-nhl-compact.cjs; then
+            pin=c105230dec19b443982a52fe760771d7db0e9295
+            git fetch -q origin "$pin"
+            git show "$pin:scripts/export-private-nhl-compact.cjs" > scripts/export-private-nhl-compact.cjs
+            git show "$pin:test/nhl-compact-private-export.test.cjs" > test/nhl-compact-private-export.test.cjs
+          fi
+          if ! node --check scripts/export-private-nhl-compact.cjs >"$log" 2>&1 || ! node --test test/nhl-compact-private-export.test.cjs >"$log" 2>&1; then
+            echo '::error::Private compact export test failed; no output published.'
+            exit 1
+          fi
+          echo 'PASS: private compact ranking tests.'
+      - name: Derive current compact tier files from Git-backed originals, no provider calls
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/export-private-nhl-compact.cjs
+          dir=outputs/research/compact-nhl
+          for name in standard goblin demon status; do
+            test -s "$dir/latest-$name.json"
+            test "$(wc -c < "$dir/latest-$name.json")" -le 24000
+          done
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Only these four derivative files are committed, not any copied code.
+          git add -f "$dir/latest-standard.json" "$dir/latest-goblin.json" "$dir/latest-demon.json" "$dir/latest-status.json"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'data: private compact NHL tier research and calibration status' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then
+              echo 'PASS: bounded private derivative files archived.'
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          exit 1
+      - name: No publication of private player data
+        if: always()
+        run: echo 'Only aggregate pass/fail logs; no raw source data, no new bets, no paid API calls.'

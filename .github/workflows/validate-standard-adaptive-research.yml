@@ -1,0 +1,102 @@
+name: Validate NHL Standard adaptive research
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-standard-adaptive-research.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-standard-adaptive-validation
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: da4850b3bdd7e48256ccd9de3e98f8f30941fdb1
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Full private regression and leakage fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          test "$(git rev-parse HEAD)" = da4850b3bdd7e48256ccd9de3e98f8f30941fdb1
+          if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true; echo '::error::Private regression failed'; exit 1; fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+      - name: Cached historical and exact-line report
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/report-nhl-standard-forward-improvement.cjs >"$log" 2>&1; then echo '::error::Private historical or forward report failed'; exit 1; fi
+          node - <<'NODE' >"$log" 2>&1
+          const fs=require('node:fs'),r=require('./outputs/health/nhl-standard-forward-improvement-latest.json');
+          if(r.standardAdaptiveHistorical?.kind!=='nhl_adaptive_synthetic_walk_forward_v2'||r.standardAdaptiveProspective?.retrospective!==false||r.standardAdaptiveExactLineReplay?.retrospective!==true)throw Error('Missing required comparisons');
+          fs.writeFileSync('outputs/health/standard-adaptive-validation-latest.json',JSON.stringify({kind:'private_standard_adaptive_validation_v2',generatedAt:new Date().toISOString(),codeCommit:'da4850b3bdd7e48256ccd9de3e98f8f30941fdb1',historical:r.standardAdaptiveHistorical,retrospectiveExactLines:r.standardAdaptiveExactLineReplay,prospective:r.standardAdaptiveProspective,modelPromoted:false},null,2)+'\n');
+          NODE
+          echo 'PASS: cached historical, exact-line and forward reports, no promotion.'
+      - name: Archive only private research aggregates
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          f=outputs/health/standard-adaptive-validation-latest.json
+          test -s "$f"
+          cp "$f" /tmp/standard-adaptive-validation-latest.json
+          git restore --worktree -- .
+          git fetch -q origin main >"$log" 2>&1
+          git checkout -q --detach origin/main >"$log" 2>&1
+          cp /tmp/standard-adaptive-validation-latest.json "$f"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$f"
+          git diff --cached --quiet && exit 0
+          git commit -m 'audit: private Standard adaptive research aggregates' >"$log" 2>&1
+          for attempt in 1 2 3; do
+            git fetch -q origin main >"$log" 2>&1
+            git rebase -q origin/main >"$log" 2>&1 || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main >"$log" 2>&1; then echo 'PASS: private aggregate archived.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1
+  status:
+    if: always()
+    needs: [validate]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Public metadata only
+        env:
+          RESULT: ${{ needs.validate.result }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          node -e 'require("fs").writeFileSync("data/standard-adaptive-validation.json",JSON.stringify({kind:"standard_adaptive_validation_v2",privateHead:"da4850b3bdd7e48256ccd9de3e98f8f30941fdb1",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),modelPromoted:false})+"\n")'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/standard-adaptive-validation.json
+          git commit -m 'status: private standard adaptive validation' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

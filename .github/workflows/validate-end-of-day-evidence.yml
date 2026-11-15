@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: d2064d72db4268053f1127d6501dfb2c63b57779
+          ref: fa7c236a63ed31b82ac99a06747cf37fee19b888
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
@@ -29,7 +29,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)";trap 'rm -f "$log"' EXIT
-          test "$(git rev-parse HEAD)" = d2064d72db4268053f1127d6501dfb2c63b57779
+          test "$(git rev-parse HEAD)" = fa7c236a63ed31b82ac99a06747cf37fee19b888
           if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true; echo '::error::Private regression failed'; exit 1; fi
           grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
           for script in scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nfl-independent-forward.cjs scripts/build-nhl-period-combo-models.cjs scripts/report-source-completion-evidence.cjs; do
@@ -39,7 +39,7 @@ jobs:
           const fs=require('node:fs'),read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
           const n=read('outputs/health/nhl-standard-forward-improvement-latest.json'),f=read('outputs/nfl/backtests/independent-source-forward-latest.json'),p=read('outputs/backtests/nhl-period-walkforward-latest.json'),s=read('outputs/health/source-completion-readiness-latest.json');
           if(!n.standardReferencePaperSimulation||!f.standardReferencePaperSimulation||f.dedicatedComponentHistoricalResearch?.markets.length!==9||p.dedicatedDistributionResearch?.policies.length!==30||!Number.isInteger(s.odds.archivedConditionalMatches))throw Error('Required research absent');
-          const a={kind:'private_end_of_day_evidence_validation_v1',generatedAt:new Date().toISOString(),codeCommit:'d2064d72db4268053f1127d6501dfb2c63b57779',odds:s.odds,paper:{nhl:n.standardReferencePaperSimulation,nfl:f.standardReferencePaperSimulation},component:f.dedicatedComponentHistoricalResearch,period:p.dedicatedDistributionResearch,modelPromoted:false};
+          const a={kind:'private_end_of_day_evidence_validation_v1',generatedAt:new Date().toISOString(),codeCommit:'fa7c236a63ed31b82ac99a06747cf37fee19b888',odds:s.odds,paper:{nhl:n.standardReferencePaperSimulation,nfl:f.standardReferencePaperSimulation},component:f.dedicatedComponentHistoricalResearch,period:p.dedicatedDistributionResearch,modelPromoted:false};
           fs.writeFileSync('outputs/health/end-of-day-evidence-validation-latest.json',JSON.stringify(a,null,2)+'\n');
           NODE
           echo 'PASS: private archived comparisons and reference simulation reports.'
@@ -84,7 +84,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p data
-          node -e 'require("fs").writeFileSync("data/end-of-day-evidence-validation.json",JSON.stringify({kind:"end_of_day_evidence_validation_v1",privateHead:"d2064d72db4268053f1127d6501dfb2c63b57779",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),modelPromoted:false})+"\n")'
+          node -e 'require("fs").writeFileSync("data/end-of-day-evidence-validation.json",JSON.stringify({kind:"end_of_day_evidence_validation_v1",privateHead:"fa7c236a63ed31b82ac99a06747cf37fee19b888",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),modelPromoted:false})+"\n")'
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/end-of-day-evidence-validation.json

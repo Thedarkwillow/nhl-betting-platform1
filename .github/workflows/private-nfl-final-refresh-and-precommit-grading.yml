@@ -129,3 +129,5 @@ jobs:
           done
           echo "::error::NFL private grading report archival failed"
           exit 1
+
+# 2026-11-14: refresh final-only research after PR 139; preserve first-observed outcome clocks.

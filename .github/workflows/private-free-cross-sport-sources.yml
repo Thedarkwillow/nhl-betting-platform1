@@ -1,0 +1,70 @@
+name: Private NHL NFL free-source research and coverage
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-free-cross-sport-sources.yml']
+  schedule:
+    - cron: '50 5 * * 3'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-free-cross-sport-research
+  cancel-in-progress: false
+jobs:
+  research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test exact source-policy and historical feature contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          pin=2594b0b2b4fb3b9ae178a2f00fcf191dc4b3ce8f
+          if ! test -f scripts/report-free-source-coverage.cjs; then
+            git fetch -q origin "$pin"
+            for file in scripts/research-nfl-free-efficiency.py test/test_nfl_free_efficiency.py src/free-source-integration.cjs src/nhl-open-shot-quality-shadow.cjs test/free-source-integration.test.cjs scripts/report-free-source-coverage.cjs; do
+              git show "$pin:$file" > "$file"
+            done
+          fi
+          node --test test/free-source-integration.test.cjs
+          python -m unittest discover -s test -p test_nfl_free_efficiency.py
+      - name: Derive free NFL efficiency features and NHL coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python -m pip install --quiet nflreadpy
+          python scripts/research-nfl-free-efficiency.py
+          node scripts/report-free-source-coverage.cjs
+      - name: Archive private research reports only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nfl/backtests/free-efficiency-latest.json outputs/health/free-source-coverage-latest.json
+          if test -d outputs/research/free-source-shadow; then git add -f outputs/research/free-source-shadow/*.json; fi
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: private free NFL EPA and NHL source coverage audit'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

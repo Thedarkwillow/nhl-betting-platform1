@@ -67,3 +67,5 @@ jobs:
             sleep "$attempt"
           done
           exit 1
+
+# Validated and merged: run private evidence reports, no provider calls.

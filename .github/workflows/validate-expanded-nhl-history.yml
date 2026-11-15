@@ -1,0 +1,114 @@
+name: Validate expanded NHL history and tier calibration privately
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-expanded-nhl-history.yml']
+permissions:
+  contents: read
+concurrency:
+  group: expanded-nhl-private-research
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 39f804c8e8e40e9f24261bdb8728ae9eedbecbfd
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Full Node and targeted chronological Python regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          test "$(git rev-parse HEAD)" = 39f804c8e8e40e9f24261bdb8728ae9eedbecbfd
+          if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true; echo '::error::Private test failure.'; exit 1; fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          if ! python -m unittest discover -s test -p 'test_nhl_expanded_probabilities.py' >"$log" 2>&1; then echo '::error::Chronological Python regression failed.'; exit 1; fi
+          echo 'PASS: targeted historical probability regressions.'
+      - name: Archive cached original tier intercept comparison (no provider calls)
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node - <<'NODE' >"$log" 2>&1
+          const fs=require('node:fs');
+          const result=require('./src/nhl-tier-calibration-replay.cjs').study(JSON.parse(fs.readFileSync('outputs/research/registry/nhl-precommitted-ledger-latest.json','utf8')));
+          if(!result.tierOffsetReplay||result.prospectiveCalibration!==false||result.modelPromoted!==false)throw Error('calibration contract');
+          fs.writeFileSync('outputs/health/nhl-tier-offset-replay-latest.json',JSON.stringify({...result,generatedAt:new Date().toISOString(),researchCodeCommit:'39f804c8e8e40e9f24261bdb8728ae9eedbecbfd'},null,2)+'\n');
+          NODE
+          echo 'PASS: cached original-tier replay generated.'
+      - name: Evaluate authorized historical MoneyPuck archives only
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! python scripts/research-nhl-expanded-probabilities.py >"$log" 2>&1; then echo '::error::Historical archive evaluation did not complete.'; exit 1; fi
+          echo 'PASS: historical synthetic probability comparison completed.'
+      - name: Preserve aggregate research on private main only
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for file in outputs/backtests/nhl-expanded-probabilities-latest.json outputs/health/nhl-tier-offset-replay-latest.json; do
+            test -s "$file"
+            cp "$file" "/tmp/$(basename "$file")"
+          done
+          git fetch -q origin main >"$log" 2>&1
+          git checkout -q --detach origin/main >"$log" 2>&1
+          for file in outputs/backtests/nhl-expanded-probabilities-latest.json outputs/health/nhl-tier-offset-replay-latest.json; do cp "/tmp/$(basename "$file")" "$file"; done
+          git add -f outputs/backtests/nhl-expanded-probabilities-latest.json outputs/health/nhl-tier-offset-replay-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'audit: archive expanded history and tier calibration aggregates privately' >"$log" 2>&1
+          for attempt in 1 2 3; do
+            git fetch -q origin main >"$log" 2>&1
+            git rebase -q origin/main >"$log" 2>&1 || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main >"$log" 2>&1; then echo 'PASS: aggregate comparison archived privately.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1
+  status:
+    if: always()
+    needs: [validate]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Record status only
+        env:
+          RESULT: ${{ needs.validate.result }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          node -e 'require("fs").writeFileSync("data/expanded-nhl-history-validation.json",JSON.stringify({kind:"expanded_private_history_validation_v1",privateHead:"39f804c8e8e40e9f24261bdb8728ae9eedbecbfd",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),calibrated:false,modelPromoted:false})+"\n")'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/expanded-nhl-history-validation.json
+          git commit -m 'status: expanded private NHL history validation' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

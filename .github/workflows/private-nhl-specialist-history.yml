@@ -1,0 +1,62 @@
+name: Private NHL specialist history and historical PP coverage
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-specialist-history.yml']
+  schedule:
+    - cron: '20 5,11,17,23 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-nhl-specialist-history
+  cancel-in-progress: false
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify joins and specialist tests
+        run: |
+          set -euo pipefail
+          umask 077
+          pin=1ea3638d75b5be3c5f5a8b58988e3f14e179c145
+          if ! test -f scripts/recover-nhl-specialist-history.cjs; then
+            git fetch -q origin "$pin"
+            for f in src/nhl-specialist-history-recovery.cjs src/nhl-specialist-matchup-ablation.cjs scripts/recover-nhl-specialist-history.cjs test/nhl-specialist-history-recovery.test.cjs; do git show "$pin:$f" > "$f"; done
+          fi
+          node --check scripts/recover-nhl-specialist-history.cjs
+          node --test test/nhl-specialist-history-recovery.test.cjs test/nhl-eight-priorities.test.cjs
+      - name: Recover existing archives and collect at most sixteen dates
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/recover-nhl-specialist-history.cjs
+      - name: Archive private aggregate and PP data
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if test -d outputs/research/nhl-pp-history; then git add -f outputs/research/nhl-pp-history/*.json; fi
+          if test -f outputs/health/nhl-specialist-source-recovery-latest.json; then git add -f outputs/health/nhl-specialist-source-recovery-latest.json; fi
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: private NHL specialist history and exact power-play ice time'
+          git restore -- src/nhl-specialist-matchup-ablation.cjs
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

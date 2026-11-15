@@ -13,5 +13,12 @@
   const v=data?.probabilityValidation;
   return v?.estimatedProbabilitiesValidated===true&&v?.bettingRecommendationsApproved===true&&v?.actualPlatformSettlementsVerified===true&&v?.payoutAdjustedEVVerified===true&&data?.researchQuality?.lineupJointProbabilityVerified===true&&v?.lineupRecommendationsApproved===true;
  }
- return {probability,lineup};
+ function historySummary(rows,line,n){
+  if(!Array.isArray(rows)||typeof line!=="number"||!Number.isFinite(line)||!Number.isInteger(n)||n<1)return null;
+  const a=rows.slice(-n);
+  if(a.length<n||a.some(x=>!x||typeof x.value!=="number"||!Number.isFinite(x.value)))return null;
+  const above=a.filter(x=>x.value>line).length,below=a.filter(x=>x.value<line).length;
+  return {games:n,above,below,push:n-above-below,average:a.reduce((t,x)=>t+x.value,0)/n};
+ }
+ return {probability,lineup,historySummary};
 });

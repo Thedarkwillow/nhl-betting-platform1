@@ -101,3 +101,5 @@ jobs:
             sleep "$attempt"
           done
           exit 1
+
+# Owner confirmed ODDS_API_KEY added: run bounded credential/quota and fresh quote verification 2026-11-14.

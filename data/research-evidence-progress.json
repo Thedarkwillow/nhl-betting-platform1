@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "public_research_progress_counts_v1",
+  "generatedAt": "2026-11-15T13:09:55.214Z",
+  "sourceReportAt": "2026-11-15T13:03:59.585Z",
+  "periodHistory": {
+    "accountedDays": 60,
+    "calendarDays": 261,
+    "pendingDays": 201
+  },
+  "evidence": {
+    "nhl": {
+      "firstObserved": 1873,
+      "matchedCalibrationRows": 0
+    },
+    "nfl": {
+      "firstObserved": 0,
+      "matchedCalibrationRows": 0
+    }
+  },
+  "sportsbook": {
+    "strictMatched": 0,
+    "conditionalArchived": 12,
+    "within30Minutes": 0,
+    "verifiedLiveConsensus": false
+  },
+  "lineupResearch": {
+    "NHL": {
+      "distinctResolvedSlates": null
+    },
+    "NFL": {
+      "distinctResolvedSlates": null
+    }
+  },
+  "paper": {
+    "authenticatedSettledEntries": 0,
+    "verifiedROI": null
+  },
+  "proprietaryRowsPublished": 0,
+  "calibrationApproved": false,
+  "modelPromoted": false
+}

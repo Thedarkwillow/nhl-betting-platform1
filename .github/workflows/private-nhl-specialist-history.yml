@@ -61,3 +61,5 @@ jobs:
             sleep "$attempt"
           done
           exit 1
+
+# Owner-requested continuation Nov 15 after coverage audit; keep the existing collection limits and serial concurrency.

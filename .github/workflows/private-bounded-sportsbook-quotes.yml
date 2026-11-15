@@ -42,6 +42,10 @@ jobs:
           // No NHL paid odds request without a recent original private source/freeze.
           // Re-check immutable first Git commit, not mtime or a last-updated pointer.
           const {execFileSync}=require('node:child_process');
+          const norm=s=>String(s||'').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+          const nhlClubs=Object.fromEntries('ANA:Anaheim Ducks|BOS:Boston Bruins|BUF:Buffalo Sabres|CGY:Calgary Flames|CAR:Carolina Hurricanes|CHI:Chicago Blackhawks|COL:Colorado Avalanche|CBJ:Columbus Blue Jackets|DAL:Dallas Stars|DET:Detroit Red Wings|EDM:Edmonton Oilers|FLA:Florida Panthers|LAK:Los Angeles Kings|MIN:Minnesota Wild|MTL:Montreal Canadiens|NSH:Nashville Predators|NJD:New Jersey Devils|NYI:New York Islanders|NYR:New York Rangers|OTT:Ottawa Senators|PHI:Philadelphia Flyers|PIT:Pittsburgh Penguins|SEA:Seattle Kraken|SJS:San Jose Sharks|STL:St Louis Blues|TBL:Tampa Bay Lightning|TOR:Toronto Maple Leafs|UTA:Utah Mammoth|VAN:Vancouver Canucks|VGK:Vegas Golden Knights|WSH:Washington Capitals|WPG:Winnipeg Jets'.split('|').map(x=>x.split(':')));
+          const club=t=>{t=String(t||'').trim().toUpperCase();return norm(nhlClubs[({SJ:'SJS',LA:'LAK',NJ:'NJD',TB:'TBL'})[t]||t]);};
+          const pair=(a,b)=>a&&b&&a!==b?[a,b].sort().join('|'):null;
           function recentNhlFreeze(){
             const dir='outputs/research/snapshots';
             try{
@@ -56,12 +60,13 @@ jobs:
                 const d=JSON.parse(git(['show',c[0]+':'+p])),built=Date.parse(d.generatedAt);
                 if(d.source!=='partner-api.prizepicks.com'||d.boardFresh!==true||d.projectionsFresh!==true||d.boardCoverageComplete!==true||!(built<=at+999&&at-built<900000))continue;
                 const rows=(d.rankedProps||[]).filter(x=>Date.parse(x.capturedAt)<=now&&now-Date.parse(x.capturedAt)<25*60000&&Date.parse(x.gameStartAt)>now+20*60000&&['shotsOnGoal','goals','assists','points','blockedShots','saves'].includes(x.market));
-                if(rows.length)return rows.map(x=>({start:Date.parse(x.gameStartAt)}));
+                if(rows.length)return rows.map(x=>({start:Date.parse(x.gameStartAt),teams:pair(club(x.team),club(x.opponent)),identity:JSON.stringify([x.playerId,x.market,x.line,x.tier]),tier:x.tier})).filter(x=>x.teams);
               }
             }catch{}
             return [];
           }
           const nhlTargets=recentNhlFreeze();
+          const nhlMatchCount=e=>new Set(nhlTargets.filter(x=>x.teams===pair(norm(e.home_team),norm(e.away_team))&&Math.abs(x.start-Date.parse(e.commence_time))<=300000).map(x=>x.identity)).size;
           const books=['draftkings','fanduel','betmgm','caesars'];
           const sports={NHL:{key:'icehockey_nhl',markets:{player_shots_on_goal:'shotsOnGoal',player_goals:'goals',player_assists:'assists',player_points:'points',player_blocked_shots:'blockedShots',player_total_saves:'saves'}},NFL:{key:'americanfootball_nfl',markets:{player_pass_yds:'passing_yards',player_rush_yds:'rushing_yards',player_reception_yds:'receiving_yards',player_receptions:'receptions',player_pass_tds:'passing_touchdowns',player_pass_completions:'passing_completions'}}};
           const status={kind:'bounded_sportsbook_capture_v1',generatedAt:new Date().toISOString(),scope:'one pregame event per sport at most; not full board',requests:0,quotaCreditsReported:0,results:{},newPurchase:false,verifiedLiveConsensus:false};
@@ -85,7 +90,7 @@ jobs:
               try{
                 if(sport==='NHL'&&!nhlTargets.length){status.results[sport]={status:'no_recent_original_nhl_freeze_no_paid_calls',rows:0};continue;}
                 const events=await get(s.key+'/events');
-                const game=Array.isArray(events)?events.filter(e=>typeof e.id==='string'&&Date.parse(e.commence_time)>Date.now()+15*60000&&Date.parse(e.commence_time)<Date.now()+36*3600000&&(sport!=='NHL'||nhlTargets.some(x=>Math.abs(x.start-Date.parse(e.commence_time))<=300000))).sort((a,b)=>Date.parse(a.commence_time)-Date.parse(b.commence_time))[0]:null;
+                const game=Array.isArray(events)?events.filter(e=>typeof e.id==='string'&&Date.parse(e.commence_time)>Date.now()+15*60000&&Date.parse(e.commence_time)<Date.now()+36*3600000&&(sport!=='NHL'||nhlMatchCount(e)>0)).sort((a,b)=>(sport==='NHL'?nhlMatchCount(b)-nhlMatchCount(a):0)||Date.parse(a.commence_time)-Date.parse(b.commence_time))[0]:null;
                 if(!game){status.results[sport]={status:'no_upcoming_event_in_window',rows:0};continue;}
                 if(remaining===null||remaining<56||status.quotaCreditsReported===null||status.quotaCreditsReported+6>12){status.results[sport]={status:'quota_reserve_or_usage_unverified',rows:0};continue;}
                 const data=await get(s.key+'/events/'+encodeURIComponent(game.id)+'/odds',{bookmakers:books.join(','),markets:Object.keys(s.markets).join(','),oddsFormat:'american'});

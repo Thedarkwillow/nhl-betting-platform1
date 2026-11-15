@@ -30,14 +30,14 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          pin=871ea31e908c3dd468d74f156c6bc736b3d54823
-          if ! test -f scripts/recover-nhl-specialist-history.cjs; then
+          pin=c048d7f32d7fce74fb9112e95401e54c6397bf40
+          if ! test -f src/nhl-specialist-challengers-v2.cjs; then
             git fetch -q origin "$pin"
-            for f in src/nhl-specialist-history-recovery.cjs src/nhl-specialist-matchup-ablation.cjs scripts/recover-nhl-specialist-history.cjs scripts/report-nhl-eight-priorities.cjs test/nhl-specialist-history-recovery.test.cjs; do git show "$pin:$f" > "$f"; done
+            for f in src/nhl-specialist-challengers-v2.cjs src/nhl-standard-prospective-proof.cjs scripts/recover-nhl-specialist-history.cjs scripts/report-nhl-standard-proof.cjs test/nhl-specialist-standard-proof.test.cjs; do git show "$pin:$f" > "$f"; done
           fi
           node --check scripts/recover-nhl-specialist-history.cjs
           node --check scripts/report-nhl-eight-priorities.cjs
-          node --test test/nhl-specialist-history-recovery.test.cjs test/nhl-eight-priorities.test.cjs
+          node --test test/nhl-specialist-history-recovery.test.cjs test/nhl-eight-priorities.test.cjs test/nhl-specialist-standard-proof.test.cjs
       - name: Recover existing archives and collect at most sixteen dates
         run: |
           set -euo pipefail
@@ -53,7 +53,7 @@ jobs:
           if test -f outputs/health/nhl-specialist-source-recovery-latest.json; then git add -f outputs/health/nhl-specialist-source-recovery-latest.json; fi
           git diff --cached --quiet && exit 0
           git commit -qm 'research: private NHL specialist history and exact power-play ice time'
-          git restore -- src/nhl-specialist-matchup-ablation.cjs scripts/report-nhl-eight-priorities.cjs
+          git restore -- scripts/recover-nhl-specialist-history.cjs
           for attempt in 1 2 3; do
             git fetch -q origin main
             git rebase -q origin/main || { git rebase --abort; exit 1; }

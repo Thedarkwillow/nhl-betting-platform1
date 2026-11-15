@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
     paths: ['.github/workflows/private-bounded-sportsbook-quotes.yml']
+  workflow_run:
+    workflows: ['Private pregame NHL freeze on public free runner', 'Public Free Runners - Private NHL and NFL 6 and 9 AM Boards']
+    types: [completed]
   schedule:
     # Calendar-day quota reservation replaces the cross-day 20-hour lock.
     - cron: '25 9 * * *'
@@ -17,6 +20,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   capture:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

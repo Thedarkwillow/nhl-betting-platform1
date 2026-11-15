@@ -29,10 +29,10 @@ jobs:
       - name: Validate parser and access policy
         run: |
           set -euo pipefail
-          pin=d72b6693a5a1cf17ed006e7037f3319eee4bb473
-          if ! grep -q -- "--retry-schema" scripts/collect-keyfree-sports-tables.py 2>/dev/null; then
+          pin=ba770c7cccbe015153ef2434d2ccc35a78ffbae9
+          if ! test -f scripts/report-keyfree-source-fallbacks.cjs; then
             git fetch -q origin "$pin"
-            for file in scripts/collect-keyfree-sports-tables.py test/test_keyfree_sports_tables.py; do git show "$pin:$file" > "$file"; done
+            for file in scripts/collect-keyfree-sports-tables.py test/test_keyfree_sports_tables.py scripts/report-keyfree-source-fallbacks.cjs; do git show "$pin:$file" > "$file"; done
           fi
           python -m pip install --quiet beautifulsoup4
           python -m unittest discover -s test -p test_keyfree_sports_tables.py
@@ -44,6 +44,8 @@ jobs:
           else
             python scripts/collect-keyfree-sports-tables.py
           fi
+      - name: Verify archived substitutes for restricted providers
+        run: node scripts/report-keyfree-source-fallbacks.cjs
       - name: Archive only in private repository
         run: |
           set -euo pipefail

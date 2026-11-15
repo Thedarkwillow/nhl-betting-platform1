@@ -34,7 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          pin=2c39748c590823e19c791041368354ba4f9148b4
+          pin=0c02019e7a92ce283bfbb19c2b8f35f6da92317c
           tested="$(git rev-parse HEAD)"
           if ! test -f scripts/report-nhl-shot-point-opportunity.cjs; then
             git fetch -q origin "$pin"
@@ -48,7 +48,7 @@ jobs:
             set -e
             cd - >/dev/null
             mkdir -p outputs/health
-            TESTED="$pin" STATUS="$teststatus" LOGFILE="$work/test-output.txt" node -e 'const fs=require("fs");const logfile=process.env.LOGFILE;const summary=fs.existsSync(logfile)?fs.readFileSync(logfile,"utf8").split("\\n").filter(x=>/^not ok|^# (tests|pass|fail|cancelled)|AssertionError|TypeError|SyntaxError/.test(x)).slice(0,20):[];fs.writeFileSync("outputs/health/nhl-shot-point-opportunity-diagnostic-latest.json",JSON.stringify({testedCommit:process.env.TESTED,generatedAt:new Date().toISOString(),passed:process.env.STATUS==="0",testSummary:summary,paidRequests:0})+"\\n")'
+            TESTED="$pin" STATUS="$teststatus" LOGFILE="$work/test-output.txt" node -e 'const fs=require("fs");const logfile=process.env.LOGFILE;const summary=fs.existsSync(logfile)?fs.readFileSync(logfile,"utf8").split("\n").filter(x=>/^not ok|^# (tests|pass|fail|cancelled)|AssertionError|TypeError|SyntaxError/.test(x)).slice(0,20):[];fs.writeFileSync("outputs/health/nhl-shot-point-opportunity-diagnostic-latest.json",JSON.stringify({testedCommit:process.env.TESTED,generatedAt:new Date().toISOString(),passed:process.env.STATUS==="0",testSummary:summary,paidRequests:0})+"\n")'
             tested="$pin"
             if test "$teststatus" = 0; then
               if (cd "$work"; node scripts/report-nhl-shot-point-opportunity.cjs); then cp "$work/outputs/health/nhl-shot-point-opportunity-latest.json" outputs/health/nhl-shot-point-opportunity-latest.json; else echo "Historical report failed after unit tests; preserving diagnostic"; fi

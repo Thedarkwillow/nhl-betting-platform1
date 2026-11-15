@@ -1,0 +1,57 @@
+name: Private key-free NHL NFL source tables
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-keyfree-sports-tables.yml']
+  schedule:
+    - cron: '45 5 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-keyfree-sports-tables
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate parser and access policy
+        run: |
+          set -euo pipefail
+          pin=40d0c63b021c0ce16d053dc328d2a84ff8f4368e
+          if ! test -f scripts/collect-keyfree-sports-tables.py; then
+            git fetch -q origin "$pin"
+            for file in scripts/collect-keyfree-sports-tables.py test/test_keyfree_sports_tables.py; do git show "$pin:$file" > "$file"; done
+          fi
+          python -m pip install --quiet beautifulsoup4
+          python -m unittest discover -s test -p test_keyfree_sports_tables.py
+      - name: Collect bounded approved public tables
+        run: |
+          umask 077
+          python scripts/collect-keyfree-sports-tables.py
+      - name: Archive only in private repository
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/keyfree-source-tables/*.json
+          git diff --cached --quiet && exit 0
+          git commit -qm 'data: private key-free NHL NFL public table observations'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

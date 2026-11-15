@@ -1,0 +1,98 @@
+name: Validate private end of day evidence integration
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-end-of-day-evidence.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-end-of-day-validation
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: d2064d72db4268053f1127d6501dfb2c63b57779
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regression and archived research only
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          test "$(git rev-parse HEAD)" = d2064d72db4268053f1127d6501dfb2c63b57779
+          if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true; echo '::error::Private regression failed'; exit 1; fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          for script in scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nfl-independent-forward.cjs scripts/build-nhl-period-combo-models.cjs scripts/report-source-completion-evidence.cjs; do
+            if ! node "$script" >"$log" 2>&1; then echo "::error::Private cached report failed: $script"; exit 1; fi
+          done
+          node - <<'NODE' >"$log" 2>&1
+          const fs=require('node:fs'),read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+          const n=read('outputs/health/nhl-standard-forward-improvement-latest.json'),f=read('outputs/nfl/backtests/independent-source-forward-latest.json'),p=read('outputs/backtests/nhl-period-walkforward-latest.json'),s=read('outputs/health/source-completion-readiness-latest.json');
+          if(!n.standardReferencePaperSimulation||!f.standardReferencePaperSimulation||f.dedicatedComponentHistoricalResearch?.markets.length!==9||p.dedicatedDistributionResearch?.policies.length!==30||!Number.isInteger(s.odds.archivedConditionalMatches))throw Error('Required research absent');
+          const a={kind:'private_end_of_day_evidence_validation_v1',generatedAt:new Date().toISOString(),codeCommit:'d2064d72db4268053f1127d6501dfb2c63b57779',odds:s.odds,paper:{nhl:n.standardReferencePaperSimulation,nfl:f.standardReferencePaperSimulation},component:f.dedicatedComponentHistoricalResearch,period:p.dedicatedDistributionResearch,modelPromoted:false};
+          fs.writeFileSync('outputs/health/end-of-day-evidence-validation-latest.json',JSON.stringify(a,null,2)+'\n');
+          NODE
+          echo 'PASS: private archived comparisons and reference simulation reports.'
+      - name: Archive only isolated aggregate
+        shell: bash
+        run: |
+          set -euo pipefail
+          log="$(mktemp)";trap 'rm -f "$log"' EXIT
+          f=outputs/health/end-of-day-evidence-validation-latest.json
+          cp "$f" /tmp/end-of-day-evidence-validation-latest.json
+          git restore --worktree -- .
+          git fetch -q origin main
+          git checkout -q --detach origin/main
+          cp /tmp/end-of-day-evidence-validation-latest.json "$f"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$f"
+          git diff --cached --quiet && exit 0
+          git commit -m 'audit: private end-of-day evidence validation aggregate' >"$log" 2>&1
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main >"$log" 2>&1; then echo 'PASS: private aggregate archived.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1
+  status:
+    if: always()
+    needs: [validate]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Public metadata only
+        env:
+          RESULT: ${{ needs.validate.result }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          node -e 'require("fs").writeFileSync("data/end-of-day-evidence-validation.json",JSON.stringify({kind:"end_of_day_evidence_validation_v1",privateHead:"d2064d72db4268053f1127d6501dfb2c63b57779",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),modelPromoted:false})+"\n")'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/end-of-day-evidence-validation.json
+          git commit -m 'status: private end-of-day validation' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

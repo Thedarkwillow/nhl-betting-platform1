@@ -66,21 +66,31 @@ jobs:
           const {providerUsage}=require('./src/prizepicksapi-nhl-request.cjs');
           const realFetch=global.fetch;
           const minimumRemaining=process.env.EXTRA_SOURCE_WINDOW==='true'?200:100;
-          let calls=0,last=0,boardCalls=0,lastHttp=null,phase='initial',lastPageRows=null,lastPageHasNext=null;
+          let calls=0,last=0,boardCalls=0,lastHttp=null,phase='initial',lastPageRows=null,lastPageHasNext=null,remaining=null,networkRetries=0;
           global.fetch=async(url,options)=>{
             const u=new URL(url);
             if(u.origin!=='https://prizepicksapi.com'||!['/api/v1/coverage','/api/v1/board'].includes(u.pathname)||calls>=36)
               throw Error('request_budget_or_endpoint');
             if(calls===0&&u.pathname!=='/api/v1/coverage')throw Error('coverage_required');
-            const wait=Math.max(0,7000-(Date.now()-last));
-            if(wait)await new Promise(r=>setTimeout(r,wait));
-            last=Date.now();calls++;if(u.pathname==='/api/v1/board')boardCalls++;
-            const r=await realFetch(url,options);lastHttp=r.status;
+            let r;
+            for(let attempt=0;attempt<2;attempt++){
+              if(calls>=36||(remaining!==null&&remaining<=minimumRemaining-36))throw Error('request_budget_or_endpoint');
+              const wait=Math.max(0,7000-(Date.now()-last));
+              if(wait)await new Promise(r=>setTimeout(r,wait));
+              last=Date.now();calls++;if(u.pathname==='/api/v1/board')boardCalls++;
+              try{r=await realFetch(url,{...options,signal:AbortSignal.timeout(30000)});break;}
+              catch(e){
+                if(attempt||u.pathname!=='/api/v1/board'||remaining===null||networkRetries>=2||calls>=36||!['TypeError','TimeoutError','AbortError'].includes(e.name))throw e;
+                networkRetries++;remaining--; // Conservatively charge uncertain request; same immutable URL/cursor only.
+              }
+            }
+            lastHttp=r.status;
             if(r.ok){
               const q=providerUsage(r.headers);
               if(q.unit!=='requests'||!Number.isInteger(q.requestsRemaining)||
                  (u.pathname==='/api/v1/coverage'&&q.requestsRemaining<minimumRemaining))
                 throw Error('legacy_request_quota_not_verified');
+              remaining=q.requestsRemaining;
             }
             if(r.ok&&u.pathname==='/api/v1/board'){
               phase='board_pagination';

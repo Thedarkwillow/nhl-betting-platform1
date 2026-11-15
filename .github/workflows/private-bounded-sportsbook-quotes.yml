@@ -65,12 +65,14 @@ jobs:
         run: |
           mkdir -p outputs/sportsbooks/bounded-live
           node -e 'const fs=require("node:fs");fs.writeFileSync("outputs/sportsbooks/bounded-live/collector-test-status.json",JSON.stringify({generatedAt:new Date().toISOString(),testedCommit:process.env.ODDS_TESTED_REVISION,passed:true,providerRequestsDuringTests:0})+"\n")'
-      - name: Archive privately, no publicly exposed source quotes
+      - name: Archive privately, even if quote processing failed
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! test -d outputs/sportsbooks/bounded-live; then exit 0; fi
           git add -f outputs/sportsbooks/bounded-live/*.json
           git diff --cached --quiet && exit 0
           git commit -m 'data: bounded private sportsbook quote capture status' >/dev/null

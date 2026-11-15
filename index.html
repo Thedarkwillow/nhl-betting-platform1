@@ -292,10 +292,20 @@ function showPlayerDetail(p){
   host.append(grid,source);
   const history=window.RoadmapEvidenceDesk?.historyChart(insight.recentOfficialValues,p.capturedAt)||[];
   if(history.length){
-   const title=document.createElement("h3");title.textContent="Recent official game results";
+   const title=document.createElement("h3");title.textContent="Recent official game results vs "+p.line;
+   const stats=document.createElement("div");stats.className="detail-stats-grid";
+   for(const n of [5,10,15]){
+    const summary=window.PropEvidenceGate?.historySummary(history,p.line,n),card=document.createElement("div");card.className="detail-stat-card";
+    const label=document.createElement("span");label.textContent="Last "+n+" · historical only";
+    const count=document.createElement("strong");count.textContent=summary?summary.above+" above / "+summary.below+" below":"Unavailable";
+    const detail=document.createElement("small");detail.textContent=summary?summary.push+" ties · avg "+summary.average.toFixed(2):"Insufficient archived results";
+    card.append(label,count,detail);stats.append(card);
+   }
+   host.append(stats);
+   const unavailable=document.createElement("p");unavailable.className="minor";unavailable.textContent="Season threshold history, opponent filters, position-specific defense, injuries and similar-player context require separately verified source coverage. No values are inferred.";host.append(unavailable);
    const chart=document.createElement("div");chart.className="roadmap-history-chart";chart.setAttribute("role","group");chart.setAttribute("aria-label","Earlier official statistical results");
-   const maximum=Math.max(1,...history.map(x=>x.value));
-   for(const x of history){const row=document.createElement("div"),label=document.createElement("span"),meter=document.createElement("meter"),value=document.createElement("span");row.className="roadmap-history-row";label.textContent=x.date;meter.min=0;meter.max=maximum;meter.value=x.value;meter.setAttribute("aria-label",x.date+" stat total");value.textContent=String(x.value);row.append(label,meter,value);chart.append(row);}
+   const maximum=Math.max(1,...history.map(x=>x.value),Number.isFinite(p.line)?p.line:0);
+   for(const x of history){const row=document.createElement("div"),label=document.createElement("span"),meter=document.createElement("meter"),value=document.createElement("span");row.className="roadmap-history-row";label.textContent=x.date;meter.min=0;meter.max=maximum;meter.value=x.value;meter.setAttribute("aria-label",x.date+" stat total");value.textContent=String(x.value)+(Number.isFinite(p.line)?(x.value>p.line?" · above":x.value<p.line?" · below":" · tie"):"");row.append(label,meter,value);chart.append(row);}
    host.append(title,chart);
   }
  }

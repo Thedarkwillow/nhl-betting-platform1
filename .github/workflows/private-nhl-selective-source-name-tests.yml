@@ -1,0 +1,70 @@
+name: Validate pinned private NHL selective and source-name changes
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-selective-source-name-tests.yml']
+permissions:
+  contents: write
+concurrency:
+  group: private-nhl-selective-source-name-tests
+  cancel-in-progress: false
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test the two exact owner-created PR revisions separately
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          trial=357786d4aed63636dbe478596d2744f9177e094b
+          identity=483ae1729984db45668cea64685509d2ccc2540d
+          git fetch -q origin "$trial" "$identity"
+          git checkout -q --detach "$trial"
+          test "$(git rev-parse HEAD)" = "$trial"
+          if ! node --test test/nhl-selective-standard-tier-trial.test.cjs >"$log" 2>&1; then
+            echo '::error::Selective Standard/tier trial failed.'
+            exit 1
+          fi
+          git checkout -q --detach "$identity"
+          test "$(git rev-parse HEAD)" = "$identity"
+          if ! node --test test/nhl-sportsbook-original-name.test.cjs test/partner-prizepicks-model-bridge.test.cjs test/nhl-standard-adaptive-research.test.cjs >"$log" 2>&1; then
+            echo '::error::Source name or dependent regression failed.'
+            exit 1
+          fi
+          echo 'PASS: both pinned private revisions passed targeted tests.'
+      - name: Publish only pinned revision pass status
+        working-directory: public
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          node -e 'require("node:fs").writeFileSync("data/nhl-selective-crosswalk-test-status.json",JSON.stringify({kind:"public_private_research_tests_status_v1",generatedAt:new Date().toISOString(),selective:{revision:"357786d4aed63636dbe478596d2744f9177e094b",passed:true},identity:{revision:"483ae1729984db45668cea64685509d2ccc2540d",passed:true},providerCalls:0,rawRowsPublished:0})+"\n")'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/nhl-selective-crosswalk-test-status.json
+          git commit -qm 'status: both pinned private NHL selective and exact-source-name regressions passed'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

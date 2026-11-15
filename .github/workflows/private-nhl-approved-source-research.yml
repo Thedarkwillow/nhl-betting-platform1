@@ -9,6 +9,8 @@ on:
       timezone: America/Los_Angeles
     - cron: '40 12 * * *'
       timezone: America/Los_Angeles
+    - cron: '40 15 * * *'
+      timezone: America/Los_Angeles
 permissions:
   contents: read
 concurrency:
@@ -103,3 +105,5 @@ jobs:
           echo "::error::Approved NHL private research archive not confirmed";exit 1
 
 # November 15: owner-requested refresh of existing approved MoneyPuck source pipeline for free-source research; unchanged source limits and rights gates.
+
+# Owner-requested verification Nov 15; preserve provider caps and strict original chronology.

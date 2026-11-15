@@ -38,14 +38,20 @@ jobs:
         run: |
           set -euo pipefail
           pin=83b27ec1d879494125ba65296f00a46211fa78e6
+          tested="$(git rev-parse HEAD)"
           if ! test -f scripts/collect-bounded-sportsbook-quotes.cjs; then
             git fetch -q origin "$pin"
-            for f in src/sportsbook-event-quota.cjs test/sportsbook-event-quota.test.cjs scripts/collect-bounded-sportsbook-quotes.cjs src/archived-prop-market-benchmark.cjs test/nhl-sportsbook-event-bridge.test.cjs; do
-              git show "$pin:$f" > "$f"
-            done
+            work="$(mktemp -d)"
+            git worktree add -q --detach "$work" "$pin"
+            trap 'git worktree remove --force "$work" >/dev/null 2>&1 || true' EXIT
+            (cd "$work"; node --check scripts/collect-bounded-sportsbook-quotes.cjs; node --test test/sportsbook-event-quota.test.cjs test/nhl-sportsbook-event-bridge.test.cjs test/nhl-sportsbook-original-name.test.cjs)
+            tested="$pin"
+          else
+            node --check scripts/collect-bounded-sportsbook-quotes.cjs
+            node --test test/sportsbook-event-quota.test.cjs test/nhl-sportsbook-event-bridge.test.cjs test/nhl-sportsbook-original-name.test.cjs
           fi
-          node --check scripts/collect-bounded-sportsbook-quotes.cjs
-          node --test test/sportsbook-event-quota.test.cjs test/nhl-sportsbook-event-bridge.test.cjs test/nhl-sportsbook-original-name.test.cjs
+          mkdir -p outputs/sportsbooks/bounded-live
+          TESTED="$tested" node -e 'const fs=require("node:fs");fs.writeFileSync("outputs/sportsbooks/bounded-live/collector-test-status.json",JSON.stringify({generatedAt:new Date().toISOString(),testedCommit:process.env.TESTED,passed:true,providerRequests:0})+"\n")'
       - name: Collect fresh exact-line sportsbook evidence within independent sport quota
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
@@ -53,6 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
+          if ! test -f scripts/collect-bounded-sportsbook-quotes.cjs; then echo 'Tests ran on pinned branch; paid collection requires merged main.'; exit 0; fi
           node scripts/collect-bounded-sportsbook-quotes.cjs
       - name: Archive privately, no publicly exposed source quotes
         shell: bash

@@ -101,3 +101,5 @@ jobs:
             sleep "$attempt"
           done
           echo "::error::Approved NHL private research archive not confirmed";exit 1
+
+# November 15: owner-requested refresh of existing approved MoneyPuck source pipeline for free-source research; unchanged source limits and rights gates.

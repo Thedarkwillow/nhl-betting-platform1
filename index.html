@@ -292,13 +292,13 @@ function showPlayerDetail(p){
   host.append(grid,source);
   const history=window.RoadmapEvidenceDesk?.historyChart(insight.recentOfficialValues,p.capturedAt)||[];
   if(history.length){
-   const title=document.createElement("h3");title.textContent="Recent official game results vs "+p.line;
+   const title=document.createElement("h3");title.textContent="Recent official game results vs "+p.line+" · historical frequency, not a forecast";
    const stats=document.createElement("div");stats.className="detail-stats-grid";
-   for(const n of [5,10,15]){
+   for(const n of [5,10,15,20]){
     const summary=window.PropEvidenceGate?.historySummary(history,p.line,n),card=document.createElement("div");card.className="detail-stat-card";
     const label=document.createElement("span");label.textContent="Last "+n+" · historical only";
-    const count=document.createElement("strong");count.textContent=summary?summary.above+" above / "+summary.below+" below":"Unavailable";
-    const detail=document.createElement("small");detail.textContent=summary?summary.push+" ties · avg "+summary.average.toFixed(2):"Insufficient archived results";
+    const count=document.createElement("strong");count.textContent=summary?summary.above+" / "+summary.games+" above ("+Math.round(100*summary.above/summary.games)+"%)":"Unavailable";
+    const detail=document.createElement("small");detail.textContent=summary?summary.below+" below · "+summary.push+" ties · avg "+summary.average.toFixed(2):"Insufficient archived results";
     card.append(label,count,detail);stats.append(card);
    }
    host.append(stats);

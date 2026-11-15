@@ -200,3 +200,5 @@ jobs:
 # 2026-11-15: owner-requested fresh no-paid-credit partner freeze to exercise compact private ranking export (PR 147).
 
 # November 15: original post-merge forecast for the selective trial and exact-source player-name benchmark; no new paid API calls.
+
+# Owner requested fresh November 15 source capture to exercise daily quota-aware sportsbook comparison; no paid calls in this freeze.

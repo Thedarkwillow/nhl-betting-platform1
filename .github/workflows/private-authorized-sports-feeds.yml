@@ -1,0 +1,88 @@
+name: Private authorized NHL NFL data feeds
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-authorized-sports-feeds.yml']
+  schedule:
+    - cron: '32 9 * * *'
+      timezone: America/Los_Angeles
+  workflow_run:
+    workflows: ['Private pregame NHL freeze on public free runner']
+    types: [completed]
+permissions:
+  contents: read
+concurrency:
+  group: private-authorized-sports-feeds
+  cancel-in-progress: false
+jobs:
+  research:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test private source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          pin=fd7475080ca8eb939709d1df5cc312ae5d1a0d5b
+          if ! test -f scripts/collect-authorized-sports-sources.cjs; then
+            git fetch -q origin "$pin"
+            for file in scripts/collect-authorized-sports-sources.cjs scripts/grade-authorized-edge-shadow.cjs test/authorized-sports-sources.test.cjs; do
+              git show "$pin:$file" > "$file"
+            done
+          fi
+          node --test test/authorized-sports-sources.test.cjs
+      - name: Bounded private approved feeds
+        env:
+          FANTASYPROS_API_KEY: ${{ secrets.FANTASYPROS_API_KEY }}
+          NATURAL_STAT_TRICK_EXPORT_URL: ${{ secrets.NATURAL_STAT_TRICK_EXPORT_URL }}
+          NATURAL_STAT_TRICK_API_KEY: ${{ secrets.NATURAL_STAT_TRICK_API_KEY }}
+          HOCKEY_REFERENCE_EXPORT_URL: ${{ secrets.HOCKEY_REFERENCE_EXPORT_URL }}
+          HOCKEY_REFERENCE_API_KEY: ${{ secrets.HOCKEY_REFERENCE_API_KEY }}
+          SUMERSPORTS_EXPORT_URL: ${{ secrets.SUMERSPORTS_EXPORT_URL }}
+          SUMERSPORTS_API_KEY: ${{ secrets.SUMERSPORTS_API_KEY }}
+          PFR_EXPORT_URL: ${{ secrets.PFR_EXPORT_URL }}
+          PFR_API_KEY: ${{ secrets.PFR_API_KEY }}
+          FANTASY_LIFE_EXPORT_URL: ${{ secrets.FANTASY_LIFE_EXPORT_URL }}
+          FANTASY_LIFE_API_KEY: ${{ secrets.FANTASY_LIFE_API_KEY }}
+          RBSDM_EXPORT_URL: ${{ secrets.RBSDM_EXPORT_URL }}
+          RBSDM_API_KEY: ${{ secrets.RBSDM_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          # Avoid repeated requests when multiple source workflows run close together.
+          if test -f outputs/authorized-sources/status-latest.json && node -e 'let d=require("./outputs/authorized-sources/status-latest.json");process.exit(Date.now()-Date.parse(d.generatedAt)<3600000 && d.providers.nhl_edge?.players>0 ? 0:1)'; then
+            echo "Recent tracking data exists; no duplicate collection."
+          else
+            node scripts/collect-authorized-sports-sources.cjs
+          fi
+          node scripts/grade-authorized-edge-shadow.cjs
+      - name: Archive only on private main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/authorized-sources/status-latest.json outputs/authorized-sources/edge-grading-latest.json
+          if compgen -G 'outputs/authorized-sources/snapshots/*.json' >/dev/null; then git add -f outputs/authorized-sources/snapshots/*.json; fi
+          git diff --cached --quiet && exit 0
+          git commit -qm 'data: private owner-authorized feed evidence and NHL EDGE shadow grading'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

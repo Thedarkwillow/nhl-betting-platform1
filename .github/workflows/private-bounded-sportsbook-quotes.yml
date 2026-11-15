@@ -1,0 +1,103 @@
+name: Bounded private NHL NFL sportsbook evidence refresh
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-bounded-sportsbook-quotes.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-bounded-odds-quota
+  cancel-in-progress: false
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: One bounded pregame event per sport within existing quota
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const key=process.env.ODDS_API_KEY;
+          const books=['draftkings','fanduel','betmgm','caesars'];
+          const sports={NHL:{key:'icehockey_nhl',markets:{player_shots_on_goal:'shotsOnGoal',player_goals:'goals',player_assists:'assists',player_points:'points',player_blocked_shots:'blockedShots',player_total_saves:'saves'}},NFL:{key:'americanfootball_nfl',markets:{player_pass_yds:'passing_yards',player_rush_yds:'rushing_yards',player_reception_yds:'receiving_yards',player_receptions:'receptions',player_pass_tds:'passing_touchdowns',player_pass_completions:'passing_completions'}}};
+          const status={kind:'bounded_sportsbook_capture_v1',generatedAt:new Date().toISOString(),scope:'one pregame event per sport at most; not full board',requests:0,quotaCreditsReported:0,results:{},newPurchase:false,verifiedLiveConsensus:false};
+          let remaining=null;
+          const rows=[];
+          const header=(r,n)=>{const v=r.headers.get(n);return typeof v==='string'&&/^\d+$/.test(v)?Number(v):null;};
+          async function get(path,params={}){
+            const u=new URL('https://api.the-odds-api.com/v4/sports/'+path);
+            Object.entries({...params,apiKey:key}).forEach(([k,v])=>u.searchParams.set(k,v));
+            status.requests++;
+            const r=await fetch(u,{signal:AbortSignal.timeout(25000)});
+            const c=header(r,'x-requests-last');remaining=header(r,'x-requests-remaining');
+            if(c===null)status.quotaCreditsReported=null;
+            else if(status.quotaCreditsReported!==null)status.quotaCreditsReported+=c;
+            if(!r.ok)throw Error('provider_http_'+r.status);
+            return r.json();
+          }
+          (async()=>{
+            if(!key){status.status='missing_public_runner_odds_secret';}
+            else for(const [sport,s] of Object.entries(sports)){
+              try{
+                const events=await get(s.key+'/events');
+                const game=Array.isArray(events)?events.filter(e=>typeof e.id==='string'&&Date.parse(e.commence_time)>Date.now()+15*60000&&Date.parse(e.commence_time)<Date.now()+36*3600000).sort((a,b)=>Date.parse(a.commence_time)-Date.parse(b.commence_time))[0]:null;
+                if(!game){status.results[sport]={status:'no_upcoming_event_in_window',rows:0};continue;}
+                if(remaining===null||remaining<56||status.quotaCreditsReported===null||status.quotaCreditsReported+6>12){status.results[sport]={status:'quota_reserve_or_usage_unverified',rows:0};continue;}
+                const data=await get(s.key+'/events/'+encodeURIComponent(game.id)+'/odds',{bookmakers:books.join(','),markets:Object.keys(s.markets).join(','),oddsFormat:'american'});
+                const stamp=new Date().toISOString(),pairs=[];
+                if(data.id!==game.id||data.home_team!==game.home_team||data.away_team!==game.away_team||data.commence_time!==game.commence_time||Date.parse(stamp)>=Date.parse(game.commence_time))throw Error('event_mismatch');
+                for(const b of data.bookmakers||[]){
+                  if(!books.includes(b.key))continue;
+                  for(const m of b.markets||[]){
+                    if(!s.markets[m.key]||!Number.isFinite(Date.parse(m.last_update))||Date.parse(m.last_update)>Date.parse(stamp)||Date.parse(stamp)-Date.parse(m.last_update)>30*60000)continue;
+                    const pm=new Map(),bad=new Set();
+                    for(const o of m.outcomes||[]){
+                      if(!['Over','Under'].includes(o.name)||typeof o.description!=='string'||!o.description.trim()||!Number.isFinite(o.point)||!Number.isInteger(o.price)||Math.abs(o.price)<100)continue;
+                      const k=JSON.stringify([o.description,o.point]),a=pm.get(k)||{player:o.description,line:o.point};
+                      if(a[o.name]!==undefined)bad.add(k);
+                      a[o.name]=o.price;pm.set(k,a);
+                    }
+                    for(const [k,a] of pm)if(!bad.has(k)&&Number.isFinite(a.Over)&&Number.isFinite(a.Under))pairs.push({sport,player:a.player,line:a.line,market:s.markets[m.key],period:'full_game',overOdds:a.Over,underOdds:a.Under,book:b.key,eventId:game.id,homeTeam:game.home_team,awayTeam:game.away_team,commenceTime:game.commence_time,capturedAt:stamp,marketUpdatedAt:m.last_update,source:'The Odds API'});
+                  }
+                }
+                rows.push(...pairs);status.results[sport]={status:pairs.length?'fresh_two_sided_quotes':'no_valid_pairs',rows:pairs.length,distinctBooks:new Set(pairs.map(q=>q.book)).size};
+              }catch(e){status.results[sport]={status:/^provider_http_\d+$/.test(e.message)?e.message:'capture_refused',rows:0};break;}
+            }
+            status.status=status.status||(rows.length?'fresh_bounded_archive':'no_fresh_quotes');status.generatedAt=new Date().toISOString();
+            const dir='outputs/sportsbooks/bounded-live';fs.mkdirSync(dir,{recursive:true});
+            fs.writeFileSync(dir+'/status-latest.json',JSON.stringify(status,null,2)+'\n');
+            if(rows.length){const a={...status,rows,source:'The Odds API',researchOnly:true,independentPlatformSettlementVerified:false};const name=status.generatedAt.replace(/[-:.]/g,'');fs.writeFileSync(dir+'/'+name+'.json',JSON.stringify(a,null,2)+'\n');fs.writeFileSync(dir+'/latest.json',JSON.stringify(a,null,2)+'\n');}
+            console.log(JSON.stringify(status));
+          })().catch(()=>{console.error('Bounded quote capture failed closed');process.exitCode=1;});
+          NODE
+      - name: Archive privately, no publicly exposed source quotes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/sportsbooks/bounded-live/*.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'data: bounded private sportsbook quote capture status' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

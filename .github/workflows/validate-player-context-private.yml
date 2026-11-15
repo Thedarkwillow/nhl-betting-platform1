@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 1dfd5553484fa57769b486c8d07d49e3986b7722
+          ref: 4832429fcce026783d378d6d01fb44dc72d664a4
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           fetch-depth: 0
           persist-credentials: false
@@ -29,16 +29,16 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          test "$(git rev-parse HEAD)" = 1dfd5553484fa57769b486c8d07d49e3986b7722
+          test "$(git rev-parse HEAD)" = 4832429fcce026783d378d6d01fb44dc72d664a4
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           if ! npm test >"$log" 2>&1; then echo '::error::Private regression failed'; exit 1; fi
           grep -E '^# (tests|pass|fail) [0-9]+$' "$log"
-          for script in scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nfl-independent-forward.cjs; do
+          for script in scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nfl-independent-forward.cjs scripts/report-source-completion-evidence.cjs; do
             if ! node "$script" >"$log" 2>&1; then echo "::error::Cached report failed: $script"; exit 1; fi
           done
           node - <<'NODE'
           const n=require('./outputs/health/nhl-standard-forward-improvement-latest.json'),f=require('./outputs/nfl/backtests/independent-source-forward-latest.json');
-          if(n.playerContextCoverage?.kind!=='nhl_player_context_coverage_v1'||n.positionDefenseAblation?.kind!=='nhl_position_defense_ablation_v1'||f.playerContextCoverage?.kind!=='nfl_player_context_coverage_v1')throw Error('Missing report evidence');
+          if(n.playerContextCoverage?.kind!=='nhl_player_context_coverage_v1'||n.positionDefenseAblation?.kind!=='nhl_position_defense_ablation_v1'||f.playerContextCoverage?.kind!=='nfl_player_context_coverage_v1'||f.positionMatchupAblation?.kind!=='nfl_position_matchup_ablation_v1'||require('./outputs/health/source-completion-readiness-latest.json').roleSourceCoverage?.kind!=='nhl_role_source_coverage_v1')throw Error('Missing report evidence');
           console.log('PASS: private context report structure verified.');
           NODE
   status:
@@ -60,7 +60,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p data
-          node -e 'require("fs").writeFileSync("data/player-context-validation.json",JSON.stringify({kind:"player_context_validation_status_v1",privateHead:"1dfd5553484fa57769b486c8d07d49e3986b7722",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),modelPromoted:false})+"\n")'
+          node -e 'require("fs").writeFileSync("data/player-context-validation.json",JSON.stringify({kind:"player_context_validation_status_v1",privateHead:"4832429fcce026783d378d6d01fb44dc72d664a4",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),modelPromoted:false})+"\n")'
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/player-context-validation.json

@@ -29,8 +29,8 @@ jobs:
       - name: Validate parser and access policy
         run: |
           set -euo pipefail
-          pin=40d0c63b021c0ce16d053dc328d2a84ff8f4368e
-          if ! test -f scripts/collect-keyfree-sports-tables.py; then
+          pin=c53a5148a12e9b96ffbb21c952576a39575f6cb2
+          if ! grep -q -- "--retry-schema" scripts/collect-keyfree-sports-tables.py 2>/dev/null; then
             git fetch -q origin "$pin"
             for file in scripts/collect-keyfree-sports-tables.py test/test_keyfree_sports_tables.py; do git show "$pin:$file" > "$file"; done
           fi
@@ -39,7 +39,11 @@ jobs:
       - name: Collect bounded approved public tables
         run: |
           umask 077
-          python scripts/collect-keyfree-sports-tables.py
+          if test "${{ github.event_name }}" = push && test -f outputs/keyfree-source-tables/status-latest.json; then
+            python scripts/collect-keyfree-sports-tables.py --retry-schema
+          else
+            python scripts/collect-keyfree-sports-tables.py
+          fi
       - name: Archive only in private repository
         run: |
           set -euo pipefail

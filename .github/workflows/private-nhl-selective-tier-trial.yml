@@ -67,3 +67,5 @@ jobs:
             sleep "$attempt"
           done
           exit 1
+
+# November 15: activate compact audit on merged policy; only outcomes first frozen after the policy qualify.

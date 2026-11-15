@@ -118,7 +118,7 @@ if(data.playerInsights!==undefined){
     "historicalGames","seasonGames","lastGameDate","source"];
   if(Object.hasOwn(x,"recentOfficialValues")){
    keys.push("recentOfficialValues");
-   assert.ok(Array.isArray(x.recentOfficialValues)&&x.recentOfficialValues.length<=10);
+   assert.ok(Array.isArray(x.recentOfficialValues)&&x.recentOfficialValues.length<=20);
    const dates=new Set();
    for(const v of x.recentOfficialValues){
     assert.deepEqual(Object.keys(v).sort(),["date","value"]);

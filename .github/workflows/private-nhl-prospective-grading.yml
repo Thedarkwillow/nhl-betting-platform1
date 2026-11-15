@@ -157,3 +157,5 @@ jobs:
 # 2026-11-13: owner-requested strict final-only grading for Pacific Nov 12 slate.
 
 # 2026-11-14: seed first-observed calibration state from official final-only records after PR 139.
+
+# Owner-requested November 15 Pacific: grade official completed November 14 slate now; existing final-only gates unchanged.

@@ -1,0 +1,97 @@
+name: Validate actual-line evidence and NFL specialists
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-actual-line-evidence.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-actual-line-evidence-validation
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: d5ae5476a7d091637c787ea690422614c5d04bc8
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Private regression and cached research
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          test "$(git rev-parse HEAD)" = d5ae5476a7d091637c787ea690422614c5d04bc8
+          if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$|^not ok [0-9]+ - ' "$log" | cut -c1-160 || true; echo '::error::Private tests failed'; exit 1; fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log"
+          for script in scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nfl-independent-forward.cjs scripts/report-source-completion-evidence.cjs; do
+            if ! node "$script" >"$log" 2>&1; then echo "::error::Cached report failed: $script"; exit 1; fi
+          done
+          node - <<'NODE' >"$log" 2>&1
+          const fs=require('node:fs'),n=require('./outputs/health/nhl-standard-forward-improvement-latest.json'),f=require('./outputs/nfl/backtests/independent-source-forward-latest.json'),s=require('./outputs/health/source-completion-readiness-latest.json');
+          if(!n.originalHalfLineCalibrationResearch||!f.dedicatedOrderedEventResearch||!n.lineupSlateCoverage||!f.lineupSlateCoverage||!s.odds.archiveCoverage)throw Error('Missing required research reports');
+          fs.writeFileSync('outputs/health/actual-line-specialist-validation-latest.json',JSON.stringify({kind:'private_actual_line_specialist_validation_v1',codeCommit:'d5ae5476a7d091637c787ea690422614c5d04bc8',generatedAt:new Date().toISOString(),nhlCalibration:n.originalHalfLineCalibrationResearch,nflOrdered:f.dedicatedOrderedEventResearch,lineups:{NHL:n.lineupSlateCoverage,NFL:f.lineupSlateCoverage},odds:s.odds.archiveCoverage,modelPromoted:false},null,2)+'\n');
+          NODE
+          echo 'PASS: actual lines, historical ordered plays, lineup coverage and immutable odds evidence.'
+      - name: Archive private aggregate only
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT
+          f=outputs/health/actual-line-specialist-validation-latest.json
+          test -s "$f"; cp "$f" "$work/"
+          git restore --worktree -- .
+          git fetch -q origin main >"$work/git" 2>&1
+          git checkout -q --detach origin/main >"$work/git" 2>&1
+          cp "$work/actual-line-specialist-validation-latest.json" "$f"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$f"
+          git diff --cached --quiet && exit 0
+          git commit -m 'audit: private actual-line and NFL specialist research aggregate' >"$work/git" 2>&1
+          for attempt in 1 2 3; do
+            git fetch -q origin main >"$work/git" 2>&1
+            git rebase -q origin/main >"$work/git" 2>&1 || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main >"$work/git" 2>&1; then echo 'PASS: private aggregate archived.'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1
+  status:
+    if: always()
+    needs: [validate]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Public status only
+        env:
+          RESULT: ${{ needs.validate.result }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          node -e 'require("fs").writeFileSync("data/actual-line-evidence-validation.json",JSON.stringify({kind:"actual_line_evidence_validation_v1",privateHead:"d5ae5476a7d091637c787ea690422614c5d04bc8",result:process.env.RESULT,runId:process.env.RUN_ID,recordedAt:new Date().toISOString(),modelPromoted:false})+"\n")'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/actual-line-evidence-validation.json
+          git commit -m 'status: private actual-line evidence validation' >/dev/null
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

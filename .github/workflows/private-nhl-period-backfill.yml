@@ -127,3 +127,5 @@ jobs:
 # November 15: owner requested next five-date batch after 70 accounted days; retain pacing, serial execution and existing cap.
 
 # Nov 15 owner-requested bounded continuation: collect the next five official dates.
+
+# Nov 15 owner-requested next bounded batch after 95 accounted dates; same cap and pacing.

@@ -8,6 +8,7 @@ on:
       - '.github/workflows/publish-nhl-nfl-model-scorecards.yml'
       - 'scripts/publish-safe-pregame-scorecards.cjs'
       - 'scripts/test-publish-safe-pregame-scorecards.cjs'
+      - 'scripts/publish-safe-daily-grade.cjs'
   workflow_run:
     workflows:
       - 'Private NHL prospective grading and baseline audit via public runner'
@@ -71,6 +72,11 @@ jobs:
             throw Error('No safe public graded-sample evidence');
           console.log('PASS: grade summary valid; raw player records and unverified wager economics withheld.');
           NODE
+      - name: Report yesterday's exact official-final slate separately
+        run: |
+          set -euo pipefail
+          day="$(TZ=America/Los_Angeles date -d 'yesterday' '+%Y-%m-%d')"
+          node public/scripts/publish-safe-daily-grade.cjs "$GITHUB_WORKSPACE/private" "$GITHUB_WORKSPACE/public" "$day"
       - name: Commit only sanitized public scorecard, never private quote data
         working-directory: public
         run: |
@@ -78,6 +84,8 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/model-scorecards.json
+          day="$(TZ=America/Los_Angeles date -d 'yesterday' '+%Y-%m-%d')"
+          if test -f "data/daily-grade-$day.json"; then git add "data/daily-grade-$day.json"; fi
           if git diff --cached --quiet; then
             echo "PASS: previously published counts unchanged."
             exit 0

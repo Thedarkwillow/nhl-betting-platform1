@@ -117,3 +117,5 @@ jobs:
 # Owner-requested continuation 2026-11-14: rebuild the next bounded five-date NHL period batch; no additional paid provider calls.
 
 # Accelerated bounded continuation: eight nonoverlapping scheduled opportunities/day, same serial pacing and maximum five dates/run.
+
+# November 15 owner-requested next bounded batch; keep same five-date cap and serial official-data pacing.

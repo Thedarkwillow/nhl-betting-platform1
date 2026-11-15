@@ -1,0 +1,68 @@
+name: Private NHL shot and point opportunity evaluation
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-shot-point-opportunity.yml']
+  workflow_run:
+    workflows: ['Private pregame NHL freeze on public free runner', 'Private NHL specialist history and historical PP coverage']
+    types: [completed]
+  schedule:
+    - cron: '53 6,22 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-nhl-shot-point-opportunity
+  cancel-in-progress: false
+jobs:
+  evaluate:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify frozen holdout and exact-line safety contracts
+        run: |
+          set -euo pipefail
+          umask 077
+          pin=2c39748c590823e19c791041368354ba4f9148b4
+          tested="$(git rev-parse HEAD)"
+          if ! test -f scripts/report-nhl-shot-point-opportunity.cjs; then
+            git fetch -q origin "$pin"
+            work="$(mktemp -d)"
+            git worktree add --detach "$work" "$pin"
+            trap 'git worktree remove --force "$work" >/dev/null 2>&1 || true' EXIT
+            (cd "$work"; node --check scripts/report-nhl-shot-point-opportunity.cjs; node --test test/nhl-shot-point-opportunity.test.cjs; node scripts/report-nhl-shot-point-opportunity.cjs)
+            cp "$work/outputs/health/nhl-shot-point-opportunity-latest.json" outputs/health/nhl-shot-point-opportunity-latest.json
+            tested="$pin"
+          else
+            node --check scripts/report-nhl-shot-point-opportunity.cjs
+            node --test test/nhl-shot-point-opportunity.test.cjs
+            node scripts/report-nhl-shot-point-opportunity.cjs
+          fi
+          TESTED="$tested" node -e 'require("fs").writeFileSync("outputs/health/nhl-shot-point-opportunity-test-latest.json",JSON.stringify({testedCommit:process.env.TESTED,generatedAt:new Date().toISOString(),passed:true,paidRequests:0})+"\n")'
+      - name: Archive only private research
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/nhl-shot-point-opportunity-test-latest.json outputs/health/nhl-shot-point-opportunity-latest.json
+          if test -d outputs/research/shot-point-opportunity-v1; then git add -f outputs/research/shot-point-opportunity-v1/*.json; fi
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: private NHL shooter/scoring opportunity and PP holdout evidence'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

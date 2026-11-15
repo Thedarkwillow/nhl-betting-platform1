@@ -131,3 +131,5 @@ jobs:
 # Nov 15 owner-requested next bounded batch after 95 accounted dates; same cap and pacing.
 
 # Owner-requested continuation Nov 15 after coverage audit; keep the existing collection limits and serial concurrency.
+
+# Owner-requested continuation after verified latest date batch; existing pacing and concurrency retained.

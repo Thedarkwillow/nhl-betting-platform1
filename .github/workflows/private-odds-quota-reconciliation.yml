@@ -1,0 +1,55 @@
+name: Private sportsbook zero-credit reconciliation
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-odds-quota-reconciliation.yml']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: private-bounded-odds-quota
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test and reconcile account balance using free route only
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          umask 077
+          pin=60a414d53b87b9d1dff77dbaa3166b98cb510bf8
+          if ! test -f scripts/reconcile-sportsbook-quota.cjs; then
+            git fetch -q origin "$pin"
+            git show "$pin:scripts/reconcile-sportsbook-quota.cjs" > scripts/reconcile-sportsbook-quota.cjs
+          fi
+          node --check scripts/reconcile-sportsbook-quota.cjs
+          node scripts/reconcile-sportsbook-quota.cjs
+      - name: Archive private evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/sportsbooks/bounded-live/quota-reconciliation-*.json
+          git diff --cached --quiet && exit 0
+          git commit -qm 'audit: zero-credit sportsbook quota reconciliation'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

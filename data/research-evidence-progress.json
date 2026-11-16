@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-15T21:07:44.866Z",
-  "sourceReportAt": "2026-11-15T20:58:47.404Z",
+  "generatedAt": "2026-11-16T00:01:56.990Z",
+  "sourceReportAt": "2026-11-15T23:59:23.150Z",
   "periodHistory": {
-    "accountedDays": 95,
+    "accountedDays": 115,
     "calendarDays": 261,
-    "pendingDays": 166
+    "pendingDays": 146
   },
   "evidence": {
     "nhl": {

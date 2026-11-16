@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "kind": "public_nhl_nfl_original_git_frozen_model_scorecards_v1",
-  "generatedAt": "2026-11-15T21:07:44.310Z",
+  "generatedAt": "2026-11-16T00:01:56.783Z",
   "sources": {
     "nhlOriginalFrozenBaselineAt": "2026-11-15T21:06:25.905Z",
-    "nflFirstGitForecastAuditAt": "2026-11-15T00:50:26.459Z",
-    "nhlForwardChallengerAuditAt": "2026-11-15T21:06:33.509Z"
+    "nflFirstGitForecastAuditAt": "2026-11-16T00:01:04.217Z",
+    "nhlForwardChallengerAuditAt": "2026-11-15T23:33:16.549Z"
   },
   "nhl": {
     "sport": "NHL",
@@ -177,10 +177,10 @@
       }
     ],
     "threeChallengerFuture": {
-      "registered": 539,
+      "registered": 542,
       "decided": 471,
       "push": 0,
-      "pending": 68,
+      "pending": 71,
       "championPromoted": false
     },
     "source": "NHL official-stat directional outcomes only",
@@ -189,31 +189,31 @@
   "nfl": {
     "sport": "NFL",
     "explicitlyFrozenDirections": {
-      "frozenSelections": 3146,
-      "decided": 265,
-      "correct": 126,
-      "incorrect": 139,
+      "frozenSelections": 3908,
+      "decided": 549,
+      "correct": 268,
+      "incorrect": 281,
       "push": 5,
-      "pending": 2876,
-      "distinctFinalGames": 2,
-      "hypotheticalHigherWins": 162,
-      "hypotheticalLowerWins": 103,
-      "modelObservedRate": 0.475472,
+      "pending": 3354,
+      "distinctFinalGames": 3,
+      "hypotheticalHigherWins": 274,
+      "hypotheticalLowerWins": 275,
+      "modelObservedRate": 0.48816,
       "platformSettlementVerified": false,
       "calibrated": false,
       "expectedValue": null
     },
     "frozenHigherBiasAudit": {
-      "decided": 265,
-      "correct": 126,
-      "higherChosen": 159,
-      "higherCorrect": 91,
-      "higherWrong": 68,
-      "lowerChosen": 106,
-      "lowerCorrect": 35,
-      "lowerWrong": 71,
-      "projectedAboveActual": 99,
-      "distinctFinalGames": 2,
+      "decided": 549,
+      "correct": 268,
+      "higherChosen": 311,
+      "higherCorrect": 152,
+      "higherWrong": 159,
+      "lowerChosen": 238,
+      "lowerCorrect": 116,
+      "lowerWrong": 122,
+      "projectedAboveActual": 271,
+      "distinctFinalGames": 3,
       "sameSelectedLineOnly": true,
       "notAnIndependentNFLGameSample": true,
       "diagnosedAfterGameNotAPregameFilter": true,
@@ -223,10 +223,10 @@
     },
     "separateNumericForecasts": {
       "registered": 332,
-      "decided": 276,
+      "decided": 298,
       "push": 5,
-      "pending": 51,
-      "meanAbsoluteError": 19.39112312083877,
+      "pending": 29,
+      "meanAbsoluteError": 20.98757391054191,
       "retrospectiveDerivedDirectionCannotBeCountedAsFrozen": true,
       "modelSelectedHigherLowerHitRate": null
     },

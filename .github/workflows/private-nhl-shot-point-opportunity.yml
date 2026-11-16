@@ -78,3 +78,5 @@ jobs:
             sleep "$attempt"
           done
           exit 1
+
+# PR 161 merged after all 3 tests; use full current private history and frozen actual lines.

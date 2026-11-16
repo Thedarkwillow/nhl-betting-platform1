@@ -7,6 +7,9 @@ on:
     paths: ['.github/requests/nhl-approved-refresh-2026-11-15.txt']
   # Separate from genuine 06:00/09:00 partner capture. Do not consume quota on code pushes.
   # Extra windows require a stricter existing-request reserve; no projection credits.
+  workflow_run:
+    workflows: ['Verify both original NFL NHL freezes and publish safe status']
+    types: [completed]
   schedule:
     - cron: '35 9 * * *'
       timezone: America/Los_Angeles
@@ -22,6 +25,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   capture:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
@@ -39,7 +43,29 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Bound recovery window and avoid duplicate metered requests
+        id: recovery
+        working-directory: private
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const now=Date.now(),hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'2-digit',hourCycle:'h23'}).format(now));
+          let capture=true;
+          if(process.env.EVENT==='workflow_run'){
+            // One recovery opportunity during the actual 6/9 slot; no late retries.
+            capture=[6,9].includes(hour);
+            
+          }
+          if(['schedule','workflow_run'].includes(process.env.EVENT)){
+            try{const b=JSON.parse(fs.readFileSync('outputs/free-source/nhl/latest.json','utf8')),t=Date.parse(b.generatedAt);if(b.completePagination===true&&t<=now&&now-t<3600000)capture=false;}catch{}
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'capture='+capture+'\n');
+          console.log('Bounded capture needed: '+capture);
+          NODE
       - name: Validate collector and preview before any source calls
+        if: steps.recovery.outputs.capture == 'true'
         working-directory: private
         shell: bash
         run: |
@@ -52,6 +78,7 @@ jobs:
           fi
           echo 'PASS: existing collector and public export contract tests.'
       - name: One bounded legacy-request capture and private preview
+        if: steps.recovery.outputs.capture == 'true'
         working-directory: private
         env:
           PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
@@ -130,6 +157,7 @@ jobs:
           fi
           grep -E '^\{"phase":"private_verified_capture","offers":[0-9]+,"rows":[0-9]+,"pages":[0-9]+,"requests":[0-9]+,"credits":0,"boardAt":"[0-9T:.Z-]+"\}$|^Already current; no additional board requests\.$' "$log" || true
       - name: Archive complete board privately before model preview
+        if: steps.recovery.outputs.capture == 'true'
         working-directory: private
         shell: bash
         run: |
@@ -148,6 +176,7 @@ jobs:
             exit 1
           fi
       - name: Build and archive prior-only research preview privately
+        if: steps.recovery.outputs.capture == 'true'
         working-directory: private
         shell: bash
         run: |

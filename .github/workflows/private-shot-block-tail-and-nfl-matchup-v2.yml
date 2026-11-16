@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
     paths: ['.github/workflows/private-shot-block-tail-and-nfl-matchup-v2.yml']
+  workflow_run:
+    workflows:
+      - 'Freeze actual-time NHL and NFL pregame Higher Lower research'
+    types: [completed]
   schedule:
     - cron: '20 6,9 * * *'
       timezone: America/Los_Angeles
@@ -14,6 +18,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   validate-and-archive:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:

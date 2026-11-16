@@ -29,12 +29,35 @@ try{
    const report=optional("outputs/nfl/backtests/pregame-forecast-proof-latest.json");
    const rows=report?.explicitFrozenDirections?.rows;
    if(Array.isArray(rows)){
-    const graded=rows.filter(r=>ids.has(r.officialScheduleGameId)&&["decided","push"].includes(r.status)),decided=graded.filter(r=>r.status==="decided"),correct=decided.filter(r=>r.selectedSideResult==="correct").length;
-    Object.assign(nfl,{status:"archived_official_stat_outcomes_only",decided:decided.length,correct,incorrect:decided.length-correct,push:graded.length-decided.length,hitRate:decided.length?correct/decided.length:null,unresolvedPerSlate:null});
+    const {firstOriginals}=require(path.resolve(privateRoot,"src/nfl-original-freeze-identity.cjs"));
+    const {original,filesIn}=require(path.resolve(privateRoot,"scripts/grade-nfl-precommitted.cjs"));
+    const {verifyCommitChronology}=require(path.resolve(privateRoot,"src/nfl-prospective-freeze.cjs"));
+    const {matchOfficialGame}=require(path.resolve(privateRoot,"src/nfl-precommitted-grading.cjs"));
+    const originals=firstOriginals(filesIn("outputs/nfl/prospective",/^\d{8}T\d{6}Z\.json$/).map(p=>({...original(p),snapshot:get(p)})).filter(x=>x.gitHistoryCount===1&&x.snapshot?.kind==="nfl_independent_partner_standard_directional_original_research_v1"&&verifyCommitChronology(x.snapshot,x.firstCommittedAt).verified));
+    const grades=new Map(rows.map(r=>[r.id,r]));
+    if(grades.size!==rows.length||grades.size!==originals.earliest.size)throw Error("NFL original ID reconciliation failed");
+    const eastern=at=>new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(at));
+    const entries=[];
+    for(const {p,firstCommittedAt} of originals.earliest.values()){
+     const r=grades.get(p.id);
+     if(!r||r.firstGitCommittedAt!==firstCommittedAt||r.line!==p.line||r.market!==p.market||r.modeledSide!==p.selectedSide||r.sourceGameId!==p.sourceGameId)throw Error("NFL original row mismatch");
+     const g=matchOfficialGame(p,schedule);
+     if(g?ids.has(g.game_id):eastern(p.eventStartsAt)===day)entries.push({p,r,g});
+    }
+    const tallyNFL=xs=>{
+     const settled=xs.filter(x=>x.r.status==="decided"),correct=settled.filter(x=>x.r.selectedSideResult==="correct").length,push=xs.filter(x=>x.r.status==="push").length;
+     const unresolved=xs.filter(x=>!["decided","push"].includes(x.r.status)),reasons={};
+     for(const x of unresolved)reasons[x.r.status]=(reasons[x.r.status]||0)+1;
+     return {registered:xs.length,decided:settled.length,correct,incorrect:settled.length-correct,push,unresolvedPerSlate:unresolved.length,unresolvedByReason:reasons,hitRate:settled.length?correct/settled.length:null,alwaysHigher:settled.length?settled.filter(x=>x.r.actualSide==="Higher").length/settled.length:null,alwaysLower:settled.length?settled.filter(x=>x.r.actualSide==="Lower").length/settled.length:null};
+    };
+    const unique=new Map(),uniqueMarket=new Map();
+    for(const x of entries){const p=x.p,k=JSON.stringify([x.g?.game_id||p.sourceGameId,p.historicalPlayerId,p.market,p.line,p.tier]),m=JSON.stringify([x.g?.game_id||p.sourceGameId,p.historicalPlayerId,p.market,p.tier]);if(!unique.has(k))unique.set(k,x);if(!uniqueMarket.has(m))uniqueMarket.set(m,x);}
+    const distinct=[...unique.values()];
+    Object.assign(nfl,{status:"archived_official_stat_outcomes_only",...tallyNFL(entries),firstDistinctThreshold:tallyNFL(distinct),firstPlayerGameMarket:tallyNFL([...uniqueMarket.values()]),distinctByMarket:Object.fromEntries([...new Set(distinct.map(x=>x.p.market))].sort().map(m=>[m,tallyNFL(distinct.filter(x=>x.p.market===m))])),originalIdsReconciled:true,sourceReportGeneratedAt:report.generatedAt});
    }
   }
  }
-}catch{}
+}catch(e){nfl={...nfl,status:"original_grade_reconciliation_failed",unresolvedPerSlate:null};console.error("NFL daily reconciliation failed: "+e.message);}
 const out={kind:"public_original_daily_grade_v1",slateDate:day,generatedAt:new Date().toISOString(),nhl,nfl,platformSettlementVerified:false,payoutROI:null,modelPromoted:false,rawPropRowsExposed:0};
 if(nhl.status!=="official_final_slate_graded"){console.log("Daily grade not ready; no stale totals published.");process.exit(0);}
 const dest=path.join(publicRoot,"data","daily-grade-"+day+".json");fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,JSON.stringify(out,null,2)+"\n");console.log(JSON.stringify({day,nhlStatus:nhl.status,nflStatus:nfl.status,officialFinalGames:nhl.finalGames}));

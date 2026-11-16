@@ -1,0 +1,56 @@
+name: Private seven-priority identity yardage attempt and reference audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-seven-priority-nov16-research.yml']
+  schedule:
+    - cron: '52 7,12 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: seven-priority-nov16-offline-audit
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate research without provider calls
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nfl-yardage-volume-efficiency.test.cjs test/nfl-unresolved-appearances.test.cjs test/nhl-actual-attempt-volume.test.cjs test/nhl-prior-season-period-backfill.test.cjs test/nhl-official-period-events.test.cjs test/nhl-lineup-format-grading.test.cjs test/sportsbook-consensus.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log"; exit 1
+          fi
+          grep -E '^# (tests|pass|fail)' "$log"
+          for cmd in 'node scripts/audit-nfl-unresolved-appearances.cjs 2026-11-15' 'node scripts/backtest-nfl-yardage-volume-efficiency.cjs' 'node scripts/report-nhl-actual-attempt-volume.cjs' 'node scripts/report-nhl-validation-and-paper-audit.cjs'; do
+            if ! bash -c "$cmd" >"$log" 2>&1; then echo "::error::Private report failed: $cmd"; exit 1; fi
+            echo "PASS: $cmd"
+          done
+      - name: Archive private reports without publishing player identities
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nfl/backtests/unresolved-{appearance,identity-review}-2026-11-15.json outputs/nfl/backtests/yardage-volume-efficiency-latest.json outputs/backtests/nhl-actual-attempt-volume-latest.json outputs/health/nhl-validation-and-paper-audit-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -qm 'audit: seven-priority private research evidence'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: archived'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

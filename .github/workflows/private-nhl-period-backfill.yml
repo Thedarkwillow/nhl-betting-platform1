@@ -133,3 +133,5 @@ jobs:
 # Owner-requested continuation Nov 15 after coverage audit; keep the existing collection limits and serial concurrency.
 
 # Owner-requested continuation after verified latest date batch; existing pacing and concurrency retained.
+
+# Owner-requested verification Nov 15; preserve provider caps and strict original chronology.

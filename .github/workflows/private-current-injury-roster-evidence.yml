@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: ['.github/workflows/private-current-injury-roster-evidence.yml']
   schedule:
-    - cron: '20 5,12 * * *'
+    - cron: '20 5,9,12,15 * * *'
       timezone: America/Los_Angeles
 permissions:
   contents: read

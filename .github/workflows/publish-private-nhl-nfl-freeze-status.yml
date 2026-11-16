@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
     paths: ['.github/workflows/publish-private-nhl-nfl-freeze-status.yml']
+  workflow_run:
+    workflows: ['Freeze actual-time NHL and NFL pregame Higher Lower research']
+    types: [completed]
   schedule:
     - cron: '42 9 * * *'
       timezone: America/Los_Angeles
@@ -15,6 +18,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   verify-and-publish:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -56,9 +60,6 @@ jobs:
             requireTrue(names.length>0,'Original snapshot file missing');
             return path.join(dir,names[names.length-1]);
           };
-          const nhlPath=latest('outputs/research/snapshots',/^\d{8}T\d{6}Z\.json$/);
-          const nflPath=latest('outputs/nfl/prospective',/^\d{8}T\d{6}Z\.json$/);
-          const n=read(nhlPath),f=read(nflPath);
           const proof=file=>{
             const at=git('log','--diff-filter=A','-1','--format=%cI','--',file);
             const sha=git('log','--diff-filter=A','-1','--format=%H','--',file);
@@ -67,7 +68,15 @@ jobs:
               'Original Git addition not unique and immutable');
             return {at,sha,time:Date.parse(at)};
           };
-          const np=proof(nhlPath),fp=proof(nflPath);
+          // Standalone NFL freezes may legitimately be newer than the last
+          // paired freeze. Select the newest actual common immutable commit.
+          const recent=dir=>fs.readdirSync(dir).filter(x=>/^\d{8}T\d{6}Z\.json$/.test(x)).sort().reverse().slice(0,20).flatMap(x=>{const file=path.join(dir,x);try{return [{file,proof:proof(file)}]}catch{return []}});
+          const nflByCommit=new Map(recent('outputs/nfl/prospective').map(x=>[x.proof.sha,x]));
+          const nhlPair=recent('outputs/research/snapshots').find(x=>nflByCommit.has(x.proof.sha));
+          requireTrue(nhlPair,'No common original first-Git NHL/NFL freeze');
+          const nflPair=nflByCommit.get(nhlPair.proof.sha);
+          const nhlPath=nhlPair.file,nflPath=nflPair.file,n=read(nhlPath),f=read(nflPath);
+          const np=nhlPair.proof,fp=nflPair.proof;
           requireTrue(np.sha===fp.sha,'Both sports must be committed together before games');
           requireTrue(n.snapshotKind==='nhl_partner_direct_original_pregame_candidate_unproven_until_first_git_commit',
             'NHL original research kind invalid');

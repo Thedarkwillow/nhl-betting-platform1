@@ -1,7 +1,7 @@
 {
   "kind": "public_original_daily_grade_v1",
   "slateDate": "2026-11-15",
-  "generatedAt": "2026-11-16T13:43:38.602Z",
+  "generatedAt": "2026-11-16T14:09:51.067Z",
   "nhl": {
     "status": "official_final_slate_graded",
     "scheduledGames": 5,
@@ -124,14 +124,9 @@
     "gamesWithOriginalSelections": 5
   },
   "nfl": {
-    "status": "archived_official_stat_outcomes_only",
+    "status": "original_grade_reconciliation_failed",
     "scheduledGames": 12,
     "finalGames": 12,
-    "decided": 3242,
-    "correct": 1536,
-    "incorrect": 1706,
-    "push": 10,
-    "hitRate": 0.47378161628624305,
     "unresolvedPerSlate": null
   },
   "platformSettlementVerified": false,

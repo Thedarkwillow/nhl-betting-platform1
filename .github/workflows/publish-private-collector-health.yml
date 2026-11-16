@@ -8,6 +8,11 @@ on:
       - '.github/workflows/publish-private-collector-health.yml'
       - 'scripts/collector-health-summary.cjs'
       - 'scripts/test-collector-health-summary.cjs'
+  workflow_run:
+    workflows:
+      - 'Public Free Runners - Private NHL and NFL 6 and 9 AM Boards'
+      - 'Freeze actual-time NHL and NFL pregame Higher Lower research'
+    types: [completed]
   schedule:
     - cron: '58 6 * * *'
       timezone: America/Los_Angeles
@@ -20,6 +25,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:

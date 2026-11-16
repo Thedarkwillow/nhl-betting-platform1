@@ -11,7 +11,7 @@ on:
   workflow_run:
     workflows:
       - 'Public Free Runners - Private NHL and NFL 6 and 9 AM Boards'
-      - 'Freeze actual-time NHL and NFL pregame Higher Lower research'
+      - 'Verify both original NFL NHL freezes and publish safe status'
     types: [completed]
   schedule:
     - cron: '58 6 * * *'

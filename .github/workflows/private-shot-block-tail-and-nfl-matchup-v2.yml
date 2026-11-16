@@ -1,0 +1,69 @@
+name: Private NHL shot block tail and NFL matchup V2 research
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-shot-block-tail-and-nfl-matchup-v2.yml']
+  schedule:
+    - cron: '20 6,9 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-shot-block-tail-nfl-matchup-v2
+  cancel-in-progress: false
+jobs:
+  validate-and-archive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate old and new research safeguards
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node --test test/nhl-shot-block-tail-v2.test.cjs test/nhl-shot-point-opportunity.test.cjs test/nfl-market-specific-matchup-v2.test.cjs test/nfl-matchup-context.test.cjs test/nfl-precommitted-grading.test.cjs > /tmp/v2-test.log 2>&1 || { echo "::error::V2 or original regression failed"; grep -E '^not ok|^# (tests|pass|fail)' /tmp/v2-test.log; exit 1; }
+          grep -E '^# (tests|pass|fail)' /tmp/v2-test.log
+      - name: Run cached private NHL and NFL historical research
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/report-nhl-shot-block-tail-v2.cjs >/tmp/v2-nhl.log 2>&1 || { echo "::error::NHL V2 research failed"; exit 1; }
+          node scripts/backtest-nfl-market-specific-matchup-v2.cjs >/tmp/v2-nfl.log 2>&1 || { echo "::error::NFL V2 research failed"; exit 1; }
+          node - <<'NODE'
+          const n=require('./outputs/health/nhl-shot-block-tail-v2-latest.json'),f=require('./outputs/nfl/backtests/market-specific-matchup-v2-latest.json');
+          if(n.modelPromoted!==false||f.modelPromoted!==false||n.confidenceApproved!==false||f.confidenceApproved!==false||n.providerRequests!==0||!n.historical.byMarketAndPosition.blockedShots||!n.historical.byMarketAndPosition.shotsOnGoal)throw Error('V2 coverage or research-only gate failed');
+          console.log(JSON.stringify({nhlMarkets:Object.keys(n.historical.byMarketAndPosition),nhlForwardRegistered:n.forward.registered,nhlNewRows:n.newRows,nflMarkets:Object.keys(f.marketResults),modelPromoted:false}));
+          NODE
+      - name: Privately archive model comparisons and genuinely pregame freezes
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          shopt -s nullglob
+          files=(outputs/health/nhl-shot-block-tail-v2-latest.json outputs/nfl/backtests/market-specific-matchup-v2-latest.json outputs/research/shot-block-tail-v2/*.json)
+          git add -f -- "${files[@]}"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "data: archive private shot block tail and NFL matchup V2 research" >/dev/null
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q origin/main
+            if git push -q origin HEAD:main; then echo "PASS: private V2 evidence archived."; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

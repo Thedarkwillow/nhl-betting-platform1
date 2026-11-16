@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: ['.github/workflows/private-nhl-distribution-availability-review.yml']
   workflow_run:
-    workflows: ['Private pregame NHL freeze on public free runner', 'Private NHL specialist history and historical PP coverage']
+    workflows: ['Private pregame NHL freeze on public free runner', 'Private NHL specialist history and historical PP coverage', 'Private NHL MoneyPuck and Daily Faceoff research via public runner']
     types: [completed]
   schedule:
     - cron: '56 6,22 * * *'
@@ -68,3 +68,5 @@ jobs:
           exit 1
 
 # Activate merged distribution review and require post-policy frozen evidence.
+
+# Owner-requested verification Nov 15; preserve provider caps and strict original chronology.

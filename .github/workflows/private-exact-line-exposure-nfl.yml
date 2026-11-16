@@ -1,0 +1,63 @@
+name: Private exact line exposure and NFL accuracy review
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-exact-line-exposure-nfl.yml']
+  workflow_run:
+    workflows: ['Private NHL specialist history and historical PP coverage', 'NFL archived pregame forecast and finals grading via public free runner']
+    types: [completed]
+  schedule:
+    - cron: '12 6,23 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-exact-line-exposure-nfl
+  cancel-in-progress: false
+jobs:
+  audit:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run independent prior-only replay and original result audit
+        run: |
+          set -euo pipefail
+          umask 077
+          pin=aca1158d7182153e5e3c09fb2b0fed0cf14d2e94
+          tested="$(git rev-parse HEAD)"
+          if ! test -f scripts/report-exact-line-exposure-nfl.cjs; then
+            git fetch -q origin "$pin"
+            for f in src/nhl-exact-line-exposure-audit.cjs scripts/report-exact-line-exposure-nfl.cjs test/nhl-exact-line-exposure-audit.test.cjs; do git show "$pin:$f" > "$f"; done
+            tested="$pin"
+          fi
+          node --check scripts/report-exact-line-exposure-nfl.cjs
+          node --test test/nhl-exact-line-exposure-audit.test.cjs
+          node scripts/report-exact-line-exposure-nfl.cjs
+          TESTED="$tested" node -e 'require("fs").writeFileSync("outputs/health/exact-line-exposure-nfl-test-latest.json",JSON.stringify({testedCommit:process.env.TESTED,generatedAt:new Date().toISOString(),passed:true,paidRequests:0})+"\n")'
+          if test "$tested" = "$pin"; then rm src/nhl-exact-line-exposure-audit.cjs scripts/report-exact-line-exposure-nfl.cjs test/nhl-exact-line-exposure-audit.test.cjs; fi
+      - name: Archive private evidence only
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/exact-line-exposure-nfl-test-latest.json outputs/health/exact-line-exposure-nfl-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: private actual line and exposure ablation evidence'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

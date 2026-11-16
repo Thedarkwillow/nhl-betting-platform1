@@ -1,0 +1,33 @@
+name: Validate private November 16 model safeguards
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nov16-model-regression.yml']
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check latest risk, combo, calibration and lineup changes without provider calls
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nfl-pregame-matchup-challenger.test.cjs test/nfl-precommitted-grading.test.cjs test/nfl-market-specific-matchup-v2.test.cjs test/nfl-unresolved-appearances.test.cjs test/nhl-shot-block-tail-v2.test.cjs test/nhl-lineup-optimizer.test.cjs test/nhl-lineup-format-grading.test.cjs test/nhl-lineup-format-scenario.test.cjs test/lineup-reference-payout-bounds.test.cjs test/roadmap-calibration-format-coverage.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log"
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail)' "$log"
+          echo 'PASS: private model safeguards; no data provider calls or production promotion.'

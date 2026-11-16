@@ -135,3 +135,5 @@ jobs:
 # Owner-requested continuation after verified latest date batch; existing pacing and concurrency retained.
 
 # Owner-requested verification Nov 15; preserve provider caps and strict original chronology.
+
+# Nov 16: retry oldest unresolved date alongside four fresh dates, no greater request pacing or cap.

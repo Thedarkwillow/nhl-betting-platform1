@@ -1,7 +1,7 @@
 {
   "kind": "public_original_daily_grade_v1",
   "slateDate": "2026-11-15",
-  "generatedAt": "2026-11-16T14:09:51.067Z",
+  "generatedAt": "2026-11-16T14:10:45.563Z",
   "nhl": {
     "status": "official_final_slate_graded",
     "scheduledGames": 5,
@@ -124,10 +124,203 @@
     "gamesWithOriginalSelections": 5
   },
   "nfl": {
-    "status": "original_grade_reconciliation_failed",
+    "status": "archived_official_stat_outcomes_only",
     "scheduledGames": 12,
     "finalGames": 12,
-    "unresolvedPerSlate": null
+    "registered": 3371,
+    "decided": 3242,
+    "correct": 1536,
+    "incorrect": 1706,
+    "push": 10,
+    "unresolvedPerSlate": 119,
+    "unresolvedByReason": {
+      "unresolved_player_appearance": 119
+    },
+    "hitRate": 0.47378161628624305,
+    "alwaysHigher": 0.4611351017890191,
+    "alwaysLower": 0.5388648982109808,
+    "firstDistinctThreshold": {
+      "registered": 1096,
+      "decided": 1037,
+      "correct": 470,
+      "incorrect": 567,
+      "push": 3,
+      "unresolvedPerSlate": 56,
+      "unresolvedByReason": {
+        "unresolved_player_appearance": 56
+      },
+      "hitRate": 0.4532304725168756,
+      "alwaysHigher": 0.4725168756027001,
+      "alwaysLower": 0.5274831243972999
+    },
+    "firstPlayerGameMarket": {
+      "registered": 441,
+      "decided": 413,
+      "correct": 194,
+      "incorrect": 219,
+      "push": 2,
+      "unresolvedPerSlate": 26,
+      "unresolvedByReason": {
+        "unresolved_player_appearance": 26
+      },
+      "hitRate": 0.46973365617433416,
+      "alwaysHigher": 0.44552058111380144,
+      "alwaysLower": 0.5544794188861986
+    },
+    "distinctByMarket": {
+      "pass_rush_yards": {
+        "registered": 89,
+        "decided": 87,
+        "correct": 32,
+        "incorrect": 55,
+        "push": 0,
+        "unresolvedPerSlate": 2,
+        "unresolvedByReason": {
+          "unresolved_player_appearance": 2
+        },
+        "hitRate": 0.367816091954023,
+        "alwaysHigher": 0.5057471264367817,
+        "alwaysLower": 0.4942528735632184
+      },
+      "passing_attempts": {
+        "registered": 35,
+        "decided": 33,
+        "correct": 21,
+        "incorrect": 12,
+        "push": 0,
+        "unresolvedPerSlate": 2,
+        "unresolvedByReason": {
+          "unresolved_player_appearance": 2
+        },
+        "hitRate": 0.6363636363636364,
+        "alwaysHigher": 0.36363636363636365,
+        "alwaysLower": 0.6363636363636364
+      },
+      "passing_completions": {
+        "registered": 35,
+        "decided": 33,
+        "correct": 16,
+        "incorrect": 17,
+        "push": 0,
+        "unresolvedPerSlate": 2,
+        "unresolvedByReason": {
+          "unresolved_player_appearance": 2
+        },
+        "hitRate": 0.48484848484848486,
+        "alwaysHigher": 0.3333333333333333,
+        "alwaysLower": 0.6666666666666666
+      },
+      "passing_touchdowns": {
+        "registered": 7,
+        "decided": 7,
+        "correct": 4,
+        "incorrect": 3,
+        "push": 0,
+        "unresolvedPerSlate": 0,
+        "unresolvedByReason": {},
+        "hitRate": 0.5714285714285714,
+        "alwaysHigher": 0.5714285714285714,
+        "alwaysLower": 0.42857142857142855
+      },
+      "passing_yards": {
+        "registered": 64,
+        "decided": 63,
+        "correct": 21,
+        "incorrect": 42,
+        "push": 0,
+        "unresolvedPerSlate": 1,
+        "unresolvedByReason": {
+          "unresolved_player_appearance": 1
+        },
+        "hitRate": 0.3333333333333333,
+        "alwaysHigher": 0.5396825396825397,
+        "alwaysLower": 0.4603174603174603
+      },
+      "receiving_targets": {
+        "registered": 4,
+        "decided": 3,
+        "correct": 0,
+        "incorrect": 3,
+        "push": 1,
+        "unresolvedPerSlate": 0,
+        "unresolvedByReason": {},
+        "hitRate": 0,
+        "alwaysHigher": 0,
+        "alwaysLower": 1
+      },
+      "receiving_yards": {
+        "registered": 415,
+        "decided": 382,
+        "correct": 167,
+        "incorrect": 215,
+        "push": 0,
+        "unresolvedPerSlate": 33,
+        "unresolvedByReason": {
+          "unresolved_player_appearance": 33
+        },
+        "hitRate": 0.43717277486910994,
+        "alwaysHigher": 0.45549738219895286,
+        "alwaysLower": 0.5445026178010471
+      },
+      "receptions": {
+        "registered": 83,
+        "decided": 77,
+        "correct": 36,
+        "incorrect": 41,
+        "push": 2,
+        "unresolvedPerSlate": 4,
+        "unresolvedByReason": {
+          "unresolved_player_appearance": 4
+        },
+        "hitRate": 0.4675324675324675,
+        "alwaysHigher": 0.42857142857142855,
+        "alwaysLower": 0.5714285714285714
+      },
+      "rush_receive_yards": {
+        "registered": 118,
+        "decided": 113,
+        "correct": 58,
+        "incorrect": 55,
+        "push": 0,
+        "unresolvedPerSlate": 5,
+        "unresolvedByReason": {
+          "unresolved_player_appearance": 5
+        },
+        "hitRate": 0.5132743362831859,
+        "alwaysHigher": 0.6017699115044248,
+        "alwaysLower": 0.39823008849557523
+      },
+      "rushing_attempts": {
+        "registered": 86,
+        "decided": 85,
+        "correct": 37,
+        "incorrect": 48,
+        "push": 0,
+        "unresolvedPerSlate": 1,
+        "unresolvedByReason": {
+          "unresolved_player_appearance": 1
+        },
+        "hitRate": 0.43529411764705883,
+        "alwaysHigher": 0.43529411764705883,
+        "alwaysLower": 0.5647058823529412
+      },
+      "rushing_yards": {
+        "registered": 160,
+        "decided": 154,
+        "correct": 78,
+        "incorrect": 76,
+        "push": 0,
+        "unresolvedPerSlate": 6,
+        "unresolvedByReason": {
+          "unresolved_player_appearance": 6
+        },
+        "hitRate": 0.5064935064935064,
+        "alwaysHigher": 0.474025974025974,
+        "alwaysLower": 0.525974025974026
+      }
+    },
+    "originalIdsReconciled": true,
+    "sourceReportGeneratedAt": "2026-11-16T13:41:54.828Z"
   },
   "platformSettlementVerified": false,
   "payoutROI": null,

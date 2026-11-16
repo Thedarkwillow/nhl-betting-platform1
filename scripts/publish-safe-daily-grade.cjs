@@ -33,10 +33,10 @@ try{
     const {original,filesIn}=require(path.resolve(privateRoot,"scripts/grade-nfl-precommitted.cjs"));
     const {verifyCommitChronology}=require(path.resolve(privateRoot,"src/nfl-prospective-freeze.cjs"));
     const {matchOfficialGame}=require(path.resolve(privateRoot,"src/nfl-precommitted-grading.cjs"));
-    const originals=firstOriginals(filesIn("outputs/nfl/prospective",/^\d{8}T\d{6}Z\.json$/).map(p=>({...original(p),snapshot:get(p)})).filter(x=>x.gitHistoryCount===1&&x.snapshot?.kind==="nfl_independent_partner_standard_directional_original_research_v1"&&verifyCommitChronology(x.snapshot,x.firstCommittedAt).verified));
+    const originals=firstOriginals(filesIn("outputs/nfl/prospective",/^\d{8}T\d{6}Z\.json$/).map(p=>({...original(p),snapshot:get(p)})).filter(x=>Date.parse(x.firstCommittedAt)<=Date.parse(report.generatedAt)&&x.gitHistoryCount===1&&x.snapshot?.kind==="nfl_independent_partner_standard_directional_original_research_v1"&&verifyCommitChronology(x.snapshot,x.firstCommittedAt).verified));
     const grades=new Map(rows.map(r=>[r.id,r]));
-    if(grades.size!==rows.length||grades.size!==originals.earliest.size)throw Error("NFL original ID reconciliation failed");
-    const eastern=at=>new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(at));
+    if(grades.size!==rows.length||grades.size!==originals.earliest.size)throw Error("NFL original ID reconciliation failed: grade IDs="+grades.size+", frozen IDs="+originals.earliest.size+", rows="+rows.length);
+    const eastern=at=>{const a=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(at));return ["year","month","day"].map(k=>a.find(x=>x.type===k)?.value).join("-");};
     const entries=[];
     for(const {p,firstCommittedAt} of originals.earliest.values()){
      const r=grades.get(p.id);
@@ -59,5 +59,6 @@ try{
  }
 }catch(e){nfl={...nfl,status:"original_grade_reconciliation_failed",unresolvedPerSlate:null};console.error("NFL daily reconciliation failed: "+e.message);}
 const out={kind:"public_original_daily_grade_v1",slateDate:day,generatedAt:new Date().toISOString(),nhl,nfl,platformSettlementVerified:false,payoutROI:null,modelPromoted:false,rawPropRowsExposed:0};
+if(nfl.status==="original_grade_reconciliation_failed")throw Error("NFL slate reconciliation incomplete; existing report retained");
 if(nhl.status!=="official_final_slate_graded"){console.log("Daily grade not ready; no stale totals published.");process.exit(0);}
 const dest=path.join(publicRoot,"data","daily-grade-"+day+".json");fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,JSON.stringify(out,null,2)+"\n");console.log(JSON.stringify({day,nhlStatus:nhl.status,nflStatus:nfl.status,officialFinalGames:nhl.finalGames}));

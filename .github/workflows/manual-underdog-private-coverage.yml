@@ -1,0 +1,34 @@
+name: Private manual Underdog coverage probe
+on:
+  workflow_dispatch:
+    inputs:
+      league:
+        description: 'One league, five rows max'
+        required: true
+        type: choice
+        options: [NHL, NFL]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: One bounded read-only sample; no retries or publication
+        env:
+          UNDERDOG_API_KEY: ${{ secrets.UNDERDOG_API_KEY }}
+          UNDERDOG_READ_ONLY_PROBE: explicit_manual
+          LEAGUE: ${{ inputs.league }}
+        run: |
+          set -euo pipefail
+          test -n "$UNDERDOG_API_KEY" || { echo 'No key configured; zero calls.'; exit 1; }
+          node --test test/roadmap-seven-validation-nov16.test.cjs
+          node scripts/probe-underdogapi-coverage.cjs "$LEAGUE"

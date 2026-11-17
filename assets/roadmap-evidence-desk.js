@@ -21,7 +21,7 @@
   }
   if(progress?.kind==="public_research_progress_counts_v1"&&progress.proprietaryRowsPublished===0&&progress.calibrationApproved===false&&progress.modelPromoted===false&&age(progress.sourceReportAt,now)!==null){
    const a=age(progress.sourceReportAt,now),p=progress.periodHistory;
-   if(p&&count(p.accountedDays)&&count(p.calendarDays)&&p.calendarDays>0&&p.accountedDays<=p.calendarDays)rows.push({label:"NHL historical periods",value:p.accountedDays+" / "+p.calendarDays+" dates accounted",ageMinutes:a});
+   if(p&&count(p.accountedDays)&&count(p.calendarDays)&&p.calendarDays>0&&p.accountedDays<=p.calendarDays)rows.push({label:"NHL historical periods",value:p.accountedDays+" / "+p.calendarDays+" dates accounted; "+(p.calendarDays-p.accountedDays)+" pending",ageMinutes:a});
    for(const sport of ["nhl","nfl"]){const e=progress.evidence?.[sport];if(count(e?.firstObserved)&&count(e?.matchedCalibrationRows))rows.push({label:sport.toUpperCase()+" calibration evidence",value:e.firstObserved+" observed outcomes; "+e.matchedCalibrationRows+" held-out rows; not approved",ageMinutes:a});}
    const o=progress.sportsbook;if(o&&count(o.strictMatched)&&count(o.conditionalArchived)&&o.verifiedLiveConsensus===false)rows.push({label:"Sportsbook benchmark evidence",value:o.strictMatched+" strict / "+o.conditionalArchived+" conditional archived matches; live availability unverified",ageMinutes:a});
    for(const sport of ["NHL","NFL"]){const s=progress.lineupResearch?.[sport];if(count(s?.distinctResolvedSlates))rows.push({label:sport+" lineup evidence",value:s.distinctResolvedSlates+" distinct resolved slates; not calibrated",ageMinutes:a});}

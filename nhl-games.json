@@ -4,41 +4,41 @@
   "source": "NHL Web API",
   "endpoint": "https://api-web.nhle.com/v1/score/2026-11-17",
   "pacificDate": "2026-11-17",
-  "observedAtUTC": "2026-11-17T22:12:04.643Z",
+  "observedAtUTC": "2026-11-17T23:49:19.436Z",
   "note": "Public NHL scores only. No player props, model predictions or platform settlements.",
   "games": [
     {
       "gameId": 2026020333,
       "startTimeUTC": "2026-11-18T00:00:00Z",
-      "state": "FUT",
+      "state": "PRE",
       "away": "LAK",
       "home": "BOS"
     },
     {
       "gameId": 2026020335,
       "startTimeUTC": "2026-11-18T00:00:00Z",
-      "state": "FUT",
+      "state": "PRE",
       "away": "EDM",
       "home": "FLA"
     },
     {
       "gameId": 2026020336,
       "startTimeUTC": "2026-11-18T00:00:00Z",
-      "state": "FUT",
+      "state": "PRE",
       "away": "CBJ",
       "home": "NYI"
     },
     {
       "gameId": 2026020337,
       "startTimeUTC": "2026-11-18T00:00:00Z",
-      "state": "FUT",
+      "state": "PRE",
       "away": "BUF",
       "home": "PHI"
     },
     {
       "gameId": 2026020341,
       "startTimeUTC": "2026-11-18T00:00:00Z",
-      "state": "FUT",
+      "state": "PRE",
       "away": "OTT",
       "home": "WPG"
     },

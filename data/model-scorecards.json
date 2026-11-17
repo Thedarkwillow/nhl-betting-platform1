@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_nhl_nfl_original_git_frozen_model_scorecards_v1",
-  "generatedAt": "2026-11-17T14:35:07.571Z",
+  "generatedAt": "2026-11-17T14:37:22.780Z",
   "sources": {
     "nhlOriginalFrozenBaselineAt": "2026-11-17T13:38:26.612Z",
     "nflFirstGitForecastAuditAt": "2026-11-17T14:34:00.841Z",
@@ -220,6 +220,135 @@
       "platformSettlementsVerified": false,
       "calibrated": false,
       "payoutEV": null
+    },
+    "firstDistinctThreshold": {
+      "decided": 1289,
+      "correct": 597,
+      "incorrect": 692,
+      "distinctFinalGames": 14,
+      "modelObservedRate": 0.46315,
+      "alwaysHigherObservedRate": 0.480217,
+      "alwaysLowerObservedRate": 0.519783,
+      "notIndependentBets": true,
+      "settlementVerified": false,
+      "calibrated": false,
+      "approved": false,
+      "onePerPlayerMarket": {
+        "decided": 526,
+        "correct": 252,
+        "incorrect": 274,
+        "distinctFinalGames": 14,
+        "modelObservedRate": 0.479087,
+        "alwaysHigherObservedRate": 0.446768,
+        "alwaysLowerObservedRate": 0.553232,
+        "notIndependentBets": true,
+        "settlementVerified": false,
+        "calibrated": false,
+        "approved": false
+      },
+      "byMarket": [
+        {
+          "market": "pass_rush_yards",
+          "decided": 100,
+          "distinctFinalGames": 14,
+          "modelRate": 0.37,
+          "alwaysLowerRate": 0.47,
+          "sampleSuppressed": false,
+          "notIndependentBets": true
+        },
+        {
+          "market": "passing_attempts",
+          "decided": 43,
+          "distinctFinalGames": 14,
+          "modelRate": 0.534884,
+          "alwaysLowerRate": 0.55814,
+          "sampleSuppressed": false,
+          "notIndependentBets": true
+        },
+        {
+          "market": "passing_completions",
+          "decided": 40,
+          "distinctFinalGames": 14,
+          "modelRate": 0.45,
+          "alwaysLowerRate": 0.625,
+          "sampleSuppressed": false,
+          "notIndependentBets": true
+        },
+        {
+          "market": "passing_touchdowns",
+          "decided": 7,
+          "distinctFinalGames": 6,
+          "modelRate": null,
+          "alwaysLowerRate": null,
+          "sampleSuppressed": true,
+          "notIndependentBets": true
+        },
+        {
+          "market": "passing_yards",
+          "decided": 74,
+          "distinctFinalGames": 14,
+          "modelRate": 0.364865,
+          "alwaysLowerRate": 0.418919,
+          "sampleSuppressed": false,
+          "notIndependentBets": true
+        },
+        {
+          "market": "receiving_targets",
+          "decided": 8,
+          "distinctFinalGames": 5,
+          "modelRate": null,
+          "alwaysLowerRate": null,
+          "sampleSuppressed": true,
+          "notIndependentBets": true
+        },
+        {
+          "market": "receiving_yards",
+          "decided": 461,
+          "distinctFinalGames": 14,
+          "modelRate": 0.451193,
+          "alwaysLowerRate": 0.520607,
+          "sampleSuppressed": false,
+          "notIndependentBets": true
+        },
+        {
+          "market": "receptions",
+          "decided": 92,
+          "distinctFinalGames": 14,
+          "modelRate": 0.478261,
+          "alwaysLowerRate": 0.565217,
+          "sampleSuppressed": false,
+          "notIndependentBets": true
+        },
+        {
+          "market": "rush_receive_yards",
+          "decided": 157,
+          "distinctFinalGames": 14,
+          "modelRate": 0.566879,
+          "alwaysLowerRate": 0.458599,
+          "sampleSuppressed": false,
+          "notIndependentBets": true
+        },
+        {
+          "market": "rushing_attempts",
+          "decided": 107,
+          "distinctFinalGames": 14,
+          "modelRate": 0.46729,
+          "alwaysLowerRate": 0.560748,
+          "sampleSuppressed": false,
+          "notIndependentBets": true
+        },
+        {
+          "market": "rushing_yards",
+          "decided": 200,
+          "distinctFinalGames": 14,
+          "modelRate": 0.475,
+          "alwaysLowerRate": 0.55,
+          "sampleSuppressed": false,
+          "notIndependentBets": true
+        }
+      ],
+      "firstGitSameThresholdOnly": true,
+      "oppositeSideActuallyAvailableUnverified": true
     },
     "separateNumericForecasts": {
       "registered": 332,

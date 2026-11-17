@@ -1,0 +1,57 @@
+name: Private daily NHL NFL original-frozen grade summary
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/private-nov16-daily-grade-summary.yml'
+permissions:
+  contents: read
+concurrency:
+  group: private-nov16-daily-grade-summary
+  cancel-in-progress: false
+jobs:
+  summarize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify official pregame and source evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f outputs/player-stats/2026-11-16.json
+          test -f outputs/nfl/backtests/pregame-forecast-proof-latest.json
+          node --check scripts/report-official-game-day-grade.cjs
+          node scripts/report-official-game-day-grade.cjs 2026-11-16
+      - name: Save private per-game grade checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/official-game-grade-2026-11-16.json
+          if git diff --cached --quiet; then
+            echo 'PASS: private per-game grade already archived.'
+            exit 0
+          fi
+          git commit -qm 'audit: frozen-prop NHL NFL November 16 official outcomes'
+          for i in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then
+              echo 'PASS: private original-frozen daily grade saved.'
+              exit 0
+            fi
+            sleep "$i"
+          done
+          echo '::error::Private grading archive could not be persisted'
+          exit 1

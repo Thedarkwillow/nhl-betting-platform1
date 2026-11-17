@@ -1,0 +1,54 @@
+name: Private NFL directional V2 future-only research
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nfl-directional-v2-future.yml']
+  schedule:
+    - cron: '20 6,9 * * 4,5,6,0,1,2'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: nfl-future-direction-v2
+  cancel-in-progress: false
+jobs:
+  freeze:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test future-only directional risk policy
+        run: |
+          set -euo pipefail
+          node --test test/nfl-directional-v2-prospective.test.cjs
+      - name: Freeze only a newly fresh original Git-pregame board
+        run: |
+          set -euo pipefail
+          node scripts/freeze-nfl-directional-v2.cjs
+      - name: Preserve timestamped research shadow privately
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          shopt -s nullglob
+          files=(outputs/nfl/directional-v2/*.json)
+          if [ ${#files[@]} -eq 0 ]; then echo 'No fresh pregame source; skipped safely'; exit 0; fi
+          git add -f -- "${files[@]}"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -qm 'research: first-Git prospective NFL directional V2 risk abstention'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: private future shadow archived'; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

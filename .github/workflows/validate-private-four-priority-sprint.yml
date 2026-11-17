@@ -1,0 +1,94 @@
+name: Validate private four-priority research candidate on free runner
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-four-priority-sprint.yml']
+permissions:
+  contents: read
+concurrency:
+  group: validate-private-four-priority-sprint-20261117
+  cancel-in-progress: false
+jobs:
+  private-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    steps:
+      - name: Require narrowly scoped private repo read access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo '::error::Private checkout permission missing'; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 28b54f3506f636ca3c8af275c0da5c17fb772b64
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate all four new private safety modules and prior research invariants
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --check scripts/report-nhl-validation-and-paper-audit.cjs
+          node --check scripts/report-four-priority-evidence.cjs
+          if ! node --test \
+            test/nhl-original-line-calibration-pairs.test.cjs \
+            test/lineup-reference-payout-bounds.test.cjs \
+            test/nhl-lineup-optimizer.test.cjs \
+            test/underdog-board-pagination-integrity.test.cjs \
+            test/four-priority-evidence-status.test.cjs \
+            test/nhl-validation-and-paper-audit.test.cjs \
+            test/underdog-private-research-intake.test.cjs \
+            test/forward-calibration-game-weight.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" | head -n 20 || true
+            echo '::error::Targeted private four-track regression failed'
+            exit 1
+          fi
+          echo 'PASS: calibration provenance, Power/Flex, Underdog and grading regression.'
+      - name: Regress full existing NHL NFL MLB code without exposing private inputs
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" | head -n 20 || true
+            echo '::error::Private full Node regression failed'
+            exit 1
+          fi
+          echo 'PASS: all existing private Node tests.'
+      - name: Rebuild offline evidence, never call a vendor or publish a raw prop
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/report-nhl-validation-and-paper-audit.cjs >"$log" 2>&1; then
+            echo '::error::Private original-line research report failed'; exit 1
+          fi
+          if ! node scripts/report-four-priority-evidence.cjs >"$log" 2>&1; then
+            echo '::error::Four-priority evidence report failed'; exit 1
+          fi
+          node - <<'NODE'
+          const f=require('./outputs/health/four-priority-evidence-latest.json');
+          if(f.kind!=='private_multisport_four_priority_acceptance_v1'||
+             f.lineups.legalFormatCount!==9||f.calibration.calibrated!==false||
+             f.lineups.automatedRecommendationsEligible!==false||
+             f.underdog.liveComparisonEligible!==false||
+             f.acceptance.noOfficialWagers!==true||
+             JSON.stringify(f).includes('"playerId"'))
+            throw Error('Unsafe four-track acceptance report');
+          console.log('PASS: count-only private audit, no model promotion, no cash EV or wagers.');
+          NODE
+      - name: No user wagers or paid API requests
+        if: always()
+        run: echo 'Offline historical research only; data remains private and no provider keys were used.'

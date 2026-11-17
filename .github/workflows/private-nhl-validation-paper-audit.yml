@@ -40,7 +40,7 @@ jobs:
             work="$(mktemp -d)"
             git worktree add --detach "$work" "$pin"
             trap 'git worktree remove --force "$work" >/dev/null 2>&1 || true' EXIT
-            (cd "$work"; node --check scripts/report-nhl-validation-and-paper-audit.cjs; node --test test/nhl-validation-and-paper-audit.test.cjs test/lineup-slate-count-baseline.test.cjs test/forward-calibration-game-weight.test.cjs test/nhl-sportsbook-original-name.test.cjs test/nhl-sportsbook-event-bridge.test.cjs)
+            (cd "$work"; node --check scripts/report-nhl-validation-and-paper-audit.cjs; node --test test/nhl-validation-and-paper-audit.test.cjs test/lineup-slate-count-baseline.test.cjs test/forward-calibration-game-weight.test.cjs test/sportsbook-match-funnel.test.cjs test/nhl-sportsbook-original-name.test.cjs test/nhl-sportsbook-event-bridge.test.cjs)
             tested="$pin"
           else
             node --check scripts/report-nhl-validation-and-paper-audit.cjs

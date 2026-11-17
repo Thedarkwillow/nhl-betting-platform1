@@ -15,3 +15,5 @@ test("historical chart excludes future and duplicate days",()=>{
  assert.deepEqual(historyChart(a,"2026-11-14T20:00:00Z"),[a[2],a[0]]);
  assert.deepEqual(historyChart([...a,a[0]],"2026-11-14T20:00:00Z"),[]);
 });
+
+test("Underdog status is historical aggregate only and fails closed on raw rows",()=>{const now=Date.parse("2026-11-17T01:05:00Z"),platformStatus={kind:"public_platform_integration_status_v1",checkedAt:"2026-11-17T01:02:03Z",rawRowsPublished:0,underdog:{NHL:{connected:true,sampleRows:5,eligibleRows:0,completeBoardVerified:false,originalPlatformVerified:false}}};assert.match(model({platformStatus},now).rows.find(x=>x.label==="Underdog NHL integration").value,/no eligible sample/);assert.equal(model({platformStatus:{...platformStatus,rawRowsPublished:1}},now).rows.some(x=>x.label==="Underdog NHL integration"),false);assert.equal(model({platformStatus},now).quotaRemaining,null);});

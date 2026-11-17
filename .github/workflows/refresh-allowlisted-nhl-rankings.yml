@@ -150,6 +150,8 @@ jobs:
           fs.mkdirSync('../public/data',{recursive:true});
           fs.writeFileSync('../public/data/nhl-freshness-diagnostic.json',JSON.stringify(safe)+'\n');
           fs.writeFileSync('../public/data.json',JSON.stringify(d)+'\n');
+          const matchup=require('./src/nhl-public-position-breakdown.cjs').build(d,input,read('outputs/history/players.json'),read('outputs/official-nhl/season-schedules/2026-27.json'),new Date(now).toISOString());
+          fs.writeFileSync('../public/data/nhl-position-breakdowns.json',JSON.stringify(matchup)+'\n');
           console.log(approved?'Approved fresh source export prepared.':'No approved fresh feed; stale rankings withheld.');
           NODE
       - name: Validate the public dashboard before publishing
@@ -166,7 +168,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data.json data/nhl-freshness-diagnostic.json
+          git add data.json data/nhl-freshness-diagnostic.json data/nhl-position-breakdowns.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'data: refresh approved NHL research rankings and suppress stale cards' >/dev/null
           for attempt in 1 2 3 4; do

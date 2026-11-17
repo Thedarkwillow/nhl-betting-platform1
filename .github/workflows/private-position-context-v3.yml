@@ -1,0 +1,68 @@
+name: Private multiseason position and special teams context research
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-position-context-v3.yml']
+  schedule:
+    - cron: '40 5,12,15 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-position-context-v3
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test all new context and existing pregame safeguards
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-position-context-v3.test.cjs test/position-rate-matchup-v2.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nhl-public-dashboard-payload.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log"; exit 1
+          fi
+          grep -E '^# (tests|pass|fail)' "$log"
+      - name: Collect official special teams only, fail closed on source mismatch
+        run: |
+          set -euo pipefail
+          if ! node scripts/collect-nhl-special-teams-context.cjs; then
+            echo "::warning::Official PP PK snapshot not verified; no new source rows."
+          fi
+      - name: Run chronological position weight replay and original-line evidence
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/report-nhl-position-multiseason-v3.cjs >"$log" 2>&1; then
+            echo "::error::Private multiseason trial failed"; exit 1
+          fi
+          cat "$log"
+      - name: Archive private model and official aggregate evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/nhl-position-multiseason-v3-latest.json
+          if [ -d outputs/pregame-availability/special-teams ]; then git add -f outputs/pregame-availability/special-teams; fi
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: archive NHL multiseason position trial and verified special-teams snapshot'
+          for i in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: private context research archived'; exit 0; fi
+            sleep "$i"
+          done
+          exit 1

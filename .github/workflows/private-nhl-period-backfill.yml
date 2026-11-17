@@ -139,3 +139,5 @@ jobs:
 # Nov 16: retry oldest unresolved date alongside four fresh dates, no greater request pacing or cap.
 
 # Preserve incomplete date partial evidence, never grade as complete; run next existing five-date batch.
+
+# Owner-requested November 16 ten-priority verification pass; existing safeguards unchanged.

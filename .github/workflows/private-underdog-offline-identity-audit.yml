@@ -28,7 +28,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! node --test test/underdog-identity-market-research.test.cjs test/underdog-event-crosswalk.test.cjs test/underdog-credit-policy.test.cjs test/cross-platform-research-comparison.test.cjs test/roadmap-seven-validation-nov16.test.cjs >"$log" 2>&1; then
+          if ! node --test test/underdog-identity-market-research.test.cjs test/underdog-private-research-intake.test.cjs test/underdog-event-crosswalk.test.cjs test/underdog-credit-policy.test.cjs test/cross-platform-research-comparison.test.cjs test/roadmap-seven-validation-nov16.test.cjs >"$log" 2>&1; then
             grep -E '^not ok|^# (tests|pass|fail)' "$log"
             exit 1
           fi

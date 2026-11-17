@@ -1,27 +1,27 @@
 {
   "schemaVersion": 1,
   "kind": "public_safe_nhl_nfl_original_pregame_freeze_status_v1",
-  "generatedAt": "2026-11-17T14:26:48.181Z",
-  "sourceCaptureFinishedUTC": "2026-11-17T14:05:34.486Z",
-  "captureSlotPacific": "06:00",
-  "originalPrivateGitCommitUTC": "2026-11-17T14:06:57Z",
+  "generatedAt": "2026-11-17T17:07:08.111Z",
+  "sourceCaptureFinishedUTC": "2026-11-17T17:05:30.691Z",
+  "captureSlotPacific": "09:00",
+  "originalPrivateGitCommitUTC": "2026-11-17T17:06:23Z",
   "firstGitAdditionVerified": true,
   "sameCommitForBothSports": true,
-  "privateCommitSha": "544e1bf9700b4ad223d79b30330ac683ae1ddb00",
+  "privateCommitSha": "a2598bf0be10069b7d03ce7da071b8c6f7c2f405",
   "capturedOffers": {
-    "NHL": 3004,
-    "NFL": 3463
+    "NHL": 3328,
+    "NFL": 3761
   },
   "pregameSelections": {
     "NHL": {
-      "count": 364,
+      "count": 402,
       "distinctGames": 11,
-      "standard": 90
+      "standard": 99
     },
     "NFL": {
-      "count": 221,
-      "distinctGames": 10,
-      "standard": 221
+      "count": 238,
+      "distinctGames": 11,
+      "standard": 238
     }
   },
   "originalModelDirectionsBeforeKickoff": true,

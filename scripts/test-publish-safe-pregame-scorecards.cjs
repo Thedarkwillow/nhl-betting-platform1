@@ -101,3 +101,5 @@ test("public renderer only shows validated all-tier aggregate rows",()=>{
  assert.deepEqual(tierView([rows[0],{...rows[1],correct:3},rows[2]]),[]);
  assert.deepEqual(tierView([rows[0],{...rows[1],payoutAdjustedROI:.2},rows[2]]),[]);
 });
+
+test("NHL estimated probability gap is descriptive and cannot certify calibration",()=>{const v={kind:"private_nhl_prospective_probability_validation_v1",calibrated:false,originalPlatformSettlementsVerified:false,counts:{registered:23},allStandardDescriptive:{decided:20,observedHitRate:.55,meanPredictedProbability:.67,brier:.27},futureHoldout:{decided:12,distinctGames:6,distinctGameDates:4},training:{decided:8}};const x=build(nhl,nfl,triple,{nhlProbabilityAudit:v});assert.equal(x.nhl.standardProbabilityAudit.signedOverconfidenceGap,.12);assert.equal(x.nhl.standardProbabilityAudit.calibrated,false);assert.equal(x.nhl.standardProbabilityAudit.releaseApproved,false);assert.equal(JSON.stringify(x).includes("playerId"),false);assert.throws(()=>build(nhl,nfl,triple,{nhlProbabilityAudit:{...v,allStandardDescriptive:{...v.allStandardDescriptive,decided:21}}}),/cohort mismatch/);});

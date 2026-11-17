@@ -28,7 +28,7 @@
    if(count(progress.paper?.authenticatedSettledEntries)&&progress.paper.verifiedROI===null)rows.push({label:"Settlement evidence",value:progress.paper.authenticatedSettledEntries+" authenticated entries; verified ROI unavailable",ageMinutes:a});
   }
   if(platformStatus?.kind==="public_platform_integration_status_v1"&&platformStatus.rawRowsPublished===0&&age(platformStatus.checkedAt,now)!==null){
-   for(const sport of ["NHL","NFL"]){const s=platformStatus.underdog?.[sport];if(s?.connected===true&&count(s.sampleRows)&&count(s.eligibleRows)&&s.eligibleRows<=s.sampleRows&&s.completeBoardVerified===false&&s.originalPlatformVerified===false)rows.push({label:"Underdog "+sport+" integration",value:s.eligibleRows===0?"Connection verified; no eligible sample rows; board unverified":"Partial sample verified; full board unverified",ageMinutes:age(platformStatus.checkedAt,now)});}
+   for(const sport of ["NHL","NFL"]){const s=platformStatus.underdog?.[sport];if(s?.connected===true&&count(s.sampleRows)&&count(s.eligibleRows)&&s.eligibleRows<=s.sampleRows&&s.completeBoardVerified===false&&s.originalPlatformVerified===false)rows.push({label:"Underdog "+sport+" integration",value:(s.eligibleRows===0?"Connection verified; no eligible sample rows; board unverified":"Partial sample verified; full board unverified")+(count(s.scheduleMatchedRows)&&s.scheduleMatchedRows<=s.sampleRows&&s.playerIdentityVerified===false?"; "+s.scheduleMatchedRows+"/"+s.sampleRows+" schedule candidates; player identity not verified":""),ageMinutes:age(platformStatus.checkedAt,now)});}
   }
   return {rows,quotaRemaining:null,providerFailureReason:null,scope:"Archive evidence only; no verified live app availability or provider quota."};
  }

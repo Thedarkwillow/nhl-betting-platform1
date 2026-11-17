@@ -38,7 +38,8 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$UNDERDOG_API_KEY" || { echo 'No key configured; zero calls.'; exit 1; }
-          node --test test/roadmap-seven-validation-nov16.test.cjs test/underdog-credit-policy.test.cjs test/underdog-event-crosswalk.test.cjs
+          node --test test/roadmap-seven-validation-nov16.test.cjs test/underdog-credit-policy.test.cjs test/underdog-event-crosswalk.test.cjs test/underdog-identity-market-research.test.cjs
+          node -e 'const p=require("./src/underdog-credit-policy.cjs").authorizeSample({receipt:{observedAt:"2026-11-17T01:08:27.478Z",remainingCredits:71},now:new Date().toISOString(),requestedLeagues:2});if(!p.allowed)throw Error("Budget preflight denied");console.log("Bounded two-league budget preflight passed; max six credits.")'
           node scripts/probe-underdogapi-coverage.cjs "$LEAGUE"
 
 # Owner-requested final eligibility diagnosis; one bounded full request per league.

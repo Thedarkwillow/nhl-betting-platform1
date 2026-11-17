@@ -1,0 +1,58 @@
+name: Private league-published NHL final pregame scratch scan
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-last-minute-scratch-scan.yml']
+  schedule:
+    - cron: '0,30 14-19 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-nhl-last-minute-scratch-scan
+  cancel-in-progress: false
+jobs:
+  scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate blocked-scratch policy
+        run: node --test test/nhl-official-preview-abstention.test.cjs test/nhl-lineup-revalidation.test.cjs test/nhl-lineup-optimizer.test.cjs
+      - name: Official league-published preview scan, no paid providers
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if python scripts/collect-nhl-official-preview-status.py > "$log" 2>&1; then
+            grep -E '^\{"officialNhlPreviewGames"' "$log" | cut -c1-350
+          else
+            echo '::warning::League preview missing or roster stale; no active clearance inferred.'
+          fi
+      - name: Archive timestamped private official-preview observations
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f -- outputs/pregame-availability/official-preview-latest.json outputs/pregame-availability/official-preview-snapshots/ || true
+          if git diff --cached --quiet; then echo 'No new verified official preview'; exit 0; fi
+          git commit -qm 'data: league-published NHL pregame injured and scratched statuses'
+          for i in 1 2 3; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: private timestamped NHL preview archived'; exit 0; fi
+            sleep "$i"
+          done
+          exit 1

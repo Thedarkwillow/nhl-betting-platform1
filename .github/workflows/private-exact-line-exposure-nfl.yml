@@ -44,6 +44,15 @@ jobs:
           node --check scripts/report-exact-line-exposure-nfl.cjs
           node --test test/nhl-exact-line-exposure-audit.test.cjs
           node scripts/report-exact-line-exposure-nfl.cjs
+          node - <<'NODE'
+          const a=require('./outputs/health/exact-line-exposure-nfl-latest.json');
+          if(a.replay?.evidenceValid!==true||a.replay?.promotionApproved!==false||
+             a.replay?.prospectiveEvidence!==false||a.modelPromoted!==false||
+             Object.values({...a.replay.byMarket,...a.replay.matchedPP}).some(x=>
+              x.pairedCI&&x.pairedCI.metric!=='retrospective_candidate_minus_frozen_model_Brier_at_original_lines'))
+            throw Error('Invalid or mislabeled original-line research report');
+          console.log('PASS: original-line paired CI provenance, no release approved.');
+          NODE
           TESTED="$tested" node -e 'require("fs").writeFileSync("outputs/health/exact-line-exposure-nfl-test-latest.json",JSON.stringify({testedCommit:process.env.TESTED,generatedAt:new Date().toISOString(),passed:true,paidRequests:0})+"\n")'
           if test "$tested" = "$pin"; then rm src/nhl-exact-line-exposure-audit.cjs scripts/report-exact-line-exposure-nfl.cjs test/nhl-exact-line-exposure-audit.test.cjs; fi
       - name: Archive private evidence only

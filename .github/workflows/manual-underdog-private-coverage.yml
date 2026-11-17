@@ -1,5 +1,8 @@
 name: Private manual Underdog coverage probe
 on:
+  push:
+    branches: [test/underdog-one-time-coverage-20261116]
+    paths: [.github/workflows/manual-underdog-private-coverage.yml]
   workflow_dispatch:
     inputs:
       league:
@@ -13,6 +16,11 @@ jobs:
   probe:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        league: ${{ github.event_name == 'push' && fromJSON('["NHL","NFL"]') || fromJSON(format('["{0}"]', inputs.league)) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,7 +34,7 @@ jobs:
         env:
           UNDERDOG_API_KEY: ${{ secrets.UNDERDOG_API_KEY }}
           UNDERDOG_READ_ONLY_PROBE: explicit_manual
-          LEAGUE: ${{ inputs.league }}
+          LEAGUE: ${{ matrix.league }}
         run: |
           set -euo pipefail
           test -n "$UNDERDOG_API_KEY" || { echo 'No key configured; zero calls.'; exit 1; }

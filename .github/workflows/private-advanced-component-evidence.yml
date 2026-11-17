@@ -31,7 +31,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! node --test test/advanced-component-evidence.test.cjs test/nhl-position-context-v3.test.cjs test/nhl-official-period-events.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nfl-pregame-matchup-challenger.test.cjs test/roadmap-calibration-format-coverage.test.cjs >"$log" 2>&1; then
+          if ! node --test test/roadmap-seven-validation-nov16.test.cjs test/nhl-prior-season-period-backfill.test.cjs test/nfl-yardage-volume-efficiency.test.cjs test/advanced-component-evidence.test.cjs test/nhl-position-context-v3.test.cjs test/nhl-official-period-events.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nfl-pregame-matchup-challenger.test.cjs test/roadmap-calibration-format-coverage.test.cjs >"$log" 2>&1; then
             grep -E '^not ok|^# (tests|pass|fail)' "$log"; exit 1
           fi
           grep -E '^# (tests|pass|fail)' "$log"
@@ -40,20 +40,21 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          for cmd in scripts/report-advanced-component-evidence.cjs src/nfl-position-kicker-context-trial.cjs; do
+          for cmd in scripts/report-advanced-component-evidence.cjs src/nfl-position-kicker-context-trial.cjs scripts/backtest-nfl-yardage-volume-efficiency.cjs scripts/report-nhl-validation-and-paper-audit.cjs; do
             if ! node "$cmd" >"$log" 2>&1; then
               echo "::error::Research report failed: $cmd"
               grep -E '^(TypeError|ReferenceError|RangeError|SyntaxError|Error):' "$log" | head -1 | cut -c1-200 || true
               exit 1
             fi
-            cat "$log"
+            echo "PASS: $cmd"
           done
       - name: Archive aggregate private research
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f outputs/health/nhl-form-usage-position-v4-latest.json outputs/health/advanced-component-evidence-latest.json outputs/nfl/backtests/position-kicker-context-latest.json
+          git add -f outputs/health/nhl-form-usage-position-v4-latest.json outputs/health/advanced-component-evidence-latest.json outputs/nfl/backtests/position-kicker-context-latest.json outputs/health/nhl-standard-tail-weight-v5-latest.json outputs/nfl/backtests/yardage-volume-efficiency-latest.json outputs/health/nhl-validation-and-paper-audit-latest.json
+          if [ -d outputs/research/market-calibration-v3 ]; then git add -f outputs/research/market-calibration-v3; fi
           git diff --cached --quiet && exit 0
           git commit -qm 'research: archive advanced NHL components, tier audits and NFL context trial'
           for i in 1 2 3; do

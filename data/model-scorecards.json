@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_nhl_nfl_original_git_frozen_model_scorecards_v1",
-  "generatedAt": "2026-11-17T14:37:54.784Z",
+  "generatedAt": "2026-11-17T14:41:06.323Z",
   "sources": {
     "nhlOriginalFrozenBaselineAt": "2026-11-17T13:38:26.612Z",
     "nflFirstGitForecastAuditAt": "2026-11-17T14:34:00.841Z",
@@ -103,6 +103,21 @@
       "payoutAdjustedEV": null,
       "calibrated": false,
       "originalPlatformSettlementVerified": false
+    },
+    "standardProbabilityAudit": {
+      "decided": 604,
+      "observedSelectedRate": 0.52649,
+      "meanUncalibratedEstimatedProbability": 0.618599,
+      "signedOverconfidenceGap": 0.092109,
+      "brier": 0.267286,
+      "futureHoldoutDecided": 575,
+      "futureHoldoutGames": 51,
+      "futureHoldoutDates": 9,
+      "pastOnlyTrainingDecisions": 29,
+      "calibrated": false,
+      "fitIndependentOfFutureGames": false,
+      "payoutAndSettlementsVerified": false,
+      "releaseApproved": false
     },
     "postPolicyMarkets": [
       {

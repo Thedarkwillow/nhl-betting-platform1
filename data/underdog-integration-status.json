@@ -1,6 +1,6 @@
 {
   "kind": "public_platform_integration_status_v1",
-  "checkedAt": "2026-11-17T01:08:27.478Z",
+  "checkedAt": "2026-11-17T01:25:09.681Z",
   "rawRowsPublished": 0,
   "underdog": {
     "NHL": {
@@ -10,7 +10,8 @@
       "completeBoardVerified": false,
       "originalPlatformVerified": false,
       "scheduleMatchedRows": 5,
-      "playerIdentityVerified": false
+      "playerIdentityVerified": false,
+      "rosterCandidateRows": 5
     },
     "NFL": {
       "connected": true,
@@ -18,8 +19,9 @@
       "eligibleRows": 0,
       "completeBoardVerified": false,
       "originalPlatformVerified": false,
-      "scheduleMatchedRows": 0,
-      "playerIdentityVerified": false
+      "scheduleMatchedRows": 4,
+      "playerIdentityVerified": false,
+      "rosterCandidateRows": 0
     }
   }
 }

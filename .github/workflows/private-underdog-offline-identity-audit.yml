@@ -33,6 +33,8 @@ jobs:
             exit 1
           fi
           grep -E '^# (tests|pass|fail)' "$log"
+      - name: Check private normalized candidate archives (aggregate only)
+        run: node scripts/audit-underdog-private-candidate-archives.cjs
       - name: Aggregate roster archive diagnostics only
         run: |
           node - <<'NODE'
@@ -43,3 +45,5 @@ jobs:
           for(const x of r.rows){if(Number(x.season)!==2026||!Number.isInteger(Number(x.week)))continue;const q=counts[x.week]??={rows:0,usableIdentityFields:0};q.rows++;if(x.name&&x.team&&x.playerId)q.usableIdentityFields++;}
           console.log(JSON.stringify({kind:'nfl_roster_archive_aggregate_diagnostic',observedAt:r.observedAt,rows:r.rows.length,byWeek:counts,archiveOnly:r.archiveOnly,providerRequests:0,currentRosterVerified:false}));
           NODE
+
+# Owner-requested continuation: Audit already archived bounded provider candidate data without paid requests.

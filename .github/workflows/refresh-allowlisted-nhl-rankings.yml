@@ -150,7 +150,7 @@ jobs:
           fs.mkdirSync('../public/data',{recursive:true});
           fs.writeFileSync('../public/data/nhl-freshness-diagnostic.json',JSON.stringify(safe)+'\n');
           fs.writeFileSync('../public/data.json',JSON.stringify(d)+'\n');
-          const matchup=require('./src/nhl-public-position-breakdown.cjs').build(d,input,read('outputs/history/players.json'),read('outputs/official-nhl/season-schedules/2026-27.json'),new Date(now).toISOString());
+          const matchup=require('./src/nhl-public-position-breakdown.cjs').build(d,input,read('outputs/history/players.json'),read('outputs/official-nhl/season-schedules/2026-27.json'),new Date(now).toISOString(),read('outputs/pregame-availability/special-teams/latest.json'));
           fs.writeFileSync('../public/data/nhl-position-breakdowns.json',JSON.stringify(matchup)+'\n');
           console.log(approved?'Approved fresh source export prepared.':'No approved fresh feed; stale rankings withheld.');
           NODE

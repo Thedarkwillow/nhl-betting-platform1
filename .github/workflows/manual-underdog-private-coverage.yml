@@ -38,5 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$UNDERDOG_API_KEY" || { echo 'No key configured; zero calls.'; exit 1; }
-          node --test test/roadmap-seven-validation-nov16.test.cjs
+          node --test test/roadmap-seven-validation-nov16.test.cjs test/underdog-credit-policy.test.cjs
           node scripts/probe-underdogapi-coverage.cjs "$LEAGUE"
+
+# Owner-requested final eligibility diagnosis; one bounded full request per league.

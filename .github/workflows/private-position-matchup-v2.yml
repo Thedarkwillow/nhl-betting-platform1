@@ -1,0 +1,60 @@
+name: Private NHL NFL positional matchup research
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-position-matchup-v2.yml']
+  workflow_run:
+    workflows: ['Freeze actual-time NHL and NFL pregame Higher Lower research']
+    types: [completed]
+  schedule:
+    - cron: '28 7,11 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-position-matchup-v2
+  cancel-in-progress: false
+jobs:
+  validate:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate and evaluate position matchups without additional data requests
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/position-rate-matchup-v2.test.cjs test/position-and-nfl-context.test.cjs test/player-context-evidence.test.cjs test/nfl-pregame-matchup-challenger.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log"; exit 1
+          fi
+          grep -E '^# (tests|pass|fail)' "$log"
+          for cmd in scripts/report-nhl-position-rate-matchup-v2.cjs src/nfl-position-opportunity-matchup.cjs; do
+            if ! node "$cmd" >"$log" 2>&1; then echo "::error::Research failed: $cmd"; exit 1; fi
+            cat "$log"
+          done
+      - name: Archive private research reports only
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/nhl-position-rate-matchup-v2-latest.json outputs/nfl/backtests/position-opportunity-matchup-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: archive NHL and NFL position matchup validation'
+          for i in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: private position research archived'; exit 0; fi
+            sleep "$i"
+          done
+          exit 1

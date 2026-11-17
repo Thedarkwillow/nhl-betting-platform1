@@ -71,3 +71,5 @@ jobs:
 # Validated and merged: run private evidence reports, no provider calls.
 
 # Owner-requested continuation: Refresh private market calibration and per-format resolved-slate evidence.
+
+# Owner-requested continuation: Rebuild cached sportsbook same-book movement and calibration/paper reports.

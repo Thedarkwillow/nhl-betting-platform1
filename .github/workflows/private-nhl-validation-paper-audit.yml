@@ -69,3 +69,5 @@ jobs:
           exit 1
 
 # Validated and merged: run private evidence reports, no provider calls.
+
+# Owner-requested continuation: Refresh private market calibration and per-format resolved-slate evidence.

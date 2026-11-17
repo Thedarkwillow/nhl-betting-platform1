@@ -4,7 +4,7 @@
  const parse=s=>typeof s==="string"?Date.parse(s):NaN;
  const count=x=>Number.isInteger(x)&&x>=0;
  function age(at,now){const t=parse(at);return Number.isFinite(t)&&Number.isFinite(now)&&t<=now?Math.floor((now-t)/60000):null;}
- function model({health,board,standard,goblin,demon,movement,progress,platformStatus}={},now=Date.now()){
+ function model({health,board,standard,goblin,demon,movement,progress,platformStatus,scorecards}={},now=Date.now()){
   const rows=[];
   const archive=health?.kind==="public_nhl_nfl_pacific_morning_collection_health_v1"&&age(health.generatedAt,now)!==null;
   for(const [label,k] of [["6 AM","06:00"],["9 AM","09:00"]]){const s=archive?health.slots?.[k]:null;rows.push({label:label+" archive",value:s?.status==="privately_archived_complete"&&count(s.nhlOffers)&&count(s.nflOffers)&&age(s.observedAt,now)!==null?"NHL "+s.nhlOffers+" / NFL "+s.nflOffers:"Unverified",ageMinutes:age(s?.observedAt,now)});}
@@ -27,6 +27,10 @@
    for(const sport of ["NHL","NFL"]){const s=progress.lineupResearch?.[sport];if(count(s?.distinctResolvedSlates))rows.push({label:sport+" lineup evidence",value:s.distinctResolvedSlates+" distinct resolved slates; not calibrated",ageMinutes:a});}
    if(count(progress.paper?.authenticatedSettledEntries)&&progress.paper.verifiedROI===null)rows.push({label:"Settlement evidence",value:progress.paper.authenticatedSettledEntries+" authenticated entries; verified ROI unavailable",ageMinutes:a});
   }
+  if(scorecards?.kind==="public_nhl_nfl_original_git_frozen_model_scorecards_v1"&&age(scorecards.sources?.nhlOriginalFrozenBaselineAt,now)!==null){
+   const q=scorecards.nhl?.standardOriginalSelections;
+   if(q?.calibrated===false&&q.originalPlatformSettlementVerified===false&&count(q.decided)&&q.decided>0&&count(q.distinctGames)&&q.distinctGames>=10&&[q.correct,q.incorrect,q.hypotheticalHigherWins,q.hypotheticalLowerWins].every(count)&&q.correct+q.incorrect===q.decided&&q.hypotheticalHigherWins+q.hypotheticalLowerWins===q.decided){const fmt=n=>(100*n/q.decided).toFixed(2)+"%";rows.push({label:"NHL Standard historical baseline",value:fmt(q.correct)+" model / "+fmt(q.hypotheticalHigherWins)+" always Higher / "+fmt(q.hypotheticalLowerWins)+" always Lower — "+q.decided+" decided; descriptive, not a forecast",ageMinutes:age(scorecards.sources.nhlOriginalFrozenBaselineAt,now)});}
+  }
   if(platformStatus?.kind==="public_platform_integration_status_v1"&&platformStatus.rawRowsPublished===0&&age(platformStatus.checkedAt,now)!==null){
    for(const sport of ["NHL","NFL"]){const s=platformStatus.underdog?.[sport];if(s?.connected===true&&count(s.sampleRows)&&count(s.eligibleRows)&&s.eligibleRows<=s.sampleRows&&s.completeBoardVerified===false&&s.originalPlatformVerified===false)rows.push({label:"Underdog "+sport+" integration",value:(s.eligibleRows===0?"Connection verified; no eligible sample rows; board unverified":"Partial sample verified; full board unverified")+(count(s.scheduleMatchedRows)&&s.scheduleMatchedRows<=s.sampleRows&&s.playerIdentityVerified===false?"; "+s.scheduleMatchedRows+"/"+s.sampleRows+" schedule candidates; player identity not verified":"")+(count(s.rosterCandidateRows)&&s.rosterCandidateRows<=s.sampleRows?"; "+s.rosterCandidateRows+" roster candidates":"")+(count(s.priorRosterCandidateRows)&&s.priorRosterCandidateRows<=s.sampleRows?"; "+s.priorRosterCandidateRows+" prior-week candidates only":"")+(count(s.researchCandidateSides)&&s.researchCandidateSides<=2*s.sampleRows&&count(s.modelFamilyCandidateSides)&&s.modelFamilyCandidateSides<=s.researchCandidateSides?"; "+s.researchCandidateSides+" research sides, "+s.modelFamilyCandidateSides+" existing model-family candidates":""),ageMinutes:age(platformStatus.checkedAt,now)});}
   }
@@ -40,7 +44,7 @@
  }
  async function init(){
   const host=document.getElementById("roadmapDailyEvidence");if(!host)return;
-  const paths={health:"data/collection-health.json",board:"data.json",standard:"data/nfl-research-cards.json",goblin:"data/nfl-goblin-research-cards.json",demon:"data/nfl-demon-research-cards.json",movement:"data/source-line-movement.json",progress:"data/research-evidence-progress.json",platformStatus:"data/underdog-integration-status.json"};
+  const paths={health:"data/collection-health.json",board:"data.json",standard:"data/nfl-research-cards.json",goblin:"data/nfl-goblin-research-cards.json",demon:"data/nfl-demon-research-cards.json",movement:"data/source-line-movement.json",progress:"data/research-evidence-progress.json",platformStatus:"data/underdog-integration-status.json",scorecards:"data/model-scorecards.json"};
   const result=Object.fromEntries(await Promise.all(Object.entries(paths).map(async ([k,p])=>{try{const r=await fetch("./"+p,{cache:"no-store"});return [k,r.ok?await r.json():null];}catch{return [k,null];}})));
   function draw(){const v=model(result);host.replaceChildren();const dl=document.createElement("dl");dl.className="roadmap-health-grid";
    for(const item of v.rows){const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=item.label;dd.textContent=item.value+(item.ageMinutes===null?"":" · "+item.ageMinutes+" min old");dl.append(dt,dd);}

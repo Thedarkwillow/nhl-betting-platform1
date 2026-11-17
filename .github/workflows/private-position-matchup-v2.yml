@@ -35,7 +35,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! node --test test/position-rate-matchup-v2.test.cjs test/position-and-nfl-context.test.cjs test/player-context-evidence.test.cjs test/nfl-pregame-matchup-challenger.test.cjs >"$log" 2>&1; then
+          if ! node --test test/position-rate-matchup-v2.test.cjs test/position-and-nfl-context.test.cjs test/player-context-evidence.test.cjs test/nfl-pregame-matchup-challenger.test.cjs test/nfl-matchup-shadow-grading.test.cjs >"$log" 2>&1; then
             grep -E '^not ok|^# (tests|pass|fail)' "$log"; exit 1
           fi
           grep -E '^# (tests|pass|fail)' "$log"
@@ -48,7 +48,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f outputs/health/nhl-position-rate-matchup-v2-latest.json outputs/nfl/backtests/position-opportunity-matchup-latest.json
+          git add -f outputs/health/nhl-position-rate-matchup-v2-latest.json outputs/health/nhl-position-rate-matchup-summary-latest.json outputs/nfl/backtests/position-opportunity-matchup-latest.json
           git diff --cached --quiet && exit 0
           git commit -qm 'research: archive NHL and NFL position matchup validation'
           for i in 1 2 3; do

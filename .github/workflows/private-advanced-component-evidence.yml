@@ -1,0 +1,65 @@
+name: Private NHL component NFL kicker and tier matched evidence
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-advanced-component-evidence.yml']
+  schedule:
+    - cron: '42 7,12 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-advanced-component-evidence
+  cancel-in-progress: false
+jobs:
+  research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Private advanced model regression
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/advanced-component-evidence.test.cjs test/nhl-position-context-v3.test.cjs test/nhl-official-period-events.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nfl-pregame-matchup-challenger.test.cjs test/roadmap-calibration-format-coverage.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log"; exit 1
+          fi
+          grep -E '^# (tests|pass|fail)' "$log"
+      - name: Evaluate historical and first-Git comparison evidence without provider calls
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for cmd in scripts/report-advanced-component-evidence.cjs src/nfl-position-kicker-context-trial.cjs; do
+            if ! node "$cmd" >"$log" 2>&1; then
+              echo "::error::Research report failed: $cmd"
+              grep -E '^(TypeError|ReferenceError|RangeError|SyntaxError|Error):' "$log" | head -1 | cut -c1-200 || true
+              exit 1
+            fi
+            cat "$log"
+          done
+      - name: Archive aggregate private research
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/nhl-form-usage-position-v4-latest.json outputs/health/advanced-component-evidence-latest.json outputs/nfl/backtests/position-kicker-context-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: archive advanced NHL components, tier audits and NFL context trial'
+          for i in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: private advanced research archived'; exit 0; fi
+            sleep "$i"
+          done
+          exit 1

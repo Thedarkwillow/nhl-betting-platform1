@@ -2,7 +2,7 @@ name: Validate Public NHL Dashboard
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'feature/**', 'fix/**', 'feat/**']
+    branches: [main, 'feature/**', 'fix/**', 'feat/**', 'research/**']
     paths:
       - 'index.html'
       - 'assets/**'
@@ -11,6 +11,7 @@ on:
       - 'scripts/test-public-nhl-games.cjs'
       - '.github/workflows/collect-public-nhl-games.yml'
       - 'scripts/validate-dashboard.cjs'
+      - 'scripts/test-daily-ranking-readiness.cjs'
       - 'scripts/test-lineup-workspace.cjs'
       - 'scripts/test-six-priority-desk.cjs'
       - 'scripts/test-multi-sport-roadmap.cjs'
@@ -52,6 +53,8 @@ jobs:
         run: node scripts/validate-dashboard.cjs
       - name: Test interactive NHL research lineup editor
         run: node scripts/test-lineup-workspace.cjs
+      - name: Verify independent board captures never imply publicly approved picks
+        run: node --test scripts/test-daily-ranking-readiness.cjs
       - name: Test seven-area public status, freshness and comparison safety
         run: node scripts/test-research-status.cjs
       - name: Test phone-ready six-roadmap evidence, freshness and unverified payout safeguards

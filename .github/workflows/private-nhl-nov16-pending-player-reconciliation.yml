@@ -1,0 +1,45 @@
+name: Private November 16 NHL pending-player reconciliation
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-nov16-pending-player-reconciliation.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-nhl-nov16-pending-player-reconciliation
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reconcile all four original NHL selections without assuming zero outcomes
+        run: |
+          set -euo pipefail
+          node --check scripts/audit-nhl-nov16-pending-appearances.cjs
+          node scripts/audit-nhl-nov16-pending-appearances.cjs
+      - name: Save identity diagnostics privately
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/nhl-nov16-pending-identity-audit.json
+          if git diff --cached --quiet; then echo 'PASS: cached diagnostics unchanged'; exit 0; fi
+          git commit -qm 'audit: distinguish Nov 16 NHL missing-player appearances from grading data defects'
+          for i in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: stored private pending-player diagnostics'; exit 0; fi
+            sleep "$i"
+          done
+          exit 1

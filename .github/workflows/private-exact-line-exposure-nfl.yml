@@ -34,7 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          pin=aca1158d7182153e5e3c09fb2b0fed0cf14d2e94
+          pin=3179bc2eb04a9eeb806a9270f99d43205abda2f1
           tested="$(git rev-parse HEAD)"
           if ! test -f scripts/report-exact-line-exposure-nfl.cjs; then
             git fetch -q origin "$pin"

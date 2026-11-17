@@ -28,6 +28,8 @@
 <div class="card">Board status<strong id="freshness">—</strong></div>
 <div class="card">Tracked picks graded<strong id="gradedCount">—</strong></div>
 </div>
+<aside id="dailyRankingReadiness" class="board-panel" role="status" aria-live="polite"><p class="minor">Checking verified capture and public ranking readiness…</p></aside>
+<button id="refreshDailyRankingReadiness" type="button" class="secondary-button">Refresh capture status</button>
 <div class="research-refresh-strip"><p class="notice" id="updated">Loading saved data…</p>
 <button type="button" id="refreshResearch" class="secondary-button">Refresh saved research</button></div>
 <p class="minor" id="researchRefreshStatus" role="status" aria-live="polite">Archived observations only; updates never fetch directly from the fantasy apps.</p>
@@ -165,6 +167,7 @@
 </main>
 <script src="./assets/lineup-workspace.js"></script>
 <script src="./assets/research-status.js"></script>
+<script src="./assets/daily-ranking-readiness.js"></script>
 <script src="./assets/multi-sport-roadmap.js"></script>
 <script src="./assets/roadmap-evidence-desk.js"></script>
 <script src="./assets/model-scorecards.js"></script>
@@ -216,19 +219,23 @@ function renderEvidenceLegend(){
 }
 function renderFeatured(){
  const host=$("featuredProps");host.replaceChildren();
+ // Source-fresh and allowlisted candidates can be described without
+ // claiming calibrated confidence, an authenticated app offer or an edge.
+ const candidate=p=>isCurrentOffer(p)&&p.researchEligibility!=="watchlist"&&
+  typeof p.player==="string"&&p.player.trim()&&
+  ["Higher","Lower"].includes(p.lean)&&Number.isFinite(p.line)&&
+  Number.isInteger(p.observations)&&p.observations>=10;
  const frozen=(data.featuredPropsSourceFresh===true&&Array.isArray(data.featuredIndividualProps)?
-  data.featuredIndividualProps:[]).filter(p=>isCurrentOffer(p)&&
-  p.researchEligibility!=="watchlist"&&approvedProbability(p)!==null&&approvedProbability(p)>0.5).slice(0,8);
+  data.featuredIndividualProps:[]).filter(candidate).slice(0,8);
  const preview=(data.previewResearchOnly===true&&
   data.previewSelectionsOfficiallyPrecommitted===false&&
   Array.isArray(data.previewResearchProps)?data.previewResearchProps:[])
-  .filter(p=>isCurrentOffer(p)&&p.researchEligibility!=="watchlist"&&
-   p.tier==="Standard"&&approvedProbability(p)!==null&&approvedProbability(p)>0.5).slice(0,8);
+  .filter(p=>candidate(p)&&p.tier==="Standard").slice(0,8);
  const usingPreview=frozen.length===0&&preview.length>0;
  const rows=frozen.length?frozen:preview;
- if(usingPreview){
+ if(rows.length){
   const notice=document.createElement("p");notice.className="minor featured-preview-notice";
-  notice.textContent="Independent-source model preview only. These props were not Git-frozen prospective picks. Payouts, app availability and probabilities are unverified.";
+  notice.textContent="Source-fresh research candidates only — not vetted bets. Original fantasy-app availability, calibrated confidence and payouts are unverified; lineup building remains disabled.";
   host.append(notice);
  }
  if(!rows.length){
@@ -245,7 +252,7 @@ function renderFeatured(){
   const stat=document.createElement("div");stat.className="featured-stat";stat.textContent=(p.market||"Stat")+" "+p.lean+" "+p.line;
   const foot=document.createElement("div");foot.className="featured-bottom";
   const estimate=document.createElement("div");estimate.className="featured-number";estimate.textContent=probabilityLabel(p);
-  const small=document.createElement("small");small.textContent="Approved calibration evidence · no guarantee";estimate.append(small);
+  const small=document.createElement("small");small.textContent=approvedProbability(p)===null?"Uncalibrated · no recommendation":"Approved calibration evidence · no guarantee";estimate.append(small);
   const details=document.createElement("button");details.type="button";details.className="player-detail-action";
   details.textContent="Player details";details.setAttribute("aria-label","View "+p.player+" historical NHL statistics");
   details.addEventListener("click",()=>showPlayerDetail(p));

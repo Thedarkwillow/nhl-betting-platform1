@@ -6,6 +6,11 @@ const css=fs.readFileSync(path.resolve(__dirname,"../assets/dashboard.css"),"utf
 const workspace=fs.readFileSync(path.resolve(__dirname,"../assets/lineup-workspace.js"),"utf8");
 new vm.Script(workspace,{filename:"lineup-workspace.js"});
 assert.match(html,/<script src="\.\/assets\/lineup-workspace\.js"><\/script>/,"Public builder module must load");
+const readinessJs=fs.readFileSync(path.resolve(__dirname,"../assets/daily-ranking-readiness.js"),"utf8");
+new vm.Script(readinessJs,{filename:"daily-ranking-readiness.js"});
+assert.match(html,/<script src="\.\/assets\/daily-ranking-readiness\.js"><\/script>/);
+assert.match(html,/id="dailyRankingReadiness"/);
+assert.match(html,/id="refreshDailyRankingReadiness"/);
 const statusJs=fs.readFileSync(path.resolve(__dirname,"../assets/research-status.js"),"utf8");
 new vm.Script(statusJs,{filename:"research-status.js"});
 assert.match(html,/<script src="\.\/assets\/research-status\.js"><\/script>/,"Public source-quality module must load");
@@ -62,6 +67,8 @@ assert.match(match[1],/workspace\.swapOptions/,"Swaps must be validated before d
 assert.match(match[1],/workspace\.addSelection/,"Board action must be validated by research-only workspace");
 assert.match(match[1],/workspace\.restoreDraft/,"Saved drafts must pass source and age validation");
 assert.match(match[1],/currentBoardIsFresh\(\)/,"Fresh board required before lineup edits");
+assert.match(match[1],/Number\.isInteger\(p\.observations\)&&p\.observations>=10/,"Featured research candidates require ten official prior games");
+assert.match(match[1],/Uncalibrated · no recommendation/,"No unapproved featured confidence claim");
 assert.match(match[1],/function saveResearchView\(/,"Local-only filter persistence required");
 assert.match(match[1],/function restoreResearchView\(/,"Saved view must be explicitly restored");
 assert.match(match[1],/x\.eventStartsAt===p\.eventStartsAt/,"Alternate ladder must match exact game start");

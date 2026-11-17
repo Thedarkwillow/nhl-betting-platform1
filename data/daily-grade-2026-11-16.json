@@ -1,0 +1,289 @@
+{
+  "kind": "public_original_daily_grade_v1",
+  "slateDate": "2026-11-16",
+  "generatedAt": "2026-11-17T13:40:20.583Z",
+  "nhl": {
+    "status": "official_final_slate_graded",
+    "scheduledGames": 2,
+    "finalGames": 2,
+    "officialPlayerRows": 80,
+    "statsFetchedAt": "2026-11-17T13:38:13.073Z",
+    "ledgerBuiltAt": "2026-11-17T13:38:19.039Z",
+    "all": {
+      "registered": 87,
+      "correct": 53,
+      "incorrect": 30,
+      "push": 0,
+      "pending": 4,
+      "decided": 83,
+      "hitRate": 0.6385542168674698,
+      "alwaysHigher": 0.5903614457831325,
+      "alwaysLower": 0.40963855421686746,
+      "distinctGradedGames": 2
+    },
+    "byTier": {
+      "Standard": {
+        "registered": 23,
+        "correct": 13,
+        "incorrect": 9,
+        "push": 0,
+        "pending": 1,
+        "decided": 22,
+        "hitRate": 0.5909090909090909,
+        "alwaysHigher": 0.4090909090909091,
+        "alwaysLower": 0.5909090909090909,
+        "distinctGradedGames": 2
+      },
+      "Goblin": {
+        "registered": 55,
+        "correct": 39,
+        "incorrect": 13,
+        "push": 0,
+        "pending": 3,
+        "decided": 52,
+        "hitRate": 0.75,
+        "alwaysHigher": 0.75,
+        "alwaysLower": 0.25,
+        "distinctGradedGames": 2
+      },
+      "Demon": {
+        "registered": 9,
+        "correct": 1,
+        "incorrect": 8,
+        "push": 0,
+        "pending": 0,
+        "decided": 9,
+        "hitRate": 0.1111111111111111,
+        "alwaysHigher": 0.1111111111111111,
+        "alwaysLower": 0.8888888888888888,
+        "distinctGradedGames": 2
+      }
+    },
+    "standardByMarket": {
+      "assists": {
+        "registered": 3,
+        "correct": 3,
+        "incorrect": 0,
+        "push": 0,
+        "pending": 0,
+        "decided": 3,
+        "hitRate": 1,
+        "alwaysHigher": 0.6666666666666666,
+        "alwaysLower": 0.3333333333333333,
+        "distinctGradedGames": 2
+      },
+      "blockedShots": {
+        "registered": 4,
+        "correct": 3,
+        "incorrect": 1,
+        "push": 0,
+        "pending": 0,
+        "decided": 4,
+        "hitRate": 0.75,
+        "alwaysHigher": 0.5,
+        "alwaysLower": 0.5,
+        "distinctGradedGames": 2
+      },
+      "points": {
+        "registered": 6,
+        "correct": 4,
+        "incorrect": 1,
+        "push": 0,
+        "pending": 1,
+        "decided": 5,
+        "hitRate": 0.8,
+        "alwaysHigher": 0.4,
+        "alwaysLower": 0.6,
+        "distinctGradedGames": 1
+      },
+      "shotsOnGoal": {
+        "registered": 10,
+        "correct": 3,
+        "incorrect": 7,
+        "push": 0,
+        "pending": 0,
+        "decided": 10,
+        "hitRate": 0.3,
+        "alwaysHigher": 0.3,
+        "alwaysLower": 0.7,
+        "distinctGradedGames": 2
+      }
+    },
+    "gamesWithOriginalSelections": 2
+  },
+  "nfl": {
+    "status": "archived_official_stat_outcomes_only",
+    "scheduledGames": 1,
+    "finalGames": 1,
+    "registered": 327,
+    "decided": 323,
+    "correct": 167,
+    "incorrect": 156,
+    "push": 0,
+    "unresolvedPerSlate": 4,
+    "unresolvedByReason": {
+      "unresolved_player_appearance": 4
+    },
+    "hitRate": 0.5170278637770898,
+    "alwaysHigher": 0.44891640866873067,
+    "alwaysLower": 0.5510835913312694,
+    "firstDistinctThreshold": {
+      "registered": 97,
+      "decided": 94,
+      "correct": 47,
+      "incorrect": 47,
+      "push": 0,
+      "unresolvedPerSlate": 3,
+      "unresolvedByReason": {
+        "unresolved_player_appearance": 3
+      },
+      "hitRate": 0.5,
+      "alwaysHigher": 0.40425531914893614,
+      "alwaysLower": 0.5957446808510638
+    },
+    "firstPlayerGameMarket": {
+      "registered": 41,
+      "decided": 39,
+      "correct": 19,
+      "incorrect": 20,
+      "push": 0,
+      "unresolvedPerSlate": 2,
+      "unresolvedByReason": {
+        "unresolved_player_appearance": 2
+      },
+      "hitRate": 0.48717948717948717,
+      "alwaysHigher": 0.4358974358974359,
+      "alwaysLower": 0.5641025641025641
+    },
+    "distinctByMarket": {
+      "pass_rush_yards": {
+        "registered": 2,
+        "decided": 2,
+        "correct": 0,
+        "incorrect": 2,
+        "push": 0,
+        "unresolvedPerSlate": 0,
+        "unresolvedByReason": {},
+        "hitRate": 0,
+        "alwaysHigher": 0,
+        "alwaysLower": 1
+      },
+      "passing_attempts": {
+        "registered": 2,
+        "decided": 2,
+        "correct": 1,
+        "incorrect": 1,
+        "push": 0,
+        "unresolvedPerSlate": 0,
+        "unresolvedByReason": {},
+        "hitRate": 0.5,
+        "alwaysHigher": 0,
+        "alwaysLower": 1
+      },
+      "passing_completions": {
+        "registered": 2,
+        "decided": 2,
+        "correct": 1,
+        "incorrect": 1,
+        "push": 0,
+        "unresolvedPerSlate": 0,
+        "unresolvedByReason": {},
+        "hitRate": 0.5,
+        "alwaysHigher": 0,
+        "alwaysLower": 1
+      },
+      "passing_yards": {
+        "registered": 1,
+        "decided": 1,
+        "correct": 0,
+        "incorrect": 1,
+        "push": 0,
+        "unresolvedPerSlate": 0,
+        "unresolvedByReason": {},
+        "hitRate": 0,
+        "alwaysHigher": 0,
+        "alwaysLower": 1
+      },
+      "receiving_targets": {
+        "registered": 2,
+        "decided": 2,
+        "correct": 1,
+        "incorrect": 1,
+        "push": 0,
+        "unresolvedPerSlate": 0,
+        "unresolvedByReason": {},
+        "hitRate": 0.5,
+        "alwaysHigher": 0.5,
+        "alwaysLower": 0.5
+      },
+      "receiving_yards": {
+        "registered": 32,
+        "decided": 29,
+        "correct": 14,
+        "incorrect": 15,
+        "push": 0,
+        "unresolvedPerSlate": 3,
+        "unresolvedByReason": {
+          "unresolved_player_appearance": 3
+        },
+        "hitRate": 0.4827586206896552,
+        "alwaysHigher": 0.7241379310344828,
+        "alwaysLower": 0.27586206896551724
+      },
+      "receptions": {
+        "registered": 4,
+        "decided": 4,
+        "correct": 1,
+        "incorrect": 3,
+        "push": 0,
+        "unresolvedPerSlate": 0,
+        "unresolvedByReason": {},
+        "hitRate": 0.25,
+        "alwaysHigher": 0.75,
+        "alwaysLower": 0.25
+      },
+      "rush_receive_yards": {
+        "registered": 27,
+        "decided": 27,
+        "correct": 19,
+        "incorrect": 8,
+        "push": 0,
+        "unresolvedPerSlate": 0,
+        "unresolvedByReason": {},
+        "hitRate": 0.7037037037037037,
+        "alwaysHigher": 0.2962962962962963,
+        "alwaysLower": 0.7037037037037037
+      },
+      "rushing_attempts": {
+        "registered": 7,
+        "decided": 7,
+        "correct": 4,
+        "incorrect": 3,
+        "push": 0,
+        "unresolvedPerSlate": 0,
+        "unresolvedByReason": {},
+        "hitRate": 0.5714285714285714,
+        "alwaysHigher": 0.14285714285714285,
+        "alwaysLower": 0.8571428571428571
+      },
+      "rushing_yards": {
+        "registered": 18,
+        "decided": 18,
+        "correct": 6,
+        "incorrect": 12,
+        "push": 0,
+        "unresolvedPerSlate": 0,
+        "unresolvedByReason": {},
+        "hitRate": 0.3333333333333333,
+        "alwaysHigher": 0.2222222222222222,
+        "alwaysLower": 0.7777777777777778
+      }
+    },
+    "originalIdsReconciled": true,
+    "sourceReportGeneratedAt": "2026-11-17T13:38:41.053Z"
+  },
+  "platformSettlementVerified": false,
+  "payoutROI": null,
+  "modelPromoted": false,
+  "rawPropRowsExposed": 0
+}

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-17T13:40:20.656Z",
-  "sourceReportAt": "2026-11-17T11:10:54.209Z",
+  "generatedAt": "2026-11-17T14:35:09.499Z",
+  "sourceReportAt": "2026-11-17T14:27:10.191Z",
   "periodHistory": {
     "accountedDays": 174,
     "calendarDays": 261,
@@ -10,11 +10,11 @@
   },
   "evidence": {
     "nhl": {
-      "firstObserved": 2109,
-      "matchedCalibrationRows": 141
+      "firstObserved": 2192,
+      "matchedCalibrationRows": 224
     },
     "nfl": {
-      "firstObserved": 2144,
+      "firstObserved": 2415,
       "matchedCalibrationRows": 0
     }
   },
@@ -26,7 +26,7 @@
   },
   "lineupResearch": {
     "NHL": {
-      "distinctResolvedSlates": 2
+      "distinctResolvedSlates": 3
     },
     "NFL": {
       "distinctResolvedSlates": 1

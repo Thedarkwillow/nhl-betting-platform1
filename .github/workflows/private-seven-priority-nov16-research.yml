@@ -35,7 +35,7 @@ jobs:
             grep -E '^not ok|^# (tests|pass|fail)' "$log"; exit 1
           fi
           grep -E '^# (tests|pass|fail)' "$log"
-          for cmd in 'node scripts/audit-nfl-unresolved-appearances.cjs 2026-11-15' 'node scripts/backtest-nfl-yardage-volume-efficiency.cjs' 'node scripts/report-nhl-actual-attempt-volume.cjs' 'node scripts/report-nhl-validation-and-paper-audit.cjs'; do
+          for cmd in 'node scripts/audit-nfl-unresolved-appearances.cjs 2026-11-15' 'node scripts/backtest-nfl-yardage-volume-efficiency.cjs' 'node scripts/report-nhl-actual-attempt-volume.cjs'; do
             if ! bash -c "$cmd" >"$log" 2>&1; then echo "::error::Private report failed: $cmd"; exit 1; fi
             echo "PASS: $cmd"
           done
@@ -44,7 +44,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f outputs/nfl/backtests/unresolved-{appearance,identity-review}-2026-11-15.json outputs/nfl/backtests/yardage-volume-efficiency-latest.json outputs/backtests/nhl-actual-attempt-volume-latest.json outputs/health/nhl-validation-and-paper-audit-latest.json
+          git add -f outputs/nfl/backtests/unresolved-{appearance,identity-review}-2026-11-15.json outputs/nfl/backtests/yardage-volume-efficiency-latest.json outputs/backtests/nhl-actual-attempt-volume-latest.json
           git diff --cached --quiet && exit 0
           git commit -qm 'audit: seven-priority private research evidence'
           for attempt in 1 2 3; do
@@ -56,3 +56,6 @@ jobs:
           exit 1
 
 # Owner-requested November 16 ten-priority verification pass; existing safeguards unchanged.
+
+# The dedicated private-nhl-validation-paper-audit workflow owns the shared paper audit.
+# Keep this job's independently generated research outputs separate to prevent rebase conflicts.

@@ -12,7 +12,7 @@ test("strict public aggregate allowlist and unknown inputs",()=>{
 });
 test("display explicit aged evidence without live claims",()=>{
  const d=build(source,{now}),v=model({progress:d},Date.parse(now));
- assert.equal(v.rows.find(r=>r.label==="NHL historical periods").value,"60 / 261 dates accounted");
+ assert.equal(v.rows.find(r=>r.label==="NHL historical periods").value,"60 / 261 dates accounted; 201 pending");
  assert.match(v.rows.find(r=>r.label==="Sportsbook benchmark evidence").value,/live availability unverified/);
  assert.equal(model({progress:{...d,calibrationApproved:true}},Date.parse(now)).rows.some(x=>x.label==="NHL historical periods"),false);
 });

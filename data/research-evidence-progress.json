@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-17T19:11:34.129Z",
-  "sourceReportAt": "2026-11-17T17:54:26.115Z",
+  "generatedAt": "2026-11-17T19:17:37.769Z",
+  "sourceReportAt": "2026-11-17T19:11:42.411Z",
   "periodHistory": {
     "accountedDays": 186,
     "calendarDays": 261,
@@ -11,7 +11,7 @@
   "evidence": {
     "nhl": {
       "firstObserved": 2192,
-      "matchedCalibrationRows": 224
+      "matchedCalibrationRows": 223
     },
     "nfl": {
       "firstObserved": 2415,

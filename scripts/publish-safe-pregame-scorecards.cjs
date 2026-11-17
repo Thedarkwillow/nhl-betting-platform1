@@ -97,6 +97,31 @@ function publicNFLBias(d,fi,originalGradeAt){
   diagnosedAfterGameNotAPregameFilter:true,
   platformSettlementsVerified:false,calibrated:false,payoutEV:null};
 }
+function safeFirstDistinct(fi){
+ const proof=fi?.firstDistinctThresholdGrade,g=proof?.earliestPerPlayerGameMarketAndLine,s=proof?.earliestPerPlayerGameMarket;
+ if(!proof)return null;
+ if(proof.kind!=="nfl_original_first_distinct_threshold_official_stat_audit_v1"||
+ proof.originalFirstGitBeforeKickoffProven!==true||proof.statisticsDerivedFromNflverseNotPlatformSettlement!==true||
+ !g||!s)throw Error("NFL first-distinct-threshold source proof invalid");
+ function check(x){if(!x||!["registered","decided","correct","incorrect","pushes","pending","distinctFinalGames","alwaysHigherSameLines","alwaysLowerSameLines"].every(k=>num(x[k]))||
+ x.registered!==x.decided+x.pushes+x.pending||x.correct+x.incorrect!==x.decided||
+ x.alwaysHigherSameLines+x.alwaysLowerSameLines!==x.decided)return false;return true;}
+ if(!check(g)||!check(s)||g.decided<0||s.decided>g.decided)throw Error("NFL strict threshold counts inconsistent");
+ const shorten=x=>({decided:x.decided,correct:x.correct,incorrect:x.incorrect,
+  distinctFinalGames:x.distinctFinalGames,
+  modelObservedRate:rate(x.correct,x.decided),alwaysHigherObservedRate:rate(x.alwaysHigherSameLines,x.decided),
+  alwaysLowerObservedRate:rate(x.alwaysLowerSameLines,x.decided),
+  notIndependentBets:true,settlementVerified:false,calibrated:false,approved:false});
+ const m=Object.entries(g.byMarket||{}).sort(([a],[b])=>a.localeCompare(b));
+ if(m.some(([_,x])=>!check(x))||m.reduce((v,[_,x])=>v+x.decided,0)!==g.decided||m.reduce((v,[_,x])=>v+x.correct,0)!==g.correct)
+ throw Error("NFL first-threshold per-market subtotals invalid");
+ return {...shorten(g),onePerPlayerMarket:shorten(s),
+  byMarket:m.map(([market,x])=>({market,decided:x.decided,distinctFinalGames:x.distinctFinalGames,
+   modelRate:x.decided>=20&&x.distinctFinalGames>=5?rate(x.correct,x.decided):null,
+   alwaysLowerRate:x.decided>=20&&x.distinctFinalGames>=5?rate(x.alwaysLowerSameLines,x.decided):null,
+   sampleSuppressed:x.decided<20||x.distinctFinalGames<5,notIndependentBets:true})),
+  firstGitSameThresholdOnly:true,oppositeSideActuallyAvailableUnverified:true};
+}
 function build(nhl,nfl,triple,{now=new Date().toISOString(),nflDirectionalDiagnostic=null}={}){
  if(nhl?.kind!==NHL_KIND||nhl.evidenceValid!==true||
     nhl.status!=="valid_original_git_precommitted_selection_cohort"||
@@ -151,6 +176,7 @@ function build(nhl,nfl,triple,{now=new Date().toISOString(),nflDirectionalDiagno
     platformSettlementVerified:false,calibrated:false,
     expectedValue:null},
    frozenHigherBiasAudit:publicNFLBias(nflDirectionalDiagnostic,fi,nfl.generatedAt),
+   firstDistinctThreshold:safeFirstDistinct(fi),
    separateNumericForecasts:{registered:nu.registered,
     decided:nu.decided,push:nu.pushes,pending:nu.pending,
     meanAbsoluteError:Number.isFinite(nu.meanAbsoluteError)?nu.meanAbsoluteError:null,

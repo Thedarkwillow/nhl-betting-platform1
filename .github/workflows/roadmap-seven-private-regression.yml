@@ -33,7 +33,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! node --test test/nhl-paired-shadow-research.test.cjs test/nfl-frozen-structural-lineups.test.cjs test/sport-market-release-readiness.test.cjs test/nhl-platform-line-shop.test.cjs test/nfl-precommitted-grading.test.cjs >"$log" 2>&1; then
+          if ! node --test test/nhl-paired-shadow-research.test.cjs test/nfl-frozen-structural-lineups.test.cjs test/sport-market-release-readiness.test.cjs test/nhl-platform-line-shop.test.cjs test/nfl-precommitted-grading.test.cjs test/nhl-exact-line-exposure-audit.test.cjs >"$log" 2>&1; then
             echo "::error::Targeted private roadmap regression failed"
             grep -E '^not ok|^  error:|^  expected:|^  actual:|^# tests|^# fail' "$log" | head -n 40 || true
             exit 1

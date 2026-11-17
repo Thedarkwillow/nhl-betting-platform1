@@ -173,7 +173,33 @@ jobs:
           git commit -m 'data: refresh approved NHL research rankings and suppress stale cards' >/dev/null
           for attempt in 1 2 3 4; do
             git fetch -q origin main
-            git rebase -q origin/main || { git rebase --abort; echo "::error::Public data changed concurrently; no overwrite."; exit 1; }
+            if ! git rebase -q origin/main; then
+              git rebase --abort
+              # A newer, internally consistent export can supersede this attempt.
+              # Never take our conflicting files over the remote or force-push.
+              if node - <<'NODE'
+              const {execFileSync}=require('node:child_process');
+              const read=(rev,p)=>JSON.parse(execFileSync('git',['show',rev+':'+p],{encoding:'utf8',maxBuffer:16*1024*1024}));
+              try{
+                const p='data/nhl-freshness-diagnostic.json';
+                const local=read('HEAD',p), remote=read('origin/main',p);
+                const data=read('origin/main','data.json'), match=read('origin/main','data/nhl-position-breakdowns.json');
+                const at=Date.parse(remote.generatedAt);
+                if(remote.kind!=='public_nhl_freshness_diagnostic_v1'||!Number.isFinite(at)||at>Date.now()||
+                   !(at>Date.parse(local.generatedAt))||match.generatedAt!==remote.generatedAt||
+                   data.kind!=='public_nhl_research_cards_not_internal_model'||!Array.isArray(data.props)||
+                   remote.publishedRows!==data.props.length||data.performance?.modelCalibrated!==false||
+                   data.performance?.originalPlatformSettlementVerified!==false||
+                   (remote.publicExportApproved!==true&&data.props.length!==0))process.exitCode=1;
+              }catch{process.exitCode=1}
+              NODE
+              then
+                echo 'PASS: archive superseded by a newer consistent public export; no overwrite.'
+                exit 0
+              fi
+              echo "::error::Public data changed concurrently; no overwrite."
+              exit 1
+            fi
             if git push -q origin HEAD:main; then echo 'PASS: approved public research export saved.'; exit 0; fi
             sleep "$attempt"
           done

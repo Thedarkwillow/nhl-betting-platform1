@@ -1,0 +1,54 @@
+name: Private official November 16 NHL DNP-reconciliation report
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-nov16-confirm-dnp.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-nhl-nov16-confirm-dnp
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test and classify original frozen NHL nonparticipants
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-nov16-nonappearance-reconciliation.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log"
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail)' "$log"
+          node scripts/reconcile-nhl-nov16-dnp.cjs
+      - name: Archive verified non-appearance classification privately
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/nhl-nov16-nonappearance-reconciled.json outputs/health/official-game-grade-2026-11-16.json
+          if git diff --cached --quiet; then echo 'PASS: official DNP candidate status unchanged'; exit 0; fi
+          git commit -qm 'audit: exclude four official nonparticipants from November 16 NHL hit-rate denominator'
+          for i in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then
+              echo 'PASS: saved private NHL November 16 DNP-eligible audit'
+              exit 0
+            fi
+            sleep "$i"
+          done
+          exit 1

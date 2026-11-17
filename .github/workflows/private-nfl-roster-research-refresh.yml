@@ -1,0 +1,57 @@
+name: Private NFL weekly roster research refresh
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nfl-roster-research-refresh.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-nfl-weekly-roster-research-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install existing free-source client and fetch only weekly rosters
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          python -m pip install 'nflreadpy>=0.1,<2' --quiet >"$log" 2>&1
+          python scripts/refresh-nfl-weekly-roster-research.py >"$log" 2>&1 || { echo "::error::Free-source roster refresh failed; previous archive preserved."; exit 1; }
+          node --test test/underdog-identity-market-research.test.cjs >"$log" 2>&1 || { grep -E '^not ok|^# (tests|pass|fail)' "$log"; exit 1; }
+          grep -E '^# (tests|pass|fail)' "$log"
+          node - <<'NODE'
+          const r=require('./scripts/probe-underdogapi-coverage.cjs').loadRoster('NFL');
+          if(!r?.archiveOnly||Date.now()-Date.parse(r.observedAt)>600000||Date.parse(r.observedAt)>Date.now())throw Error('Fresh isolated archive not verified');
+          console.log(JSON.stringify({rows:r.rows.length,observedAt:r.observedAt,weeks:[...new Set(r.rows.map(x=>x.week))].sort((a,b)=>a-b),paidProviderRequests:0,currentActiveRosterVerified:false}));
+          NODE
+      - name: Archive research observation privately
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nfl/availability/weekly-roster-research-latest.json.gz
+          git diff --cached --quiet && exit 0
+          git commit -qm 'data: private dated nflverse roster research observation'
+          for i in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: private isolated roster archived'; exit 0; fi
+            sleep "$i"
+          done
+          exit 1

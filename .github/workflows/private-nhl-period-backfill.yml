@@ -141,3 +141,5 @@ jobs:
 # Preserve incomplete date partial evidence, never grade as complete; run next existing five-date batch.
 
 # Owner-requested November 16 ten-priority verification pass; existing safeguards unchanged.
+
+# Continue the existing bounded five-date official period-data batch for this owner-requested checkpoint.

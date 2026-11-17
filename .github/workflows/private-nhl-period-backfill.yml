@@ -145,3 +145,5 @@ jobs:
 # Continue the existing bounded five-date official period-data batch for this owner-requested checkpoint.
 
 # Owner-requested continuation: Continue one existing-cap official NHL history batch; retain serial pacing.
+
+# Owner-requested continuation: Request next bounded five-date official period batch.

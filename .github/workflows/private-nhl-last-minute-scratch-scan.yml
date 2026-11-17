@@ -41,12 +41,15 @@ jobs:
           else
             echo '::warning::League preview missing or roster stale; no active clearance inferred.'
           fi
+      - name: Screen latest genuinely pregame frozen NHL research quotes for scratch risk
+        run: node scripts/report-nhl-pregame-scratch-risk.cjs
       - name: Archive timestamped private official-preview observations
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -f -- outputs/pregame-availability/official-preview-latest.json outputs/pregame-availability/official-preview-snapshots/ || true
+          git add -f -- outputs/health/nhl-pregame-scratch-risk-latest.json
           if git diff --cached --quiet; then echo 'No new verified official preview'; exit 0; fi
           git commit -qm 'data: league-published NHL pregame injured and scratched statuses'
           for i in 1 2 3; do

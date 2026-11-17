@@ -1,0 +1,45 @@
+name: Private Underdog offline identity and market audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-underdog-offline-identity-audit.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-underdog-offline-identity-audit
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Offline identity, source and market regression
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/underdog-identity-market-research.test.cjs test/underdog-event-crosswalk.test.cjs test/underdog-credit-policy.test.cjs test/cross-platform-research-comparison.test.cjs test/roadmap-seven-validation-nov16.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log"
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail)' "$log"
+      - name: Aggregate roster archive diagnostics only
+        run: |
+          node - <<'NODE'
+          const {loadRoster}=require('./scripts/probe-underdogapi-coverage.cjs');
+          const r=loadRoster('NFL');
+          if(!r)throw Error('Archive contract not verified');
+          const counts={};
+          for(const x of r.rows){if(Number(x.season)!==2026||!Number.isInteger(Number(x.week)))continue;const q=counts[x.week]??={rows:0,usableIdentityFields:0};q.rows++;if(x.name&&x.team&&x.playerId)q.usableIdentityFields++;}
+          console.log(JSON.stringify({kind:'nfl_roster_archive_aggregate_diagnostic',observedAt:r.observedAt,rows:r.rows.length,byWeek:counts,archiveOnly:r.archiveOnly,providerRequests:0,currentRosterVerified:false}));
+          NODE

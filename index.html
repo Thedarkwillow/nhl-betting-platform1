@@ -169,6 +169,7 @@
 <script src="./assets/roadmap-evidence-desk.js"></script>
 <script src="./assets/model-scorecards.js"></script>
 <script src="./assets/prop-evidence-gate.js"></script>
+<script src="./assets/nhl-position-details.js"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -302,13 +303,14 @@ function showPlayerDetail(p){
     card.append(label,count,detail);stats.append(card);
    }
    host.append(stats);
-   const unavailable=document.createElement("p");unavailable.className="minor";unavailable.textContent="Season threshold history, opponent filters, position-specific defense, injuries and similar-player context require separately verified source coverage. No values are inferred.";host.append(unavailable);
+   const unavailable=document.createElement("p");unavailable.className="minor";unavailable.textContent="Season threshold history, opponent filters, injuries and similar-player context require separately verified source coverage. Positional matchup detail is shown separately when available.";host.append(unavailable);
    const chart=document.createElement("div");chart.className="roadmap-history-chart";chart.setAttribute("role","group");chart.setAttribute("aria-label","Earlier official statistical results");
    const maximum=Math.max(1,...history.map(x=>x.value),Number.isFinite(p.line)?p.line:0);
    for(const x of history){const row=document.createElement("div"),label=document.createElement("span"),meter=document.createElement("meter"),value=document.createElement("span");row.className="roadmap-history-row";label.textContent=x.date;meter.min=0;meter.max=maximum;meter.value=x.value;meter.setAttribute("aria-label",x.date+" stat total");value.textContent=String(x.value)+(Number.isFinite(p.line)?(x.value>p.line?" · above":x.value<p.line?" · below":" · tie"):"");row.append(label,meter,value);chart.append(row);}
    host.append(title,chart);
   }
  }
+ window.NhlPositionDetails?.render(host,p);
  const alternatives=(data.props||[]).filter(x=>x.player===p.player&&x.team===p.team&&
   x.matchup===p.matchup&&x.market===p.market&&x.lean===p.lean&&
   x.eventStartsAt===p.eventStartsAt&&Number.isFinite(x.line)&&

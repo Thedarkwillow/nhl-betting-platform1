@@ -54,3 +54,5 @@ jobs:
             sleep "$attempt"
           done
           exit 1
+
+# Owner-requested November 16 ten-priority verification pass; existing safeguards unchanged.

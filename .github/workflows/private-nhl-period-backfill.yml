@@ -147,3 +147,5 @@ jobs:
 # Owner-requested continuation: Continue one existing-cap official NHL history batch; retain serial pacing.
 
 # Owner-requested continuation: Request next bounded five-date official period batch.
+
+# Owner-requested continuation: validate the isolated source and model changes using existing limits.

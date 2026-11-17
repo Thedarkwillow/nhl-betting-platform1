@@ -26,6 +26,7 @@ jobs:
         with:
           repository: Thedarkwillow/nhl-betting-platform
           ref: main
+          fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
       - uses: actions/setup-node@v4
         with:
@@ -35,13 +36,30 @@ jobs:
           UNDERDOG_API_KEY: ${{ secrets.UNDERDOG_API_KEY }}
           UNDERDOG_READ_ONLY_PROBE: explicit_manual
           LEAGUE: ${{ matrix.league }}
+          UNDERDOG_PRIVATE_ARCHIVE: explicit_private_research
         run: |
           set -euo pipefail
           test -n "$UNDERDOG_API_KEY" || { echo 'No key configured; zero calls.'; exit 1; }
-          node --test test/roadmap-seven-validation-nov16.test.cjs test/underdog-credit-policy.test.cjs test/underdog-event-crosswalk.test.cjs test/underdog-identity-market-research.test.cjs
-          node -e 'const p=require("./src/underdog-credit-policy.cjs").authorizeSample({receipt:{observedAt:"2026-11-17T01:08:27.478Z",remainingCredits:71},now:new Date().toISOString(),requestedLeagues:2});if(!p.allowed)throw Error("Budget preflight denied");console.log("Bounded two-league budget preflight passed; max six credits.")'
+          node --test test/roadmap-seven-validation-nov16.test.cjs test/underdog-credit-policy.test.cjs test/underdog-event-crosswalk.test.cjs test/underdog-identity-market-research.test.cjs test/underdog-private-research-intake.test.cjs
+          node -e 'const p=require("./src/underdog-credit-policy.cjs").authorizeSample({receipt:{observedAt:"2026-11-17T01:25:09.681Z",remainingCredits:65},now:new Date().toISOString(),requestedLeagues:2});if(!p.allowed)throw Error("Budget preflight denied");console.log("Bounded two-league budget preflight passed; max six credits.")'
           node scripts/probe-underdogapi-coverage.cjs "$LEAGUE"
+      - name: Archive bounded private candidates only
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f -- outputs/research/underdog-bounded-candidates/*.json
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: bounded private Underdog candidate observations'
+          for i in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then echo 'PASS: bounded private research observation archived'; exit 0; fi
+            sleep "$i"
+          done
+          exit 1
 
 # Owner-requested final eligibility diagnosis; one bounded full request per league.
 
 # One bounded schedule-crosswalk evidence pass; original provider-ID gate remains unchanged.
+

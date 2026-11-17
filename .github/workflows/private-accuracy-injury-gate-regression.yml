@@ -23,4 +23,4 @@ jobs:
       - name: Test synthetic-only direction, injury, lineup and historical review contracts
         run: |
           set -euo pipefail
-          node --test test/nfl-directional-v2-prospective.test.cjs test/nfl-directional-v2-forward-grade.test.cjs test/nfl-directional-first-threshold-review.test.cjs test/nhl-official-preview-abstention.test.cjs test/nhl-lineup-revalidation.test.cjs test/nhl-lineup-optimizer.test.cjs
+          node --test test/nfl-directional-v2-prospective.test.cjs test/nfl-directional-v2-forward-grade.test.cjs test/nfl-directional-first-threshold-review.test.cjs test/nhl-official-preview-abstention.test.cjs test/nhl-lineup-revalidation.test.cjs test/nhl-lineup-optimizer.test.cjs test/availability-tier-lineup-gates.test.cjs

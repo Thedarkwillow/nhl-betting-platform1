@@ -79,7 +79,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -f outputs/period-stats/prior-season-backfill-status-latest.json
-          for pattern in outputs/period-stats/dates/2025-*.json outputs/period-stats/dates/2026-0[1-6]-*.json outputs/period-stats/training-source/*.json outputs/period-stats/empty-dates/*.json; do
+          for pattern in outputs/period-stats/dates/2025-*.json outputs/period-stats/dates/2026-0[1-6]-*.json outputs/period-stats/training-source/*.json outputs/period-stats/empty-dates/*.json outputs/period-stats/partial-dates/*.json; do
             if test -f "$pattern"; then git add -f "$pattern"; fi
           done
           if git diff --cached --quiet; then exit 0; fi
@@ -137,3 +137,5 @@ jobs:
 # Owner-requested verification Nov 15; preserve provider caps and strict original chronology.
 
 # Nov 16: retry oldest unresolved date alongside four fresh dates, no greater request pacing or cap.
+
+# Preserve incomplete date partial evidence, never grade as complete; run next existing five-date batch.

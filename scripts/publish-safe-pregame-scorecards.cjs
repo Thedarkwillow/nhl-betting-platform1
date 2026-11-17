@@ -97,6 +97,25 @@ function publicNFLBias(d,fi,originalGradeAt){
   diagnosedAfterGameNotAPregameFilter:true,
   platformSettlementsVerified:false,calibrated:false,payoutEV:null};
 }
+function safeNhlCalibration(v,standard){
+ if(!v)return null;
+ const x=v.allStandardDescriptive,y=v.futureHoldout,training=v.training;
+ if(v.kind!=="private_nhl_prospective_probability_validation_v1"||v.calibrated!==false||
+ v.originalPlatformSettlementsVerified!==false||v.counts?.registered<standard.decided||
+ !x||!y||!training||!num(x.decided)||x.decided!==standard.decided||
+ !num(y.decided)||!num(training.decided)||y.decided+training.decided>x.decided||
+ ![x.observedHitRate,x.meanPredictedProbability,x.brier].every(a=>Number.isFinite(a)&&a>=0&&a<=1)||
+ Math.abs(x.observedHitRate-standard.modelObservedRate)>1e-5)
+ throw Error("NHL Standard calibrated-probability claim or cohort mismatch");
+ return {decided:x.decided,observedSelectedRate:Number(x.observedHitRate.toFixed(6)),
+  meanUncalibratedEstimatedProbability:Number(x.meanPredictedProbability.toFixed(6)),
+  signedOverconfidenceGap:Number((x.meanPredictedProbability-x.observedHitRate).toFixed(6)),
+  brier:Number(x.brier.toFixed(6)),futureHoldoutDecided:y.decided,
+  futureHoldoutGames:y.distinctGames,futureHoldoutDates:y.distinctGameDates,
+  pastOnlyTrainingDecisions:training.decided,calibrated:false,
+  fitIndependentOfFutureGames:false,payoutAndSettlementsVerified:false,
+  releaseApproved:false};
+}
 function safeFirstDistinct(fi){
  const proof=fi?.firstDistinctThresholdGrade,g=proof?.earliestPerPlayerGameMarketAndLine,s=proof?.earliestPerPlayerGameMarket;
  if(!proof)return null;
@@ -122,7 +141,7 @@ function safeFirstDistinct(fi){
    sampleSuppressed:x.decided<20||x.distinctFinalGames<5,notIndependentBets:true})),
   firstGitSameThresholdOnly:true,oppositeSideActuallyAvailableUnverified:true};
 }
-function build(nhl,nfl,triple,{now=new Date().toISOString(),nflDirectionalDiagnostic=null}={}){
+function build(nhl,nfl,triple,{now=new Date().toISOString(),nflDirectionalDiagnostic=null,nhlProbabilityAudit=null}={}){
  if(nhl?.kind!==NHL_KIND||nhl.evidenceValid!==true||
     nhl.status!=="valid_original_git_precommitted_selection_cohort"||
     nfl?.kind!==NFL_KIND||
@@ -158,6 +177,7 @@ function build(nhl,nfl,triple,{now=new Date().toISOString(),nflDirectionalDiagno
    standardOriginalSelections:group(h.standardDirectional),
    originalTierCounts:tierCounts(h),
    postPolicyStandardOnly:group(post.standardDirectional),
+   standardProbabilityAudit:safeNhlCalibration(nhlProbabilityAudit,group(h.standardDirectional)),
    postPolicyMarkets:futureMarkets(post.byStandardMarket),
    threeChallengerFuture:{registered:challenge.registered,
     decided:challenge.gradedDecisions,push:challenge.pushes,
@@ -203,7 +223,8 @@ function main([privateRoot,publicRoot]=process.argv.slice(2),now=new Date().toIS
   read("outputs/nfl/backtests/pregame-forecast-proof-latest.json"),
   read("outputs/health/nhl-standard-triple-challenger-latest.json"),{
    now,
-   nflDirectionalDiagnostic:read("outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json")
+   nflDirectionalDiagnostic:read("outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json"),
+   nhlProbabilityAudit:read("outputs/health/nhl-prospective-validation-latest.json")
   });
  const target=path.join(publicRoot,"data/model-scorecards.json");
  fs.mkdirSync(path.dirname(target),{recursive:true});

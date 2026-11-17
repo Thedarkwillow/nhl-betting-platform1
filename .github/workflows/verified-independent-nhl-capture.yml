@@ -59,7 +59,7 @@ jobs:
             
           }
           if(['schedule','workflow_run'].includes(process.env.EVENT)){
-            try{const b=JSON.parse(fs.readFileSync('outputs/free-source/nhl/latest.json','utf8')),t=Date.parse(b.generatedAt);if(b.completePagination===true&&t<=now&&now-t<3600000)capture=false;}catch{}
+            try{const b=JSON.parse(fs.readFileSync('outputs/free-source/nhl/latest.json','utf8')),t=Date.parse(b.generatedAt);if(b.provider==="prizepicksapi.com"&&b.snapshotMode==="immutable_as_of"&&b.completePagination===true&&b.sourceStatus==="fresh"&&t<=now&&now-t<20*60000)capture=false;}catch{}
           }
           fs.appendFileSync(process.env.GITHUB_OUTPUT,'capture='+capture+'\n');
           console.log('Bounded capture needed: '+capture);

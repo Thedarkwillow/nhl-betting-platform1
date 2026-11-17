@@ -159,3 +159,5 @@ jobs:
 # 2026-11-14: seed first-observed calibration state from official final-only records after PR 139.
 
 # Owner-requested November 15 Pacific: grade official completed November 14 slate now; existing final-only gates unchanged.
+
+# Owner-requested Nov 17 early-Pacific audit: grade Nov 16 official finals only; retain original pregame and pending gates.

@@ -39,7 +39,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          node --test test/nhl-shot-block-tail-v2.test.cjs test/nhl-shot-point-opportunity.test.cjs test/nfl-market-specific-matchup-v2.test.cjs test/nfl-matchup-context.test.cjs test/nfl-precommitted-grading.test.cjs > /tmp/v2-test.log 2>&1 || { echo "::error::V2 or original regression failed"; grep -E '^not ok|^# (tests|pass|fail)' /tmp/v2-test.log; exit 1; }
+          node --test test/nhl-shot-block-tail-v2.test.cjs test/nhl-shot-point-opportunity.test.cjs test/nfl-market-specific-matchup-v2.test.cjs test/nfl-matchup-context.test.cjs test/nfl-precommitted-grading.test.cjs test/sportsbook-match-funnel.test.cjs test/forward-calibration-game-weight.test.cjs test/underdog-credit-policy.test.cjs test/roadmap-seven-validation-nov16.test.cjs > /tmp/v2-test.log 2>&1 || { echo "::error::V2 or original regression failed"; grep -E '^not ok|^# (tests|pass|fail)' /tmp/v2-test.log; exit 1; }
           grep -E '^# (tests|pass|fail)' /tmp/v2-test.log
       - name: Run cached private NHL and NFL historical research
         working-directory: private

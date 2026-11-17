@@ -43,7 +43,7 @@
       percent(d.modelObservedRate)+" · hypothetical always Higher "+
       percent(d.hypotheticalHigherRate)+" · always Lower "+
       percent(d.hypotheticalLowerRate)+".",
-    detail:"Locked forward-policy cohort: "+count(p.correct)+"/"+count(p.decided)+
+    detail:(data.nhl.standardProbabilityAudit?.calibrated===false?"Original Standard probabilities: "+percent(data.nhl.standardProbabilityAudit.meanUncalibratedEstimatedProbability)+" mean estimated vs "+percent(data.nhl.standardProbabilityAudit.observedSelectedRate)+" observed. NOT calibrated. ":"")+"Locked forward-policy cohort: "+count(p.correct)+"/"+count(p.decided)+
       " decided across "+count(p.distinctGames)+" games. Three new challengers: "+
       count(challenge.decided)+"/"+count(challenge.registered)+" decided. Neither comparison establishes an edge.",
     tiers:tierView(data.nhl.originalTierCounts),
@@ -57,11 +57,12 @@
   if(!d||!n||!Number.isInteger(d.decided)||!Number.isInteger(d.correct)||
     d.correct>d.decided||d.frozenSelections!==d.decided+d.push+d.pending)
    return viewModel(null,name);
+  const first=data.nfl?.firstDistinctThreshold,verified=first?.firstGitSameThresholdOnly===true&&first.settlementVerified===false&&first.calibrated===false&&Number.isInteger(first.decided)&&first.decided>0&&first.correct+first.incorrect===first.decided;
   return {sport:name,available:true,
-   heading:"NFL Standard · "+count(d.decided)+" decided of "+count(d.frozenSelections)+" frozen directions",
-   summary:count(d.correct)+" correct · "+count(d.incorrect)+" incorrect · "+
+   heading:verified?"NFL Standard · "+count(first.decided)+" first-distinct-threshold decisions":"NFL Standard · "+count(d.decided)+" decided of "+count(d.frozenSelections)+" frozen directions",
+   summary:verified?count(first.correct)+" correct · "+count(first.incorrect)+" incorrect · "+count(first.distinctFinalGames)+" final games (first line per threshold)":count(d.correct)+" correct · "+count(d.incorrect)+" incorrect · "+
     count(d.push)+" pushes · "+count(d.pending)+" pending",
-   baseline:d.decided?
+   baseline:verified?"First Git-frozen unique thresholds: model "+percent(first.modelObservedRate)+" · always Higher "+percent(first.alwaysHigherObservedRate)+" · always Lower "+percent(first.alwaysLowerObservedRate)+". Not independent bets.":d.decided?
     "On identical frozen thresholds: model "+percent(d.modelObservedRate)+
      " · hypothetical always Higher "+count(d.hypotheticalHigherWins)+
      " correct · always Lower "+count(d.hypotheticalLowerWins)+" correct.":

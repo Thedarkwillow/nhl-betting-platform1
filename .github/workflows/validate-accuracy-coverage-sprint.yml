@@ -2,7 +2,7 @@ name: Validate NHL NFL paired matchup models and future trial evidence
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'feat/**']
+    branches: [main, 'feat/**', 'fix/**']
     paths: ['.github/workflows/validate-accuracy-coverage-sprint.yml']
 permissions:
   contents: read

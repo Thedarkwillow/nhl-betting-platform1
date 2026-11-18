@@ -16,3 +16,25 @@ test("display explicit aged evidence without live claims",()=>{
  assert.match(v.rows.find(r=>r.label==="Sportsbook benchmark evidence").value,/live availability unverified/);
  assert.equal(model({progress:{...d,calibrationApproved:true}},Date.parse(now)).rows.some(x=>x.label==="NHL historical periods"),false);
 });
+
+test("only pre-existing verified frozen trial sample counts reach public research progress",()=>{
+ const v={sourceReportAt:"2026-11-15T12:40:00Z",
+  nhlStandardFrozenDecisions:575,nhlStandardFrozenGames:51,
+  nhlStandardFrozenPacificSlates:9,matchedFrozenCalibrationDecisions:40,
+  independentlySupportedCalibrationGroups:0,nflFirstDistinctThresholdDecisions:1289,
+  nflFirstDistinctThresholdGames:14,powerFlexRegisteredReferenceEntries:13,
+  powerFlexResolvedReferenceEntries:4,powerFlexUniqueUnderlyingResolvedSlates:3,
+  modelPromoted:false,originalPlatformSettlementVerified:false,
+  actualPayoutEVVerified:false,playerName:"PRIVATE DO NOT PUBLISH"};
+ const d=build({...source,validationSample:v},{now});
+ assert.equal(d.validationSample.nhlStandardFrozenPacificSlates,9);
+ assert.equal(d.validationSample.powerFlexResolvedReferenceEntries,4);
+ assert.equal(d.validationSample.probabilitiesCalibrated,false);
+ assert.ok(!JSON.stringify(d).includes("PRIVATE DO NOT PUBLISH"));
+ const view=model({progress:d},Date.parse(now));
+ assert.match(view.rows.find(r=>r.label==="NHL Standard prospective sample").value,/9 Pacific slates/);
+ assert.match(view.rows.find(r=>r.label==="Frozen calibration trials").value,/40 genuine frozen trials/);
+ assert.match(view.rows.find(r=>r.label==="Power\/Flex 2–6 paper scenarios").value,/4 resolved \/ 13 registered/);
+ assert.equal(build({...source,validationSample:{...v,modelPromoted:true}},{now}).validationSample,null);
+ assert.equal(build({...source,validationSample:{...v,sourceReportAt:"2026-11-16T00:00:00Z"}},{now}).validationSample,null);
+});

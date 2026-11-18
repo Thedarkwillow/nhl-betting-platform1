@@ -73,8 +73,15 @@ jobs:
           const r=require('./outputs/period-stats/prior-season-backfill-status-latest.json');
           if(r.paidProviderRequests!==0||r.noProductionPlayerHistoryChanges!==true||
              !Array.isArray(r.requested)||r.requested.length>5)throw Error('Historical source contract failed');
+          const c=r.historicalCoverage;
+          if(!c||c.seasonCalendarDays!==261||
+             c.accountedDates!==c.completeDates+c.verifiedEmptyDates||
+             c.accountedDates+c.remainingDates!==261||
+             r.completeDates.length+r.emptyDates.length+r.failed.length!==r.requested.length)
+            throw Error('Isolated NHL 2025-26 dates not reconciled; do not publish coverage');
           console.log(JSON.stringify({requested:r.requested.length,complete:r.completeDates.length,
-            empty:r.emptyDates.length,failed:r.failed.length,paidProviderRequests:0}));
+            empty:r.emptyDates.length,failed:r.failed.length,accountedDates:c.accountedDates,
+            remainingDates:c.remainingDates,paidProviderRequests:0}));
           NODE
       - name: Archive isolated source outcomes privately
         working-directory: private

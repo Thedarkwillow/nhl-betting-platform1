@@ -1,0 +1,85 @@
+name: Validate NHL NFL paired matchup models and future trial evidence
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'feat/**']
+    paths: ['.github/workflows/validate-accuracy-coverage-sprint.yml']
+permissions:
+  contents: read
+concurrency:
+  group: validate-prospective-accuracy-20261117
+  cancel-in-progress: false
+jobs:
+  private-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 29
+    steps:
+      - name: Check existing private contents token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: fb68e276cf4bb9bb3c5b72c0e1bed2229c538db6
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate NFL paired game MAE and NHL original market prospective baselines
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for f in src/paired-historical-game-projection.cjs src/nfl-position-opportunity-matchup.cjs src/nhl-prospective-slate-baseline-audit.cjs scripts/report-source-completion-evidence.cjs; do node --check "$f"; done
+          if ! node --test \
+            test/paired-historical-game-projection.test.cjs \
+            test/nhl-prospective-slate-baseline-audit.test.cjs \
+            test/nfl-directional-bias-cluster-audit.test.cjs \
+            test/nhl-validation-and-paper-audit.test.cjs \
+            test/source-completion-evidence.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" | head -n 40 || true
+            echo '::error::Game-cluster accuracy research regression failed'
+            exit 1
+          fi
+          echo 'PASS: strict first-Git and same-line baseline research.'
+      - name: Run entire existing NHL NFL MLB regression
+        working-directory: private
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" | head -n 40 || true
+            echo '::error::Full private Node research suite failed'
+            exit 1
+          fi
+          echo 'PASS: all private NHL, NFL and MLB tests.'
+      - name: Build offline NFL position/opportunity holdout and source completeness
+        working-directory: private
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for f in src/nfl-position-opportunity-matchup.cjs scripts/report-nhl-prospective-validation.cjs scripts/report-source-completion-evidence.cjs; do
+            if ! node "$f" >"$log" 2>&1; then
+              echo "::error::Offline prospective research report failed: $f"
+              exit 1
+            fi
+          done
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const s=JSON.parse(fs.readFileSync('outputs/health/source-completion-readiness-latest.json','utf8'));
+          const n=JSON.parse(fs.readFileSync('outputs/nfl/backtests/position-opportunity-matchup-latest.json','utf8'));
+          const p=s.validationSample;
+          if(!p||p.modelPromoted!==false||p.actualPayoutEVVerified!==false||
+             !Number.isInteger(p.nhlStandardFrozenPacificSlates)||
+             n.modelPromoted!==false||
+             !Object.values(n.bySeasonMarketPosition).every(x=>
+               x.pairedGameUncertainty?.modelPromoted===false &&
+               x.pairedGameUncertainty?.independentlyValidatedFutureOriginalLines===false))
+            throw Error('Provisional evidence would misleadingly release a model');
+          console.log('PASS: private frozen-calibration counts, no production edge, historical game-clustered NFL MAE.');
+          NODE

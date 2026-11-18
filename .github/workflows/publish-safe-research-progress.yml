@@ -1,0 +1,104 @@
+name: Publish sanitized NHL NFL model and history research progress
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-safe-research-progress.yml'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'scripts/test-publish-safe-research-progress.cjs'
+  workflow_run:
+    workflows:
+      - 'Refresh private source readiness after collection and grading'
+    types: [completed]
+  # Backup refresh if GitHub limits chained workflow_run notifications.
+  schedule:
+    - cron: '23 2,8,14,20 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: write
+concurrency:
+  group: publish-safe-research-progress
+  cancel-in-progress: false
+jobs:
+  counts-only:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          fetch-depth: 0
+      - name: Require scoped private contents token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo '::error::Private research source missing'; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 1
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate only public allowlisted counts and evidence age
+        working-directory: public
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test scripts/test-publish-safe-research-progress.cjs scripts/test-research-progress-autopublish.cjs
+          node --check scripts/publish-safe-research-progress.cjs
+      - name: Export current independently archived count-only private readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node - <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync("private/outputs/health/source-completion-readiness-latest.json","utf8"));
+          const age=Date.now()-Date.parse(x?.generatedAt);
+          if(x?.kind!=="private_source_completion_readiness_v1"||x.modelPromoted!==false||
+             x.wagersPlaced!==0||!Number.isFinite(age)||age<0||age>24*60*60000)
+            throw Error("No current verified private source readiness; refuse public progress refresh");
+          NODE
+          node public/scripts/publish-safe-research-progress.cjs "$GITHUB_WORKSPACE/private" "$GITHUB_WORKSPACE/public"
+          node - <<'NODE'
+          const fs=require("node:fs");
+          const x=JSON.parse(fs.readFileSync("public/data/research-evidence-progress.json","utf8"));
+          if(x.kind!=="public_research_progress_counts_v1"||
+             x.proprietaryRowsPublished!==0||x.calibrationApproved!==false||
+             x.modelPromoted!==false||x.paper.verifiedROI!==null||
+             !x.periodHistory||
+             x.periodHistory.accountedDays+x.periodHistory.pendingDays!==x.periodHistory.calendarDays||
+             /"playerId"|"sourceOfferId"|"playerName"|"projection"|"modelWeights"/.test(JSON.stringify(x)))
+            throw Error("Public research progress is not verified count-only research");
+          console.log("PASS: safe public history and validation counters only.");
+          NODE
+      - name: Commit sanitized public progress without modifying raw research records
+        working-directory: public
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/research-evidence-progress.json
+          if git diff --cached --quiet; then echo 'PASS: no new count-only progress'; exit 0; fi
+          git commit -qm 'status: current approved private research coverage and evidence counts'
+          for i in 1 2 3 4; do
+            git fetch -q origin main
+            if ! git -c rebase.autoStash=true rebase -q origin/main; then
+              git rebase --abort || true
+              echo '::error::Concurrent public progress update conflict'
+              exit 1
+            fi
+            if git push -q origin HEAD:main; then
+              echo 'PASS: safe public history progress updated; original lines and market EV still unverified'
+              exit 0
+            fi
+            sleep "$i"
+          done
+          exit 1

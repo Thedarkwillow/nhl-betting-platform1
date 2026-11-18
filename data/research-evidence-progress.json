@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-18T17:08:17.491Z",
-  "sourceReportAt": "2026-11-18T16:01:22.929Z",
+  "generatedAt": "2026-11-18T17:19:03.761Z",
+  "sourceReportAt": "2026-11-18T17:09:19.918Z",
   "periodHistory": {
     "accountedDays": 236,
     "calendarDays": 261,
@@ -74,7 +74,7 @@
     "verifiedROI": null
   },
   "validationSample": {
-    "sourceReportAt": "2026-11-18T03:36:43.603Z",
+    "sourceReportAt": "2026-11-18T16:08:12.913Z",
     "nhlStandardFrozenDecisions": 575,
     "nhlStandardFrozenGames": 51,
     "nhlStandardFrozenPacificSlates": 9,
@@ -82,7 +82,7 @@
     "independentlySupportedCalibrationGroups": 0,
     "nflFirstDistinctThresholdDecisions": 1289,
     "nflFirstDistinctThresholdGames": 14,
-    "powerFlexRegisteredReferenceEntries": 14,
+    "powerFlexRegisteredReferenceEntries": 16,
     "powerFlexResolvedReferenceEntries": 4,
     "powerFlexUniqueUnderlyingResolvedSlates": 2,
     "probabilitiesCalibrated": false,
@@ -91,7 +91,7 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-18T16:00:48.290Z",
+    "nhlReportAt": "2026-11-18T17:07:44.457Z",
     "nflReportAt": "2026-11-18T02:48:16.486Z",
     "nhl": {
       "registered": 11,
@@ -115,15 +115,15 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-18T16:00:48.700Z",
+    "sourceReportAt": "2026-11-18T17:07:45.119Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
-      "completeOfficialGames": 1593,
-      "zeroShotAppearancesRetained": 15588,
+      "completeOfficialGames": 1604,
+      "zeroShotAppearancesRetained": 15705,
       "missingShotRows": 0,
       "fullRosterAuditPass": false,
-      "syntheticShotsPredicted": 6672,
-      "syntheticBlockedShotsPredicted": 6672,
+      "syntheticShotsPredicted": 7050,
+      "syntheticBlockedShotsPredicted": 7050,
       "realPlatformLinesEvaluated": false
     },
     "nfl": {
@@ -147,11 +147,11 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-18T17:07:24.585Z",
+    "sourceReportAt": "2026-11-18T17:18:04.840Z",
     "nhl": {
-      "sourceEligible": false,
-      "examined": 0,
-      "newCandidates": 0,
+      "sourceEligible": true,
+      "examined": 54,
+      "newCandidates": 54,
       "newAbstentions": 0,
       "archivedFirstGit": 0,
       "futureDecided": 0,

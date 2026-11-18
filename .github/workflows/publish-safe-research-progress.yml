@@ -78,27 +78,54 @@ jobs:
             throw Error("Public research progress is not verified count-only research");
           console.log("PASS: safe public history and validation counters only.");
           NODE
-      - name: Commit sanitized public progress without modifying raw research records
+      - name: Commit sanitized progress after checking current public HEAD
         working-directory: public
         shell: bash
         run: |
           set -euo pipefail
+          umask 077
+          wanted="$(mktemp)"; trap 'rm -f "$wanted"' EXIT
+          cp data/research-evidence-progress.json "$wanted"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/research-evidence-progress.json
-          if git diff --cached --quiet; then echo 'PASS: no new count-only progress'; exit 0; fi
-          git commit -qm 'status: current approved private research coverage and evidence counts'
+          # Another sanitized publisher can commit this file at any moment.
+          # Rebuild our SINGLE whitelisted file onto latest HEAD each try.
+          # Do not rebase a now-stale JSON commit into a newer audit.
           for i in 1 2 3 4; do
             git fetch -q origin main
-            if ! git -c rebase.autoStash=true rebase -q origin/main; then
-              git rebase --abort || true
-              echo '::error::Concurrent public progress update conflict'
-              exit 1
+            git reset --hard -q origin/main
+            if node - "$wanted" <<'NODE'
+          const fs=require('node:fs');
+          const next=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          const file='data/research-evidence-progress.json';
+          if(!fs.existsSync(file))process.exit(1);
+          const current=JSON.parse(fs.readFileSync(file,'utf8'));
+          const valid=x=>x?.kind==='public_research_progress_counts_v1'&&
+            x.proprietaryRowsPublished===0&&x.modelPromoted===false&&
+            Number.isFinite(Date.parse(x.sourceReportAt))&&
+            Number.isFinite(Date.parse(x.generatedAt));
+          if(!valid(current)||!valid(next))process.exit(1);
+          const newer=Date.parse(current.sourceReportAt)>Date.parse(next.sourceReportAt)||
+            Date.parse(current.sourceReportAt)===Date.parse(next.sourceReportAt)&&
+            Date.parse(current.generatedAt)>=Date.parse(next.generatedAt);
+          process.exit(newer?0:1);
+          NODE
+            then
+              echo 'PASS: equal or newer sanitized source already published; no stale overwrite'
+              exit 0
             fi
+            cp "$wanted" data/research-evidence-progress.json
+            git add data/research-evidence-progress.json
+            if git diff --cached --quiet; then
+              echo 'PASS: current progress already published'
+              exit 0
+            fi
+            git commit -qm 'status: current approved private research coverage and evidence counts'
             if git push -q origin HEAD:main; then
-              echo 'PASS: safe public history progress updated; original lines and market EV still unverified'
+              echo 'PASS: public research counts updated without a stale rebase'
               exit 0
             fi
             sleep "$i"
           done
+          echo '::error::Concurrent public source progress could not be safely archived'
           exit 1

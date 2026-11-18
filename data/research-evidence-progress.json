@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-18T02:55:00.930Z",
-  "sourceReportAt": "2026-11-18T02:54:00.182Z",
+  "generatedAt": "2026-11-18T03:00:05.452Z",
+  "sourceReportAt": "2026-11-18T02:58:54.687Z",
   "periodHistory": {
     "accountedDays": 216,
     "calendarDays": 261,
@@ -37,7 +37,7 @@
     "verifiedROI": null
   },
   "validationSample": {
-    "sourceReportAt": "2026-11-18T02:49:30.572Z",
+    "sourceReportAt": "2026-11-18T02:55:34.720Z",
     "nhlStandardFrozenDecisions": 575,
     "nhlStandardFrozenGames": 51,
     "nhlStandardFrozenPacificSlates": 9,
@@ -45,7 +45,7 @@
     "independentlySupportedCalibrationGroups": 0,
     "nflFirstDistinctThresholdDecisions": 1289,
     "nflFirstDistinctThresholdGames": 14,
-    "powerFlexRegisteredReferenceEntries": 13,
+    "powerFlexRegisteredReferenceEntries": 14,
     "powerFlexResolvedReferenceEntries": 4,
     "powerFlexUniqueUnderlyingResolvedSlates": 2,
     "probabilitiesCalibrated": false,

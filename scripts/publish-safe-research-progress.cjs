@@ -7,10 +7,29 @@ function build(source,{now=new Date().toISOString()}={}){
  const d=source.periodCoverage,p=d&&count(d.calendarDays)>0&&count(d.accountedDays)!==null&&count(d.pendingDays)!==null&&d.accountedDays+d.pendingDays===d.calendarDays?{accountedDays:d.accountedDays,calendarDays:d.calendarDays,pendingDays:d.pendingDays}:null;
  const evidence=Object.fromEntries(["nhl","nfl"].map(s=>[s,{firstObserved:count(source.prospective?.[s]?.firstObserved),matchedCalibrationRows:count(source.prospective?.[s]?.matchedCalibrationRows)}]));
  const odds=source.odds||{},paper=source.paper||{},slate=source.lineupSlateEvidence||{};
+ const v=source.validationSample||{};
+ const acceptedValidation=v.modelPromoted===false&&v.originalPlatformSettlementVerified===false&&
+  v.actualPayoutEVVerified===false&&Number.isFinite(dt(v.sourceReportAt))&&
+  dt(v.sourceReportAt)<=dt(source.generatedAt);
+ const gates=acceptedValidation?{
+  sourceReportAt:v.sourceReportAt,
+  nhlStandardFrozenDecisions:count(v.nhlStandardFrozenDecisions),
+  nhlStandardFrozenGames:count(v.nhlStandardFrozenGames),
+  nhlStandardFrozenPacificSlates:count(v.nhlStandardFrozenPacificSlates),
+  matchedFrozenCalibrationDecisions:count(v.matchedFrozenCalibrationDecisions),
+  independentlySupportedCalibrationGroups:count(v.independentlySupportedCalibrationGroups),
+  nflFirstDistinctThresholdDecisions:count(v.nflFirstDistinctThresholdDecisions),
+  nflFirstDistinctThresholdGames:count(v.nflFirstDistinctThresholdGames),
+  powerFlexRegisteredReferenceEntries:count(v.powerFlexRegisteredReferenceEntries),
+  powerFlexResolvedReferenceEntries:count(v.powerFlexResolvedReferenceEntries),
+  powerFlexUniqueUnderlyingResolvedSlates:count(v.powerFlexUniqueUnderlyingResolvedSlates),
+  probabilitiesCalibrated:false,modelPromoted:false,platformPayoutROI:null
+ }:null;
  return {schemaVersion:1,kind:"public_research_progress_counts_v1",generatedAt:now,sourceReportAt:source.generatedAt,periodHistory:p,evidence,
   sportsbook:{strictMatched:count(odds.strictPlatformMatches),conditionalArchived:count(odds.archiveCoverage?.uniqueConditionalPropSides??odds.archivedConditionalMatches),within30Minutes:count(odds.archiveCoverage?.uniqueWithin30Minutes??odds.within30Minutes),verifiedLiveConsensus:false},
   lineupResearch:Object.fromEntries(["NHL","NFL"].map(s=>[s,{distinctResolvedSlates:count(slate[s]?.distinctSlatesAcrossFormats)}])),
   paper:{authenticatedSettledEntries:count(paper.authenticatedSettledEntries),verifiedROI:null},
+  validationSample:gates,
   proprietaryRowsPublished:0,calibrationApproved:false,modelPromoted:false};
 }
 function main([privateRoot,publicRoot]=process.argv.slice(2)){

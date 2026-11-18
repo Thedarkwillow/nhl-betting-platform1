@@ -74,7 +74,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          for f in outputs/health/nhl-shot-point-opportunity-test-latest.json outputs/health/nhl-shot-point-opportunity-latest.json outputs/health/nhl-shot-point-opportunity-diagnostic-latest.json outputs/health/open-model-ideas-latest.json; do if test -f "$f"; then git add -f "$f"; fi; done
+          for f in outputs/health/nhl-shot-point-opportunity-test-latest.json outputs/health/nhl-shot-point-opportunity-latest.json outputs/health/nhl-shot-point-opportunity-diagnostic-latest.json outputs/health/open-model-ideas-latest.json outputs/health/nhl-zero-stat-reconciliation-private-latest.json; do if test -f "$f"; then git add -f "$f"; fi; done
           if test -d outputs/research/shot-point-opportunity-v1; then git add -f outputs/research/shot-point-opportunity-v1/*.json; fi
           git diff --cached --quiet && exit 0
           git commit -qm 'research: private NHL shooter/scoring opportunity and PP holdout evidence'

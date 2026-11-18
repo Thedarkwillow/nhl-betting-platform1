@@ -79,6 +79,10 @@ jobs:
              x.selectiveAccuracy.calibrationApproved!==false||
              x.selectiveAccuracy.automatedLineupsApproved!==false||
              x.selectiveAccuracy.independentOutperformanceEstablished!==false||
+             !x.sportsbook.matchFunnel||
+             x.sportsbook.matchFunnel.kind!=="public_sportsbook_exact_match_failure_counts_v1"||
+             x.sportsbook.matchFunnel.exactPlatformIdentityVerified!==false||
+             x.sportsbook.matchFunnel.paidProviderRequests!==0||
              !x.periodHistory||
              x.periodHistory.accountedDays+x.periodHistory.pendingDays!==x.periodHistory.calendarDays||
              /"playerId"|"sourceOfferId"|"playerName"|"projection"|"modelWeights"/.test(JSON.stringify(x)))

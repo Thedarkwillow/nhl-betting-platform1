@@ -180,3 +180,5 @@ jobs:
 # Nov 17 owner-requested bounded official source coverage continuation; no paid provider calls; unresolved shiftchart gaps remain quarantined.
 
 # Owner-requested official NHL club-only season historical correction: ignore 202509 Olympic game IDs; retain capped verified data/shiftchart reconciliation.
+
+# Nov 18 owner-requested final bounded retry at 256 / 261 dates (five missing). Keep the same five-date limit, 1.2-second official-source pacing, 35-minute timeout, and zero paid-provider requests. Never mark an HTTP/timeout or zero-row date complete without verified official reconciliation.

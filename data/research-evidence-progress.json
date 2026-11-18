@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-18T16:02:20.999Z",
-  "sourceReportAt": "2026-11-18T14:47:04.507Z",
+  "generatedAt": "2026-11-18T16:03:02.506Z",
+  "sourceReportAt": "2026-11-18T16:01:22.929Z",
   "periodHistory": {
     "accountedDays": 236,
     "calendarDays": 261,

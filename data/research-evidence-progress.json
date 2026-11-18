@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-18T03:56:24.039Z",
+  "generatedAt": "2026-11-18T04:00:34.049Z",
   "sourceReportAt": "2026-11-18T03:55:05.014Z",
   "periodHistory": {
     "accountedDays": 221,
@@ -22,7 +22,8 @@
     "strictMatched": 0,
     "conditionalArchived": 12,
     "within30Minutes": 0,
-    "verifiedLiveConsensus": false
+    "verifiedLiveConsensus": false,
+    "matchFunnel": null
   },
   "lineupResearch": {
     "NHL": {

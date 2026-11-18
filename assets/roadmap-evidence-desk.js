@@ -84,6 +84,36 @@
        ageMinutes:age(selective.nflReportAt,now)});
     }
    }
+   const gob=progress.goblinFuture;
+   if(gob?.kind==="public_goblin_independent_future_research_counts_v1"&&
+      age(gob.sourceReportAt,now)!==null&&
+      gob.modelPromoted===false&&gob.prospectiveEdgeVerified===false&&
+      gob.payoutsAndSettlementsVerified===false&&
+      gob.privatePlayerRowsPublished===0&&
+      gob.calibration?.approved===false&&
+      gob.lineup?.approvedSlips===0){
+    const h=gob.nhl,n=gob.nfl;
+    if([h?.examined,h?.newCandidates,h?.newAbstentions,
+        h?.archivedFirstGit,h?.futureRegistered,h?.futureDecided].every(count)){
+      rows.push({label:"NHL Goblin NEW selective research",
+       value:h.newCandidates+" new candidate / "+h.newAbstentions+
+        " abstained from "+h.examined+" evaluated; "+
+        h.archivedFirstGit+" first-Git records; "+h.futureDecided+
+        " official decisions; no approved betting edge",
+       ageMinutes:age(gob.sourceReportAt,now)});
+    }
+    if(n?.supportedOpportunityResearchImplemented===true&&
+       count(n.firstGitEligible)){
+      rows.push({label:"NFL Goblin opportunity model",
+       value:n.firstGitEligible+" eligible first-Git records; "+
+        (n.freshFullPlayerIdentityAndAvailabilityVerified?"verified pregame identity/availability":"fresh original injury and identity verification pending"),
+       ageMinutes:age(gob.sourceReportAt,now)});
+    }
+    rows.push({label:"Goblin Power/Flex 2–6",
+     value:"Exact account Goblin payout quote and prospective correlation required; "+
+      "no verified EV or approved slips",
+     ageMinutes:age(gob.sourceReportAt,now)});
+   }
    const ideas=progress.modelIdeas;
    if(ideas?.kind==="public_open_model_research_coverage_v1"&&
       age(ideas.sourceReportAt,now)!==null&&

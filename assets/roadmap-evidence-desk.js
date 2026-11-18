@@ -69,6 +69,30 @@
    }
    for(const sport of ["nhl","nfl"]){const e=progress.evidence?.[sport];if(count(e?.firstObserved)&&count(e?.matchedCalibrationRows))rows.push({label:sport.toUpperCase()+" calibration evidence",value:e.firstObserved+" observed outcomes; "+e.matchedCalibrationRows+" held-out rows; not approved",ageMinutes:a});}
    const o=progress.sportsbook;if(o&&count(o.strictMatched)&&count(o.conditionalArchived)&&o.verifiedLiveConsensus===false)rows.push({label:"Sportsbook benchmark evidence",value:o.strictMatched+" strict / "+o.conditionalArchived+" conditional archived matches; live availability unverified",ageMinutes:a});
+   const mf=progress.sportsbook?.matchFunnel;
+   if(mf?.kind==="public_sportsbook_exact_match_failure_counts_v1"&&
+      mf.exactPlatformIdentityVerified===false&&mf.authenticatedClosingLine===false&&
+      mf.modelPromoted===false&&mf.paidProviderRequests===0&&
+      count(mf.archivedSnapshots)){
+    const names={no_event:"unmatched event",no_exact_name:"unmatched player identity",
+     no_market:"different market",no_same_threshold:"different threshold",
+     no_preexisting_frame:"missing frozen comparison",
+     ambiguous_identity:"ambiguous identity",conditional_match:"conditional only"};
+    const stages=Object.keys(names);
+    for(const sport of ["NHL","NFL"]){
+     const o=mf.bySport?.[sport];
+     if(o&&count(o.native)&&stages.every(k=>count(o[k]))&&
+        stages.reduce((a,k)=>a+o[k],0)===o.native){
+      const ranked=stages.filter(k=>k!=="conditional_match"&&o[k]>0)
+       .sort((a,b)=>o[b]-o[a]||a.localeCompare(b));
+      rows.push({label:sport+" sportsbook match blockers",
+       value:o.native+" archived groups; "+
+         (ranked.length?o[ranked[0]]+" "+names[ranked[0]]:"no documented failing stage")+
+         "; "+o.conditional_match+" conditional; app identity unverified",
+       ageMinutes:a});
+     }
+    }
+   }
    for(const sport of ["NHL","NFL"]){const s=progress.lineupResearch?.[sport];if(count(s?.distinctResolvedSlates))rows.push({label:sport+" lineup evidence",value:s.distinctResolvedSlates+" distinct resolved slates; not calibrated",ageMinutes:a});}
    if(count(progress.paper?.authenticatedSettledEntries)&&progress.paper.verifiedROI===null)rows.push({label:"Settlement evidence",value:progress.paper.authenticatedSettledEntries+" authenticated entries; verified ROI unavailable",ageMinutes:a});
   }

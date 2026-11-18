@@ -57,7 +57,7 @@ jobs:
                !Number.isInteger(g.pairedGameUncertainty.games)))
             throw Error('Private first-week position research confidence contract invalid');
           const yards=Object.entries(x.bySeasonMarketPosition).filter(([k,g])=>
-            /^\\d{4}\\|(rushing_yards|receiving_yards)$/.test(k)&&g.games>=30);
+            /^\d{4}\|(rushing_yards|receiving_yards)$/.test(k)&&g.games>=30);
           if(yards.some(([_,g])=>g.pairedGameUncertainty.status!=='paired_prior_week_historical_research_only'||
              g.pairedGameUncertainty.games<12))
             throw Error('NFL legal negative yards were incorrectly rejected from historical MAE');

@@ -124,7 +124,7 @@ test("new model research ships only safe zero-event counts, never raw private da
   authenticatedReturnOnInvestment:null,providerRequests:0,wagersPlaced:0,
   bookmaker:"SECRET BOOK",line:1.5};
  const a=build(source,{now,modelIdeas:r});
- assert.equal(a.modelIdeas.nhl.officialCompleteGames,123);
+ assert.equal(a.modelIdeas.nhl.completeOfficialGames,123);
  assert.equal(a.modelIdeas.nhl.zeroShotAppearancesRetained,24);
  assert.equal(a.modelIdeas.nhl.realPlatformLinesEvaluated,false);
  assert.equal(a.modelIdeas.modelPromoted,false);

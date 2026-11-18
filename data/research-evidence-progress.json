@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-18T14:37:59.928Z",
-  "sourceReportAt": "2026-11-18T14:36:29.681Z",
+  "generatedAt": "2026-11-18T15:06:55.695Z",
+  "sourceReportAt": "2026-11-18T14:47:04.507Z",
   "periodHistory": {
     "accountedDays": 236,
     "calendarDays": 261,
@@ -145,6 +145,7 @@
     "modelPromoted": false,
     "optimizedLineupsApproved": false
   },
+  "goblinFuture": null,
   "proprietaryRowsPublished": 0,
   "calibrationApproved": false,
   "modelPromoted": false

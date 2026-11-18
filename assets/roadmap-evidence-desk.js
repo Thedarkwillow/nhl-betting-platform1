@@ -43,6 +43,30 @@
        v.powerFlexRegisteredReferenceEntries+" registered across nine overlapping formats; payout unverified",
       ageMinutes:age(v.sourceReportAt,now)});
    }
+   const selective=progress.selectiveAccuracy;
+   if(selective?.kind==="public_selective_accuracy_first_git_counts_v1"&&
+      selective.bothPoliciesFutureOnly===true&&selective.calibrationApproved===false&&
+      selective.automatedLineupsApproved===false&&
+      selective.originalPlatformSettlementVerified===false&&
+      selective.independentOutperformanceEstablished===false&&
+      age(selective.nhlReportAt,now)!==null&&age(selective.nflReportAt,now)!==null&&
+      parse(selective.nhlReportAt)<=parse(progress.sourceReportAt)&&
+      parse(selective.nflReportAt)<=parse(progress.sourceReportAt)){
+    const h=selective.nhl,n=selective.nfl;
+    if([h?.registered,h?.eligible,h?.abstained,h?.pending,h?.decided,
+       n?.included,n?.pending,n?.decided,n?.distinctGames,n?.distinctGameDates].every(count)&&
+       h.registered>=h.eligible&&h.registered>=h.abstained&&
+       h.eligible>=h.decided+h.pending&&n.included>=n.decided+n.pending){
+      rows.push({label:"NHL NEW selective policy (future-only)",
+       value:h.decided+" graded / "+h.pending+" pending / "+h.abstained+
+        " abstained from "+h.registered+" registered; no validated edge",
+       ageMinutes:age(selective.nhlReportAt,now)});
+      rows.push({label:"NFL NEW selective policy (future-only)",
+       value:n.decided+" graded / "+n.pending+" pending from "+n.included+
+        " included across "+n.distinctGames+" games; no validated edge",
+       ageMinutes:age(selective.nflReportAt,now)});
+    }
+   }
    for(const sport of ["nhl","nfl"]){const e=progress.evidence?.[sport];if(count(e?.firstObserved)&&count(e?.matchedCalibrationRows))rows.push({label:sport.toUpperCase()+" calibration evidence",value:e.firstObserved+" observed outcomes; "+e.matchedCalibrationRows+" held-out rows; not approved",ageMinutes:a});}
    const o=progress.sportsbook;if(o&&count(o.strictMatched)&&count(o.conditionalArchived)&&o.verifiedLiveConsensus===false)rows.push({label:"Sportsbook benchmark evidence",value:o.strictMatched+" strict / "+o.conditionalArchived+" conditional archived matches; live availability unverified",ageMinutes:a});
    for(const sport of ["NHL","NFL"]){const s=progress.lineupResearch?.[sport];if(count(s?.distinctResolvedSlates))rows.push({label:sport+" lineup evidence",value:s.distinctResolvedSlates+" distinct resolved slates; not calibrated",ageMinutes:a});}

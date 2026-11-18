@@ -12,6 +12,7 @@ on:
   workflow_run:
     workflows:
       - 'Refresh private source readiness after collection and grading'
+      - 'Private NHL Goblin future-only opportunity research'
     types: [completed]
   # Backup refresh if GitHub limits chained workflow_run notifications.
   schedule:

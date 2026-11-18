@@ -2,6 +2,18 @@ name: Bounded private NHL NFL sportsbook evidence refresh
 
 on:
   workflow_dispatch:
+  # GitHub cron execution drifted well past today's original 5:45/8:45
+  # source windows. Trigger from the verified full private 6/9 board
+  # archival as an additional TIME-OF-OBSERVATION research opportunity;
+  # any quotes collected here are POST-BOARD, never preboard evidence.
+  # Existing 12 credits/day and 6 credits/sport guards remain unchanged.
+  workflow_run:
+    workflows: ['Public Free Runners - Private NHL and NFL 6 and 9 AM Boards']
+    types: [completed]
+  # One safe startup check after this workflow file is merged.
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-bounded-sportsbook-quotes.yml']
   # Move the two existing capped capture opportunities ahead of the archived
   # 06:00 and 09:00 Pacific board slots. Starting on schedule is not guaranteed.
   # No additional daily provider requests or quota allocation are authorized.
@@ -17,7 +29,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   capture:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -48,6 +60,8 @@ jobs:
             node --test test/sportsbook-event-quota.test.cjs test/nhl-sportsbook-event-bridge.test.cjs test/nhl-sportsbook-original-name.test.cjs
           fi
           echo "ODDS_TESTED_REVISION=$tested" >> "$GITHUB_ENV"
+      # Provider calls are only attempted after the private source freshness
+      # check; a green workflow with no new status-latest.json is NOT an odds pull.
       - name: Collect fresh exact-line sportsbook evidence within independent sport quota
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}

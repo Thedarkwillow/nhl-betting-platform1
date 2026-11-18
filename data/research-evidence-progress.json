@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-18T03:36:28.710Z",
+  "generatedAt": "2026-11-18T03:53:09.776Z",
   "sourceReportAt": "2026-11-18T03:35:23.161Z",
   "periodHistory": {
     "accountedDays": 216,
@@ -51,6 +51,30 @@
     "probabilitiesCalibrated": false,
     "modelPromoted": false,
     "platformPayoutROI": null
+  },
+  "selectiveAccuracy": {
+    "kind": "public_selective_accuracy_first_git_counts_v1",
+    "nhlReportAt": "2026-11-18T03:34:48.304Z",
+    "nflReportAt": "2026-11-18T02:48:16.486Z",
+    "nhl": {
+      "registered": 0,
+      "eligible": 0,
+      "abstained": 0,
+      "pending": 0,
+      "decided": 0
+    },
+    "nfl": {
+      "included": 0,
+      "pending": 0,
+      "decided": 0,
+      "distinctGames": 0,
+      "distinctGameDates": 0
+    },
+    "bothPoliciesFutureOnly": true,
+    "independentOutperformanceEstablished": false,
+    "calibrationApproved": false,
+    "automatedLineupsApproved": false,
+    "originalPlatformSettlementVerified": false
   },
   "proprietaryRowsPublished": 0,
   "calibrationApproved": false,

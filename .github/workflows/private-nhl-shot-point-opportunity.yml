@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: ['.github/workflows/private-nhl-shot-point-opportunity.yml']
   workflow_run:
-    workflows: ['Private pregame NHL freeze on public free runner', 'Private NHL specialist history and historical PP coverage']
+    workflows: ['Private pregame NHL freeze on public free runner', 'Private NHL specialist history and historical PP coverage', 'Freeze actual-time NHL and NFL pregame Higher Lower research']
     types: [completed]
   schedule:
     - cron: '53 6,22 * * *'
@@ -89,3 +89,5 @@ jobs:
 # PR 161 merged after all 3 tests; use full current private history and frozen actual lines.
 
 # Nov 17 user-requested open-source accuracy research sprint: rerun audited zero-shot denominators, prior-date shots/blocks and per-market calibration gates with existing private history; no added provider calls or production betting models.
+
+# Nov 18: 6 AM dual-sport source freeze is independently verified; run the NHL opportunity challenger within its 30-minute original-source window, without new provider calls.

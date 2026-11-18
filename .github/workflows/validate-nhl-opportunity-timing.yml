@@ -1,0 +1,25 @@
+name: Validate NHL opportunity run follows original 6/9 AM pregame freeze
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/private-nhl-shot-point-opportunity.yml'
+      - '.github/workflows/validate-nhl-opportunity-timing.yml'
+      - 'scripts/test-nhl-opportunity-timing.cjs'
+  push:
+    branches: [main, 'fix/**']
+    paths:
+      - '.github/workflows/private-nhl-shot-point-opportunity.yml'
+      - '.github/workflows/validate-nhl-opportunity-timing.yml'
+      - 'scripts/test-nhl-opportunity-timing.cjs'
+permissions:
+  contents: read
+jobs:
+  guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test scripts/test-nhl-opportunity-timing.cjs

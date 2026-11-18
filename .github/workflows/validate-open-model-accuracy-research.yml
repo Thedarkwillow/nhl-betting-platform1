@@ -1,0 +1,74 @@
+name: Validate open-source model accuracy research against private NHL NFL code
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'validate/**']
+    paths:
+      - '.github/workflows/validate-open-model-accuracy-research.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/validate-open-model-accuracy-research.yml'
+permissions:
+  contents: read
+concurrency:
+  group: validate-open-model-accuracy-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 19
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 5065238ca6a712bc9a1ff824792a11ce28d98cf0
+          path: private
+          fetch-depth: 1
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate new source integrity and model research tests
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/nhl-zero-stat-integrity-audit.cjs
+          node --check src/sport-opportunity-production-shadow.cjs
+          node --check src/nhl-synthetic-opportunity-replay.cjs
+          node --check src/strict-future-paired-challenger-evidence.cjs
+          node --check src/past-only-calibration-research.cjs
+          node --check scripts/report-open-model-ideas.cjs
+          node --test \
+            test/nhl-zero-stat-integrity-audit.test.cjs \
+            test/sport-opportunity-production-shadow.test.cjs \
+            test/nhl-synthetic-opportunity-replay.test.cjs \
+            test/strict-future-paired-challenger-evidence.test.cjs \
+            test/past-only-calibration-research.test.cjs \
+            test/report-open-model-ideas.test.cjs
+      - name: Verify compatibility with existing NHL and NFL model labs
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test \
+            test/nhl-shot-point-opportunity.test.cjs \
+            test/nhl-shot-block-tail-v2.test.cjs \
+            test/nhl-selective-opportunity-future.test.cjs \
+            test/nfl-yardage-volume-efficiency.test.cjs \
+            test/nfl-market-usage-selective-future.test.cjs \
+            test/nfl-specialty-research.test.cjs
+      - name: Verify private report code and zero-wager posture
+        working-directory: private
+        run: |
+          node --check scripts/report-nhl-shot-point-opportunity.cjs
+          node --check scripts/report-open-model-ideas.cjs
+          node - <<'NODE'
+          const s=require('node:fs').readFileSync('src/strict-future-paired-challenger-evidence.cjs','utf8');
+          if(!s.includes('modelPromoted:false')||
+             !s.includes('calibrationApproved:false')||
+             !s.includes('placedWagers:0'))
+            throw Error('Research release guard must remain intact');
+          console.log('PASS: research-only and no-wager guards present');
+          NODE

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-18T04:00:34.049Z",
-  "sourceReportAt": "2026-11-18T03:55:05.014Z",
+  "generatedAt": "2026-11-18T04:02:19.134Z",
+  "sourceReportAt": "2026-11-18T04:00:35.373Z",
   "periodHistory": {
     "accountedDays": 221,
     "calendarDays": 261,
@@ -23,7 +23,43 @@
     "conditionalArchived": 12,
     "within30Minutes": 0,
     "verifiedLiveConsensus": false,
-    "matchFunnel": null
+    "matchFunnel": {
+      "kind": "public_sportsbook_exact_match_failure_counts_v1",
+      "archivedSnapshots": 4,
+      "bySport": {
+        "NHL": {
+          "native": 178,
+          "no_event": 32,
+          "no_exact_name": 9,
+          "no_market": 0,
+          "no_same_threshold": 0,
+          "no_preexisting_frame": 137,
+          "ambiguous_identity": 0,
+          "conditional_match": 0
+        },
+        "NFL": {
+          "native": 92,
+          "no_event": 33,
+          "no_exact_name": 15,
+          "no_market": 0,
+          "no_same_threshold": 12,
+          "no_preexisting_frame": 20,
+          "ambiguous_identity": 0,
+          "conditional_match": 12
+        }
+      },
+      "captureSkewBuckets": {
+        "within10m": 137,
+        "within30m": 0,
+        "within2h": 0,
+        "within8h": 16,
+        "noExactThreshold": 117
+      },
+      "exactPlatformIdentityVerified": false,
+      "authenticatedClosingLine": false,
+      "paidProviderRequests": 0,
+      "modelPromoted": false
+    }
   },
   "lineupResearch": {
     "NHL": {

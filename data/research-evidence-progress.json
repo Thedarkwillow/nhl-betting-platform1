@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-18T17:29:59.524Z",
-  "sourceReportAt": "2026-11-18T17:09:19.918Z",
+  "generatedAt": "2026-11-18T17:34:37.803Z",
+  "sourceReportAt": "2026-11-18T17:29:50.982Z",
   "periodHistory": {
     "accountedDays": 236,
     "calendarDays": 261,
@@ -147,13 +147,13 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-18T17:28:58.454Z",
+    "sourceReportAt": "2026-11-18T17:33:39.455Z",
     "nhl": {
       "sourceEligible": true,
       "examined": 0,
       "newCandidates": 0,
       "newAbstentions": 0,
-      "archivedFirstGit": 162,
+      "archivedFirstGit": 54,
       "futureDecided": 0,
       "futureRegistered": 54
     },

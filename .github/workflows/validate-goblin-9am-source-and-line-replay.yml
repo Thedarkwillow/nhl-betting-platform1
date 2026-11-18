@@ -1,0 +1,61 @@
+name: Verify Goblin 9AM source and archived NHL NFL line movement
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-goblin-9am-source-and-line-replay.yml'
+      - '.github/workflows/private-nhl-nfl-daily-line-movement.yml'
+      - '.github/workflows/private-nhl-goblin-forward.yml'
+      - 'scripts/verify-existing-private-line-movement.cjs'
+      - 'scripts/test-verify-existing-private-line-movement.cjs'
+  push:
+    branches: [main, 'fix/**']
+    paths:
+      - '.github/workflows/validate-goblin-9am-source-and-line-replay.yml'
+      - '.github/workflows/private-nhl-nfl-daily-line-movement.yml'
+      - '.github/workflows/private-nhl-goblin-forward.yml'
+      - 'scripts/verify-existing-private-line-movement.cjs'
+      - 'scripts/test-verify-existing-private-line-movement.cjs'
+permissions:
+  contents: read
+jobs:
+  verify-original-private-sources:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          fetch-depth: 0
+      - name: Require isolated private original-source read
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private original-source permission missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 30489e70211334c922b9cf898f1522308aefa07b
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify genuine Goblin snapshotKind and future first Git rejection
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --check scripts/report-goblin-forward.cjs
+          node --test test/goblin-forward-runner.test.cjs \
+            test/goblin-opportunity-evidence.test.cjs \
+            test/goblin-quoted-lineup-research.test.cjs
+      - name: Recompare exact genuine original 06:05 and 09:05 archives; assert unchanged private Git delta
+        run: |
+          set -euo pipefail
+          node --test public/scripts/test-verify-existing-private-line-movement.cjs \
+            public/scripts/test-publish-safe-nhl-nfl-line-movement.cjs
+          node public/scripts/verify-existing-private-line-movement.cjs \
+            "$GITHUB_WORKSPACE/private" \
+            "outputs/manual-board-captures/2026-11-18/20261118T170541Z" \
+            "outputs/partner-source/line-delta/2026-11-18/20261118T170541Z.json"
+          echo 'PASS: 06 AM vs 09 AM first Git source count comparison verified; raw player details never exported.'

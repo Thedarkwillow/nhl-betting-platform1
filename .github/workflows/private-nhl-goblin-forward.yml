@@ -1,3 +1,4 @@
+# Nov 18: accept exact original NHL snapshotKind in private policy after new future-source Git proof; 9AM only if pregame and <30min.
 name: Private NHL Goblin future-only opportunity research
 on:
   workflow_dispatch:

@@ -3,6 +3,32 @@
 // source prices, calibration coefficients or internal model parameters.
 const fs=require("node:fs"),path=require("node:path"),count=x=>Number.isInteger(x)&&x>=0?x:null,dt=x=>typeof x==="string"?Date.parse(x):NaN;
 
+
+function safeMatchFunnel(f){
+ const stages=["no_event","no_exact_name","no_market","no_same_threshold",
+  "no_preexisting_frame","ambiguous_identity","conditional_match"];
+ if(f?.kind!=="private_sportsbook_match_stage_counts_v1"||
+  f.newPaidRequests!==0||f.modelPromoted!==false||
+  f.sharedPlayerIdVerified!==false||f.authenticatedClosingLine!==false||
+  count(f.archives)===null)return null;
+ const bySport={};
+ for(const sport of ["NHL","NFL"]){
+  const a=f.bySport?.[sport];
+  if(!a||count(a.native)===null)return null;
+  const b=Object.fromEntries(stages.map(k=>[k,count(a[k])]));
+  if(Object.values(b).some(x=>x===null)||
+     Object.values(b).reduce((sum,x)=>sum+x,0)!==a.native)return null;
+  bySport[sport]={native:a.native,...b};
+ }
+ const buckets=["within10m","within30m","within2h","within8h","noExactThreshold"];
+ const captureSkewBuckets=Object.fromEntries(
+  buckets.map(k=>[k,count(f.captureSkewBuckets?.[k])]));
+ if(Object.values(captureSkewBuckets).some(x=>x===null))return null;
+ return {kind:"public_sportsbook_exact_match_failure_counts_v1",
+  archivedSnapshots:f.archives,bySport,captureSkewBuckets,
+  exactPlatformIdentityVerified:false,authenticatedClosingLine:false,
+  paidProviderRequests:0,modelPromoted:false};
+}
 function buildSelectiveAccuracy(nhl,nfl,now){
  const a=nhl?.selectiveFuture,b=nfl?.selectiveFuture,r=b?.onePerPlayerMarket;
  if(nhl?.kind!=="private_shot_point_opportunity_research_v1"||
@@ -62,7 +88,7 @@ function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelecti
   probabilitiesCalibrated:false,modelPromoted:false,platformPayoutROI:null
  }:null;
  return {schemaVersion:1,kind:"public_research_progress_counts_v1",generatedAt:now,sourceReportAt:source.generatedAt,periodHistory:p,evidence,
-  sportsbook:{strictMatched:count(odds.strictPlatformMatches),conditionalArchived:count(odds.archiveCoverage?.uniqueConditionalPropSides??odds.archivedConditionalMatches),within30Minutes:count(odds.archiveCoverage?.uniqueWithin30Minutes??odds.within30Minutes),verifiedLiveConsensus:false},
+  sportsbook:{strictMatched:count(odds.strictPlatformMatches),conditionalArchived:count(odds.archiveCoverage?.uniqueConditionalPropSides??odds.archivedConditionalMatches),within30Minutes:count(odds.archiveCoverage?.uniqueWithin30Minutes??odds.within30Minutes),verifiedLiveConsensus:false,matchFunnel:safeMatchFunnel(odds.matchFunnel)},
   lineupResearch:Object.fromEntries(["NHL","NFL"].map(s=>[s,{distinctResolvedSlates:count(slate[s]?.distinctSlatesAcrossFormats)}])),
   paper:{authenticatedSettledEntries:count(paper.authenticatedSettledEntries),verifiedROI:null},
   validationSample:gates,

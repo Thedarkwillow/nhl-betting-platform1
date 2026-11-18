@@ -79,8 +79,11 @@ test("strict archived sportsbook match-funnel publishes counts, never provider i
  const f={kind:"private_sportsbook_match_stage_counts_v1",
   archives:4,newPaidRequests:0,modelPromoted:false,
   sharedPlayerIdVerified:false,authenticatedClosingLine:false,
-  bySport:{NHL:{native:3,no_event:2,no_same_threshold:1},NFL:{native:2,
-   no_exact_name:1,conditional_match:1}},
+  bySport:{NHL:{native:3,no_event:2,no_exact_name:0,no_market:0,
+   no_same_threshold:1,no_preexisting_frame:0,ambiguous_identity:0,
+   conditional_match:0},NFL:{native:2,no_event:0,no_exact_name:1,
+   no_market:0,no_same_threshold:0,no_preexisting_frame:0,
+   ambiguous_identity:0,conditional_match:1}},
   captureSkewBuckets:{within10m:0,within30m:1,within2h:0,within8h:0,
    noExactThreshold:4},
   bookmaker:"PRIVATE BOOK",playerId:"PRIVATE ID",prices:[-110]};

@@ -48,7 +48,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! node --test test/nhl-prior-season-period-backfill.test.cjs test/nhl-official-period-events.test.cjs test/nhl-period-count-model.test.cjs test/nhl-combo-period-release-evidence.test.cjs test/advanced-evidence-and-periods.test.cjs >"$log" 2>&1; then
+          if ! node --test test/nhl-prior-season-period-backfill.test.cjs test/nhl-prior-season-backfill-coverage.test.cjs test/nhl-official-period-events.test.cjs test/nhl-period-count-model.test.cjs test/nhl-combo-period-release-evidence.test.cjs test/advanced-evidence-and-periods.test.cjs >"$log" 2>&1; then
             echo '::error::Private period tests failed.'
             exit 1
           fi

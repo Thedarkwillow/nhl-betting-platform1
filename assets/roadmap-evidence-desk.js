@@ -22,6 +22,27 @@
   if(progress?.kind==="public_research_progress_counts_v1"&&progress.proprietaryRowsPublished===0&&progress.calibrationApproved===false&&progress.modelPromoted===false&&age(progress.sourceReportAt,now)!==null){
    const a=age(progress.sourceReportAt,now),p=progress.periodHistory;
    if(p&&count(p.accountedDays)&&count(p.calendarDays)&&p.calendarDays>0&&p.accountedDays<=p.calendarDays)rows.push({label:"NHL historical periods",value:p.accountedDays+" / "+p.calendarDays+" dates accounted; "+(p.calendarDays-p.accountedDays)+" pending",ageMinutes:a});
+   const v=progress.validationSample;
+   if(v&&v.probabilitiesCalibrated===false&&v.modelPromoted===false&&v.platformPayoutROI===null&&
+      age(v.sourceReportAt,now)!==null&&parse(v.sourceReportAt)<=parse(progress.sourceReportAt)){
+    if(count(v.nhlStandardFrozenDecisions)&&count(v.nhlStandardFrozenGames)&&
+       count(v.nhlStandardFrozenPacificSlates))
+     rows.push({label:"NHL Standard prospective sample",
+      value:v.nhlStandardFrozenDecisions+" original decisions in "+v.nhlStandardFrozenGames+
+       " games / "+v.nhlStandardFrozenPacificSlates+" Pacific slates; evidence, not calibrated confidence",
+      ageMinutes:age(v.sourceReportAt,now)});
+    if(count(v.matchedFrozenCalibrationDecisions)&&count(v.independentlySupportedCalibrationGroups))
+     rows.push({label:"Frozen calibration trials",
+      value:v.matchedFrozenCalibrationDecisions+" genuine frozen trials; "+v.independentlySupportedCalibrationGroups+
+       " groups meeting sample gate; probability release withheld",
+      ageMinutes:age(v.sourceReportAt,now)});
+    if(count(v.powerFlexRegisteredReferenceEntries)&&count(v.powerFlexResolvedReferenceEntries)&&
+       v.powerFlexResolvedReferenceEntries<=v.powerFlexRegisteredReferenceEntries)
+     rows.push({label:"Power/Flex 2–6 paper scenarios",
+      value:v.powerFlexResolvedReferenceEntries+" resolved / "+
+       v.powerFlexRegisteredReferenceEntries+" registered across nine overlapping formats; payout unverified",
+      ageMinutes:age(v.sourceReportAt,now)});
+   }
    for(const sport of ["nhl","nfl"]){const e=progress.evidence?.[sport];if(count(e?.firstObserved)&&count(e?.matchedCalibrationRows))rows.push({label:sport.toUpperCase()+" calibration evidence",value:e.firstObserved+" observed outcomes; "+e.matchedCalibrationRows+" held-out rows; not approved",ageMinutes:a});}
    const o=progress.sportsbook;if(o&&count(o.strictMatched)&&count(o.conditionalArchived)&&o.verifiedLiveConsensus===false)rows.push({label:"Sportsbook benchmark evidence",value:o.strictMatched+" strict / "+o.conditionalArchived+" conditional archived matches; live availability unverified",ageMinutes:a});
    for(const sport of ["NHL","NFL"]){const s=progress.lineupResearch?.[sport];if(count(s?.distinctResolvedSlates))rows.push({label:sport+" lineup evidence",value:s.distinctResolvedSlates+" distinct resolved slates; not calibrated",ageMinutes:a});}

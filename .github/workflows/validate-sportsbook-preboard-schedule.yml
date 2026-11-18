@@ -1,0 +1,26 @@
+name: Validate capped preboard sportsbook collection schedule
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/private-bounded-sportsbook-quotes.yml'
+      - '.github/workflows/validate-sportsbook-preboard-schedule.yml'
+      - 'scripts/test-sportsbook-preboard-schedule.cjs'
+  push:
+    branches: [main, 'fix/**']
+    paths:
+      - '.github/workflows/private-bounded-sportsbook-quotes.yml'
+      - '.github/workflows/validate-sportsbook-preboard-schedule.yml'
+      - 'scripts/test-sportsbook-preboard-schedule.cjs'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify no new source calls or post-freeze paid triggers
+        run: node --test scripts/test-sportsbook-preboard-schedule.cjs

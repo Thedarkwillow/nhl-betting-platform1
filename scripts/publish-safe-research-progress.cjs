@@ -20,7 +20,7 @@ function buildSelectiveAccuracy(nhl,nfl,now){
   b.firstFrozenOnly!==true||b.sampleIsSubsetOfV2OriginalDirections!==true||
   b.productionApproved!==false||b.calibratedProbabilitiesApproved!==false||
   b.authenticOppositeOffersVerified!==false||
-  r?.modelPromoted!==false||r.minimumEvidenceMet!==false||
+  r?.modelPromoted!==false||typeof r.minimumEvidenceMet!=="boolean"||
   r.calibratedProbability!==null)return null;
  const valid=[a.registered,a.eligible,a.abstained,a.pending,a.decided,
   r.included,r.decided,r.pending,r.distinctGames,r.distinctGameDates].every(x=>count(x)!==null);
@@ -76,7 +76,7 @@ function main([privateRoot,publicRoot]=process.argv.slice(2)){
   nhlSelective:read("outputs/health/nhl-shot-point-opportunity-latest.json"),
   nflSelective:read("outputs/nfl/backtests/directional-v2-future-only-latest.json")
  });
- if(!out)throw Error("Unverified private progress report; refuse publication");
+ if(!out||!out.selectiveAccuracy)throw Error("Missing verified private prospective selective reports; refuse publication");
  const f=path.join(publicRoot,"data/research-evidence-progress.json");fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,JSON.stringify(out,null,2)+"\n");
  console.log("PASS: allowlisted progress counts only.");
 }

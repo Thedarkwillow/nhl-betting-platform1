@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 7d8e4ff3b73e5adedd89f035a4feddd5dd35547e
+          ref: d01792284a40b53c4a6cc3328f399dba95456555
           path: private
           fetch-depth: 1
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}

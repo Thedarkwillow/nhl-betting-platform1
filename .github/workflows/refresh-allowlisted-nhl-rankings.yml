@@ -14,7 +14,11 @@ on:
       - 'Private NHL compact ranking export and validation'
     types: [completed]
   schedule:
-    - cron: '27 6,9,12,15 * * *'
+    # Timed AFTER the existing 06:18 independent capture, without new provider requests.
+    - cron: '45 6 * * *'
+      timezone: America/Los_Angeles
+    # Timed AFTER the existing 09:35 and 13:35 independent captures.
+    - cron: '1 10,14 * * *'
       timezone: America/Los_Angeles
 permissions:
   contents: write

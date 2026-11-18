@@ -1,17 +1,14 @@
 name: Bounded private NHL NFL sportsbook evidence refresh
+
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/private-bounded-sportsbook-quotes.yml']
-  workflow_run:
-    workflows: ['Private pregame NHL freeze on public free runner', 'Public Free Runners - Private NHL and NFL 6 and 9 AM Boards']
-    types: [completed]
+  # Move the two existing capped capture opportunities ahead of the archived
+  # 06:00 and 09:00 Pacific board slots. Starting on schedule is not guaranteed.
+  # No additional daily provider requests or quota allocation are authorized.
   schedule:
-    # Independent six-credit sport reservations; unchanged 12/day ceiling.
-    - cron: '25 9 * * *'
+    - cron: '45 5 * * *'
       timezone: America/Los_Angeles
-    - cron: '25 13 * * *'
+    - cron: '45 8 * * *'
       timezone: America/Los_Angeles
 permissions:
   contents: read
@@ -20,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   capture:
-    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -87,3 +84,5 @@ jobs:
 # Owner confirmed ODDS_API_KEY added: run bounded credential/quota and fresh quote verification 2026-11-14.
 
 # Verified fresh 12:44 PM Pacific board is archived; request bounded NHL-only recovery now.
+
+# Nov 17 source funnel: 137 NHL groups lacked a qualifying preexisting frozen comparison. Align two existing bounded quote slots before board freeze; verify prospectively, never retroactively promote.

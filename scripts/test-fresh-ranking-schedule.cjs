@@ -16,7 +16,7 @@ test("fresh approval exports follow, never precede, configured source opportunit
 });
 test("freshness alignment never bypasses the public allowlist or source expiry",()=>{
  const y=read("refresh-allowlisted-nhl-rankings.yml");
- assert.match(y,/now-t<=30\*60000/);
+ assert.match(y,/now-a<=30\*60000/);
  assert.match(y,/boardCoverage\?\.apiPaginationComplete===true/);
  assert.match(y,/d\.props=approved\?sorted\(d\.props\):\[\]/);
  assert.match(y,/const reason=!source\?'approved_archive_missing'/);

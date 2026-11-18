@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-18T05:35:17.814Z",
-  "sourceReportAt": "2026-11-18T04:40:33.570Z",
+  "generatedAt": "2026-11-18T05:43:13.313Z",
+  "sourceReportAt": "2026-11-18T05:41:44.782Z",
   "periodHistory": {
     "accountedDays": 226,
     "calendarDays": 261,
@@ -91,13 +91,13 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-18T03:34:48.304Z",
+    "nhlReportAt": "2026-11-18T05:41:32.628Z",
     "nflReportAt": "2026-11-18T02:48:16.486Z",
     "nhl": {
-      "registered": 0,
-      "eligible": 0,
+      "registered": 1,
+      "eligible": 1,
       "abstained": 0,
-      "pending": 0,
+      "pending": 1,
       "decided": 0
     },
     "nfl": {
@@ -113,7 +113,38 @@
     "automatedLineupsApproved": false,
     "originalPlatformSettlementVerified": false
   },
-  "modelIdeas": null,
+  "modelIdeas": {
+    "kind": "public_open_model_research_coverage_v1",
+    "sourceReportAt": "2026-11-18T05:41:33.051Z",
+    "nhl": {
+      "fullRosterAuditAvailable": true,
+      "completeOfficialGames": 1590,
+      "zeroShotAppearancesRetained": 15559,
+      "missingShotRows": 0,
+      "fullRosterAuditPass": false,
+      "syntheticShotsPredicted": 6669,
+      "syntheticBlockedShotsPredicted": 6669,
+      "realPlatformLinesEvaluated": false
+    },
+    "nfl": {
+      "priorWeekUsageLabPresent": true,
+      "kickingLabPresent": false,
+      "routesAndWOPRLiveVerified": false
+    },
+    "nba": {
+      "minutesRateAdapterImplemented": true,
+      "pregameFeedVerified": false
+    },
+    "esports": {
+      "roundsAndKillsAdaptersImplemented": true,
+      "pregameFeedVerified": false
+    },
+    "calibrationSeparatedBySportMarketTier": true,
+    "probabilityReleaseApproved": false,
+    "outperformanceProven": false,
+    "modelPromoted": false,
+    "optimizedLineupsApproved": false
+  },
   "proprietaryRowsPublished": 0,
   "calibrationApproved": false,
   "modelPromoted": false

@@ -1,0 +1,64 @@
+name: Verify idempotent first-Git NHL Goblin prospective cohort
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-goblin-one-cohort-per-source.yml'
+      - '.github/workflows/private-nhl-goblin-forward.yml'
+  push:
+    branches: [main, 'ci/**']
+    paths:
+      - '.github/workflows/validate-goblin-one-cohort-per-source.yml'
+      - '.github/workflows/private-nhl-goblin-forward.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 13
+    steps:
+      - name: Require scoped private access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo '::error::Missing private source access'; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: a35c2b2b0a197b5dbc54301fc88c73b7e37cae49
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          path: private
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test Goblin first-Git source and unchanged quote dedupe
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --check scripts/report-goblin-forward.cjs
+          node --test test/goblin-forward-runner.test.cjs \
+            test/goblin-opportunity-evidence.test.cjs \
+            test/goblin-quoted-lineup-research.test.cjs
+      - name: Rerun verified November 18 9AM original source without making a duplicate
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node scripts/report-goblin-forward.cjs > /tmp/goblin-first-git-recheck.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const d=JSON.parse(fs.readFileSync('outputs/health/goblin-forward-latest.json','utf8'));
+          if(d.kind!=='private_goblin_forward_evidence_v1'||
+            d.NHL.sameOriginalSourceAlreadyFrozen!==true||
+            d.NHL.newPrecommitFile!==null||
+            d.NHL.newResearchCandidates!==0||
+            d.NHL.archivedFirstGitRecords!==54||
+            d.comparison.registered!==54||
+            d.comparison.decided!==0||
+            d.calibratedProbabilityApproved!==false||
+            d.modelPromoted!==false||d.actualWagersPlaced!==0||
+            d.providerRequests!==0)
+            throw Error('Expected original 54 first-Git Goblin records to remain unchanged with zero duplicates');
+          console.log(JSON.stringify({priorFirstGitRecords:d.NHL.archivedFirstGitRecords,
+            newDuplicates:d.NHL.newResearchCandidates,registered:d.comparison.registered,
+            decided:d.comparison.decided,noWagers:true,privateOnly:true}));
+          NODE

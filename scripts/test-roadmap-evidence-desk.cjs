@@ -69,7 +69,7 @@ test("public scoreboard identifies exact sportsbook matching blockers without tr
  assert.match(rows.find(x=>x.label==="NHL sportsbook match blockers").value,/2 unmatched event/);
  assert.match(rows.find(x=>x.label==="NFL sportsbook match blockers").value,/1 different threshold/);
  assert.equal(model({progress:{...p,sportsbook:{matchFunnel:{
-  ...f,exactPlatformIdentityVerified:true}}}},at).rows.some(x=>x.label.includes("sportbook match blockers")),false);
+  ...f,exactPlatformIdentityVerified:true}}}},at).rows.some(x=>x.label.includes("sportsbook match blockers")),false);
  assert.equal(model({progress:{...p,sportsbook:{matchFunnel:{
   ...f,bySport:{NHL:{...f.bySport.NHL,native:4},NFL:f.bySport.NFL}}}}},at).rows.some(x=>x.label==="NHL sportsbook match blockers"),false);
 });

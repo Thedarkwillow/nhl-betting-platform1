@@ -6,6 +6,8 @@ test("scheduled NHL NFL positional evaluation verifies game clusters before priv
  a.match(y,/src\/nfl-position-opportunity-matchup\.cjs/);
  a.match(y,/g\.pairedGameUncertainty\?\.modelPromoted!==false/);
  a.match(y,/g\.pairedGameUncertainty\?\.independentlyValidatedFutureOriginalLines!==false/);
+ a.match(y,/negative yards were incorrectly rejected/);
+ a.match(y,/rushing_yards\|receiving_yards/);
  a.match(y,/git add -f outputs\/health\/nhl-position-rate-matchup-v2-latest\.json/);
  a.match(y,/outputs\/nfl\/backtests\/position-opportunity-matchup-latest\.json/);
  a.doesNotMatch(y,/UNDERDOG_API_KEY|PRIZEPICKS_API_KEY|ODDS_API_KEY/);

@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 124a7a9132edb970c843a83f29e00505f58d1639
+          ref: f365228dd658be5feb00933db5b8c01fbcdea4e5
           fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
@@ -51,6 +51,7 @@ jobs:
             sameOriginalSource:d.NHL.sameOriginalSourceAlreadyFrozen,
             originalSourceEligibility:d.NHL.sourceEligibilityStatus,
             archivedFirstGit:d.NHL.archivedFirstGitRecords,
+            duplicateFirstGitRowsQuarantined:d.NHL.quarantinedDuplicateFirstGitRows,
             newCandidateCount:d.NHL.newResearchCandidates,
             newPrecommitFileCreated:!!d.NHL.newPrecommitFile,
             registered:d.comparison.registered,decided:d.comparison.decided,
@@ -62,6 +63,7 @@ jobs:
             d.NHL.newPrecommitFile!==null||
             d.NHL.newResearchCandidates!==0||
             d.NHL.archivedFirstGitRecords!==54||
+            d.NHL.quarantinedDuplicateFirstGitRows!==108||
             d.comparison.registered!==54||
             d.comparison.decided!==0||
             d.calibratedProbabilityApproved!==false||
@@ -69,6 +71,7 @@ jobs:
             d.providerRequests!==0)
             throw Error('Expected original 54 first-Git Goblin records to remain unchanged with zero duplicates');
           console.log(JSON.stringify({priorFirstGitRecords:d.NHL.archivedFirstGitRecords,
+            duplicateOriginalsQuarantined:d.NHL.quarantinedDuplicateFirstGitRows,
             newDuplicates:d.NHL.newResearchCandidates,registered:d.comparison.registered,
             decided:d.comparison.decided,noWagers:true,privateOnly:true}));
           NODE

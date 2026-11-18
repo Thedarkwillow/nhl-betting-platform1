@@ -24,6 +24,8 @@ on:
       - 'scripts/test-publish-safe-pregame-scorecards.cjs'
       - 'scripts/test-research-progress-autopublish.cjs'
       - 'scripts/test-progress-concurrent-publication.cjs'
+      - '.github/workflows/private-position-matchup-v2.yml'
+      - 'scripts/test-nfl-matchup-evidence-archival.cjs'
       - '.github/workflows/publish-safe-research-progress.yml'
       - 'scripts/publish-safe-nfl-research-cards.cjs'
       - 'scripts/test-publish-safe-nfl-research-cards.cjs'
@@ -69,6 +71,8 @@ jobs:
         run: node --test scripts/test-multi-sport-roadmap.cjs
       - name: Test public NHL NFL original-precommit model grades and sanitized release
         run: node --test scripts/test-model-scorecards.cjs scripts/test-publish-safe-pregame-scorecards.cjs
+      - name: Validate historical NHL NFL position matching and game-cluster archive
+        run: node --test scripts/test-nfl-matchup-evidence-archival.cjs
       - name: Check safe automatic NHL backfill progress propagation
         run: node --test scripts/test-research-progress-autopublish.cjs scripts/test-progress-concurrent-publication.cjs scripts/test-publish-safe-research-progress.cjs
       - name: Test consolidated source evidence and historical chart

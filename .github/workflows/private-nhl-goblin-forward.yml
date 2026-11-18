@@ -1,6 +1,10 @@
 name: Private NHL Goblin future-only opportunity research
 on:
   workflow_dispatch:
+  # One safe configuration smoke on merge; no provider requests or retroactive predictions.
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-goblin-forward.yml']
   workflow_run:
     workflows:
       - 'Freeze actual-time NHL and NFL pregame Higher Lower research'

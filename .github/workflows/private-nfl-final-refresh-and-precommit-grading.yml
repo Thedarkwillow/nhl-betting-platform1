@@ -44,7 +44,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          node --test test/nfl-precommitted-grading.test.cjs test/nfl-prospective-freeze.test.cjs test/nfl-frozen-direction-diagnostic.test.cjs test/nfl-prospective-shadow.test.cjs test/nfl-shadow-postgame-grade.test.cjs test/nfl-pregame-matchup-challenger.test.cjs test/nfl-matchup-shadow-grading.test.cjs test/nfl-independent-forward-evidence.test.cjs test/forward-evidence-reliability.test.cjs test/nfl-directional-v2-prospective.test.cjs test/nfl-directional-v2-forward-grade.test.cjs test/nfl-directional-first-threshold-review.test.cjs >"$log" 2>&1 ||
+          node --test test/nfl-precommitted-grading.test.cjs test/nfl-prospective-freeze.test.cjs test/nfl-frozen-direction-diagnostic.test.cjs test/nfl-prospective-shadow.test.cjs test/nfl-shadow-postgame-grade.test.cjs test/nfl-pregame-matchup-challenger.test.cjs test/nfl-matchup-shadow-grading.test.cjs test/nfl-independent-forward-evidence.test.cjs test/forward-evidence-reliability.test.cjs test/nfl-directional-v2-prospective.test.cjs test/nfl-directional-v2-forward-grade.test.cjs test/nfl-directional-first-threshold-review.test.cjs test/nfl-directional-bias-cluster-audit.test.cjs >"$log" 2>&1 ||
             { echo "::error::NFL original chronology or grading regression"; exit 1; }
           python -m unittest discover -s test -p 'test_nfl_2026_refresh.py' >"$log" 2>&1 ||
             { echo "::error::NFL history preservation regression"; exit 1; }

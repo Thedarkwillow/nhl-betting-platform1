@@ -1,6 +1,10 @@
 name: Private NFL weekly roster research refresh
 on:
   workflow_dispatch:
+  # Offline roster research only; no Underdog request and no active-player claim.
+  schedule:
+    - cron: '48 6 * * 4,0'
+      timezone: America/Los_Angeles
   push:
     branches: [main]
     paths: ['.github/workflows/private-nfl-roster-research-refresh.yml']

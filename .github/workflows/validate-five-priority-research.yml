@@ -1,0 +1,97 @@
+name: Validate next five betting research priorities privately
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'research/**']
+    paths: ['.github/workflows/validate-five-priority-research.yml']
+permissions:
+  contents: read
+concurrency:
+  group: validate-next-five-research-priorities
+  cancel-in-progress: false
+jobs:
+  private-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 29
+    steps:
+      - name: Require existing narrow private repository token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo '::error::Private research checkout authorization missing'; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 045dcdd40cbf53d1b796e696c41615ed521f35d2
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Targeted NHL NFL Power/Flex Underdog history and prior release gates
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for p in src/nfl-directional-bias-cluster-audit.cjs src/nhl-prospective-slate-baseline-audit.cjs src/nhl-lineup-slate-resampling.cjs src/underdog-source-player-collision.cjs scripts/report-nhl-prospective-validation.cjs scripts/backfill-nhl-prior-season-periods.cjs; do
+            node --check "$p"
+          done
+          if ! node --test \
+            test/nfl-directional-bias-cluster-audit.test.cjs \
+            test/nhl-prospective-slate-baseline-audit.test.cjs \
+            test/nhl-lineup-slate-resampling.test.cjs \
+            test/underdog-source-player-collision.test.cjs \
+            test/nhl-prior-season-backfill-coverage.test.cjs \
+            test/nfl-directional-first-threshold-review.test.cjs \
+            test/nhl-prospective-validation.test.cjs \
+            test/nhl-validation-and-paper-audit.test.cjs \
+            test/underdog-identity-market-research.test.cjs \
+            test/underdog-private-research-intake.test.cjs \
+            test/nhl-prior-season-period-backfill.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" | head -n 25 || true
+            echo '::error::Next-five targeted safety regression failed'
+            exit 1
+          fi
+          echo 'PASS: all new research evidence checks and existing contracts.'
+      - name: Full existing private regression protects MLB NHL NFL behavior
+        working-directory: private
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" | head -n 25 || true
+            echo '::error::Private full Node regression failed'
+            exit 1
+          fi
+          echo 'PASS: existing private full Node test suite.'
+      - name: Generate offline grade calibration and lineup reports without wagering
+        working-directory: private
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for script in scripts/report-nfl-directional-first-threshold-review.cjs scripts/report-nhl-prospective-validation.cjs scripts/report-nhl-validation-and-paper-audit.cjs scripts/report-four-priority-evidence.cjs; do
+            if ! node "$script" >"$log" 2>&1; then
+              echo "::error::Offline research report failed for $script"
+              exit 1
+            fi
+          done
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const p='outputs/health/four-priority-evidence-latest.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          const nhl=JSON.parse(fs.readFileSync('outputs/health/nhl-prospective-validation-latest.json','utf8'));
+          const nfl=JSON.parse(fs.readFileSync('outputs/nfl/backtests/directional-first-threshold-review-latest.json','utf8'));
+          if(x.kind!=='private_multisport_four_priority_acceptance_v1'||
+            x.acceptance.probabilityRelease!==false||
+            x.lineups.legalFormatCount!==9||
+            x.lineups.automatedRecommendationsEligible!==false||
+            x.underdog.liveComparisonEligible!==false||
+            nhl.originalSameLineSlateClusterBaseline?.calibrationApproved!==false||
+            nfl.wholeGameDirectionalBiasResearch?.modelPromoted!==false||
+            JSON.stringify(x).includes('"playerId"'))
+            throw Error('Model release / source safety breached');
+          console.log('PASS: no published private player lines, no promotion, no wagers.');
+          NODE

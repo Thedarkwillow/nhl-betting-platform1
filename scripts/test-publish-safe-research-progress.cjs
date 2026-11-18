@@ -101,3 +101,39 @@ test("strict archived sportsbook match-funnel publishes counts, never provider i
   ...f,sharedPlayerIdVerified:true
  }}},{now}).sportsbook.matchFunnel,null);
 });
+
+
+test("new model research ships only safe zero-event counts, never raw private data",()=>{
+ const r={kind:"cross_sport_opportunity_and_data_integrity_research_checkpoint_v1",
+  generatedAt:"2026-11-15T12:50:00Z",
+  nhl:{syntheticHoldoutOnly:true,fullRosterAuditAvailable:true,
+   officialCompleteGames:123,zeroShotAppearancesRetained:24,
+   missingShotRows:0,fullRosterAuditPass:true,
+   markets:{shotsOnGoal:{predicted:80},blockedShots:{predicted:75}},
+   playerName:"SECRET PLAYER"},
+  nfl:{verifiedLiveRoutesOrWOPR:false,priorWeekUsageReplayAvailable:true,
+   kickerRoleEvidenceAvailable:false},
+  nba:{verifiedPregameFeeds:false,minutesProductionContractImplemented:true},
+  esports:{verifiedPregameFeeds:false,cs2RoundsKillsContractImplemented:true,
+   valorantRoundsKillsContractImplemented:true,
+   lolTeamKillShareContractImplemented:true},
+  validation:{independentProspectiveOutperformanceProven:false,
+   platformQuoteAndSettlementVerified:false},
+  internalPricesPublished:0,modelPromoted:false,
+  calibratedProbabilityApproved:false,optimizedLineupsApproved:false,
+  authenticatedReturnOnInvestment:null,providerRequests:0,wagersPlaced:0,
+  bookmaker:"SECRET BOOK",line:1.5};
+ const a=build(source,{now,modelIdeas:r});
+ assert.equal(a.modelIdeas.nhl.completeOfficialGames,123);
+ assert.equal(a.modelIdeas.nhl.zeroShotAppearancesRetained,24);
+ assert.equal(a.modelIdeas.nhl.realPlatformLinesEvaluated,false);
+ assert.equal(a.modelIdeas.modelPromoted,false);
+ assert.ok(!JSON.stringify(a).includes("SECRET PLAYER"));
+ assert.ok(!JSON.stringify(a).includes("SECRET BOOK"));
+ assert.equal(build(source,{now,modelIdeas:{...r,modelPromoted:true}}).modelIdeas,null);
+ assert.equal(build(source,{now,modelIdeas:{...r,generatedAt:"2026-11-16T00:00:00Z"}}).modelIdeas,null);
+ const display=model({progress:{...a,sourceReportAt:"2026-11-15T13:00:00Z"}},
+  Date.parse(now)).rows;
+ assert.match(display.find(x=>x.label==="NHL official zero-shot data audit").value,/24 verified zero-shot appearances/);
+ assert.match(display.find(x=>x.label==="NHL two-stage model research").value,/NOT app-line hit rate/);
+});

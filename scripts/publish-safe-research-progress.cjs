@@ -29,6 +29,45 @@ function safeMatchFunnel(f){
   exactPlatformIdentityVerified:false,authenticatedClosingLine:false,
   paidProviderRequests:0,modelPromoted:false};
 }
+
+function safeModelIdeas(report,now){
+ if(report?.kind!=="cross_sport_opportunity_and_data_integrity_research_checkpoint_v1"||
+  !Number.isFinite(dt(report.generatedAt))||dt(report.generatedAt)>dt(now)||
+  report.modelPromoted!==false||report.calibratedProbabilityApproved!==false||
+  report.optimizedLineupsApproved!==false||
+  report.authenticatedReturnOnInvestment!==null||
+  report.internalPricesPublished!==0||report.providerRequests!==0||
+  report.wagersPlaced!==0||
+  report.validation?.independentProspectiveOutperformanceProven!==false||
+  report.validation?.platformQuoteAndSettlementVerified!==false||
+  report.nhl?.syntheticHoldoutOnly!==true||
+  report.nfl?.verifiedLiveRoutesOrWOPR!==false||
+  report.nba?.verifiedPregameFeeds!==false||
+  report.esports?.verifiedPregameFeeds!==false)return null;
+ const nhl=report.nhl,markets=nhl.markets||{},valid=x=>count(x);
+ return {kind:"public_open_model_research_coverage_v1",
+  sourceReportAt:report.generatedAt,
+  nhl:{fullRosterAuditAvailable:nhl.fullRosterAuditAvailable===true,
+   completeOfficialGames:valid(nhl.officialCompleteGames),
+   zeroShotAppearancesRetained:valid(nhl.zeroShotAppearancesRetained),
+   missingShotRows:valid(nhl.missingShotRows),
+   fullRosterAuditPass:nhl.fullRosterAuditPass===true,
+   syntheticShotsPredicted:valid(markets.shotsOnGoal?.predicted),
+   syntheticBlockedShotsPredicted:valid(markets.blockedShots?.predicted),
+   realPlatformLinesEvaluated:false},
+  nfl:{priorWeekUsageLabPresent:report.nfl?.priorWeekUsageReplayAvailable===true,
+   kickingLabPresent:report.nfl?.kickerRoleEvidenceAvailable===true,
+   routesAndWOPRLiveVerified:false},
+  nba:{minutesRateAdapterImplemented:report.nba?.minutesProductionContractImplemented===true,
+   pregameFeedVerified:false},
+  esports:{roundsAndKillsAdaptersImplemented:
+    report.esports?.cs2RoundsKillsContractImplemented===true&&
+    report.esports?.valorantRoundsKillsContractImplemented===true&&
+    report.esports?.lolTeamKillShareContractImplemented===true,
+   pregameFeedVerified:false},
+  calibrationSeparatedBySportMarketTier:true,probabilityReleaseApproved:false,
+  outperformanceProven:false,modelPromoted:false,optimizedLineupsApproved:false};
+}
 function buildSelectiveAccuracy(nhl,nfl,now){
  const a=nhl?.selectiveFuture,b=nfl?.selectiveFuture,r=b?.onePerPlayerMarket;
  if(nhl?.kind!=="private_shot_point_opportunity_research_v1"||
@@ -64,7 +103,7 @@ function buildSelectiveAccuracy(nhl,nfl,now){
   originalPlatformSettlementVerified:false
  };
 }
-function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelective=null}={}){
+function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelective=null,modelIdeas=null}={}){
  if(source?.kind!=="private_source_completion_readiness_v1"||!Number.isFinite(dt(now))||!Number.isFinite(dt(source.generatedAt))||dt(source.generatedAt)>dt(now)||source.modelPromoted!==false||source.wagersPlaced!==0)return null;
  const d=source.periodCoverage,p=d&&count(d.calendarDays)>0&&count(d.accountedDays)!==null&&count(d.pendingDays)!==null&&d.accountedDays+d.pendingDays===d.calendarDays?{accountedDays:d.accountedDays,calendarDays:d.calendarDays,pendingDays:d.pendingDays}:null;
  const evidence=Object.fromEntries(["nhl","nfl"].map(s=>[s,{firstObserved:count(source.prospective?.[s]?.firstObserved),matchedCalibrationRows:count(source.prospective?.[s]?.matchedCalibrationRows)}]));
@@ -93,6 +132,7 @@ function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelecti
   paper:{authenticatedSettledEntries:count(paper.authenticatedSettledEntries),verifiedROI:null},
   validationSample:gates,
   selectiveAccuracy:buildSelectiveAccuracy(nhlSelective,nflSelective,now),
+  modelIdeas:safeModelIdeas(modelIdeas,now),
   proprietaryRowsPublished:0,calibrationApproved:false,modelPromoted:false};
 }
 function main([privateRoot,publicRoot]=process.argv.slice(2)){
@@ -100,7 +140,8 @@ function main([privateRoot,publicRoot]=process.argv.slice(2)){
  const read=file=>JSON.parse(fs.readFileSync(path.join(privateRoot,file),"utf8"));
  const out=build(read("outputs/health/source-completion-readiness-latest.json"),{
   nhlSelective:read("outputs/health/nhl-shot-point-opportunity-latest.json"),
-  nflSelective:read("outputs/nfl/backtests/directional-v2-future-only-latest.json")
+  nflSelective:read("outputs/nfl/backtests/directional-v2-future-only-latest.json"),
+  modelIdeas:(()=>{try{return read("outputs/health/open-model-ideas-latest.json")}catch{return null}})()
  });
  if(!out||!out.selectiveAccuracy)throw Error("Missing verified private prospective selective reports; refuse publication");
  const f=path.join(publicRoot,"data/research-evidence-progress.json");fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,JSON.stringify(out,null,2)+"\n");

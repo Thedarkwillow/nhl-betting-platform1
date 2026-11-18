@@ -58,8 +58,15 @@ jobs:
             fi
           else
             node --check scripts/report-nhl-shot-point-opportunity.cjs
-            node --test test/nhl-shot-point-opportunity.test.cjs test/nhl-selective-opportunity-future.test.cjs
+            node --test test/nhl-shot-point-opportunity.test.cjs test/nhl-selective-opportunity-future.test.cjs \
+              test/nhl-zero-stat-integrity-audit.test.cjs \
+              test/nhl-synthetic-opportunity-replay.test.cjs \
+              test/sport-opportunity-production-shadow.test.cjs \
+              test/past-only-calibration-research.test.cjs \
+              test/strict-future-paired-challenger-evidence.test.cjs \
+              test/report-open-model-ideas.test.cjs
             node scripts/report-nhl-shot-point-opportunity.cjs
+            node scripts/report-open-model-ideas.cjs
           fi
           TESTED="$tested" node -e 'require("fs").writeFileSync("outputs/health/nhl-shot-point-opportunity-test-latest.json",JSON.stringify({testedCommit:process.env.TESTED,generatedAt:new Date().toISOString(),passed:true,paidRequests:0})+"\n")'
       - name: Archive only private research
@@ -67,7 +74,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          for f in outputs/health/nhl-shot-point-opportunity-test-latest.json outputs/health/nhl-shot-point-opportunity-latest.json outputs/health/nhl-shot-point-opportunity-diagnostic-latest.json; do if test -f "$f"; then git add -f "$f"; fi; done
+          for f in outputs/health/nhl-shot-point-opportunity-test-latest.json outputs/health/nhl-shot-point-opportunity-latest.json outputs/health/nhl-shot-point-opportunity-diagnostic-latest.json outputs/health/open-model-ideas-latest.json; do if test -f "$f"; then git add -f "$f"; fi; done
           if test -d outputs/research/shot-point-opportunity-v1; then git add -f outputs/research/shot-point-opportunity-v1/*.json; fi
           git diff --cached --quiet && exit 0
           git commit -qm 'research: private NHL shooter/scoring opportunity and PP holdout evidence'
@@ -80,3 +87,5 @@ jobs:
           exit 1
 
 # PR 161 merged after all 3 tests; use full current private history and frozen actual lines.
+
+# Nov 17 user-requested open-source accuracy research sprint: rerun audited zero-shot denominators, prior-date shots/blocks and per-market calibration gates with existing private history; no added provider calls or production betting models.

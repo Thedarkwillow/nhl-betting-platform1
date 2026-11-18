@@ -1,0 +1,34 @@
+name: Verify public selective model evidence contract
+on:
+  pull_request:
+    paths:
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'scripts/test-publish-safe-research-progress.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/test-roadmap-evidence-desk.cjs'
+      - '.github/workflows/test-public-selective-evidence-contract.yml'
+  push:
+    branches: [main, 'feat/**', 'fix/**']
+    paths:
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'scripts/test-publish-safe-research-progress.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/test-roadmap-evidence-desk.cjs'
+      - '.github/workflows/test-public-selective-evidence-contract.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check public scorecard scripts
+        run: |
+          set -euo pipefail
+          node --check scripts/publish-safe-research-progress.cjs
+          node --check assets/roadmap-evidence-desk.js
+          node --test scripts/test-publish-safe-research-progress.cjs scripts/test-research-progress-autopublish.cjs scripts/test-roadmap-evidence-desk.cjs

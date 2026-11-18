@@ -38,3 +38,38 @@ test("only pre-existing verified frozen trial sample counts reach public researc
  assert.equal(build({...source,validationSample:{...v,modelPromoted:true}},{now}).validationSample,null);
  assert.equal(build({...source,validationSample:{...v,sourceReportAt:"2026-11-16T00:00:00Z"}},{now}).validationSample,null);
 });
+
+
+test("selective future-only trials remain separate from older frozen validation",()=>{
+ const at="2026-11-18T04:00:00Z";
+ const nhl={kind:"private_shot_point_opportunity_research_v1",generatedAt:"2026-11-18T03:34:48Z",
+  selectiveFuture:{kind:"nhl_standard_opportunity_concordance_future_shadow_20261117_v1",
+   policyFirstCommittedAt:"2026-11-18T02:46:47Z",registered:5,eligible:3,abstained:2,
+   pending:2,decided:1,precommittedPolicy:true,
+   comparedOnlyOnOriginalSelectedThresholds:true,noPosthocMarketFiltering:true,
+   modelPromoted:false,calibrationApproved:false,lineupsApproved:false,
+   originalPlatformSettlementVerified:false,playerName:"SECRET NHL PLAYER"}};
+ const nfl={kind:"nfl_directional_v2_original_first_git_future_holdout_v1",
+  generatedAt:"2026-11-18T03:31:00Z",selectiveFuture:{
+   kind:"nfl_market_usage_margin_future_shadow_20261117_v1",
+   firstFrozenOnly:true,sampleIsSubsetOfV2OriginalDirections:true,
+   productionApproved:false,calibratedProbabilitiesApproved:false,
+   authenticOppositeOffersVerified:false,
+   onePerPlayerMarket:{included:2,decided:1,pending:1,distinctGames:1,
+    distinctGameDates:1,modelPromoted:false,minimumEvidenceMet:false,
+    calibratedProbability:null,playerId:"SECRET NFL ID"}}};
+ const d=build(source,{now:at,nhlSelective:nhl,nflSelective:nfl});
+ assert.equal(d.selectiveAccuracy.nhl.decided,1);
+ assert.equal(d.selectiveAccuracy.nfl.pending,1);
+ assert.equal(d.selectiveAccuracy.calibrationApproved,false);
+ assert.equal(d.validationSample,null);
+ assert.ok(!JSON.stringify(d).includes("SECRET NHL PLAYER"));
+ assert.ok(!JSON.stringify(d).includes("SECRET NFL ID"));
+ assert.equal(build(source,{now:at,nhlSelective:{...nhl,selectiveFuture:{
+  ...nhl.selectiveFuture,precommittedPolicy:false}},nflSelective:nfl}).selectiveAccuracy,null);
+ assert.equal(build(source,{now:at,nhlSelective:nhl,nflSelective:{...nfl,
+  selectiveFuture:{...nfl.selectiveFuture,onePerPlayerMarket:{
+   ...nfl.selectiveFuture.onePerPlayerMarket,included:0}}}}).selectiveAccuracy,null);
+ assert.equal(build(source,{now:at,nhlSelective:nhl,nflSelective:{
+  ...nfl,generatedAt:"2026-11-18T06:00:00Z"}}).selectiveAccuracy,null);
+});

@@ -23,3 +23,30 @@ test("baseline comparison uses same validated historical denominator, not probab
 test("remaining historical dates are counts not inferred model readiness",()=>{const now=Date.parse("2026-11-17T04:00:00Z"),progress={kind:"public_research_progress_counts_v1",proprietaryRowsPublished:0,calibrationApproved:false,modelPromoted:false,sourceReportAt:"2026-11-17T03:00:00Z",periodHistory:{accountedDays:158,calendarDays:261}};assert.match(model({progress},now).rows.find(x=>x.label==="NHL historical periods").value,/103 pending/);});
 
 test("NFL same-threshold first-Git baselines are not repeated provider source records",()=>{const now=Date.parse("2026-11-17T15:00:00Z"),s={kind:"public_nhl_nfl_original_git_frozen_model_scorecards_v1",sources:{nflFirstGitForecastAuditAt:"2026-11-17T14:40:00Z"},nfl:{firstDistinctThreshold:{decided:94,correct:47,incorrect:47,modelObservedRate:.5,alwaysHigherObservedRate:38/94,alwaysLowerObservedRate:56/94,distinctFinalGames:1,calibrated:false,settlementVerified:false,firstGitSameThresholdOnly:true}}};const r=model({scorecards:s},now);assert.match(r.rows.find(x=>x.label==="NFL first-threshold baseline").value,/94 distinct thresholds in 1 games; not independent wagers/);s.nfl.firstDistinctThreshold.settlementVerified=true;assert.equal(model({scorecards:s},now).rows.some(x=>x.label==="NFL first-threshold baseline"),false);});
+
+
+test("new selective rows are future-only and never conflated with historical baselines",()=>{
+ const now=Date.parse("2026-11-18T04:00:00Z");
+ const selective={kind:"public_selective_accuracy_first_git_counts_v1",
+  nhlReportAt:"2026-11-18T03:34:48Z",nflReportAt:"2026-11-18T02:48:16Z",
+  nhl:{registered:5,eligible:3,abstained:2,decided:1,pending:2},
+  nfl:{included:2,decided:1,pending:1,distinctGames:1,distinctGameDates:1},
+  bothPoliciesFutureOnly:true,independentOutperformanceEstablished:false,
+  calibrationApproved:false,automatedLineupsApproved:false,
+  originalPlatformSettlementVerified:false};
+ const progress={kind:"public_research_progress_counts_v1",proprietaryRowsPublished:0,
+  calibrationApproved:false,modelPromoted:false,
+  sourceReportAt:"2026-11-18T03:35:23Z",
+  validationSample:{sourceReportAt:"2026-11-18T03:35:00Z",modelPromoted:false,
+   probabilitiesCalibrated:false,platformPayoutROI:null,
+   nhlStandardFrozenDecisions:575,nhlStandardFrozenGames:51,nhlStandardFrozenPacificSlates:9},
+  selectiveAccuracy:selective};
+ const rows=model({progress},now).rows;
+ assert.match(rows.find(x=>x.label==="NHL NEW selective policy (future-only)").value,/1 graded \/ 2 pending \/ 2 abstained/);
+ assert.match(rows.find(x=>x.label==="NFL NEW selective policy (future-only)").value,/1 graded \/ 1 pending/);
+ assert.match(rows.find(x=>x.label==="NHL Standard prospective sample").value,/575 original decisions/);
+ assert.equal(model({progress:{...progress,selectiveAccuracy:{
+  ...selective,automatedLineupsApproved:true}}},now).rows.some(x=>x.label.includes("NEW selective")),false);
+ assert.equal(model({progress:{...progress,selectiveAccuracy:{
+  ...selective,nhlReportAt:"2026-11-18T06:00:00Z"}}},now).rows.some(x=>x.label.includes("NEW selective")),false);
+});

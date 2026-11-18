@@ -53,6 +53,14 @@ jobs:
             exit 1
           fi
           echo 'PASS: period evidence and provenance tests.'
+          # Transport failures cannot silently become completed history days.
+          node - <<'NODE'
+          const {failureCategory}=require('./scripts/backfill-nhl-prior-season-periods.cjs');
+          if(failureCategory('The operation was aborted due to timeout')!=='transient_or_http_source_failure'||
+             failureCategory('NHL official source HTTP 520')!=='transient_or_http_source_failure')
+            throw Error('Official NHL timeout classification gate regressed');
+          console.log('PASS: exhausted official transport timeouts stay retryable, never counted as complete.');
+          NODE
       - name: Collect at most five prior-season dates with existing paced NHL collector
         id: source
         continue-on-error: true

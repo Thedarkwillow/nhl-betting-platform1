@@ -7,6 +7,8 @@ on:
       - '.github/workflows/publish-safe-research-progress.yml'
       - 'scripts/publish-safe-research-progress.cjs'
       - 'scripts/test-publish-safe-research-progress.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/test-roadmap-evidence-desk.cjs'
   workflow_run:
     workflows:
       - 'Refresh private source readiness after collection and grading'
@@ -50,7 +52,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --test scripts/test-publish-safe-research-progress.cjs scripts/test-research-progress-autopublish.cjs
+          node --test scripts/test-publish-safe-research-progress.cjs scripts/test-research-progress-autopublish.cjs scripts/test-roadmap-evidence-desk.cjs
           node --check scripts/publish-safe-research-progress.cjs
       - name: Export current independently archived count-only private readiness
         shell: bash
@@ -72,6 +74,11 @@ jobs:
           if(x.kind!=="public_research_progress_counts_v1"||
              x.proprietaryRowsPublished!==0||x.calibrationApproved!==false||
              x.modelPromoted!==false||x.paper.verifiedROI!==null||
+             !x.selectiveAccuracy||x.selectiveAccuracy.kind!=="public_selective_accuracy_first_git_counts_v1"||
+             x.selectiveAccuracy.bothPoliciesFutureOnly!==true||
+             x.selectiveAccuracy.calibrationApproved!==false||
+             x.selectiveAccuracy.automatedLineupsApproved!==false||
+             x.selectiveAccuracy.independentOutperformanceEstablished!==false||
              !x.periodHistory||
              x.periodHistory.accountedDays+x.periodHistory.pendingDays!==x.periodHistory.calendarDays||
              /"playerId"|"sourceOfferId"|"playerName"|"projection"|"modelWeights"/.test(JSON.stringify(x)))

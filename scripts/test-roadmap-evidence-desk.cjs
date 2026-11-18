@@ -73,3 +73,23 @@ test("public scoreboard identifies exact sportsbook matching blockers without tr
  assert.equal(model({progress:{...p,sportsbook:{matchFunnel:{
   ...f,bySport:{NHL:{...f.bySport.NHL,native:4},NFL:f.bySport.NFL}}}}},at).rows.some(x=>x.label==="NHL sportsbook match blockers"),false);
 });
+
+test("web evidence desk shows missing 05:45 odds without mislabeling today's verified board",()=>{
+ const now=Date.parse("2026-11-18T14:13:16Z");
+ const health={kind:"public_nhl_nfl_pacific_morning_collection_health_v1",
+   generatedAt:"2026-11-18T14:08:05Z",
+   slots:{"06:00":{status:"privately_archived_complete",
+     observedAt:"2026-11-18T14:05:32Z",nhlOffers:909,nflOffers:5131},
+     "09:00":{status:"no_verified_full_capture",observedAt:null}},
+   sportsbookPreboard:{kind:"public_preboard_sportsbook_evidence_status_v1",
+     actualProviderRequestsMadeByAudit:0,liveAppOfferVerified:false,
+     independentProbabilityBenchmarkVerified:false,
+     slots:{"05:45":{status:"no_fresh_preboard_odds_archive",capturedAt:null},
+     "08:45":{status:"not_due",capturedAt:null}}}};
+ const rows=model({health},now).rows;
+ assert.match(rows.find(x=>x.label==="6 AM archive").value,/NHL 909 \/ NFL 5131/);
+ assert.equal(rows.find(x=>x.label==="05:45 Pacific sportsbook evidence").value,
+  "No verified fresh quote archive");
+ assert.equal(rows.find(x=>x.label==="08:45 Pacific sportsbook evidence").value,"Not due");
+ assert.equal(rows.find(x=>x.label==="9 AM archive").value,"Unverified");
+});

@@ -29,7 +29,7 @@ jobs:
       - name: Test future-only directional risk policy
         run: |
           set -euo pipefail
-          node --test test/nfl-directional-v2-prospective.test.cjs
+          node --test test/nfl-directional-v2-prospective.test.cjs test/nfl-market-usage-selective-future.test.cjs
       - name: Freeze only a newly fresh original Git-pregame board
         run: |
           set -euo pipefail

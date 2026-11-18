@@ -1,0 +1,104 @@
+name: Validate precommitted NHL NFL selective opportunity future research
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'feat/**']
+    paths: ['.github/workflows/validate-selective-future-accuracy.yml']
+permissions:
+  contents: read
+concurrency:
+  group: validate-original-line-nhl-nfl-selective-future-policy
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 27
+    steps:
+      - name: Require existing narrowly scoped private repository token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: c486bf0d9d93938d5a45db9bc4d962aebfc4631f
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Targeted current/future NHL and NFL original-line abstention tests
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for source in \
+            src/nhl-selective-opportunity-future-v1.cjs \
+            src/nfl-market-usage-selective-future-v1.cjs \
+            src/nhl-shot-point-opportunity-v1.cjs \
+            scripts/report-nhl-shot-point-opportunity.cjs \
+            src/nfl-directional-v2-prospective.cjs \
+            src/nfl-directional-v2-forward-grade.cjs \
+            scripts/freeze-nfl-directional-v2.cjs; do node --check "$source"; done
+          if ! node --test \
+            test/nhl-selective-opportunity-future.test.cjs \
+            test/nfl-market-usage-selective-future.test.cjs \
+            test/nhl-shot-point-opportunity.test.cjs \
+            test/nfl-directional-v2-prospective.test.cjs \
+            test/nfl-directional-v2-forward-grade.test.cjs \
+            test/nhl-prospective-slate-baseline-audit.test.cjs \
+            test/nfl-directional-bias-cluster-audit.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" | head -n 30 || true
+            echo '::error::Selective future pregame policy or direction-baseline regression failed'
+            exit 1
+          fi
+          echo 'PASS: new policy chronology, exact original side, market gates and old cohort exclusions.'
+      - name: Run full NHL NFL MLB research regression suite
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" | head -n 30 || true
+            echo '::error::Private full Node regression failed'
+            exit 1
+          fi
+          echo 'PASS: full original NHL, NFL and MLB regression.'
+      - name: Rebuild original frozen opportunity and strict future directional grader offline
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for source in scripts/report-nhl-shot-point-opportunity.cjs scripts/report-nfl-directional-v2-forward.cjs; do
+            if ! node "$source" >"$log" 2>&1; then
+              echo "::error::Original source frozen challenger audit failed: $source"
+              exit 1
+            fi
+          done
+          node - <<'NODE'
+          const fs=require("node:fs");
+          const nhl=JSON.parse(fs.readFileSync("outputs/health/nhl-shot-point-opportunity-latest.json","utf8"));
+          const nfl=JSON.parse(fs.readFileSync("outputs/nfl/backtests/directional-v2-future-only-latest.json","utf8"));
+          if(nhl.kind!=="private_shot_point_opportunity_research_v1"||
+             nhl.selectiveFuture?.kind!=="nhl_standard_opportunity_concordance_future_shadow_20261117_v1"||
+             nhl.selectiveFuture.modelPromoted!==false||
+             nhl.selectiveFuture.lineupsApproved!==false||
+             nhl.selectiveFuture.calibrationApproved!==false||
+             nfl.selectiveFuture?.kind!=="nfl_market_usage_margin_future_shadow_20261117_v1"||
+             nfl.selectiveFuture.productionApproved!==false||
+             nfl.productionApproved!==false||
+             nfl.payoutQuotesVerified!==false)
+            throw Error("A future shadow was misrepresented as a playable calibrated betting strategy");
+          console.log(JSON.stringify({
+            nhlFrozenRegistered:nhl.selectiveFuture.registered,
+            nhlFutureSelectiveDecided:nhl.selectiveFuture.decided,
+            nflFutureSelectiveDecided:nfl.selectiveFuture.onePerPlayerMarket.decided,
+            originalBettingSelectionsReleased:0,providerRequests:0,modelPromoted:false
+          }));
+          NODE

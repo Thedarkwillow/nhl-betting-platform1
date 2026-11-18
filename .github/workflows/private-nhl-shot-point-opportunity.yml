@@ -43,7 +43,7 @@ jobs:
             trap 'git worktree remove --force "$work" >/dev/null 2>&1 || true' EXIT
             cd "$work"
             set +e
-            node --check scripts/report-nhl-shot-point-opportunity.cjs && node --test test/nhl-shot-point-opportunity.test.cjs > "$work/test-output.txt" 2>&1
+            node --check scripts/report-nhl-shot-point-opportunity.cjs && node --test test/nhl-shot-point-opportunity.test.cjs test/nhl-selective-opportunity-future.test.cjs > "$work/test-output.txt" 2>&1
             teststatus=$?
             set -e
             cd - >/dev/null
@@ -58,7 +58,7 @@ jobs:
             fi
           else
             node --check scripts/report-nhl-shot-point-opportunity.cjs
-            node --test test/nhl-shot-point-opportunity.test.cjs
+            node --test test/nhl-shot-point-opportunity.test.cjs test/nhl-selective-opportunity-future.test.cjs
             node scripts/report-nhl-shot-point-opportunity.cjs
           fi
           TESTED="$tested" node -e 'require("fs").writeFileSync("outputs/health/nhl-shot-point-opportunity-test-latest.json",JSON.stringify({testedCommit:process.env.TESTED,generatedAt:new Date().toISOString(),passed:true,paidRequests:0})+"\n")'

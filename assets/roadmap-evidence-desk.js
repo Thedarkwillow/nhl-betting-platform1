@@ -67,6 +67,39 @@
        ageMinutes:age(selective.nflReportAt,now)});
     }
    }
+   const ideas=progress.modelIdeas;
+   if(ideas?.kind==="public_open_model_research_coverage_v1"&&
+      age(ideas.sourceReportAt,now)!==null&&
+      parse(ideas.sourceReportAt)<=parse(progress.sourceReportAt)&&
+      ideas.modelPromoted===false&&ideas.probabilityReleaseApproved===false&&
+      ideas.outperformanceProven===false&&ideas.optimizedLineupsApproved===false&&
+      ideas.nhl?.realPlatformLinesEvaluated===false){
+    const h=ideas.nhl;
+    if(h.fullRosterAuditAvailable===true&&
+       count(h.completeOfficialGames)&&count(h.zeroShotAppearancesRetained)&&
+       count(h.missingShotRows)){
+      rows.push({label:"NHL official zero-shot data audit",
+       value:h.completeOfficialGames+" complete game rosters; "+
+        h.zeroShotAppearancesRetained+" verified zero-shot appearances; "+
+        h.missingShotRows+" missing stat fields; "+(h.fullRosterAuditPass?"roster checks passed":"data integrity needs review"),
+       ageMinutes:age(ideas.sourceReportAt,now)});
+    }
+    if(count(h.syntheticShotsPredicted)&&count(h.syntheticBlockedShotsPredicted))
+      rows.push({label:"NHL two-stage model research",
+       value:h.syntheticShotsPredicted+" shot / "+h.syntheticBlockedShotsPredicted+
+        " blocked-shot historical synthetic decisions; NOT app-line hit rate",
+       ageMinutes:age(ideas.sourceReportAt,now)});
+    if(ideas.nfl?.routesAndWOPRLiveVerified===false)
+      rows.push({label:"NFL usage and kicking research",
+       value:(ideas.nfl.priorWeekUsageLabPresent?"Earlier-week usage lab available":"Earlier-week usage evidence pending")+
+        "; kicker lab "+(ideas.nfl.kickingLabPresent?"available":"pending")+
+        "; live route/WOPR data unverified",ageMinutes:age(ideas.sourceReportAt,now)});
+    if(ideas.nba?.pregameFeedVerified===false&&
+       ideas.esports?.pregameFeedVerified===false)
+      rows.push({label:"NBA and esports opportunity models",
+       value:"Minutes, round-length and team-kill-share adapters in research; verified live inputs pending",
+       ageMinutes:age(ideas.sourceReportAt,now)});
+   }
    for(const sport of ["nhl","nfl"]){const e=progress.evidence?.[sport];if(count(e?.firstObserved)&&count(e?.matchedCalibrationRows))rows.push({label:sport.toUpperCase()+" calibration evidence",value:e.firstObserved+" observed outcomes; "+e.matchedCalibrationRows+" held-out rows; not approved",ageMinutes:a});}
    const o=progress.sportsbook;if(o&&count(o.strictMatched)&&count(o.conditionalArchived)&&o.verifiedLiveConsensus===false)rows.push({label:"Sportsbook benchmark evidence",value:o.strictMatched+" strict / "+o.conditionalArchived+" conditional archived matches; live availability unverified",ageMinutes:a});
    const mf=progress.sportsbook?.matchFunnel;

@@ -1,33 +1,32 @@
 {
   "schemaVersion": 1,
   "kind": "public_nhl_nfl_pacific_morning_collection_health_v1",
-  "generatedAt": "2026-11-18T00:24:24.153Z",
-  "pacificDate": "2026-11-17",
+  "generatedAt": "2026-11-18T14:06:14.988Z",
+  "pacificDate": "2026-11-18",
   "slots": {
     "06:00": {
       "status": "privately_archived_complete",
-      "observedAt": "2026-11-17T14:05:34.486Z",
-      "nhlOffers": 3004,
-      "nflOffers": 3463
+      "observedAt": "2026-11-18T14:05:32.124Z",
+      "nhlOffers": 909,
+      "nflOffers": 5131
     },
     "09:00": {
-      "status": "privately_archived_complete",
-      "observedAt": "2026-11-17T17:05:30.691Z",
-      "nhlOffers": 3328,
-      "nflOffers": 3761
+      "status": "no_verified_full_capture",
+      "observedAt": null,
+      "nhlOffers": null,
+      "nflOffers": null
     }
   },
-  "latestCompleteSourceAt": "2026-11-17T17:05:30.691Z",
-  "latestSourceFreshWithin30Minutes": false,
-  "originalPregameFreezeVerifiedForToday": true,
-  "frozenSelectionCounts": {
-    "NHL": 402,
-    "NFL": 238
-  },
-  "sixToNineChangesVerified": true,
-  "allMorningCapturesVerified": true,
+  "latestCompleteSourceAt": "2026-11-18T14:05:32.124Z",
+  "latestSourceFreshWithin30Minutes": true,
+  "originalPregameFreezeVerifiedForToday": false,
+  "frozenSelectionCounts": null,
+  "sixToNineChangesVerified": false,
+  "allMorningCapturesVerified": false,
   "publicWorkflowGreenDoesNotImplyBoardCaptured": true,
-  "missingSlots": [],
+  "missingSlots": [
+    "09:00"
+  ],
   "sourceOriginalPlatformAppAuthenticated": false,
   "calibratedBettingProbabilities": false,
   "payoutEVVerified": false,

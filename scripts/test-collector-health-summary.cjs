@@ -1,6 +1,6 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict");
-const {clock,validCapture,summarize}=require("./collector-health-summary.cjs");
+const {clock,validCapture,summarize,sportsbookPreboard}=require("./collector-health-summary.cjs");
 const nhl={sport:"NHL",rawCount:927,missingPlayers:0,missingGames:0};
 const nfl={sport:"NFL",rawCount:1808,missingPlayers:0,missingGames:0};
 const example=(slot,start,finished)=>({
@@ -41,4 +41,46 @@ test("missing/mismatched freeze reports unavailable and stale archive not curren
  assert.equal(x.originalPregameFreezeVerifiedForToday,false);
  assert.equal(x.allMorningCapturesVerified,true);
  assert.equal(x.latestSourceFreshWithin30Minutes,false);
+});
+
+test("Nov 18 six-AM board success does not turn Nov 17 sportsbook odds into today",()=>{
+ const sixNow={...six,pacificDate:"2026-11-18",
+  captureStartedUTC:"2026-11-18T14:05:31Z",
+  captureFinishedUTC:"2026-11-18T14:05:32Z"};
+ const stale={kind:"bounded_sportsbook_capture_v1",
+  pacificDate:"2026-11-17",generatedAt:"2026-11-17T14:06:12Z",
+  status:"fresh_bounded_archive",requests:4,newPurchase:false,
+  verifiedLiveConsensus:false};
+ const r=summarize([sixNow],null,{now:"2026-11-18T14:13:16Z",
+  sportsbook:stale});
+ assert.equal(r.slots["06:00"].status,"privately_archived_complete");
+ assert.equal(r.sportsbookPreboard.slots["05:45"].status,"no_fresh_preboard_odds_archive");
+ assert.equal(r.sportsbookPreboard.slots["08:45"].status,"not_due");
+ assert.equal(r.sportsbookPreboard.liveAppOfferVerified,false);
+ assert.equal(r.sportsbookPreboard.actualProviderRequestsMadeByAudit,0);
+});
+test("same-day pre-board quote archive is research-only and cannot become verified consensus",()=>{
+ const quoted={kind:"bounded_sportsbook_capture_v1",
+  pacificDate:"2026-11-18",generatedAt:"2026-11-18T13:47:12Z",
+  status:"fresh_bounded_archive",requests:4,newPurchase:false,
+  verifiedLiveConsensus:false};
+ const board={slots:{"06:00":{observedAt:"2026-11-18T14:05:32Z"},
+   "09:00":{observedAt:null}}};
+ const r=sportsbookPreboard(quoted,null,{now:"2026-11-18T14:13:16Z",...board});
+ assert.equal(r.slots["05:45"].status,"archived_before_board_unmatched");
+ assert.equal(r.slots["05:45"].capturedAt,quoted.generatedAt);
+ assert.equal(r.slots["05:45"].independentConsensusVerified,false);
+ assert.equal(r.slots["08:45"].status,"not_due");
+});
+test("future/late/unsupported odds are not misreported as successful preboard capture",()=>{
+ const base={kind:"bounded_sportsbook_capture_v1",
+  pacificDate:"2026-11-18",generatedAt:"2026-11-18T14:06:44Z",
+  status:"fresh_bounded_archive",requests:2,newPurchase:false,
+  verifiedLiveConsensus:false};
+ const slots={"06:00":{observedAt:"2026-11-18T14:05:32Z"}};
+ for(const d of [base,{...base,generatedAt:"2026-11-18T15:05:00Z"},
+  {...base,status:"status_only"}, {...base,verifiedLiveConsensus:true}]){
+  const r=sportsbookPreboard(d,null,{now:"2026-11-18T14:13:16Z",slots});
+  assert.equal(r.slots["05:45"].status,"no_fresh_preboard_odds_archive");
+ }
 });

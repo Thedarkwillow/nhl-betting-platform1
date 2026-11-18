@@ -8,9 +8,9 @@ const fs=require("node:fs"),path=require("node:path");
 const TO="America/Los_Angeles";
 const clock=t=>{
  const parts=new Intl.DateTimeFormat("en-US",{timeZone:TO,year:"numeric",month:"2-digit",
-  day:"2-digit",hour:"2-digit",hourCycle:"h23"}).formatToParts(new Date(t));
+  day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date(t));
  const x=Object.fromEntries(parts.map(p=>[p.type,p.value]));
- return {day:x.year+"-"+x.month+"-"+x.day,hour:Number(x.hour)};
+ return {day:x.year+"-"+x.month+"-"+x.day,hour:Number(x.hour),minute:Number(x.minute)};
 };
 function validCapture(m,slot,day){
  if(m?.schemaVersion!==1||m?.source!=="partner-api.prizepicks.com"||
@@ -27,7 +27,49 @@ function validCapture(m,slot,day){
   Number.isInteger(x.rawCount)&&x.rawCount>0&&
   x.missingPlayers===0&&x.missingGames===0));
 }
-function summarize(manifests,freeze,{now=new Date().toISOString()}={}){
+/**
+ * Source snapshot presence only; does not authenticate platform offers,
+ * verified no-vig prices, odds bookability, or actual scheduler execution.
+ * A completed GitHub workflow and a stale source JSON are NOT quote evidence.
+ */
+function sportsbookPreboard(archive,freeze,{now,slots}={}){
+ const current=Date.parse(now),today=clock(now).day,
+  hour=clock(now).hour,min=clock(now).minute;
+ const scheduled=[["05:45","06:00"],["08:45","09:00"]];
+ const results={};
+ for(const [target,boardSlot] of scheduled){
+  const targetMinutes=Number(target.slice(0,2))*60+Number(target.slice(3));
+  const actualMinutes=hour*60+min;
+  const boardAt=slots?.[boardSlot]?.observedAt||null;
+  const captureAt=archive?.generatedAt,actual=Date.parse(captureAt);
+  let status=actualMinutes<targetMinutes?"not_due":"no_fresh_preboard_odds_archive";
+  if(archive?.kind==="bounded_sportsbook_capture_v1"&&
+     archive.pacificDate===today&&
+     Number.isFinite(actual)&&actual<=current&&
+     clock(captureAt).day===today&&
+     ["fresh_bounded_archive","fresh_two_sided_quotes"].includes(archive.status)&&
+     Number.isInteger(archive.requests)&&archive.requests>0&&
+     archive.newPurchase===false&&archive.verifiedLiveConsensus===false){
+   const observedMin=clock(captureAt).hour*60+clock(captureAt).minute;
+   if(observedMin>=targetMinutes-30&&observedMin<=targetMinutes+25&&
+      actualMinutes>=targetMinutes){
+    // The first observed board is 6:xx or 9:xx, not necessarily 6:00:00.
+    // Quote data acquired at 06:02 is not a 05:45 preboard quote.
+    if(boardAt!==null&&actual<Date.parse(boardAt))
+     status="archived_before_board_unmatched";
+    else if(actualMinutes<Number(boardSlot.slice(0,2))*60)
+     status="archived_preboard_unmatched";
+   }
+  }
+  results[target]={status,capturedAt:status.startsWith("archived_")?captureAt:null,
+   boardSlot,verifiedExactPlayerGameMarketAndThreshold:false,
+   independentConsensusVerified:false,paidProviderCallsMadeByAudit:0};
+ }
+ return {kind:"public_preboard_sportsbook_evidence_status_v1",
+  slots:results,actualProviderRequestsMadeByAudit:0,
+  liveAppOfferVerified:false,independentProbabilityBenchmarkVerified:false};
+}
+function summarize(manifests,freeze,{now=new Date().toISOString(),sportsbook=null}={}){
  const current=Date.parse(now);
  if(!Number.isFinite(current))throw Error("Collector health clock invalid");
  const {day}=clock(current);
@@ -54,6 +96,7 @@ function summarize(manifests,freeze,{now=new Date().toISOString()}={}){
    current-Date.parse(newest.observedAt)<=30*60000;
  return {schemaVersion:1,kind:"public_nhl_nfl_pacific_morning_collection_health_v1",
   generatedAt:now,pacificDate:day,slots,
+  sportsbookPreboard:sportsbookPreboard(sportsbook,freeze,{now,slots}),
   latestCompleteSourceAt:newest?.observedAt||null,
   latestSourceFreshWithin30Minutes:recent,
   originalPregameFreezeVerifiedForToday:verified,
@@ -82,7 +125,12 @@ function main(args=process.argv.slice(2),now=new Date().toISOString()){
  const day=clock(now).day,manifests=loadManifests(privateRoot,day);
  const statusFile=path.join(publicRoot,"data/nhl-nfl-freeze-status.json");
  const freeze=fs.existsSync(statusFile)?JSON.parse(fs.readFileSync(statusFile,"utf8")):null;
- const result=summarize(manifests,freeze,{now});
+ let sportsbook=null;
+ const oddsFile=path.join(privateRoot,"outputs/sportsbooks/bounded-live/status-latest.json");
+ if(fs.existsSync(oddsFile)){
+  try{sportsbook=JSON.parse(fs.readFileSync(oddsFile,"utf8"))}catch{}
+ }
+ const result=summarize(manifests,freeze,{now,sportsbook});
  const output=path.join(publicRoot,"data/collection-health.json");
  fs.mkdirSync(path.dirname(output),{recursive:true});
  fs.writeFileSync(output,JSON.stringify(result,null,2)+"\n");
@@ -93,4 +141,4 @@ function main(args=process.argv.slice(2),now=new Date().toISOString()){
  return result;
 }
 if(require.main===module)try{main()}catch(e){console.error(e.message);process.exitCode=1;}
-module.exports={clock,validCapture,summarize,loadManifests,main};
+module.exports={clock,validCapture,sportsbookPreboard,summarize,loadManifests,main};

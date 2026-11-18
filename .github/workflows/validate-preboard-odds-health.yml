@@ -1,0 +1,35 @@
+name: Validate fail-closed morning sportsbook archive evidence
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-preboard-odds-health.yml'
+      - 'scripts/collector-health-summary.cjs'
+      - 'scripts/test-collector-health-summary.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/test-roadmap-evidence-desk.cjs'
+  push:
+    branches: [main, 'fix/**']
+    paths:
+      - '.github/workflows/validate-preboard-odds-health.yml'
+      - 'scripts/collector-health-summary.cjs'
+      - 'scripts/test-collector-health-summary.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/test-roadmap-evidence-desk.cjs'
+permissions:
+  contents: read
+jobs:
+  no-stale-odds-allowed:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse all standalone no-credit report and website code
+        run: |
+          node --check scripts/collector-health-summary.cjs
+          node --check assets/roadmap-evidence-desk.js
+      - name: Test actual 6 AM Nov 18 board with absent fresh 5:45 odds and honest 8:45 pending
+        run: |
+          node --test scripts/test-collector-health-summary.cjs scripts/test-roadmap-evidence-desk.cjs

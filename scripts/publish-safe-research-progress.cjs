@@ -65,7 +65,7 @@ function safeModelIdeas(report,now){
     report.esports?.valorantRoundsKillsContractImplemented===true&&
     report.esports?.lolTeamKillShareContractImplemented===true,
    pregameFeedVerified:false},
-  calibrationIndependent:true,probabilityReleaseApproved:false,
+  calibrationSeparatedBySportMarketTier:true,probabilityReleaseApproved:false,
   outperformanceProven:false,modelPromoted:false,optimizedLineupsApproved:false};
 }
 function buildSelectiveAccuracy(nhl,nfl,now){

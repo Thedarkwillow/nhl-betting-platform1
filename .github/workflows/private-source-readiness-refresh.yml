@@ -36,6 +36,11 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          # Validate source identity and count-only matching contracts offline.
+          if ! node --test test/source-completion-evidence.test.cjs test/sportsbook-match-funnel.test.cjs >"$log" 2>&1; then
+            echo '::error::Archived sportsbook match-stage evidence regression failed'
+            exit 1
+          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           for attempt in 1 2 3; do

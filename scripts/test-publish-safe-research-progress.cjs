@@ -73,3 +73,31 @@ test("selective future-only trials remain separate from older frozen validation"
  assert.equal(build(source,{now:at,nhlSelective:nhl,nflSelective:{
   ...nfl,generatedAt:"2026-11-18T06:00:00Z"}}).selectiveAccuracy,null);
 });
+
+
+test("strict archived sportsbook match-funnel publishes counts, never provider identities",()=>{
+ const f={kind:"private_sportsbook_match_stage_counts_v1",
+  archives:4,newPaidRequests:0,modelPromoted:false,
+  sharedPlayerIdVerified:false,authenticatedClosingLine:false,
+  bySport:{NHL:{native:3,no_event:2,no_exact_name:0,no_market:0,
+   no_same_threshold:1,no_preexisting_frame:0,ambiguous_identity:0,
+   conditional_match:0},NFL:{native:2,no_event:0,no_exact_name:1,
+   no_market:0,no_same_threshold:0,no_preexisting_frame:0,
+   ambiguous_identity:0,conditional_match:1}},
+  captureSkewBuckets:{within10m:0,within30m:1,within2h:0,within8h:0,
+   noExactThreshold:4},
+  bookmaker:"PRIVATE BOOK",playerId:"PRIVATE ID",prices:[-110]};
+ const d=build({...source,odds:{...source.odds,matchFunnel:f}},{now});
+ assert.equal(d.sportsbook.matchFunnel.bySport.NHL.no_event,2);
+ assert.equal(d.sportsbook.matchFunnel.bySport.NFL.conditional_match,1);
+ assert.equal(d.sportsbook.matchFunnel.exactPlatformIdentityVerified,false);
+ assert.equal(d.sportsbook.verifiedLiveConsensus,false);
+ assert.ok(!JSON.stringify(d).includes("PRIVATE BOOK"));
+ assert.ok(!JSON.stringify(d).includes("PRIVATE ID"));
+ assert.equal(build({...source,odds:{...source.odds,matchFunnel:{
+  ...f,bySport:{...f.bySport,NHL:{...f.bySport.NHL,native:4}}
+ }}},{now}).sportsbook.matchFunnel,null);
+ assert.equal(build({...source,odds:{...source.odds,matchFunnel:{
+  ...f,sharedPlayerIdVerified:true
+ }}},{now}).sportsbook.matchFunnel,null);
+});

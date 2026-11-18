@@ -50,3 +50,26 @@ test("new selective rows are future-only and never conflated with historical bas
  assert.equal(model({progress:{...progress,selectiveAccuracy:{
   ...selective,nhlReportAt:"2026-11-18T06:00:00Z"}}},now).rows.some(x=>x.label.includes("NEW selective")),false);
 });
+
+
+test("public scoreboard identifies exact sportsbook matching blockers without treating conditional as live",()=>{
+ const at=Date.parse("2026-11-18T04:00:00Z");
+ const f={kind:"public_sportsbook_exact_match_failure_counts_v1",
+  archivedSnapshots:4,exactPlatformIdentityVerified:false,
+  authenticatedClosingLine:false,paidProviderRequests:0,modelPromoted:false,
+  bySport:{NHL:{native:3,no_event:2,no_exact_name:1,no_market:0,
+   no_same_threshold:0,no_preexisting_frame:0,ambiguous_identity:0,
+   conditional_match:0},NFL:{native:1,no_event:0,no_exact_name:0,no_market:0,
+   no_same_threshold:1,no_preexisting_frame:0,ambiguous_identity:0,
+   conditional_match:0}}};
+ const p={kind:"public_research_progress_counts_v1",
+  sourceReportAt:"2026-11-18T03:35:23Z",proprietaryRowsPublished:0,
+  calibrationApproved:false,modelPromoted:false,sportsbook:{matchFunnel:f}};
+ const rows=model({progress:p},at).rows;
+ assert.match(rows.find(x=>x.label==="NHL sportsbook match blockers").value,/2 unmatched event/);
+ assert.match(rows.find(x=>x.label==="NFL sportsbook match blockers").value,/1 different threshold/);
+ assert.equal(model({progress:{...p,sportsbook:{matchFunnel:{
+  ...f,exactPlatformIdentityVerified:true}}}},at).rows.some(x=>x.label.includes("sportsbook match blockers")),false);
+ assert.equal(model({progress:{...p,sportsbook:{matchFunnel:{
+  ...f,bySport:{NHL:{...f.bySport.NHL,native:4},NFL:f.bySport.NFL}}}}},at).rows.some(x=>x.label==="NHL sportsbook match blockers"),false);
+});

@@ -1,0 +1,113 @@
+name: Private NHL Goblin future-only opportunity research
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - 'Freeze actual-time NHL and NFL pregame Higher Lower research'
+      - 'Private NHL shot and point opportunity evaluation'
+    types: [completed]
+  # A standalone grading opportunity after most nightly NHL games resolve.
+  schedule:
+    - cron: '37 6 * * *'
+      timezone: America/Los_Angeles
+    - cron: '37 9 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-goblin-first-git-pregame-research
+  cancel-in-progress: false
+jobs:
+  goblin-shadow:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    steps:
+      - name: Require private write authorization
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private repository authorization missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run offline prior-only Goblin research and prospect policy tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check scripts/report-goblin-forward.cjs
+          node --test \
+            test/goblin-opportunity-evidence.test.cjs \
+            test/goblin-quoted-lineup-research.test.cjs \
+            test/goblin-forward-runner.test.cjs
+          node scripts/report-goblin-forward.cjs > /tmp/goblin-private-summary.json
+          node - <<'NODE'
+          const s=require('/tmp/goblin-private-summary.json');
+          if(s.providerRequests!==0||s.platformMultiplierVerified!==false||
+             !Number.isInteger(s.newNhlGoblinCandidates)||
+             !Number.isInteger(s.newNhlGoblinAbstentions)||
+             s.firstGitArchived<0)throw Error('Goblin no-cost research summary contract failed');
+          console.log(JSON.stringify({sourceEligible:s.sourceEligible,
+            newNhlGoblinCandidates:s.newNhlGoblinCandidates,
+            newAbstentions:s.newNhlGoblinAbstentions,
+            firstGitArchived:s.firstGitArchived,
+            graded:s.graded,providerRequests:0,approvedLineups:0}));
+          NODE
+      - name: Commit original Goblin and abstention research before games, privately
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/goblin-forward-latest.json
+          for f in outputs/research/goblin-future/*.json; do
+            if test -f "$f"; then git add -f "$f"; fi
+          done
+          if git diff --cached --quiet; then
+            echo 'SKIP: no changed Goblin archive or research status; no new selection evidence'
+            exit 0
+          fi
+          # Guard new goblin freeze records against a late Git commit. Never
+          # silently backfill earlier source offers into a new policy cohort.
+          guard() {
+            node - <<'NODE'
+          const fs=require('fs'),p='outputs/health/goblin-forward-latest.json';
+          const health=JSON.parse(fs.readFileSync(p,'utf8'));
+          if(health.modelPromoted!==false||
+             health.calibratedProbabilityApproved!==false||
+             health.actualWagersPlaced!==0||health.providerRequests!==0)
+            throw Error('Goblin research release safety gate failed');
+          const fresh=health.NHL?.newPrecommitFile;
+          if(fresh){
+            const s=JSON.parse(fs.readFileSync(fresh,'utf8'));
+            if(s.kind!=='nhl_goblin_first_git_pending_precommit_v1'||
+               !s.notYetFirstGitEligible||s.modelPromoted!==false||
+               !Array.isArray(s.records)||s.records.length<1||
+               s.records.some(r=>Date.parse(r.gameStartsAt)-Date.now()<15*60000||
+                 r.tier!=='Goblin'||r.bettingEligible!==false))
+              throw Error('Fresh Goblin research cannot be first-Git committed before kickoff');
+          }
+          NODE
+          }
+          guard
+          git commit -qm 'research: pregame first-Git Goblin hypotheses and calibrated-status blockers'
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main ||
+              { git rebase --abort; exit 1; }
+            guard
+            if git push -q origin HEAD:main; then
+              echo 'PASS: new Goblin hypotheses archived only privately; no official bets or app payout quotes'
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          exit 1

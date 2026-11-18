@@ -95,18 +95,22 @@
     const h=gob.nhl,n=gob.nfl;
     if([h?.examined,h?.newCandidates,h?.newAbstentions,
         h?.archivedFirstGit,h?.futureRegistered,h?.futureDecided].every(count)){
-      rows.push({label:"NHL Goblin NEW selective research",
-       value:h.newCandidates+" new candidate / "+h.newAbstentions+
-        " abstained from "+h.examined+" evaluated; "+
-        h.archivedFirstGit+" first-Git records; "+h.futureDecided+
-        " official decisions; no approved betting edge",
+      rows.push({label:"NHL Goblin frozen research",
+       value:h.futureRegistered+" unique registered / "+h.futureDecided+
+        " official decisions; "+h.newCandidates+" newly selected / "+
+        h.newAbstentions+" newly abstained; "+
+        (count(h.duplicatesQuarantined)?h.duplicatesQuarantined+" duplicate archive rows excluded; ":"")+
+        (h.selectivePolicyRequiresNewSource?"new screening policy awaiting next captured source; ":"")+
+        "no calibrated edge",
        ageMinutes:age(gob.sourceReportAt,now)});
     }
     if(n?.supportedOpportunityResearchImplemented===true&&
        count(n.firstGitEligible)){
       rows.push({label:"NFL Goblin opportunity model",
        value:n.firstGitEligible+" eligible first-Git records; "+
-        (n.freshFullPlayerIdentityAndAvailabilityVerified?"verified pregame identity/availability":"fresh original injury and identity verification pending"),
+        (count(n.originalGoblinOffersAudited)?n.originalGoblinOffersAudited+" original Goblin rows audited; ":"")+
+        (n.freshFullPlayerIdentityAndAvailabilityVerified?"verified pregame identity and availability":"exact game/GSIS bridge and positive active-roster confirmation pending")+
+        "; no released bets",
        ageMinutes:age(gob.sourceReportAt,now)});
     }
     rows.push({label:"Goblin Power/Flex 2–6",

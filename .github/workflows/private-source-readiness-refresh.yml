@@ -10,6 +10,7 @@ on:
       - Private NHL prospective grading and baseline audit via public runner
       - NFL archived pregame forecast and finals grading via public free runner
       - Private NHL specialist period history backfill via public runner
+      - Private NHL shot and point opportunity evaluation
     types: [completed]
 permissions:
   contents: read

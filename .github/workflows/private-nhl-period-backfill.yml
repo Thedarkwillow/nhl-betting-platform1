@@ -163,3 +163,5 @@ jobs:
 # Owner-requested continuation: validate the isolated source and model changes using existing limits.
 
 # Nov 17 owner-requested bounded official source coverage continuation; no paid provider calls; unresolved shiftchart gaps remain quarantined.
+
+# Owner-requested official NHL club-only season historical correction: ignore 202509 Olympic game IDs; retain capped verified data/shiftchart reconciliation.

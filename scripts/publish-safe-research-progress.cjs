@@ -103,7 +103,42 @@ function buildSelectiveAccuracy(nhl,nfl,now){
   originalPlatformSettlementVerified:false
  };
 }
-function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelective=null,modelIdeas=null}={}){
+function safeGoblin(report,now){
+ if(report?.kind!=="private_goblin_forward_evidence_v1"||
+  !Number.isFinite(dt(report.generatedAt))||
+  dt(report.generatedAt)>dt(now)||
+  report.researchOnly!==true||report.modelPromoted!==false||
+  report.calibratedProbabilityApproved!==false||
+  report.actualWagersPlaced!==0||report.providerRequests!==0||
+  report.comparison?.kind!=="future_only_goblin_original_line_comparison_v1"||
+  report.comparison.verifiedOutperformance!==false||
+  report.calibration?.independentFutureApproval!==false||
+  report.lineups?.approvedLineups!==0||
+  report.lineups?.exactGoblinEntryMultipliersCaptured!==false)
+  return null;
+ const n=x=>count(x);
+ return {kind:"public_goblin_independent_future_research_counts_v1",
+  sourceReportAt:report.generatedAt,
+  nhl:{sourceEligible:report.NHL?.currentSourceEligibleForNewPolicy===true,
+   examined:n(report.NHL?.originalGoblinOffersExamined),
+   newCandidates:n(report.NHL?.newResearchCandidates),
+   newAbstentions:n(report.NHL?.newAbstentions),
+   archivedFirstGit:n(report.NHL?.archivedFirstGitRecords),
+   futureDecided:n(report.comparison?.decided),
+   futureRegistered:n(report.comparison?.registered)},
+  nfl:{supportedOpportunityResearchImplemented:
+    report.NFL?.historicalOpportunityContractImplemented===true,
+   freshFullPlayerIdentityAndAvailabilityVerified:
+    report.NFL?.prospectiveOfficialInjuryAndIdentityVerified===true,
+   firstGitEligible:n(report.NFL?.newEligibleFirstGitRecords)},
+  calibration:{isolatedGoblinMarketFit:true,approved:false},
+  lineup:{supported2to6PowerFlexResearch:true,
+   exactEntryGoblinMultipliersVerified:false,verifiedQuoteEV:null,
+   approvedSlips:0,placedWagers:0},
+  modelPromoted:false,prospectiveEdgeVerified:false,
+  payoutsAndSettlementsVerified:false,privatePlayerRowsPublished:0};
+}
+function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelective=null,modelIdeas=null,goblin=null}={}){
  if(source?.kind!=="private_source_completion_readiness_v1"||!Number.isFinite(dt(now))||!Number.isFinite(dt(source.generatedAt))||dt(source.generatedAt)>dt(now)||source.modelPromoted!==false||source.wagersPlaced!==0)return null;
  const d=source.periodCoverage,p=d&&count(d.calendarDays)>0&&count(d.accountedDays)!==null&&count(d.pendingDays)!==null&&d.accountedDays+d.pendingDays===d.calendarDays?{accountedDays:d.accountedDays,calendarDays:d.calendarDays,pendingDays:d.pendingDays}:null;
  const evidence=Object.fromEntries(["nhl","nfl"].map(s=>[s,{firstObserved:count(source.prospective?.[s]?.firstObserved),matchedCalibrationRows:count(source.prospective?.[s]?.matchedCalibrationRows)}]));
@@ -133,6 +168,7 @@ function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelecti
   validationSample:gates,
   selectiveAccuracy:buildSelectiveAccuracy(nhlSelective,nflSelective,now),
   modelIdeas:safeModelIdeas(modelIdeas,now),
+  goblinFuture:safeGoblin(goblin,now),
   proprietaryRowsPublished:0,calibrationApproved:false,modelPromoted:false};
 }
 function main([privateRoot,publicRoot]=process.argv.slice(2)){
@@ -141,7 +177,8 @@ function main([privateRoot,publicRoot]=process.argv.slice(2)){
  const out=build(read("outputs/health/source-completion-readiness-latest.json"),{
   nhlSelective:read("outputs/health/nhl-shot-point-opportunity-latest.json"),
   nflSelective:read("outputs/nfl/backtests/directional-v2-future-only-latest.json"),
-  modelIdeas:(()=>{try{return read("outputs/health/open-model-ideas-latest.json")}catch{return null}})()
+  modelIdeas:(()=>{try{return read("outputs/health/open-model-ideas-latest.json")}catch{return null}})(),
+  goblin:(()=>{try{return read("outputs/health/goblin-forward-latest.json")}catch{return null}})()
  });
  if(!out||!out.selectiveAccuracy)throw Error("Missing verified private prospective selective reports; refuse publication");
  const f=path.join(publicRoot,"data/research-evidence-progress.json");fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,JSON.stringify(out,null,2)+"\n");

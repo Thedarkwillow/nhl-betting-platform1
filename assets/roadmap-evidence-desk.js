@@ -8,6 +8,23 @@
   const rows=[];
   const archive=health?.kind==="public_nhl_nfl_pacific_morning_collection_health_v1"&&age(health.generatedAt,now)!==null;
   for(const [label,k] of [["6 AM","06:00"],["9 AM","09:00"]]){const s=archive?health.slots?.[k]:null;rows.push({label:label+" archive",value:s?.status==="privately_archived_complete"&&count(s.nhlOffers)&&count(s.nflOffers)&&age(s.observedAt,now)!==null?"NHL "+s.nhlOffers+" / NFL "+s.nflOffers:"Unverified",ageMinutes:age(s?.observedAt,now)});}
+  const odds=archive?health.sportsbookPreboard:null;
+  if(odds?.kind==="public_preboard_sportsbook_evidence_status_v1"&&
+     odds.actualProviderRequestsMadeByAudit===0&&
+     odds.independentProbabilityBenchmarkVerified===false&&
+     odds.liveAppOfferVerified===false){
+    for(const slot of ["05:45","08:45"]){
+      const z=odds.slots?.[slot],status=z?.status;
+      if(!["not_due","no_fresh_preboard_odds_archive",
+        "archived_before_board_unmatched","archived_preboard_unmatched"].includes(status))
+        continue;
+      const note=status==="not_due"?"Not due":
+       status==="no_fresh_preboard_odds_archive"?"No verified fresh quote archive":
+       "Archived preboard odds; exact player/market matches unverified";
+      rows.push({label:slot+" Pacific sportsbook evidence",
+       value:note,ageMinutes:age(z?.capturedAt,now)});
+    }
+  }
   const a=board?.kind==="public_nhl_research_cards_not_internal_model"?age(board.boardAt,now):null;
   const live=a!==null&&a<30&&board.researchFreshAtBuild===true&&Array.isArray(board.props);
   rows.push({label:"NHL rankings",value:live?board.props.length+" fresh-source research rows":"No fresh approved rows",ageMinutes:a});

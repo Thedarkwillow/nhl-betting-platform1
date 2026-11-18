@@ -1,0 +1,90 @@
+name: Validate private 7-track source-history and calibration fix
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'fix/**']
+    paths: ['.github/workflows/validate-seven-roadmap-sprint.yml']
+permissions:
+  contents: read
+concurrency:
+  group: validate-seven-roadmap-20261117
+  cancel-in-progress: false
+jobs:
+  research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Verify existing private contents secret
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: d3390892bb22ff4526451e3b342a0f4c6ae35917
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify isolated historical season accounting and regression invariants
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --check scripts/backfill-nhl-prior-season-periods.cjs
+          node --check src/nhl-market-error-and-calibration-audit.cjs
+          node --check src/nfl-directional-bias-cluster-audit.cjs
+          node --check src/nhl-paper-first-registered-formats.cjs
+          node --check scripts/audit-underdog-private-candidate-archives.cjs
+          if ! node --test \
+            test/nhl-prior-season-backfill-coverage.test.cjs \
+            test/nhl-prior-season-period-backfill.test.cjs \
+            test/nhl-validation-and-paper-audit.test.cjs \
+            test/nfl-directional-bias-cluster-audit.test.cjs \
+            test/nhl-lineup-slate-resampling.test.cjs \
+            test/underdog-normalized-crosswalk-integrity.test.cjs \
+            test/underdog-private-research-intake.test.cjs \
+            test/four-priority-evidence-status.test.cjs \
+            test/nhl-public-dashboard-payload.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" | head -n 40 || true
+            echo '::error::Research seven-track source regression failed'
+            exit 1
+          fi
+          echo 'PASS: safe original-source history, NFL/NHL calibration, Power/Flex and Underdog.'
+      - name: Run complete existing private NHL NFL MLB Node suite
+        working-directory: private
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" | head -n 25 || true
+            echo '::error::Full private regression failed'
+            exit 1
+          fi
+          echo 'PASS: full original NHL NFL MLB Node suite.'
+      - name: Recompute private original-line and all-nine-format evidence without provider calls
+        working-directory: private
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for script in scripts/report-nhl-validation-and-paper-audit.cjs scripts/report-four-priority-evidence.cjs scripts/report-nfl-directional-first-threshold-review.cjs; do
+            if ! node "$script" >"$log" 2>&1; then
+              echo "::error::Existing private offline evidence report failed"
+              exit 1
+            fi
+          done
+          node - <<'NODE'
+          const x=require('./outputs/health/four-priority-evidence-latest.json');
+          if(x.acceptance.probabilityRelease!==false||
+             x.acceptance.approvedOptimizedLineups!==false||
+             x.lineups.legalFormatCount!==9||
+             x.underdog.publicRows!==0||
+             x.calibration.calibrated!==false||
+             x.lineups.correlatedFormatsNotSeparateIndependentTrials!==true)
+            throw Error('Unsafe research release');
+          console.log('PASS: seven-track research updated without probabilities, payouts or wagers.');
+          NODE

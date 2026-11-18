@@ -1,0 +1,42 @@
+name: Validate automated private Goblin forward and public count-only research
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/private-nhl-goblin-forward.yml'
+      - '.github/workflows/publish-safe-research-progress.yml'
+      - '.github/workflows/validate-goblin-automation.yml'
+      - 'scripts/test-goblin-forward-automation.cjs'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'scripts/test-publish-safe-research-progress.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/test-roadmap-evidence-desk.cjs'
+  push:
+    branches: [main, 'feat/**']
+    paths:
+      - '.github/workflows/private-nhl-goblin-forward.yml'
+      - '.github/workflows/publish-safe-research-progress.yml'
+      - '.github/workflows/validate-goblin-automation.yml'
+      - 'scripts/test-goblin-forward-automation.cjs'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'scripts/test-publish-safe-research-progress.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/test-roadmap-evidence-desk.cjs'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify no private lines, stale calibration or Goblin payout claims
+        run: |
+          set -euo pipefail
+          node --check scripts/publish-safe-research-progress.cjs
+          node --check assets/roadmap-evidence-desk.js
+          node --test scripts/test-goblin-forward-automation.cjs \
+            scripts/test-publish-safe-research-progress.cjs \
+            scripts/test-roadmap-evidence-desk.cjs

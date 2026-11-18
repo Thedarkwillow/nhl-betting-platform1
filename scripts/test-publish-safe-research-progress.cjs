@@ -137,3 +137,33 @@ test("new model research ships only safe zero-event counts, never raw private da
  assert.match(display.find(x=>x.label==="NHL official zero-shot data audit").value,/24 verified zero-shot appearances/);
  assert.match(display.find(x=>x.label==="NHL two-stage model research").value,/NOT app-line hit rate/);
 });
+
+
+test("Goblin private status is reduced to approved public counts and never leaks player ids or payouts",()=>{
+ const date="2026-11-15T12:50:00Z",r={
+  kind:"private_goblin_forward_evidence_v1",generatedAt:date,
+  researchOnly:true,modelPromoted:false,calibratedProbabilityApproved:false,
+  actualWagersPlaced:0,providerRequests:0,
+  NHL:{currentSourceEligibleForNewPolicy:true,originalGoblinOffersExamined:62,
+   newResearchCandidates:3,newAbstentions:59,archivedFirstGitRecords:3,
+   secretPlayer:"PROPRIETARY GOBLIN NAME"},
+  NFL:{historicalOpportunityContractImplemented:true,
+   prospectiveOfficialInjuryAndIdentityVerified:false,newEligibleFirstGitRecords:0},
+  comparison:{kind:"future_only_goblin_original_line_comparison_v1",
+   registered:3,decided:0,verifiedOutperformance:false},
+  calibration:{independentFutureApproval:false},lineups:{
+   approvedLineups:0,exactGoblinEntryMultipliersCaptured:false,
+   secretPayout:99}};
+ const output=build(source,{now,goblin:r});
+ assert.equal(output.goblinFuture.nhl.examined,62);
+ assert.equal(output.goblinFuture.nhl.newAbstentions,59);
+ assert.equal(output.goblinFuture.nhl.futureDecided,0);
+ assert.equal(output.goblinFuture.lineup.verifiedQuoteEV,null);
+ assert.equal(output.goblinFuture.lineup.approvedSlips,0);
+ assert.equal(output.goblinFuture.modelPromoted,false);
+ assert.ok(!JSON.stringify(output).includes("PROPRIETARY GOBLIN NAME"));
+ assert.ok(!JSON.stringify(output).includes("secretPayout"));
+ assert.equal(build(source,{now,goblin:{...r,modelPromoted:true}}).goblinFuture,null);
+ assert.equal(build(source,{now,goblin:{...r,lineups:{
+  approvedLineups:1,exactGoblinEntryMultipliersCaptured:false}}}).goblinFuture,null);
+});

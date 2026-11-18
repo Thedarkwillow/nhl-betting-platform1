@@ -93,3 +93,30 @@ test("web evidence desk shows missing 05:45 odds without mislabeling today's ver
  assert.equal(rows.find(x=>x.label==="08:45 Pacific sportsbook evidence").value,"Not due");
  assert.equal(rows.find(x=>x.label==="9 AM archive").value,"Unverified");
 });
+
+
+test("Goblin roadmap shows precommitted candidates but no confident betting slips",()=>{
+ const now=Date.parse("2026-11-18T17:30:00Z");
+ const progress={kind:"public_research_progress_counts_v1",
+  sourceReportAt:"2026-11-18T14:00:00Z",proprietaryRowsPublished:0,
+  calibrationApproved:false,modelPromoted:false,
+  goblinFuture:{kind:"public_goblin_independent_future_research_counts_v1",
+   sourceReportAt:"2026-11-18T17:15:00Z",
+   nhl:{examined:30,newCandidates:3,newAbstentions:27,
+    archivedFirstGit:3,futureRegistered:3,futureDecided:0},
+   nfl:{supportedOpportunityResearchImplemented:true,
+    freshFullPlayerIdentityAndAvailabilityVerified:false,firstGitEligible:0},
+   calibration:{approved:false},lineup:{approvedSlips:0},
+   modelPromoted:false,prospectiveEdgeVerified:false,
+   payoutsAndSettlementsVerified:false,privatePlayerRowsPublished:0}};
+ const rows=model({progress},now).rows;
+ assert.match(rows.find(r=>r.label==="NHL Goblin NEW selective research").value,
+   /3 new candidate \/ 27 abstained/);
+ assert.match(rows.find(r=>r.label==="NFL Goblin opportunity model").value,
+   /identity verification pending/);
+ assert.match(rows.find(r=>r.label==="Goblin Power\/Flex 2–6").value,
+   /no verified EV or approved slips/);
+ const bad=model({progress:{...progress,goblinFuture:{
+  ...progress.goblinFuture,prospectiveEdgeVerified:true}}},now).rows;
+ assert.equal(bad.some(r=>r.label==="Goblin Power/Flex 2–6"),false);
+});

@@ -54,6 +54,8 @@ jobs:
           fi
           echo 'PASS: period evidence and provenance tests.'
       - name: Collect at most five prior-season dates with existing paced NHL collector
+        id: source
+        continue-on-error: true
         working-directory: private
         shell: bash
         run: |
@@ -61,7 +63,10 @@ jobs:
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           if ! npm run backfill:period-prior >"$log" 2>&1; then
-            echo '::error::Official period collection failed.'
+            # The runner logs are public; show bounded SOURCE errors only,
+            # never player rows, raw statistics or private model internals.
+            grep -E 'Error:|Invalid NHL historical|historical period date|reported=0|not complete' "$log" | tail -n 8 || true
+            echo '::error::Official period collection failed; any partial files will still be archived privately.'
             exit 1
           fi
           node - <<'NODE'
@@ -92,6 +97,7 @@ jobs:
           done
           exit 1
       - name: Rebuild private specialist models and evidence reports
+        if: steps.source.outcome == 'success'
         working-directory: private
         shell: bash
         run: |
@@ -110,6 +116,12 @@ jobs:
             if git push -q origin HEAD:main; then echo 'PASS: private specialist research evidence updated.'; exit 0; fi
             sleep "$attempt"
           done
+          exit 1
+
+      - name: Mark unsuccessful collection after archiving any partial historical evidence
+        if: steps.source.outcome == 'failure'
+        run: |
+          echo '::error::NHL historical collection did not complete; failed date stays unverified.'
           exit 1
 
 # Owner-requested bounded continuation: next missing official prior-season dates only; existing concurrency and five-date cap unchanged.

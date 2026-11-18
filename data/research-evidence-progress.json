@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-18T23:13:17.919Z",
-  "sourceReportAt": "2026-11-18T23:11:42.282Z",
+  "generatedAt": "2026-11-18T23:28:28.247Z",
+  "sourceReportAt": "2026-11-18T23:24:01.320Z",
   "periodHistory": {
-    "accountedDays": 251,
+    "accountedDays": 256,
     "calendarDays": 261,
-    "pendingDays": 10
+    "pendingDays": 5
   },
   "evidence": {
     "nhl": {
@@ -91,13 +91,13 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-18T21:55:08.498Z",
+    "nhlReportAt": "2026-11-18T23:26:56.739Z",
     "nflReportAt": "2026-11-18T02:48:16.486Z",
     "nhl": {
-      "registered": 17,
-      "eligible": 4,
-      "abstained": 13,
-      "pending": 4,
+      "registered": 24,
+      "eligible": 6,
+      "abstained": 18,
+      "pending": 6,
       "decided": 0
     },
     "nfl": {
@@ -115,11 +115,11 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-18T21:55:08.963Z",
+    "sourceReportAt": "2026-11-18T23:26:57.175Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
-      "completeOfficialGames": 1607,
-      "zeroShotAppearancesRetained": 15742,
+      "completeOfficialGames": 1610,
+      "zeroShotAppearancesRetained": 15779,
       "missingShotRows": 0,
       "fullRosterAuditPass": false,
       "syntheticShotsPredicted": 7052,
@@ -147,15 +147,15 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-18T21:55:43.715Z",
+    "sourceReportAt": "2026-11-18T23:27:37.291Z",
     "nhl": {
       "sourceEligible": true,
-      "examined": 112,
-      "newCandidates": 112,
+      "examined": 69,
+      "newCandidates": 69,
       "newAbstentions": 0,
-      "archivedFirstGit": 54,
+      "archivedFirstGit": 166,
       "futureDecided": 0,
-      "futureRegistered": 54
+      "futureRegistered": 166
     },
     "nfl": {
       "supportedOpportunityResearchImplemented": true,

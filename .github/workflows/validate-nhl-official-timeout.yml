@@ -1,0 +1,50 @@
+name: Validate NHL official source timeout retries privately
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'fix/**']
+    paths: ['.github/workflows/validate-nhl-official-timeout.yml']
+permissions:
+  contents: read
+concurrency:
+  group: validate-nhl-transient-official-source
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Confirm existing private scoped token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 3ec23e6c9b397d3ce99a3a5b3f1d1d3ee7bc5dff
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test original NHL official source rate-limit and transport semantics
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --check scripts/collect-nhl-official-period-events.cjs
+          node --test test/nhl-official-transient-timeouts.test.cjs \
+            test/nhl-prior-season-period-backfill.test.cjs \
+            test/nhl-prior-season-backfill-coverage.test.cjs \
+            test/nhl-official-period-events.test.cjs
+      - name: Full private NHL NFL MLB Node regression without new provider calls
+        working-directory: private
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" | head -n 25 || true
+            echo '::error::Private full regression failed'; exit 1
+          fi
+          echo 'PASS: existing NHL NFL MLB behavior and bounded source retry safety.'

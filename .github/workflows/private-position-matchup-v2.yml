@@ -35,7 +35,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! node --test test/position-rate-matchup-v2.test.cjs test/position-and-nfl-context.test.cjs test/player-context-evidence.test.cjs test/nfl-pregame-matchup-challenger.test.cjs test/nfl-matchup-shadow-grading.test.cjs >"$log" 2>&1; then
+          if ! node --test test/position-rate-matchup-v2.test.cjs test/position-and-nfl-context.test.cjs test/player-context-evidence.test.cjs test/nfl-pregame-matchup-challenger.test.cjs test/nfl-matchup-shadow-grading.test.cjs test/paired-historical-game-projection.test.cjs >"$log" 2>&1; then
             grep -E '^not ok|^# (tests|pass|fail)' "$log"; exit 1
           fi
           grep -E '^# (tests|pass|fail)' "$log"
@@ -43,6 +43,23 @@ jobs:
             if ! node "$cmd" >"$log" 2>&1; then echo "::error::Research failed: $cmd"; exit 1; fi
             cat "$log"
           done
+      - name: Check new NFL game-clustered position evidence, not live prop accuracy
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const f=require('node:fs');
+          const x=JSON.parse(f.readFileSync('outputs/nfl/backtests/position-opportunity-matchup-latest.json','utf8'));
+          const groups=Object.values(x.bySeasonMarketPosition||{});
+          if(x.kind!=='nfl_position_opportunity_matchup_v1'||x.modelPromoted!==false||
+             x.actualOfferAccuracy!==null||!groups.length||
+             groups.some(g=>g.pairedGameUncertainty?.modelPromoted!==false||
+               g.pairedGameUncertainty?.independentlyValidatedFutureOriginalLines!==false||
+               !Number.isInteger(g.pairedGameUncertainty.games)))
+            throw Error('Private first-week position research confidence contract invalid');
+          console.log(JSON.stringify({kind:x.kind,cohorts:groups.length,
+            groupsWith30Games:groups.filter(g=>g.pairedGameUncertainty.minimumDescriptiveSupport).length,
+            originalBettableOfferMatches:0,modelPromoted:false,paidRequests:0}));
+          NODE
       - name: Archive private research reports only
         run: |
           set -euo pipefail

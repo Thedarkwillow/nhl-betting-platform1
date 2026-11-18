@@ -1,0 +1,57 @@
+name: Verify private NHL NFL Goblin four-track research
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['.github/workflows/validate-goblin-four-track.yml']
+  push:
+    branches: [main, 'ci/**']
+    paths: ['.github/workflows/validate-goblin-four-track.yml']
+permissions:
+  contents: read
+jobs:
+  offline-goblin-research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: eb265714be1fcce8d345200ab19d94a3676ea0c6
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate separate Goblin market models and payout quote gates
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/goblin-opportunity-evidence.cjs
+          node --check src/goblin-quoted-lineup-research.cjs
+          node --check scripts/report-goblin-forward.cjs
+          node --test \
+            test/goblin-opportunity-evidence.test.cjs \
+            test/goblin-quoted-lineup-research.test.cjs \
+            test/goblin-forward-runner.test.cjs \
+            test/sport-opportunity-production-shadow.test.cjs \
+            test/past-only-calibration-research.test.cjs \
+            test/nhl-shot-point-opportunity.test.cjs \
+            test/nhl-selective-opportunity-future.test.cjs
+      - name: Verify quote gating and no-auto-wager invariants
+        working-directory: private
+        run: |
+          node - <<'NODE'
+          const p=require('./src/goblin-quoted-lineup-research.cjs');
+          const q=p.evaluate({legs:[],entryQuote:null,correlation:null,now:new Date().toISOString()});
+          if(q.eligibleForLineupResearch!==false||q.estimatedNetEV!==null||
+             q.placedWagers!==0||q.recommendationsReleased!==0)
+            throw Error('Goblin payout evidence fail-closed gate missing');
+          const m=require('./src/goblin-opportunity-evidence.cjs');
+          if(!m.NHL.has('assists')||!m.NHL.has('blockedShots')||
+             !m.NFL.has('receiving_yards')||!m.NFL.has('passing_yards'))
+            throw Error('Requested NHL/NFL Goblin opportunity contracts absent');
+          console.log('PASS: all Goblin experiments remain unapproved research.');
+          NODE

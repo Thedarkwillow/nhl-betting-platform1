@@ -1,14 +1,14 @@
 {
   "kind": "public_original_daily_grade_v1",
   "slateDate": "2026-11-17",
-  "generatedAt": "2026-11-18T22:09:54.400Z",
+  "generatedAt": "2026-11-18T23:01:28.633Z",
   "nhl": {
     "status": "official_final_slate_graded",
     "scheduledGames": 11,
     "finalGames": 11,
     "officialPlayerRows": 440,
-    "statsFetchedAt": "2026-11-18T18:49:28.640Z",
-    "ledgerBuiltAt": "2026-11-18T18:49:36.334Z",
+    "statsFetchedAt": "2026-11-18T22:58:37.017Z",
+    "ledgerBuiltAt": "2026-11-18T22:58:46.183Z",
     "all": {
       "registered": 533,
       "correct": 285,

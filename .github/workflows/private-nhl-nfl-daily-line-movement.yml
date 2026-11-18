@@ -89,7 +89,16 @@ jobs:
               if(!fs.existsSync(oldFile))continue;
               let priorManifest;
               try{priorManifest=JSON.parse(fs.readFileSync(oldFile))}catch{continue;}
-              if(isCertifiedMorning(priorManifest))continue;
+              if(isCertifiedMorning(priorManifest)){
+                // The source delta is ALREADY privately first-Git-archived.
+                // Reverify it against both exact source captures, then
+                // publish counts even if a prior runner skipped publication.
+                const verify=require('../public/scripts/verify-existing-private-line-movement.cjs');
+                const check=verify.verifyExisting(process.cwd(),relative,target);
+                if(!check.verified)throw Error('Existing source comparison not verified: '+check.reason);
+                possible.push({relative,t,target,prior:{manifest:priorManifest},existing:true});
+                continue;
+              }
               console.log('REPAIR: previous derived report used a nonmorning baseline; source untouched.');
             }
             const prior=findBaseline(relative);
@@ -103,8 +112,10 @@ jobs:
             process.exit(0);
           }
           const a=possible[0];
-          fs.appendFileSync(process.env.GITHUB_OUTPUT,'status=verified_source_pair\n');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,
+            'status='+(a.existing?'verified_existing_archive_to_republish':'verified_source_pair')+'\n');
           fs.appendFileSync(process.env.GITHUB_ENV,'PRIVATE_CURRENT='+a.relative+'\n');
+          if(a.existing)fs.appendFileSync(process.env.GITHUB_ENV,'PRIVATE_DELTA='+a.target+'\n');
           console.log(JSON.stringify({status:'two_original_full_sources_confirmed',
             priorAt:a.prior.manifest.captureFinishedUTC,
             currentFrom:a.relative,exactMorningSlot:a.prior.manifest.captureSlotPacific,
@@ -133,7 +144,7 @@ jobs:
             postedLinesOrPlayerIDsPublished:0}));
           NODE
       - name: Prepare ONLY counts-only public board movement; never source offers
-        if: steps.select.outputs.status == 'verified_source_pair'
+        if: steps.select.outputs.status == 'verified_source_pair' || steps.select.outputs.status == 'verified_existing_archive_to_republish'
         run: |
           set -euo pipefail
           umask 077
@@ -168,13 +179,17 @@ jobs:
           echo "::error::Private line movement first Git not confirmed"
           exit 1
       - name: Publish non-sensitive NHL NFL line movement counts to website repository
-        if: steps.select.outputs.status == 'verified_source_pair'
+        if: steps.select.outputs.status == 'verified_source_pair' || steps.select.outputs.status == 'verified_existing_archive_to_republish'
         working-directory: public
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/source-line-movement.json
+          if git diff --cached --quiet; then
+            echo "PASS: website already has the certified source comparison; no duplicate commit."
+            exit 0
+          fi
           git commit -m "status: audited NHL NFL cross-day or six-to-nine line movement counts" >/dev/null
           for i in 1 2 3 4; do
             git fetch -q origin main

@@ -1,0 +1,70 @@
+name: Verify Goblin five-priority source safety and official backfill
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-nov18-five-goblin-priorities.yml'
+      - '.github/workflows/private-bounded-sportsbook-quotes.yml'
+      - '.github/workflows/private-nhl-period-backfill.yml'
+      - 'scripts/test-goblin-five-priority-automation.cjs'
+  push:
+    branches: [main, 'ops/**']
+    paths:
+      - '.github/workflows/validate-nov18-five-goblin-priorities.yml'
+      - '.github/workflows/private-bounded-sportsbook-quotes.yml'
+      - '.github/workflows/private-nhl-period-backfill.yml'
+      - 'scripts/test-goblin-five-priority-automation.cjs'
+permissions:
+  contents: read
+jobs:
+  provenance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirm unchanged provider quota limits and serial historical batches
+        working-directory: public
+        run: node --test scripts/test-goblin-five-priority-automation.cjs
+      - name: Require source-only private model access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private model source not authorized"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 49d81360e5792fc9a5f9cd23b9e349d968f85b18
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Validate Goblin market models and active-only identity guards without network
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --check src/goblin-selective-abstention-v1.cjs
+          node --check src/nfl-goblin-identity-audit-v1.cjs
+          node --check scripts/report-goblin-forward.cjs
+          node --test test/goblin-selective-and-nfl-identity.test.cjs \
+            test/goblin-opportunity-evidence.test.cjs \
+            test/goblin-forward-runner.test.cjs \
+            test/goblin-quoted-lineup-research.test.cjs \
+            test/nhl-prior-season-period-backfill.test.cjs \
+            test/sportsbook-event-quota.test.cjs \
+            test/nhl-sportsbook-event-bridge.test.cjs
+      - name: Confirm no wagers or provider calls and no historical rescreening
+        working-directory: private
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),s=fs.readFileSync('scripts/report-goblin-forward.cjs','utf8'),
+            k=fs.readFileSync('src/goblin-selective-abstention-v1.cjs','utf8');
+          if(!s.includes('Date.parse(source.data.generatedAt)>Date.parse(selectivePolicy.at)')||
+             !s.includes('if(selectiveFresh&&!alreadyArchived)')||
+             !k.includes('model_direction_not_on_original_offered_side')||
+             !s.includes('out.NFL.identityReadyForNextModelStage'))
+            throw Error('Future-only Goblin selection or NFL identity data-quality gate missing');
+          console.log('PASS: no re-ranking of 54/112 existing frozen hypotheses.');
+          NODE

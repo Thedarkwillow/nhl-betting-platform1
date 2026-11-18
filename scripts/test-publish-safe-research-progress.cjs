@@ -145,10 +145,10 @@ test("Goblin private status is reduced to approved public counts and never leaks
   researchOnly:true,modelPromoted:false,calibratedProbabilityApproved:false,
   actualWagersPlaced:0,providerRequests:0,
   NHL:{currentSourceEligibleForNewPolicy:true,originalGoblinOffersExamined:62,
-   newResearchCandidates:3,newAbstentions:59,archivedFirstGitRecords:3,
+   newResearchCandidates:3,newAbstentions:59,archivedFirstGitRecords:3,\n   quarantinedDuplicateFirstGitRows:108,selectivePolicySourceEligible:false,
    secretPlayer:"PROPRIETARY GOBLIN NAME"},
   NFL:{historicalOpportunityContractImplemented:true,
-   prospectiveOfficialInjuryAndIdentityVerified:false,newEligibleFirstGitRecords:0},
+   prospectiveOfficialInjuryAndIdentityVerified:false,newEligibleFirstGitRecords:0,\n   auditedOriginalGoblinOffers:22,identityReadyForNextModelStage:0,\n   eligibilityReasonCounts:{official_game_crosswalk_unverified:22}},
   comparison:{kind:"future_only_goblin_original_line_comparison_v1",
    registered:3,decided:0,verifiedOutperformance:false},
   calibration:{independentFutureApproval:false},lineups:{
@@ -158,6 +158,11 @@ test("Goblin private status is reduced to approved public counts and never leaks
  assert.equal(output.goblinFuture.nhl.examined,62);
  assert.equal(output.goblinFuture.nhl.newAbstentions,59);
  assert.equal(output.goblinFuture.nhl.futureDecided,0);
+ assert.equal(output.goblinFuture.nhl.duplicatesQuarantined,108);
+ assert.equal(output.goblinFuture.nhl.selectivePolicyRequiresNewSource,true);
+ assert.equal(output.goblinFuture.nfl.originalGoblinOffersAudited,22);
+ assert.equal(output.goblinFuture.nfl.officialGameBridgeMissing,22);
+ assert.equal(output.goblinFuture.nfl.exactIdentityReadyForModel,0);
  assert.equal(output.goblinFuture.lineup.verifiedQuoteEV,null);
  assert.equal(output.goblinFuture.lineup.approvedSlips,0);
  assert.equal(output.goblinFuture.modelPromoted,false);

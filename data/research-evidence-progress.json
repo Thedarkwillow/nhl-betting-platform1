@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-18T15:09:30.217Z",
+  "generatedAt": "2026-11-18T16:02:20.999Z",
   "sourceReportAt": "2026-11-18T14:47:04.507Z",
   "periodHistory": {
     "accountedDays": 236,
@@ -91,7 +91,7 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-18T14:28:03.684Z",
+    "nhlReportAt": "2026-11-18T16:00:48.290Z",
     "nflReportAt": "2026-11-18T02:48:16.486Z",
     "nhl": {
       "registered": 11,
@@ -115,15 +115,15 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-18T14:28:04.187Z",
+    "sourceReportAt": "2026-11-18T16:00:48.700Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
-      "completeOfficialGames": 1591,
-      "zeroShotAppearancesRetained": 15567,
+      "completeOfficialGames": 1593,
+      "zeroShotAppearancesRetained": 15588,
       "missingShotRows": 0,
       "fullRosterAuditPass": false,
-      "syntheticShotsPredicted": 6670,
-      "syntheticBlockedShotsPredicted": 6670,
+      "syntheticShotsPredicted": 6672,
+      "syntheticBlockedShotsPredicted": 6672,
       "realPlatformLinesEvaluated": false
     },
     "nfl": {
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-18T15:08:42.128Z",
+    "sourceReportAt": "2026-11-18T16:01:19.371Z",
     "nhl": {
       "sourceEligible": false,
       "examined": 0,

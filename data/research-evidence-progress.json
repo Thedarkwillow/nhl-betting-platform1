@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-18T00:16:12.408Z",
-  "sourceReportAt": "2026-11-18T00:14:45.770Z",
+  "generatedAt": "2026-11-18T01:44:19.077Z",
+  "sourceReportAt": "2026-11-18T00:52:00.138Z",
   "periodHistory": {
-    "accountedDays": 198,
+    "accountedDays": 207,
     "calendarDays": 261,
-    "pendingDays": 63
+    "pendingDays": 54
   },
   "evidence": {
     "nhl": {
@@ -36,6 +36,7 @@
     "authenticatedSettledEntries": 0,
     "verifiedROI": null
   },
+  "validationSample": null,
   "proprietaryRowsPublished": 0,
   "calibrationApproved": false,
   "modelPromoted": false

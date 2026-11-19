@@ -1,24 +1,24 @@
 {
   "kind": "public_original_daily_grade_v1",
   "slateDate": "2026-11-18",
-  "generatedAt": "2026-11-19T14:04:56.260Z",
+  "generatedAt": "2026-11-19T19:01:34.132Z",
   "nhl": {
     "status": "official_final_slate_graded",
     "scheduledGames": 3,
     "finalGames": 3,
     "officialPlayerRows": 120,
-    "statsFetchedAt": "2026-11-19T14:02:17.131Z",
-    "ledgerBuiltAt": "2026-11-19T14:02:25.530Z",
+    "statsFetchedAt": "2026-11-19T18:58:16.766Z",
+    "ledgerBuiltAt": "2026-11-19T18:58:27.522Z",
     "all": {
       "registered": 128,
-      "correct": 91,
-      "incorrect": 37,
+      "correct": 92,
+      "incorrect": 36,
       "push": 0,
       "pending": 0,
       "decided": 128,
-      "hitRate": 0.7109375,
-      "alwaysHigher": 0.625,
-      "alwaysLower": 0.375,
+      "hitRate": 0.71875,
+      "alwaysHigher": 0.6328125,
+      "alwaysLower": 0.3671875,
       "distinctGradedGames": 3
     },
     "byTier": {
@@ -36,14 +36,14 @@
       },
       "Goblin": {
         "registered": 79,
-        "correct": 56,
-        "incorrect": 23,
+        "correct": 57,
+        "incorrect": 22,
         "push": 0,
         "pending": 0,
         "decided": 79,
-        "hitRate": 0.7088607594936709,
-        "alwaysHigher": 0.7088607594936709,
-        "alwaysLower": 0.2911392405063291,
+        "hitRate": 0.7215189873417721,
+        "alwaysHigher": 0.7215189873417721,
+        "alwaysLower": 0.27848101265822783,
         "distinctGradedGames": 3
       },
       "Demon": {

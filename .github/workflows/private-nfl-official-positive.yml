@@ -51,6 +51,29 @@ jobs:
           python -m unittest discover -s test -p test_nfl_official_active_news.py
           node --test test/nfl-goblin-official-active-mentions.test.cjs \
             test/nfl-goblin-free-identity-research.test.cjs
+      - name: One-time NFL.com first-party accessibility diagnostic (counts only)
+        if: github.event_name == 'push'
+        run: |
+          python - <<'PY'
+          import urllib.request, urllib.error
+          sources={
+            'official_news_index':'https://www.nfl.com/news',
+            'official_week10_article':'https://www.nfl.com/news/week-10-injuries-sunday-pregame-2026-nfl-season'
+          }
+          for label,url in sources.items():
+              try:
+                  req=urllib.request.Request(url,headers={
+                      'User-Agent':'research-nfl-official-positive-evidence/1.0',
+                      'Accept':'text/html'})
+                  with urllib.request.urlopen(req,timeout=10) as r:
+                      body=r.read(100000).decode('utf8','replace')
+                      print(label, 'http_status',r.status,
+                        'has_article_meta', 'article:published_time' in body,
+                        'bytes_examined',len(body))
+              except Exception as e:
+                  print(label,'unavailable',type(e).__name__,
+                        getattr(e,'code','no_http_status'))
+          PY
       - name: Capture only dated positive statements on official NFL.com
         shell: bash
         run: |

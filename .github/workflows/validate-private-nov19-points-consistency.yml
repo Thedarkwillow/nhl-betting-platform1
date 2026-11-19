@@ -1,6 +1,12 @@
 name: Validate private NHL points shadow and Standard dual-baseline consistency
 on:
   workflow_dispatch:
+    inputs:
+      private_ref:
+        description: Private branch or commit to test
+        required: false
+        default: main
+        type: string
   push:
     branches: [main]
     paths:
@@ -22,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: research/points-stability-and-standard-consistency-20261119
+          ref: ${{ inputs.private_ref || 'main' }}
           fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false

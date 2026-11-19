@@ -1,6 +1,10 @@
 name: Private NFL official positive game-day evidence via public runner
 on:
   workflow_dispatch:
+  # Initial no-credit smoke on first installation; later runs are scheduled.
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nfl-official-positive.yml']
   schedule:
     # Game-day snapshots after typical ~90-minute inactives publication.
     # Pacific-local times; absence from inactives is NEVER called active.

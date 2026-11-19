@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "kind": "public_nhl_nfl_original_git_frozen_model_scorecards_v1",
-  "generatedAt": "2026-11-19T19:01:33.884Z",
+  "generatedAt": "2026-11-19T19:08:03.441Z",
   "sources": {
     "nhlOriginalFrozenBaselineAt": "2026-11-19T18:58:42.687Z",
     "nflFirstGitForecastAuditAt": "2026-11-18T02:47:49.282Z",
-    "nhlForwardChallengerAuditAt": "2026-11-19T18:59:03.432Z"
+    "nhlForwardChallengerAuditAt": "2026-11-19T19:07:17.645Z"
   },
   "nhl": {
     "sport": "NHL",

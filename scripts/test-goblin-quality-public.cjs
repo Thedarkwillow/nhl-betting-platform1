@@ -22,6 +22,7 @@ const gob={kind:"private_goblin_forward_evidence_v1",
  newAbstentions:2,archivedFirstGitRecords:200,quarantinedDuplicateFirstGitRows:0,
  postPolicyScreening:screen,selectivePolicySourceEligible:true},
  NFL:{historicalOpportunityContractImplemented:true,
+  freshFirstGitSourceVerified:true,
   auditedOriginalGoblinOffers:8,identityReadyForNextModelStage:0,
   newEligibleFirstGitRecords:0,
   prerequisiteGaps:{officialGame:8,providerToGSIS:8,positiveActiveRoster:8}},
@@ -50,6 +51,9 @@ t("malformed counts or unforeseen raw reason keys fail closed",()=>{
  const extra={...gob,NFL:{...gob.NFL,
   prerequisiteGaps:{...gob.NFL.prerequisiteGaps,officialGame:9}}};
  a.equal(buildWith(extra).goblinFuture.nfl.prerequisiteGaps,null);
+ const stale={...gob,NFL:{...gob.NFL,freshFirstGitSourceVerified:false}};
+ a.equal(buildWith(stale).goblinFuture.nfl.prerequisiteGaps,null);
+
 });
 t("dashboard explicitly distinguishes screened research, skipped offered sides and overlapping identity blockers",()=>{
  const x=buildWith(),rows=model({progress:x},Date.parse(now)).rows;

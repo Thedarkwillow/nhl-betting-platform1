@@ -1,3 +1,4 @@
+# Retest unique GSIS counts after the numeric-unverified-status contract correction.
 name: Validate free NFL prior-week GSIS candidate matching
 on:
   pull_request:

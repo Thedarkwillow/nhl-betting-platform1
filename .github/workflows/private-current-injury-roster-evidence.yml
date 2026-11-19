@@ -30,6 +30,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      # Verify live official NFL.com Week 11 article via fantasy-www + prior-roster GSIS.
       - name: Current report-derived NFL injuries and official NHL current roster evidence
         working-directory: private
         run: |

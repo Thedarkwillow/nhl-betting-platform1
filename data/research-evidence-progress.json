@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-19T02:51:56.461Z",
+  "generatedAt": "2026-11-19T03:08:45.992Z",
   "sourceReportAt": "2026-11-19T02:34:14.283Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -91,12 +91,12 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-19T02:32:43.776Z",
+    "nhlReportAt": "2026-11-19T03:07:09.729Z",
     "nflReportAt": "2026-11-18T02:48:16.486Z",
     "nhl": {
-      "registered": 38,
+      "registered": 40,
       "eligible": 11,
-      "abstained": 27,
+      "abstained": 29,
       "pending": 11,
       "decided": 0
     },
@@ -115,7 +115,7 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-19T02:32:44.297Z",
+    "sourceReportAt": "2026-11-19T03:07:10.162Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
       "completeOfficialGames": 1615,
@@ -147,12 +147,12 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-19T02:51:03.285Z",
+    "sourceReportAt": "2026-11-19T03:07:55.780Z",
     "nhl": {
       "sourceEligible": true,
-      "examined": 0,
+      "examined": 4,
       "newCandidates": 0,
-      "newAbstentions": 0,
+      "newAbstentions": 4,
       "archivedFirstGit": 280,
       "duplicatesQuarantined": 108,
       "selectivePolicyRequiresNewSource": false,
@@ -220,21 +220,21 @@
         "modelPromoted": false,
         "approvedPicks": 0
       },
-      "originalGoblinOffersAudited": 1525,
+      "originalGoblinOffersAudited": 1539,
       "exactIdentityReadyForModel": 0,
       "verifiedActiveRoster": false,
       "officialGameBridgeMissing": 245,
       "prerequisiteGaps": {
         "kind": "public_nfl_goblin_missing_prerequisites_v1",
-        "originalOffersAudited": 1525,
+        "originalOffersAudited": 1539,
         "officialGame": 245,
-        "providerToGSIS": 1525,
-        "positiveActiveRoster": 1525,
+        "providerToGSIS": 1539,
+        "positiveActiveRoster": 1539,
         "rowsMayHaveMultipleBlockers": true,
         "verifiedActive": false,
         "eligiblePicks": 0
       },
-      "providerGSiSBridgeMissing": 1280,
+      "providerGSiSBridgeMissing": 1294,
       "positiveActiveStatusMissing": null,
       "firstGitEligible": 0
     },

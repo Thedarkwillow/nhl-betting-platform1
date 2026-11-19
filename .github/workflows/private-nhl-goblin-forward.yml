@@ -12,6 +12,8 @@ on:
     workflows:
       - 'Freeze actual-time NHL and NFL pregame Higher Lower research'
       - 'Private NHL shot and point opportunity evaluation'
+      - 'Private NHL official stats and projections on free public runner'
+      - 'Private NHL prospective grading and baseline audit via public runner'
     types: [completed]
   # A standalone grading opportunity after most nightly NHL games resolve.
   schedule:
@@ -53,7 +55,8 @@ jobs:
           node --test \
             test/goblin-opportunity-evidence.test.cjs \
             test/goblin-quoted-lineup-research.test.cjs \
-            test/goblin-forward-runner.test.cjs
+            test/goblin-forward-runner.test.cjs \
+            test/goblin-quality-odds-nfl-source-gaps.test.cjs
           node scripts/report-goblin-forward.cjs > /tmp/goblin-private-summary.json
           node - <<'NODE'
           const s=require('/tmp/goblin-private-summary.json');

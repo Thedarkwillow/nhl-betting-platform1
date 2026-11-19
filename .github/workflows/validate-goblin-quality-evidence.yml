@@ -1,0 +1,64 @@
+# Validate the latest merged private main, never an unmerged candidate ref.
+name: Validate forward Goblin quality and NFL/odds proof gates
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-goblin-quality-evidence.yml'
+      - 'scripts/test-goblin-quality-public.cjs'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+      - '.github/workflows/private-nhl-goblin-forward.yml'
+  push:
+    branches: [main, 'research/nov18-goblin-quality-public']
+    paths:
+      - '.github/workflows/validate-goblin-quality-evidence.yml'
+      - 'scripts/test-goblin-quality-public.cjs'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+      - '.github/workflows/private-nhl-goblin-forward.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify count-only public source and browser model
+        working-directory: public
+        run: |
+          set -euo pipefail
+          node --test scripts/test-goblin-quality-public.cjs \
+            scripts/test-roadmap-evidence-desk.cjs \
+            scripts/test-publish-safe-research-progress.cjs
+      - name: Require authorized private repository access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - name: Offline private prospective, identity, and sportsbook regression
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --check src/goblin-prospective-selectivity-audit.cjs
+          node --check src/nfl-goblin-identity-audit-v1.cjs
+          node --check src/sportsbook-match-funnel.cjs
+          node --check scripts/report-goblin-forward.cjs
+          node --test \
+            test/goblin-quality-odds-nfl-source-gaps.test.cjs \
+            test/goblin-selective-and-nfl-identity.test.cjs \
+            test/goblin-forward-runner.test.cjs \
+            test/goblin-opportunity-evidence.test.cjs \
+            test/sportsbook-match-funnel.test.cjs

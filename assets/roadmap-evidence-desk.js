@@ -104,6 +104,39 @@
         "no calibrated edge",
        ageMinutes:age(gob.sourceReportAt,now)});
     }
+    // Independent new-policy selectivity audit is not a win-rate sample.
+    const screening=h?.postPolicyScreening;
+    if(screening?.kind==="public_goblin_post_policy_screening_counts_v1"&&
+       screening.verifiedAccuracy===false&&screening.calibrated===false&&
+       screening.bettable===false&&
+       [screening.screened,screening.selected,screening.abstained,
+        screening.unknownStatus,screening.lateOrUnverified].every(count)&&
+       screening.selected+screening.abstained+screening.unknownStatus===screening.screened){
+      const reasons=screening.abstentionReasons||{};
+      rows.push({label:"NHL Goblin NEW-policy screening",
+       value:screening.selected+" accepted / "+screening.abstained+
+        " abstained from "+screening.screened+" eligible first-Git records; "+
+        (count(reasons.model_direction_not_on_original_offered_side)?
+          reasons.model_direction_not_on_original_offered_side+" unoffered sides; ":"")+
+        (screening.unknownStatus?"screen status anomaly; ":"")+
+        (screening.lateOrUnverified?screening.lateOrUnverified+" late/unverified excluded; ":"")+
+        "accuracy and payout EV unverified",
+       ageMinutes:age(gob.sourceReportAt,now)});
+    }
+    const gaps=n?.prerequisiteGaps;
+    if(gaps?.kind==="public_nfl_goblin_missing_prerequisites_v1"&&
+       gaps.rowsMayHaveMultipleBlockers===true&&gaps.verifiedActive===false&&
+       gaps.eligiblePicks===0&&
+       [gaps.originalOffersAudited,gaps.officialGame,gaps.providerToGSIS,
+        gaps.positiveActiveRoster].every(count)&&
+       [gaps.officialGame,gaps.providerToGSIS,gaps.positiveActiveRoster].every(x=>x<=gaps.originalOffersAudited)){
+      rows.push({label:"NFL Goblin identity prerequisites",
+       value:gaps.officialGame+" missing official-game bridges / "+
+        gaps.providerToGSIS+" missing exact GSIS links / "+
+        gaps.positiveActiveRoster+" missing verified active rosters"+
+        " (overlapping blockers, not distinct picks); no bettable model",
+       ageMinutes:age(gob.sourceReportAt,now)});
+    }
     if(n?.supportedOpportunityResearchImplemented===true&&
        count(n.firstGitEligible)){
       rows.push({label:"NFL Goblin opportunity model",

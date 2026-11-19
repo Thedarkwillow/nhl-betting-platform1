@@ -104,6 +104,97 @@ function buildSelectiveAccuracy(nhl,nfl,now){
  };
 }
 // Strict aggregate whitelist: no player, game, line, odds, or model-weight fields.
+// All four NHL audits are historical/future-frozen counts only.
+// Explicitly reject any model, payout, probability or lineup promotion.
+function safeNHLPending(x){
+ if(x?.kind!=="nhl_firstgit_goblin_pending_final_triage_v1"||
+  x.sourceProofRequired!==true||x.coherentWithGrader!==true||
+  x.bettingEligible!==false||x.calibrationApproved!==false||
+  x.modelPromoted!==false||x.approvedLineups!==0)return null;
+ const keys=["registered","abstained","eligibleResearch",
+  "verifiedFinalDecisions","verifiedPushes","beforeKickoff",
+  "afterStartWithinFourHours","afterFourHoursWithoutVerifiedStat",
+  "ambiguousOrInvalidFinal","missingOrInvalidFirstGit","distinctOriginalGames"];
+ if(keys.some(k=>count(x[k])===null))return null;
+ if(x.registered!==x.abstained+x.eligibleResearch||
+  x.eligibleResearch!==x.verifiedFinalDecisions+x.verifiedPushes+
+    x.beforeKickoff+x.afterStartWithinFourHours+
+    x.afterFourHoursWithoutVerifiedStat+x.ambiguousOrInvalidFinal)return null;
+ return {kind:"public_nhl_goblin_prospective_pending_triage_v1",
+  registered:x.registered,abstained:x.abstained,decided:x.verifiedFinalDecisions,
+  pushes:x.verifiedPushes,notStarted:x.beforeKickoff,
+  startedNoFinalWithinFourHours:x.afterStartWithinFourHours,
+  fourHoursWithoutOfficialPlayerStat:x.afterFourHoursWithoutVerifiedStat,
+  conflictingOrInvalidFinal:x.ambiguousOrInvalidFinal,
+  officialGradingNeeded:x.beforeKickoff+x.afterStartWithinFourHours+
+   x.afterFourHoursWithoutVerifiedStat+x.ambiguousOrInvalidFinal,
+  verifiedWinRate:null,approvedPicks:0};
+}
+function safeNHLStandardMarkets(x){
+ if(x?.kind!=="nhl_frozen_standard_market_vs_simple_baselines_v1"||
+ x.valid!==true||x.originalSameFrozenLines!==true||
+ x.prospectiveOutperformanceApproved!==false||x.releaseApproved!==false||
+ !count(x.decided)||!count(x.distinctMarkets))return null;
+ const markets=["shotsOnGoal","points","blockedShots","assists"],out={};
+ if(Object.keys(x.byMarket||{}).some(k=>!markets.includes(k)))return null;
+ for(const k of markets){
+  const m=x.byMarket?.[k];if(!m)continue;
+  if(!count(m.decided)||!count(m.distinctGames)||
+   m.decided<m.distinctGames||m.releaseApproved!==false||
+   m.needsNewFrozenProspectiveChallenger!==true||
+   ![m.modelHitRate,m.alwaysHigherRate,m.alwaysLowerRate,
+     m.modelMinusLower,m.modelMinusHigher].every(v=>v===null||
+     typeof v==="number"&&Number.isFinite(v)&&v>=-1&&v<=1))return null;
+  out[k]={decided:m.decided,distinctGames:m.distinctGames,
+   modelRate:m.modelHitRate,alwaysHigherRate:m.alwaysHigherRate,
+   alwaysLowerRate:m.alwaysLowerRate,modelMinusLower:m.modelMinusLower,
+   modelMinusHigher:m.modelMinusHigher,releaseApproved:false};
+ }
+ if(Object.values(out).reduce((s,v)=>s+v.decided,0)!==x.decided||
+    Object.keys(out).length!==x.distinctMarkets)return null;
+ return {kind:"public_nhl_standard_frozen_market_baseline_audit_v1",
+  byMarket:out,decided:x.decided,
+  outperformanceApproved:false,approvedPicks:0};
+}
+function safeNHLSportsbook(x){
+ if(x?.kind!=="nhl_source_native_conditional_vs_original_frozen_benchmark_v1"||
+  x.archiveKindValid!==true||
+  x.currentQuoteFresh!==false||x.sharedPlayerIdentifierVerified!==false||
+  x.originalAppAvailabilityVerified!==false||x.verifiedPayoutEV!==false||
+  x.matchedQuoteIsNotBettable!==true||x.newProviderRequests!==0||
+  x.independentlyAuthenticatedSamePropModelComparisons!==0)return null;
+ const keys=["conditionalSameOfferSides","independentBookGroups",
+  "conditionalExactThresholdGroups","historicalModelComparisonRows"];
+ if(keys.some(k=>count(x[k])===null)||x.conditionalExactThresholdGroups>x.conditionalSameOfferSides)return null;
+ return {kind:"public_nhl_historical_conditional_sportsbook_match_v1",
+  conditionalOfferSides:x.conditionalSameOfferSides,
+  bookConsensusGroups:x.independentBookGroups,
+  conditionalExactThresholdGroups:x.conditionalExactThresholdGroups,
+  exactOriginalModelLineMatches:x.historicalModelComparisonRows,
+  independentlyAuthenticatedMatches:0,currentQuoteFresh:false,
+  payoutEVVerified:false,approvedPicks:0};
+}
+function safeNHLCalibration(x){
+ if(x?.kind!=="nhl_standard_original_probability_calibration_readiness_v1"||
+  x.sourceValid!==true||x.perMarketTierCalibrationValidated!==false||
+  x.independentHoldoutCalibratorValidated!==false||
+  x.sportsbookConsensusAndPayoutEVVerified!==false||
+  x.approvedProbabilityDisplay!==false||x.approvedLineups!==0||
+  x.modelPromoted!==false)return null;
+ const keys=["decided","distinctGames","distinctDates"];
+ if(keys.some(k=>count(x[k])===null)||
+  x.distinctDates>x.decided||x.distinctGames>x.decided||
+  ![x.originalAverageProbability,x.observedHitRate,x.rawBrier,
+    x.absoluteOverconfidenceGap].every(v=>typeof v==="number"&&
+      Number.isFinite(v)&&v>=0&&v<=1))return null;
+ return {kind:"public_nhl_standard_uncalibrated_future_holdout_v1",
+  decided:x.decided,distinctGames:x.distinctGames,
+  distinctDates:x.distinctDates,meanUncalibratedProbability:x.originalAverageProbability,
+  observedSelectedHitRate:x.observedHitRate,
+  absoluteConfidenceGap:x.absoluteOverconfidenceGap,
+  minimum20DatesMet:x.minimum20DistinctDatesMet,
+  independentlyCalibrated:false,approvedPicks:0};
+}
 function safeGoblinScreen(s){
  if(s?.kind!=="nhl_goblin_new_policy_first_git_screening_counts_v1"||
     s.policyFirstGitVerified!==true||s.prospectiveDecisionsUsed!==0||
@@ -291,6 +382,10 @@ function safeGoblin(report,now){
    duplicatesQuarantined:n(report.NHL?.quarantinedDuplicateFirstGitRows),
    selectivePolicyRequiresNewSource:report.NHL?.selectivePolicySourceEligible!==true,
    postPolicyScreening:safeGoblinScreen(report.NHL?.postPolicyScreening),
+   pendingOfficialTriage:safeNHLPending(report.NHL?.pendingOfficialTriage),
+   standardSameLineMarkets:safeNHLStandardMarkets(report.NHL?.standardMarketSameLineAudit),
+   sportsbookConditional:safeNHLSportsbook(report.NHL?.sportsbookSourceCoverage),
+   standardCalibration:safeNHLCalibration(report.NHL?.standardCalibrationHoldout),
    futureDecided:n(report.comparison?.decided),
    futureRegistered:n(report.comparison?.registered)},
   nfl:{supportedOpportunityResearchImplemented:

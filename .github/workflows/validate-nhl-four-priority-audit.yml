@@ -1,0 +1,95 @@
+name: Validate NHL four priority research audit and publication
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-nhl-four-priority-audit.yml'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/test-goblin-quality-public.cjs'
+  push:
+    branches: [main, 'research/nhl-four-priorities-public-1118']
+    paths:
+      - '.github/workflows/validate-nhl-four-priority-audit.yml'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/test-goblin-quality-public.cjs'
+permissions:
+  contents: read
+jobs:
+  confirm:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Privacy and no-automatic-betting public website tests
+        working-directory: public
+        run: |
+          node --check scripts/publish-safe-research-progress.cjs
+          node --check assets/roadmap-evidence-desk.js
+          node --test scripts/test-goblin-quality-public.cjs scripts/test-roadmap-evidence-desk.cjs
+      - name: Require authorized private research access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - name: Private original frozen games, Standard baselines, sportsbook and calibration tests
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --check src/nhl-four-priority-research-audit.cjs
+          node --check scripts/report-goblin-forward.cjs
+          node --test test/nhl-four-priority-research-audit.test.cjs \
+            test/goblin-forward-runner.test.cjs \
+            test/goblin-opportunity-evidence.test.cjs \
+            test/goblin-quality-odds-nfl-source-gaps.test.cjs
+      - name: Audit real private archived NHL proof contracts with no source requests or player rows in public logs
+        working-directory: private
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const a=require('./src/nhl-four-priority-research-audit.cjs');
+          const read=f=>JSON.parse(fs.readFileSync(f,'utf8'));
+          const baseline=a.standardMarkets(read('outputs/health/nhl-frozen-baseline-challenge-latest.json'));
+          const sportsbook=a.sportsbookGap(read('outputs/sportsbooks/bounded-live/matched-board-latest.json'),
+           read('outputs/health/nhl-sportsbook-comparison-latest.json'));
+          const calibration=a.calibrationHoldout(read('outputs/health/nhl-prospective-validation-latest.json'));
+          if(!baseline.valid||baseline.decided<100||baseline.releaseApproved!==false||
+             !sportsbook.archiveKindValid||sportsbook.conditionalSameOfferSides<1||
+             sportsbook.independentlyAuthenticatedSamePropModelComparisons!==0||
+             !calibration.sourceValid||calibration.approvedProbabilityDisplay!==false)
+           throw Error('Private archived research contract not validated');
+          console.log(JSON.stringify({pass:true,futureFrozenStandardMarketDecisions:baseline.decided,
+           historicalConditionalQuoteSides:sportsbook.conditionalSameOfferSides,
+           authenticatedModelQuoteMatches:0,
+           calibratedProbabilityApproved:false,providerRequests:0,approvedPicks:0}));
+          NODE
+      - name: Rebuild genuine first-Git Goblin pending and source evidence without changing frozen selections
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node scripts/report-goblin-forward.cjs > /tmp/nhl-four-priority-report-summary.json
+          node - <<'NODE'
+          const fs=require('node:fs'),d=JSON.parse(fs.readFileSync('outputs/health/goblin-forward-latest.json','utf8'));
+          const h=d.NHL;
+          if(!h?.pendingOfficialTriage?.coherentWithGrader||
+             h.pendingOfficialTriage.registered!==d.comparison.registered||
+             h.standardMarketSameLineAudit.releaseApproved!==false||
+             h.sportsbookSourceCoverage.independentlyAuthenticatedSamePropModelComparisons!==0||
+             h.standardCalibrationHoldout.approvedProbabilityDisplay!==false||
+             d.modelPromoted!==false||d.actualWagersPlaced!==0)throw Error('Evidence cannot authorize betting');
+          console.log(JSON.stringify({pass:true,goblinRecords:h.pendingOfficialTriage.registered,
+           officialDecisions:d.comparison.decided,
+           stillPending:d.comparison.pending,calibrationApproved:false,approvedLineups:0}));
+          NODE

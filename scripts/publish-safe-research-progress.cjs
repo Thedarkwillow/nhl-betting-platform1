@@ -103,6 +103,55 @@ function buildSelectiveAccuracy(nhl,nfl,now){
   originalPlatformSettlementVerified:false
  };
 }
+// Strict aggregate whitelist: no player, game, line, odds, or model-weight fields.
+function safeGoblinScreen(s){
+ if(s?.kind!=="nhl_goblin_new_policy_first_git_screening_counts_v1"||
+    s.policyFirstGitVerified!==true||s.prospectiveDecisionsUsed!==0||
+    s.calibrated!==false||s.authenticatedPayouts!==false||
+    s.recommendationsReleased!==0||s.modelPromoted!==false)return null;
+ const keys=["screened","selected","abstained","lateOrUnverified","unknownStatus"];
+ if(keys.some(k=>count(s[k])===null)||
+    s.selected+s.abstained+s.unknownStatus!==s.screened)return null;
+ const markets=["shotsOnGoal","blockedShots","assists","points"],
+       reasons=["insufficient_verified_prior_ice_time",
+        "high_ice_time_or_recent_usage_uncertainty",
+        "recent_lineup_role_or_team_not_stable",
+        "opponent_defensive_volume_history_unverified",
+        "official_pregame_scratched_or_injured",
+        "distribution_direction_missing",
+        "model_direction_not_on_original_offered_side",
+        "insufficient_uncalibrated_directional_separation",
+        "other_model_abstention"];
+ if(Object.keys(s.byMarket||{}).some(x=>!markets.includes(x))||
+    Object.keys(s.abstentionReasons||{}).some(x=>!reasons.includes(x)))return null;
+ const byMarket={};
+ for(const market of markets){
+  const m=s.byMarket?.[market]||{screened:0,selected:0,abstained:0};
+  if(["screened","selected","abstained"].some(k=>count(m[k])===null)||
+     m.selected+m.abstained>m.screened)return null;
+  byMarket[market]={screened:m.screened,selected:m.selected,abstained:m.abstained};
+ }
+ if(markets.reduce((t,m)=>t+byMarket[m].screened,0)!==s.screened||
+    markets.reduce((t,m)=>t+byMarket[m].selected,0)!==s.selected||
+    markets.reduce((t,m)=>t+byMarket[m].abstained,0)!==s.abstained)return null;
+ const abstentionReasons=Object.fromEntries(reasons.map(k=>[k,s.abstentionReasons?.[k]||0]));
+ if(Object.values(abstentionReasons).some(v=>count(v)===null)||
+    Object.values(abstentionReasons).reduce((a,b)=>a+b,0)!==s.abstained)return null;
+ return {kind:"public_goblin_post_policy_screening_counts_v1",
+  screened:s.screened,selected:s.selected,abstained:s.abstained,
+  lateOrUnverified:s.lateOrUnverified,unknownStatus:s.unknownStatus,
+  byMarket,abstentionReasons,verifiedAccuracy:false,
+  calibrated:false,bettable:false};
+}
+function safeNFLPrerequisiteGaps(s,total){
+ if(!s||count(total)===null||
+   ["officialGame","providerToGSIS","positiveActiveRoster"].some(k=>
+    count(s[k])===null||s[k]>total))return null;
+ return {kind:"public_nfl_goblin_missing_prerequisites_v1",
+  originalOffersAudited:total,officialGame:s.officialGame,
+  providerToGSIS:s.providerToGSIS,positiveActiveRoster:s.positiveActiveRoster,
+  rowsMayHaveMultipleBlockers:true,verifiedActive:false,eligiblePicks:0};
+}
 function safeGoblin(report,now){
  if(report?.kind!=="private_goblin_forward_evidence_v1"||
   !Number.isFinite(dt(report.generatedAt))||
@@ -126,6 +175,7 @@ function safeGoblin(report,now){
    archivedFirstGit:n(report.NHL?.archivedFirstGitRecords),
    duplicatesQuarantined:n(report.NHL?.quarantinedDuplicateFirstGitRows),
    selectivePolicyRequiresNewSource:report.NHL?.selectivePolicySourceEligible!==true,
+   postPolicyScreening:safeGoblinScreen(report.NHL?.postPolicyScreening),
    futureDecided:n(report.comparison?.decided),
    futureRegistered:n(report.comparison?.registered)},
   nfl:{supportedOpportunityResearchImplemented:
@@ -137,6 +187,7 @@ function safeGoblin(report,now){
    exactIdentityReadyForModel:n(report.NFL?.identityReadyForNextModelStage),
    verifiedActiveRoster:report.NFL?.officialActiveRosterVerified===true,
    officialGameBridgeMissing:n(report.NFL?.eligibilityReasonCounts?.official_game_crosswalk_unverified),
+   prerequisiteGaps:safeNFLPrerequisiteGaps(report.NFL?.prerequisiteGaps,report.NFL?.auditedOriginalGoblinOffers),
    providerGSiSBridgeMissing:n(report.NFL?.eligibilityReasonCounts?.exact_provider_player_to_gsis_bridge_unverified),
    positiveActiveStatusMissing:n(report.NFL?.eligibilityReasonCounts?.official_current_active_roster_missing),
    firstGitEligible:n(report.NFL?.newEligibleFirstGitRecords)},

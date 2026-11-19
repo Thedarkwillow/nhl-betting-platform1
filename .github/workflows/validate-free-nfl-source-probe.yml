@@ -51,3 +51,32 @@ jobs:
               print(json.dumps(out))
             except Exception as e:print(json.dumps({'source':tag,'error':type(e).__name__,'code':getattr(e,'code',None)}))
           PY
+
+      - name: Check official article heading and status HTML structure
+        run: |
+          python - <<'PY'
+          import urllib.request,re
+          from html.parser import HTMLParser
+          class P(HTMLParser):
+            def __init__(self):
+              super().__init__();self.tags=[];self.stack=[];self.marked=[]
+            def handle_starttag(self,t,a):
+              if t in ('h1','h2','h3','h4','li'):self.stack.append([t,[]])
+            def handle_data(self,d):
+              for x in self.stack:x[1].append(d)
+            def handle_endtag(self,t):
+              if self.stack and self.stack[-1][0]==t:
+                kind,text=self.stack.pop();z=' '.join(''.join(text).split())
+                if kind!='li':self.tags.append((kind,z[:80]))
+                if kind=='li' and (z.startswith('OUT:') or z.startswith('QUESTIONABLE:')):
+                  self.marked.append(z[:50])
+          url='https://fantasy-www.nfl.com/news/nfl-week-11-injury-report-2026-season'
+          with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'}),timeout=15) as r:
+            html=r.read(1800000).decode('utf-8','replace')
+          p=P();p.feed(html)
+          print('headerTags',p.tags[:24])
+          print('statusRowsWithOUTOrQUESTIONABLE',len(p.marked))
+          print('datePublishedMatches',re.findall(r'"datePublished"\\s*:\\s*"([^"]+)',html)[:2])
+          print('articleMetaSamples',re.findall(r'<meta[^>]+(?:published_time|modified_time)[^>]*>',html)[:2])
+          print('containsRenderedLiteralGameWeek',bool(re.search(r'2026 NFL season',html,re.I)))
+          PY

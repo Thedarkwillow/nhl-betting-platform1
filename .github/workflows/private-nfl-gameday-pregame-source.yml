@@ -69,9 +69,6 @@ jobs:
             originalRows:a.originalRows||0,providerRequests:a.providerRequests,
             approvedPicks:0,playerGSISVerified:false,gamedayActiveVerified:false}));
           NODE
-          if [ -n "${{ steps.capture.outputs.archive_dir }}" ]; then
-            echo 'Capture created a private precommit source'
-          fi
       - name: Check original source before first Git
         if: steps.capture.outputs.status == 'private_nfl_gameday_source_precommit_pending'
         shell: bash

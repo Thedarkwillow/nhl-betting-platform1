@@ -148,3 +148,23 @@ t("official named active statements remain separate from provider GSIS and roste
  const stale=buildWith({...g,NFL:{...g.NFL,freshFirstGitSourceVerified:false}});
  a.equal(stale.goblinFuture.nfl.positiveGameStatements,null);
 });
+
+t("first-party NFL reported injuries display separately from verified active lineup claims",()=>{
+ const e={kind:"nfl_first_party_reported_injury_counts_v1",
+  officialFirstGitVerified:true,capturedAt:"2026-11-19T02:00:00Z",
+  rows:3,out:2,questionable:1,doubtful:0,ambiguous:0,
+  activeGamedayVerified:false,missingMeansHealthy:false,
+  approvedSelections:0,providerRequests:0,modelPromoted:false,
+  player:"DO NOT EXPOSE"};
+ const g={...gob,NFL:{...gob.NFL,officialInjuryEvidence:e}};
+ const p=buildWith(g),a1=p.goblinFuture.nfl.officialInjuryStatuses;
+ a.equal(a1.ruledOut,2);a.equal(a1.questionable,1);
+ a.equal(a1.gameDayActiveVerified,false);
+ a.equal(JSON.stringify(p.goblinFuture).includes("DO NOT EXPOSE"),false);
+ const rows=model({progress:p},Date.parse(now)).rows;
+ a.match(rows.find(x=>x.label==="NFL first-party injury status matches").value,
+  /2 officially OUT \/ 1 QUESTIONABLE \/ 0 DOUBTFUL/);
+ const spoof=buildWith({...g,NFL:{...g.NFL,officialInjuryEvidence:
+  {...e,activeGamedayVerified:true}}});
+ a.equal(spoof.goblinFuture.nfl.officialInjuryStatuses,null);
+});

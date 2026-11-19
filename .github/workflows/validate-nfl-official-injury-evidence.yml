@@ -1,0 +1,52 @@
+name: Validate first-Git NFL injury reports against active-status gates
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-nfl-official-injury-evidence.yml'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'scripts/test-goblin-quality-public.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+  push:
+    branches: [main, 'research/nfl-official-verified-injury-counts-public-1118']
+    paths:
+      - '.github/workflows/validate-nfl-official-injury-evidence.yml'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'scripts/test-goblin-quality-public.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Public source whitelist and dashboard regressions
+        working-directory: public
+        run: node --test scripts/test-goblin-quality-public.cjs scripts/test-roadmap-evidence-desk.cjs
+      - name: Verify existing private research read credential
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - name: Private first-Git and official injury medical-clearance tests
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --check scripts/report-goblin-forward.cjs
+          node --test test/nfl-official-injury-evidence-counts.test.cjs \
+            test/nfl-goblin-free-identity-research.test.cjs \
+            test/nfl-goblin-official-active-mentions.test.cjs
+          python -m unittest discover -s test -p test_nfl_week11_first_party_injury_source.py

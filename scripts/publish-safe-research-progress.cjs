@@ -156,6 +156,21 @@ function safeNFLPrerequisiteGaps(s,total){
 // player identities and NEVER establish an active, bettable player.
 // Reproducible prior-week GSIS candidate research is NOT a verified
 // cross-provider identifier: do not use it to approve NFL picks.
+function safeNFLReportedInjuries(e){
+ if(e?.kind!=="nfl_first_party_reported_injury_counts_v1"||
+    e.officialFirstGitVerified!==true||e.activeGamedayVerified!==false||
+    e.missingMeansHealthy!==false||e.approvedSelections!==0||
+    e.providerRequests!==0||e.modelPromoted!==false)return null;
+ const keys=["rows","out","questionable","doubtful","ambiguous"];
+ if(keys.some(k=>count(e[k])===null)||e.out+e.questionable+e.doubtful!==e.rows)return null;
+ const time=dt(e.capturedAt);
+ if(!Number.isFinite(time))return null;
+ return {kind:"public_nfl_explicit_official_injury_status_counts_v1",
+  reportCapturedAt:e.capturedAt,explicitStatuses:e.rows,
+  ruledOut:e.out,questionable:e.questionable,doubtful:e.doubtful,
+  duplicateStatuses:e.ambiguous,medicalClearanceVerified:false,
+  gameDayActiveVerified:false,bettingEligible:0};
+}
 function safeNFLPositiveMentions(e,sourceFresh){
  if(sourceFresh!==true||
   e?.kind!=="nfl_official_positive_game_statement_research_counts_v1"||
@@ -248,6 +263,7 @@ function safeGoblin(report,now){
    gameSchedule:safeNFLGameSchedule(report.NFL?.scheduleEvidence,report.NFL?.freshFirstGitSourceVerified),
    conditionalGSIS:safeNFLIdentityCandidates(report.NFL?.conditionalIdentityEvidence,report.NFL?.freshFirstGitSourceVerified),
    positiveGameStatements:safeNFLPositiveMentions(report.NFL?.officialPositiveEvidence,report.NFL?.freshFirstGitSourceVerified),
+   officialInjuryStatuses:safeNFLReportedInjuries(report.NFL?.officialInjuryEvidence),
    originalGoblinOffersAudited:n(report.NFL?.auditedOriginalGoblinOffers),
    exactIdentityReadyForModel:n(report.NFL?.identityReadyForNextModelStage),
    verifiedActiveRoster:report.NFL?.officialActiveRosterVerified===true,

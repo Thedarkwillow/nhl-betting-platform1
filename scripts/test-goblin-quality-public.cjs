@@ -192,3 +192,27 @@ t("official injury corroboration joins CONDITIONAL identities only and stays fai
  const stale=buildWith({...g,NFL:{...g.NFL,freshFirstGitSourceVerified:false}});
  a.equal(stale.goblinFuture.nfl.identityInjuryOverlap,null);
 });
+
+t("near-kickoff first-Git source proves observation only, never game-day player eligibility",()=>{
+ const e={kind:"nfl_partner_gameday_original_firstgit_counts_v1",
+  sourceFirstGitVerified:true,capturedAt:"2026-11-19T23:50:00Z",
+  sourceGameKeys:1,originalBoardOffers:500,
+  sourceAuthenticatedApp:false,providerGSISIdentityVerified:false,
+  positiveGamedayActiveVerified:false,modelPromoted:false,
+  approvedSelections:0,privateOffers:[{playerId:"PRIVATE",line:42.5}]};
+ const g={...gob,NFL:{...gob.NFL,gamedayOriginalEvidence:e}};
+ const p=buildWith(g).goblinFuture.nfl;
+ a.equal(p.gamedayOriginal.gamesSourceMatched,1);
+ a.equal(p.gamedayOriginal.archivedOriginalOfferRows,500);
+ a.equal(p.gamedayOriginal.originalAppVerified,false);
+ a.equal(p.gamedayOriginal.positiveGameDayActiveVerified,false);
+ a.equal(JSON.stringify(p).includes("PRIVATE"),false);
+ const rows=model({progress:buildWith(g)},Date.parse(now)).rows;
+ a.match(rows.find(x=>x.label==="NFL pre-kickoff frozen original source").value,
+  /1 source games \/ 500 original NFL offers first-Git archived before kickoff/);
+ const spoof=buildWith({...gob,NFL:{...gob.NFL,gamedayOriginalEvidence:
+  {...e,sourceFirstGitVerified:false}}});
+ a.equal(spoof.goblinFuture.nfl.gamedayOriginal,null);
+ const stale=buildWith({...g,NFL:{...g.NFL,freshFirstGitSourceVerified:false}});
+ a.equal(stale.goblinFuture.nfl.gamedayOriginal,null);
+});

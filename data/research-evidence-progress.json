@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-19T02:25:35.663Z",
+  "generatedAt": "2026-11-19T02:27:47.693Z",
   "sourceReportAt": "2026-11-19T02:01:38.385Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -211,16 +211,7 @@
       "exactIdentityReadyForModel": 0,
       "verifiedActiveRoster": false,
       "officialGameBridgeMissing": null,
-      "prerequisiteGaps": {
-        "kind": "public_nfl_goblin_missing_prerequisites_v1",
-        "originalOffersAudited": 1525,
-        "officialGame": 0,
-        "providerToGSIS": 0,
-        "positiveActiveRoster": 0,
-        "rowsMayHaveMultipleBlockers": true,
-        "verifiedActive": false,
-        "eligiblePicks": 0
-      },
+      "prerequisiteGaps": null,
       "providerGSiSBridgeMissing": null,
       "positiveActiveStatusMissing": null,
       "firstGitEligible": 0

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-19T23:15:18.310Z",
-  "sourceReportAt": "2026-11-19T22:33:34.171Z",
+  "generatedAt": "2026-11-19T23:18:34.141Z",
+  "sourceReportAt": "2026-11-19T23:16:25.438Z",
   "periodHistory": {
     "accountedDays": 261,
     "calendarDays": 261,
@@ -40,10 +40,10 @@
         "NFL": {
           "native": 117,
           "no_event": 33,
-          "no_exact_name": 22,
-          "no_market": 3,
+          "no_exact_name": 20,
+          "no_market": 1,
           "no_same_threshold": 15,
-          "no_preexisting_frame": 27,
+          "no_preexisting_frame": 31,
           "ambiguous_identity": 0,
           "conditional_match": 17
         }
@@ -74,7 +74,7 @@
     "verifiedROI": null
   },
   "validationSample": {
-    "sourceReportAt": "2026-11-19T22:31:22.355Z",
+    "sourceReportAt": "2026-11-19T23:12:17.249Z",
     "nhlStandardFrozenDecisions": 783,
     "nhlStandardFrozenGames": 65,
     "nhlStandardFrozenPacificSlates": 11,

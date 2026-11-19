@@ -1,0 +1,70 @@
+name: Validate free NFL prior-week GSIS candidate matching
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-nfl-free-identity.yml'
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'scripts/test-goblin-quality-public.cjs'
+  push:
+    branches: [main, 'research/nfl-free-identity-source-validation-20261118']
+    paths:
+      - '.github/workflows/validate-nfl-free-identity.yml'
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'scripts/test-goblin-quality-public.cjs'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify public sanitized conditional GSIS counts
+        working-directory: public
+        run: node --test scripts/test-goblin-quality-public.cjs scripts/test-roadmap-evidence-desk.cjs
+      - name: Check private read credential
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/nfl-free-roster-identity-and-gameday-proof-20261118
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run private identity, schedule and active-status tests
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --check src/nfl-goblin-free-identity-research.cjs
+          node --check scripts/report-goblin-forward.cjs
+          node --test test/nfl-goblin-free-identity-research.test.cjs \
+            test/nfl-goblin-schedule-bridge.test.cjs \
+            test/goblin-selective-and-nfl-identity.test.cjs
+      - name: Audit real original archived roster schema and conditional match totals with no player names
+        working-directory: private
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs'),zlib=require('node:zlib');
+          const data=JSON.parse(zlib.gunzipSync(fs.readFileSync('outputs/nfl/history/2026/weekly_rosters.json.gz')));
+          if(data.dataset!=='weekly_rosters'||data.recordCount!==data.rows?.length||
+             data.rows.length<1000)throw Error('Insufficient historical roster source');
+          const cols=Object.keys(data.rows[0]),keys=['season','week','team','position'];
+          if(!keys.every(k=>cols.includes(k))||
+             !cols.some(k=>k==='gsis_id'||k==='player_id')||
+             !cols.some(k=>k==='full_name'||k==='player_name'||k==='player_display_name'))
+           throw Error('Historical GSIS roster schema lacks mandatory identity fields');
+          const p=JSON.parse(fs.readFileSync('outputs/health/goblin-forward-latest.json','utf8'));
+          if(p.NFL?.identityReadyForNextModelStage!==0)
+           throw Error('Do not automatically approve conditional GSIS research');
+          console.log('PASS: existing archived 2026 roster schema; no provider calls, zero eligible bets');
+          NODE

@@ -154,6 +154,21 @@
         "not independently shared-ID verified and NOT game-day active",
        ageMinutes:age(gob.sourceReportAt,now)});
     }
+    const frozenBoard=n?.gamedayOriginal;
+    if(frozenBoard?.kind==="public_nfl_gameday_partner_source_firstgit_v1"&&
+       frozenBoard.originalAppVerified===false&&
+       frozenBoard.sharedGSISVerified===false&&
+       frozenBoard.positiveGameDayActiveVerified===false&&
+       frozenBoard.approvedPicks===0&&
+       count(frozenBoard.gamesSourceMatched)&&count(frozenBoard.archivedOriginalOfferRows)&&
+       frozenBoard.gamesSourceMatched<=frozenBoard.archivedOriginalOfferRows){
+      rows.push({label:"NFL pre-kickoff frozen original source",
+       value:frozenBoard.gamesSourceMatched+" source games / "+
+        frozenBoard.archivedOriginalOfferRows+
+        " original NFL offers first-Git archived before kickoff; "+
+        "not verified in-app offers, approved picks, or game-day ACTIVE players",
+       ageMinutes:age(frozenBoard.capturedAt,now)});
+    }
     const overlap=n?.identityInjuryOverlap;
     if(overlap?.kind==="public_nfl_conditional_gsis_official_injury_overlap_v1"&&
        overlap.verifiedPrizePicksGSIS===0&&overlap.gameDayActiveConfirmed===0&&

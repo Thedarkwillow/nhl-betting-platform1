@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "kind": "public_nhl_nfl_original_git_frozen_model_scorecards_v1",
-  "generatedAt": "2026-11-19T00:03:40.056Z",
+  "generatedAt": "2026-11-19T02:22:39.157Z",
   "sources": {
     "nhlOriginalFrozenBaselineAt": "2026-11-18T22:58:57.725Z",
     "nflFirstGitForecastAuditAt": "2026-11-18T02:47:49.282Z",
-    "nhlForwardChallengerAuditAt": "2026-11-18T22:59:14.977Z"
+    "nhlForwardChallengerAuditAt": "2026-11-19T01:32:10.790Z"
   },
   "nhl": {
     "sport": "NHL",
@@ -192,10 +192,10 @@
       }
     ],
     "threeChallengerFuture": {
-      "registered": 774,
+      "registered": 804,
       "decided": 720,
       "push": 2,
-      "pending": 52,
+      "pending": 82,
       "championPromoted": false
     },
     "source": "NHL official-stat directional outcomes only",

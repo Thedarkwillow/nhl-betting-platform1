@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-19T02:03:28.484Z",
+  "generatedAt": "2026-11-19T02:22:39.769Z",
   "sourceReportAt": "2026-11-19T02:01:38.385Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -156,6 +156,7 @@
       "archivedFirstGit": 278,
       "duplicatesQuarantined": 108,
       "selectivePolicyRequiresNewSource": false,
+      "postPolicyScreening": null,
       "futureDecided": 0,
       "futureRegistered": 278
     },
@@ -167,6 +168,7 @@
       "exactIdentityReadyForModel": 0,
       "verifiedActiveRoster": false,
       "officialGameBridgeMissing": 1525,
+      "prerequisiteGaps": null,
       "providerGSiSBridgeMissing": null,
       "positiveActiveStatusMissing": null,
       "firstGitEligible": 0

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-19T00:01:18.109Z",
+  "generatedAt": "2026-11-19T00:03:41.141Z",
   "sourceReportAt": "2026-11-18T23:59:31.131Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -154,12 +154,21 @@
       "newCandidates": 0,
       "newAbstentions": 0,
       "archivedFirstGit": 235,
+      "duplicatesQuarantined": 108,
+      "selectivePolicyRequiresNewSource": true,
       "futureDecided": 0,
       "futureRegistered": 235
     },
     "nfl": {
       "supportedOpportunityResearchImplemented": true,
       "freshFullPlayerIdentityAndAvailabilityVerified": false,
+      "sourceFirstGitCurrent": false,
+      "originalGoblinOffersAudited": null,
+      "exactIdentityReadyForModel": null,
+      "verifiedActiveRoster": false,
+      "officialGameBridgeMissing": null,
+      "providerGSiSBridgeMissing": null,
+      "positiveActiveStatusMissing": null,
       "firstGitEligible": 0
     },
     "calibration": {

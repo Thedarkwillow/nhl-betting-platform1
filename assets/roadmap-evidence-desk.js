@@ -154,6 +154,23 @@
         "not independently shared-ID verified and NOT game-day active",
        ageMinutes:age(gob.sourceReportAt,now)});
     }
+    const overlap=n?.identityInjuryOverlap;
+    if(overlap?.kind==="public_nfl_conditional_gsis_official_injury_overlap_v1"&&
+       overlap.verifiedPrizePicksGSIS===0&&overlap.gameDayActiveConfirmed===0&&
+       overlap.approvedPicks===0&&
+       [overlap.provisionalPlayers,overlap.officialInjuryGSISCorroborations,
+        overlap.outExcluded,overlap.questionableHeld,overlap.doubtfulHeld,
+        overlap.unknownStatus,overlap.identityConflicts].every(count)&&
+       overlap.outExcluded+overlap.questionableHeld+overlap.doubtfulHeld===
+        overlap.officialInjuryGSISCorroborations){
+      rows.push({label:"NFL provisional GSIS + official injury overlap",
+       value:overlap.officialInjuryGSISCorroborations+" conditional GSIS identities matched "+
+        "official injury records: "+overlap.outExcluded+" OUT, "+
+        overlap.questionableHeld+" QUESTIONABLE, "+overlap.doubtfulHeld+" DOUBTFUL; "+
+        overlap.unknownStatus+" without an explicit matching injury status; "+
+        "no verified direct PP identifier or game-day ACTIVE status",
+       ageMinutes:age(gob.sourceReportAt,now)});
+    }
     const officialRisk=n?.officialInjuryStatuses;
     if(officialRisk?.kind==="public_nfl_explicit_official_injury_status_counts_v1"&&
        officialRisk.medicalClearanceVerified===false&&

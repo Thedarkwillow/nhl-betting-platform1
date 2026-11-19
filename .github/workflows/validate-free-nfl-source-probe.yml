@@ -113,7 +113,7 @@ jobs:
           python -m unittest discover -s test -p test_official_pregame_status.py
           python -m unittest discover -s test -p test_nfl_official_active_news.py
           node --test test/nfl-goblin-official-active-mentions.test.cjs
-          python scripts/collect-nfl-official-game-status.py > /tmp/official_nfl_counts
+          python scripts/collect-nfl-official-game-status.py > /tmp/official_nfl_counts || { tail -n 12 /tmp/official_nfl_counts; exit 1; }
           python - <<'PY'
           import json,pathlib
           d=json.loads(pathlib.Path('/tmp/official_nfl_counts').read_text().splitlines()[-1])

@@ -1,0 +1,76 @@
+name: Verify 235 genuine original Goblin records and safe NFL readiness publication
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-goblin-166-registration.yml'
+      - '.github/workflows/private-nhl-goblin-forward.yml'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'scripts/test-publish-safe-research-progress.cjs'
+      - 'scripts/test-roadmap-evidence-desk.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+  push:
+    branches: [main, 'feat/**']
+    paths:
+      - '.github/workflows/validate-goblin-166-registration.yml'
+      - '.github/workflows/private-nhl-goblin-forward.yml'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'scripts/test-publish-safe-research-progress.cjs'
+      - 'scripts/test-roadmap-evidence-desk.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+permissions:
+  contents: read
+jobs:
+  grade-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify only safe counts become public and original payout EV stays blocked
+        working-directory: public
+        run: |
+          node --check scripts/publish-safe-research-progress.cjs
+          node --check assets/roadmap-evidence-desk.js
+          node --test scripts/test-publish-safe-research-progress.cjs \
+            scripts/test-roadmap-evidence-desk.cjs \
+            scripts/test-goblin-forward-automation.cjs
+      - name: Require private research read authorization
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private research archive unavailable"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 3174ea2f07a02d32396b13bca215b8f62cf89078
+          path: private
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - name: Verify 54 + 112 + 69 first-Git research and forward-only selective policy
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --test test/goblin-selective-and-nfl-identity.test.cjs \
+            test/goblin-forward-runner.test.cjs
+          node scripts/report-goblin-forward.cjs > /tmp/goblin-only-aggregates.json
+          node - <<'NODE'
+          const d=require('./outputs/health/goblin-forward-latest.json');
+          if(d.NHL.archivedFirstGitRecords!==235||
+             d.comparison.registered!==235||
+             d.NHL.quarantinedDuplicateFirstGitRows!==108||
+             d.NHL.newPrecommitFile!==null||
+             d.NHL.newResearchCandidates!==0||
+             d.NHL.selectivePolicySourceEligible!==false||
+             d.modelPromoted!==false||d.calibratedProbabilityApproved!==false||
+             d.actualWagersPlaced!==0||d.providerRequests!==0||
+             d.NFL?.prospectiveOfficialInjuryAndIdentityVerified!==false||
+             d.NFL?.newEligibleFirstGitRecords!==0)
+            throw Error('Frozen Goblin data or prospective policy integrity changed');
+          console.log(JSON.stringify({uniqueFirstGit:235,oldArchiveCopiesQuarantined:108,
+            approvedNFLGoblin:0,retroactiveScreening:false,
+            providerRequests:0,actualWagersPlaced:0}));
+          NODE

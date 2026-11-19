@@ -118,3 +118,5 @@ jobs:
             sleep "$attempt"
           done
           exit 1
+
+# Nov 18: rerun no-credit original first-Git Goblin grade/report after private policy merge; retain 166 prepolicy original hypotheses without retroactive selection and publish only count-only NFL eligibility blockers.

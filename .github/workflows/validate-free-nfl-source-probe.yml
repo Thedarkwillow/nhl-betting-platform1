@@ -113,6 +113,21 @@ jobs:
           python -m unittest discover -s test -p test_official_pregame_status.py
           python -m unittest discover -s test -p test_nfl_official_active_news.py
           node --test test/nfl-goblin-official-active-mentions.test.cjs
+          python - <<'PY'
+          import runpy,urllib.request,collections
+          mod=runpy.run_path('scripts/collect-nfl-official-game-status.py')
+          url='https://fantasy-www.nfl.com/news/nfl-week-11-injury-report-2026-season'
+          with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'}),timeout=12) as r:
+              h=r.read(4500000).decode('utf8','replace')
+          p=mod['ReportParser']();p.feed(h)
+          t=[x[1] for x in p.blocks if x[0] in ('h3','h2')]
+          bs=[x for x in p.blocks if x[0]=='li' and x[1].startswith(('OUT:','DOUBTFUL:','QUESTIONABLE:'))]
+          roster=mod['dataset']('weekly_rosters')
+          season=[x for x in roster if int(x.get('season',0))==2026 and 10<=int(x.get('week',0))<=11 and x.get('team') in ('IND','HOU')]
+          print('DIAGNOSTIC_OFFICIAL',{'teamsHeader':[x for x in t if x.upper() in ('COLTS','TEXANS')],'statuses':len(bs),
+           'statusesWithLinks':sum(bool(x[2]) for x in bs),'linkedNameCounts':[len(x[2]) for x in bs[:8]],
+           'priorRosterEntries':len(season),'priorGSIS':len({x.get('gsis_id') for x in season})})
+          PY
           python scripts/collect-nfl-official-game-status.py > /tmp/official_nfl_counts || { tail -n 12 /tmp/official_nfl_counts; exit 1; }
           python - <<'PY'
           import json,pathlib

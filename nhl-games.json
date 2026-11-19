@@ -4,48 +4,48 @@
   "source": "NHL Web API",
   "endpoint": "https://api-web.nhle.com/v1/score/2026-11-19",
   "pacificDate": "2026-11-19",
-  "observedAtUTC": "2026-11-19T22:06:12.229Z",
+  "observedAtUTC": "2026-11-19T23:32:03.406Z",
   "note": "Public NHL scores only. No player props, model predictions or platform settlements.",
   "games": [
     {
       "gameId": 2026020347,
       "startTimeUTC": "2026-11-20T00:00:00Z",
-      "state": "FUT",
+      "state": "PRE",
       "away": "LAK",
       "home": "TOR"
     },
     {
       "gameId": 2026020348,
       "startTimeUTC": "2026-11-20T00:00:00Z",
-      "state": "FUT",
+      "state": "PRE",
       "away": "PHI",
       "home": "OTT"
     },
     {
       "gameId": 2026020350,
       "startTimeUTC": "2026-11-20T00:00:00Z",
-      "state": "FUT",
+      "state": "PRE",
       "away": "STL",
       "home": "PIT"
     },
     {
       "gameId": 2026020351,
       "startTimeUTC": "2026-11-20T00:00:00Z",
-      "state": "FUT",
+      "state": "PRE",
       "away": "BUF",
       "home": "WSH"
     },
     {
       "gameId": 2026020352,
       "startTimeUTC": "2026-11-20T00:00:00Z",
-      "state": "FUT",
+      "state": "PRE",
       "away": "MTL",
       "home": "CAR"
     },
     {
       "gameId": 2026020354,
       "startTimeUTC": "2026-11-20T00:00:00Z",
-      "state": "FUT",
+      "state": "PRE",
       "away": "NYI",
       "home": "WPG"
     },

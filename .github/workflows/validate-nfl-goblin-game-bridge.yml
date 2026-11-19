@@ -1,3 +1,4 @@
+# Retest private kickoff normalization after no-lineup DST assertion fix.
 name: Validate NFL Goblin archived game schedule bridge
 on:
   pull_request:

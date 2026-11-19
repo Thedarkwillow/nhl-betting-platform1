@@ -65,6 +65,11 @@ jobs:
           const schedule=priorSchedule(process.cwd(),new Date().toISOString());
           if(!schedule||schedule.length<200)
             throw Error('Existing first-Git NFL 2026 schedule not authenticated');
+          const {gamesToFreeze}=require('./scripts/collect-nfl-gameday-source.cjs');
+          const next=gamesToFreeze(schedule,'2026-11-19T23:50:00Z');
+          if(!next.some(g=>g.gameId==='2026_11_IND_HOU'))
+            throw Error('The actual archived Colts–Texans Thursday kickoff would not trigger pregame capture');
+          console.log('PASS: Nov 19 Colts–Texans verified 3:50 PM Pacific source-freeze trigger');
           const h=require('./outputs/health/goblin-forward-latest.json');
           if(h.NFL?.identityReadyForNextModelStage!==0)
             throw Error('No direct authenticated PP-to-GSIS or gameday active status yet');

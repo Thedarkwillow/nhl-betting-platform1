@@ -168,3 +168,27 @@ t("first-party NFL reported injuries display separately from verified active lin
   {...e,activeGamedayVerified:true}}});
  a.equal(spoof.goblinFuture.nfl.officialInjuryStatuses,null);
 });
+
+t("official injury corroboration joins CONDITIONAL identities only and stays fail closed",()=>{
+ const e={kind:"nfl_independent_identity_injury_overlap_research_v1",
+  sourceFirstGitBeforeBoard:true,conditionalPlayers:5,
+  officialGsisCorroborated:2,confirmedOut:1,questionableHold:1,
+  doubtfulHold:0,duplicateOrConflictingStatuses:0,
+  notOfficiallyStatusMatched:3,authenticatedProviderGSIS:0,
+  positiveActiveGameday:0,productionEligible:0,modelPromoted:false,
+  providerRequests:0,privatePlayers:["SECRET PLAYER","GSIS PRIVATE"]};
+ const g={...gob,NFL:{...gob.NFL,officialIdentityInjuryOverlap:e}};
+ const out=buildWith(g),x=out.goblinFuture.nfl.identityInjuryOverlap;
+ a.equal(x.officialInjuryGSISCorroborations,2);
+ a.equal(x.outExcluded,1);a.equal(x.questionableHeld,1);
+ a.equal(x.unknownStatus,3);a.equal(x.gameDayActiveConfirmed,0);
+ a.equal(JSON.stringify(out.goblinFuture).includes("SECRET PLAYER"),false);
+ a.match(model({progress:out},Date.parse(now)).rows.find(
+  z=>z.label==="NFL provisional GSIS + official injury overlap").value,
+  /2 conditional GSIS identities.*1 OUT, 1 QUESTIONABLE, 0 DOUBTFUL/);
+ const spoof=buildWith({...gob,NFL:{...gob.NFL,
+  officialIdentityInjuryOverlap:{...e,positiveActiveGameday:4}}});
+ a.equal(spoof.goblinFuture.nfl.identityInjuryOverlap,null);
+ const stale=buildWith({...g,NFL:{...g.NFL,freshFirstGitSourceVerified:false}});
+ a.equal(stale.goblinFuture.nfl.identityInjuryOverlap,null);
+});

@@ -156,6 +156,24 @@ function safeNFLPrerequisiteGaps(s,total){
 // player identities and NEVER establish an active, bettable player.
 // Reproducible prior-week GSIS candidate research is NOT a verified
 // cross-provider identifier: do not use it to approve NFL picks.
+function safeNFLPositiveMentions(e,sourceFresh){
+ if(sourceFresh!==true||
+  e?.kind!=="nfl_official_positive_game_statement_research_counts_v1"||
+  e.officialCompleteGameRosterVerified!==false||
+  e.officialPositiveProviderGSISVerified!==0||
+  e.approvedSelections!==0||
+  e.originalAppActiveVerified!==false||
+  e.noActiveByOmission!==true||
+  e.modelPromoted!==false||e.providerRequests!==0)return null;
+ const keys=["articlesObserved","explicitMentions","corroboratedConditionalPlayers"];
+ if(keys.some(k=>count(e[k])===null)||
+  e.corroboratedConditionalPlayers>e.explicitMentions)return null;
+ return {kind:"public_nfl_official_explicit_active_mention_research_v1",
+  officialArticles:e.articlesObserved,explicitMentions:e.explicitMentions,
+  conditionalPlayersCorroborated:e.corroboratedConditionalPlayers,
+  sharedProviderIDsConfirmed:0,fullOfficialActiveRosterVerified:false,
+  approvedPicks:0,playerIdentityAndGamedayBothVerified:false};
+}
 function safeNFLIdentityCandidates(e,sourceFresh){
  if(sourceFresh!==true||
   e?.kind!=="nfl_original_provider_to_gsis_candidate_research_v1"||
@@ -229,6 +247,7 @@ function safeGoblin(report,now){
    sourceFirstGitCurrent:report.NFL?.freshFirstGitSourceVerified===true,
    gameSchedule:safeNFLGameSchedule(report.NFL?.scheduleEvidence,report.NFL?.freshFirstGitSourceVerified),
    conditionalGSIS:safeNFLIdentityCandidates(report.NFL?.conditionalIdentityEvidence,report.NFL?.freshFirstGitSourceVerified),
+   positiveGameStatements:safeNFLPositiveMentions(report.NFL?.officialPositiveEvidence,report.NFL?.freshFirstGitSourceVerified),
    originalGoblinOffersAudited:n(report.NFL?.auditedOriginalGoblinOffers),
    exactIdentityReadyForModel:n(report.NFL?.identityReadyForNextModelStage),
    verifiedActiveRoster:report.NFL?.officialActiveRosterVerified===true,

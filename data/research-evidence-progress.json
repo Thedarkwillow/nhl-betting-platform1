@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-19T00:04:47.709Z",
+  "generatedAt": "2026-11-19T01:21:18.345Z",
   "sourceReportAt": "2026-11-18T23:59:31.131Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -91,13 +91,13 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-18T23:26:56.739Z",
+    "nhlReportAt": "2026-11-19T01:19:33.247Z",
     "nflReportAt": "2026-11-18T02:48:16.486Z",
     "nhl": {
-      "registered": 24,
-      "eligible": 6,
-      "abstained": 18,
-      "pending": 6,
+      "registered": 29,
+      "eligible": 9,
+      "abstained": 20,
+      "pending": 9,
       "decided": 0
     },
     "nfl": {
@@ -115,11 +115,11 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-18T23:26:57.175Z",
+    "sourceReportAt": "2026-11-19T01:19:33.816Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
-      "completeOfficialGames": 1610,
-      "zeroShotAppearancesRetained": 15779,
+      "completeOfficialGames": 1615,
+      "zeroShotAppearancesRetained": 15813,
       "missingShotRows": 0,
       "fullRosterAuditPass": false,
       "syntheticShotsPredicted": 7052,
@@ -147,26 +147,26 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-19T00:03:35.757Z",
+    "sourceReportAt": "2026-11-19T01:20:18.682Z",
     "nhl": {
-      "sourceEligible": false,
-      "examined": 0,
-      "newCandidates": 0,
-      "newAbstentions": 0,
+      "sourceEligible": true,
+      "examined": 43,
+      "newCandidates": 17,
+      "newAbstentions": 26,
       "archivedFirstGit": 235,
       "duplicatesQuarantined": 108,
-      "selectivePolicyRequiresNewSource": true,
+      "selectivePolicyRequiresNewSource": false,
       "futureDecided": 0,
       "futureRegistered": 235
     },
     "nfl": {
       "supportedOpportunityResearchImplemented": true,
       "freshFullPlayerIdentityAndAvailabilityVerified": false,
-      "sourceFirstGitCurrent": false,
-      "originalGoblinOffersAudited": 1482,
+      "sourceFirstGitCurrent": true,
+      "originalGoblinOffersAudited": 1515,
       "exactIdentityReadyForModel": 0,
       "verifiedActiveRoster": false,
-      "officialGameBridgeMissing": null,
+      "officialGameBridgeMissing": 1515,
       "providerGSiSBridgeMissing": null,
       "positiveActiveStatusMissing": null,
       "firstGitEligible": 0

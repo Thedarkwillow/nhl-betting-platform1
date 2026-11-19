@@ -216,3 +216,60 @@ t("near-kickoff first-Git source proves observation only, never game-day player 
  const stale=buildWith({...g,NFL:{...g.NFL,freshFirstGitSourceVerified:false}});
  a.equal(stale.goblinFuture.nfl.gamedayOriginal,null);
 });
+
+t("four NHL research audits publish consistent counts with no player/odds IDs or approved picks",()=>{
+ const tri={kind:"nhl_firstgit_goblin_pending_final_triage_v1",
+  sourceProofRequired:true,registered:5,abstained:1,eligibleResearch:4,
+  verifiedFinalDecisions:1,verifiedPushes:0,beforeKickoff:1,
+  afterStartWithinFourHours:1,afterFourHoursWithoutVerifiedStat:1,
+  ambiguousOrInvalidFinal:0,missingOrInvalidFirstGit:0,distinctOriginalGames:5,
+  coherentWithGrader:true,bettingEligible:false,calibrationApproved:false,
+  modelPromoted:false,approvedLineups:0,privatePlayer:"PRIVATE_ONLY"};
+ const standard={kind:"nhl_frozen_standard_market_vs_simple_baselines_v1",
+  valid:true,originalSameFrozenLines:true,distinctMarkets:1,decided:10,
+  byMarket:{shotsOnGoal:{decided:10,distinctGames:6,modelHitRate:.4,
+   alwaysHigherRate:.3,alwaysLowerRate:.7,modelMinusLower:-.3,
+   modelMinusHigher:.1,sampleMinimum200DecisionsMet:false,
+   needsNewFrozenProspectiveChallenger:true,releaseApproved:false}},
+  prospectiveOutperformanceApproved:false,releaseApproved:false};
+ const quote={kind:"nhl_source_native_conditional_vs_original_frozen_benchmark_v1",
+  archiveKindValid:true,conditionalSameOfferSides:2,independentBookGroups:1,
+  conditionalExactThresholdGroups:1,independentlyAuthenticatedSamePropModelComparisons:0,
+  historicalModelComparisonRows:0,currentQuoteFresh:false,
+  sharedPlayerIdentifierVerified:false,originalAppAvailabilityVerified:false,
+  verifiedPayoutEV:false,matchedQuoteIsNotBettable:true,newProviderRequests:0,
+  odds:-110};
+ const calibr={kind:"nhl_standard_original_probability_calibration_readiness_v1",
+  sourceValid:true,decided:744,distinctGames:62,distinctDates:10,
+  originalAverageProbability:.616,observedHitRate:.496,rawBrier:.273,
+  absoluteOverconfidenceGap:.12,rawProbabilityOverconfidenceObserved:true,
+  minimum20DistinctDatesMet:false,perMarketTierCalibrationValidated:false,
+  independentHoldoutCalibratorValidated:false,
+  sportsbookConsensusAndPayoutEVVerified:false,
+  approvedProbabilityDisplay:false,approvedLineups:0,modelPromoted:false};
+ const data={...gob,NHL:{...gob.NHL,pendingOfficialTriage:tri,
+  standardMarketSameLineAudit:standard,sportsbookSourceCoverage:quote,
+  standardCalibrationHoldout:calibr}};
+ const p=buildWith(data);
+ const h=p.goblinFuture.nhl;
+ a.equal(h.pendingOfficialTriage.officialGradingNeeded,3);
+ a.equal(h.standardSameLineMarkets.byMarket.shotsOnGoal.modelMinusLower,-.3);
+ a.equal(h.sportsbookConditional.conditionalOfferSides,2);
+ a.equal(h.sportsbookConditional.exactOriginalModelLineMatches,0);
+ a.equal(h.standardCalibration.independentlyCalibrated,false);
+ a.equal(JSON.stringify(p.goblinFuture).includes("PRIVATE_ONLY"),false);
+ a.equal(JSON.stringify(p.goblinFuture).includes("-110"),false);
+ const rows=model({progress:p},Date.parse(now)).rows;
+ for(const label of ["NHL Goblin official-result reconciliation",
+ "NHL Standard exact-line baseline evidence",
+ "NHL sportsbook matching — two separate denominators",
+ "NHL Standard future probability calibration"]){
+  a.ok(rows.some(x=>x.label===label),label);
+ }
+ const bad=buildWith({...data,NHL:{...data.NHL,pendingOfficialTriage:
+  {...tri,coherentWithGrader:false}}});
+ a.equal(bad.goblinFuture.nhl.pendingOfficialTriage,null);
+ const spoof=buildWith({...data,NHL:{...data.NHL,standardCalibrationHoldout:
+  {...calibr,approvedProbabilityDisplay:true}}});
+ a.equal(spoof.goblinFuture.nhl.standardCalibration,null);
+});

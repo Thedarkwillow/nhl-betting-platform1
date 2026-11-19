@@ -60,3 +60,14 @@ t("dashboard explicitly distinguishes screened research, skipped offered sides a
  a.match(rows.find(r=>r.label==="NHL Goblin NEW-policy screening").value,
   /accuracy and payout EV unverified/);
 });
+
+t("successful official NHL FINAL sources trigger Goblin-only retrospective grading safely",()=>{
+ const fs=require("node:fs");
+ const w=fs.readFileSync(".github/workflows/private-nhl-goblin-forward.yml","utf8");
+ a.match(w,/Private NHL official stats and projections on free public runner/);
+ a.match(w,/Private NHL prospective grading and baseline audit via public runner/);
+ a.match(w,/github\.event\.workflow_run\.conclusion == 'success'/);
+ a.match(w,/test\/goblin-quality-odds-nfl-source-gaps\.test\.cjs/);
+ a.match(w,/node scripts\/report-goblin-forward\.cjs/);
+ a.doesNotMatch(w,/AUTO_WAGER|PLACE_BET/);
+});

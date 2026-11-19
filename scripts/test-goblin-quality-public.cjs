@@ -91,7 +91,7 @@ t("public NFL schedule count-only bridge cannot be mistaken for player identity 
  a.equal(JSON.stringify(published.goblinFuture).includes("DO NOT PUBLISH"),false);
  const shown=model({progress:published},Date.parse(now)).rows;
  a.match(shown.find(r=>r.label==="NFL Goblin independent schedule ID bridge").value,
-  /2 \/ 3 source game keys.*player-to-GSIS player ID and game-day active status NOT verified/);
+  /2 \/ 3 source game keys.*provider-to-GSIS player ID and game-day active status NOT verified/);
  a.equal(published.goblinFuture.nfl.gameSchedule.gameDayActiveVerified,false);
  const stale=buildWith({...g,NFL:{...g.NFL,freshFirstGitSourceVerified:false}});
  a.equal(stale.goblinFuture.nfl.gameSchedule,null);

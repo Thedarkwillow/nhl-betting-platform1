@@ -1,4 +1,4 @@
-name: Verify 166 original Goblin records and safe NFL readiness publication
+name: Verify 235 genuine original Goblin records and safe NFL readiness publication
 on:
   pull_request:
     paths:
@@ -50,7 +50,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
-      - name: Verify original 54 + 112 first Git unique research and future-only selective policy
+      - name: Verify 54 + 112 + 69 first-Git research and forward-only selective policy
         working-directory: private
         run: |
           set -euo pipefail
@@ -59,8 +59,8 @@ jobs:
           node scripts/report-goblin-forward.cjs > /tmp/goblin-only-aggregates.json
           node - <<'NODE'
           const d=require('./outputs/health/goblin-forward-latest.json');
-          if(d.NHL.archivedFirstGitRecords!==166||
-             d.comparison.registered!==166||
+          if(d.NHL.archivedFirstGitRecords!==235||
+             d.comparison.registered!==235||
              d.NHL.quarantinedDuplicateFirstGitRows!==108||
              d.NHL.newPrecommitFile!==null||
              d.NHL.newResearchCandidates!==0||
@@ -70,7 +70,7 @@ jobs:
              d.NFL?.prospectiveOfficialInjuryAndIdentityVerified!==false||
              d.NFL?.newEligibleFirstGitRecords!==0)
             throw Error('Frozen Goblin data or prospective policy integrity changed');
-          console.log(JSON.stringify({uniqueFirstGit:166,oldArchiveCopiesQuarantined:108,
+          console.log(JSON.stringify({uniqueFirstGit:235,oldArchiveCopiesQuarantined:108,
             approvedNFLGoblin:0,retroactiveScreening:false,
             providerRequests:0,actualWagersPlaced:0}));
           NODE

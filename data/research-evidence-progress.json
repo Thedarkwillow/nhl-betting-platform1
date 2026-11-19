@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-19T00:03:56.319Z",
+  "generatedAt": "2026-11-19T00:04:47.709Z",
   "sourceReportAt": "2026-11-18T23:59:31.131Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -147,9 +147,9 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-18T23:34:12.410Z",
+    "sourceReportAt": "2026-11-19T00:03:35.757Z",
     "nhl": {
-      "sourceEligible": true,
+      "sourceEligible": false,
       "examined": 0,
       "newCandidates": 0,
       "newAbstentions": 0,
@@ -163,8 +163,8 @@
       "supportedOpportunityResearchImplemented": true,
       "freshFullPlayerIdentityAndAvailabilityVerified": false,
       "sourceFirstGitCurrent": false,
-      "originalGoblinOffersAudited": null,
-      "exactIdentityReadyForModel": null,
+      "originalGoblinOffersAudited": 1482,
+      "exactIdentityReadyForModel": 0,
       "verifiedActiveRoster": false,
       "officialGameBridgeMissing": null,
       "providerGSiSBridgeMissing": null,

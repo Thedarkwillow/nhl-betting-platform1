@@ -156,6 +156,23 @@ function safeNFLPrerequisiteGaps(s,total){
 // player identities and NEVER establish an active, bettable player.
 // Reproducible prior-week GSIS candidate research is NOT a verified
 // cross-provider identifier: do not use it to approve NFL picks.
+function safeNFLGamedaySource(e,sourceFresh){
+ if(sourceFresh!==true||
+  e?.kind!=="nfl_partner_gameday_original_firstgit_counts_v1"||
+  e.sourceFirstGitVerified!==true||e.sourceAuthenticatedApp!==false||
+  e.providerGSISIdentityVerified!==false||
+  e.positiveGamedayActiveVerified!==false||
+  e.modelPromoted!==false||e.approvedSelections!==0||
+  count(e.sourceGameKeys)===null||count(e.originalBoardOffers)===null||
+  e.sourceGameKeys<1||e.originalBoardOffers<e.sourceGameKeys||
+  !Number.isFinite(dt(e.capturedAt)))return null;
+ return {kind:"public_nfl_gameday_partner_source_firstgit_v1",
+  capturedAt:e.capturedAt,
+  gamesSourceMatched:e.sourceGameKeys,
+  archivedOriginalOfferRows:e.originalBoardOffers,
+  originalAppVerified:false,sharedGSISVerified:false,
+  positiveGameDayActiveVerified:false,approvedPicks:0};
+}
 function safeNFLOfficialOverlap(e,sourceFresh){
  if(sourceFresh!==true||
   e?.kind!=="nfl_independent_identity_injury_overlap_research_v1"||
@@ -286,6 +303,7 @@ function safeGoblin(report,now){
    positiveGameStatements:safeNFLPositiveMentions(report.NFL?.officialPositiveEvidence,report.NFL?.freshFirstGitSourceVerified),
    officialInjuryStatuses:safeNFLReportedInjuries(report.NFL?.officialInjuryEvidence),
    identityInjuryOverlap:safeNFLOfficialOverlap(report.NFL?.officialIdentityInjuryOverlap,report.NFL?.freshFirstGitSourceVerified),
+   gamedayOriginal:safeNFLGamedaySource(report.NFL?.gamedayOriginalEvidence,report.NFL?.freshFirstGitSourceVerified),
    originalGoblinOffersAudited:n(report.NFL?.auditedOriginalGoblinOffers),
    exactIdentityReadyForModel:n(report.NFL?.identityReadyForNextModelStage),
    verifiedActiveRoster:report.NFL?.officialActiveRosterVerified===true,

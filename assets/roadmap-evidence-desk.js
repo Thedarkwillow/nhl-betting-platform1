@@ -138,6 +138,22 @@
         "provider-to-GSIS player ID and game-day active status NOT verified",
        ageMinutes:age(gob.sourceReportAt,now)});
     }
+    const identities=n?.conditionalGSIS;
+    if(identities?.kind==="public_nfl_conditional_gsis_research_counts_v1"&&
+      identities.verifiedSharedProviderIDs===0&&
+      identities.verifiedGamedayActive===0&&
+      identities.approvedSelections===0&&identities.probabilityApproved===false&&
+      [identities.priorRosterCandidates,identities.sourcePlayers,
+       identities.ambiguous,identities.insufficientPriorWeeks,
+       identities.missingRoster,identities.conflictingSource].every(count)&&
+      identities.priorRosterCandidates<=identities.sourcePlayers){
+      rows.push({label:"NFL Goblin free GSIS candidate matching",
+       value:identities.priorRosterCandidates+" of "+
+        identities.sourcePlayers+" unique source players conditionally paired with "+
+        "prior-week GSIS records; "+identities.ambiguous+" ambiguous; "+
+        "not independently shared-ID verified and NOT game-day active",
+       ageMinutes:age(gob.sourceReportAt,now)});
+    }
     const gaps=n?.prerequisiteGaps;
     if(gaps?.kind==="public_nfl_goblin_missing_prerequisites_v1"&&
        gaps.rowsMayHaveMultipleBlockers===true&&gaps.verifiedActive===false&&

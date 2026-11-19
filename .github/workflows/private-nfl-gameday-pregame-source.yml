@@ -1,0 +1,104 @@
+name: Private NFL pre-kickoff board freeze via free public runner
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nfl-gameday-pregame-source.yml']
+  schedule:
+    # Guards in private collector permit source calls ONLY when an archived
+    # 2026 NFL schedule has a kickoff 45-135 minutes from actual capture.
+    - cron: '45 8 * * *'
+      timezone: America/Los_Angeles
+    - cron: '0 12 * * *'
+      timezone: America/Los_Angeles
+    - cron: '50 15 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-nfl-gameday-original-source
+  cancel-in-progress: false
+jobs:
+  original-archive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    steps:
+      - name: Require existing private first-Git archive authorization
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate original pre-kickoff board and no-betting identity gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/collect-nfl-gameday-source.cjs
+          node --check scripts/verify-nfl-gameday-source.cjs
+          node --test \
+            test/nfl-gameday-original-source.test.cjs \
+            test/nfl-goblin-independent-injury-corroboration.test.cjs \
+            test/nfl-goblin-free-identity-research.test.cjs \
+            test/nfl-goblin-schedule-bridge.test.cjs
+      - name: Source-only partner board capture, only 45-135 minutes before verified NFL kickoff
+        id: capture
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/collect-nfl-gameday-source.cjs > /tmp/nfl-gameday-capture.json
+          node - <<'NODE'
+          const a=require('/tmp/nfl-gameday-capture.json');
+          if(!["private_nfl_gameday_source_precommit_pending",
+                "no_upcoming_game_in_45_to_135_minute_window",
+                "no_exact_partner_schedule_matches",
+                "pregame_schedule_git_proof_missing",
+                "too_close_to_kickoff_for_first_git_freeze"].includes(a.status))
+            throw Error("Unexpected NFL source collector result");
+          if(a.approvedBets!==undefined&&a.approvedBets!==0)
+            throw Error("No source research can wager or certify player activity");
+          console.log(JSON.stringify({status:a.status,games:a.verifiedGameCount||0,
+            originalRows:a.originalRows||0,providerRequests:a.providerRequests,
+            approvedPicks:0,playerGSISVerified:false,gamedayActiveVerified:false}));
+          NODE
+      - name: Check original source before first Git
+        if: steps.capture.outputs.status == 'private_nfl_gameday_source_precommit_pending'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-nfl-gameday-source.cjs "${{ steps.capture.outputs.archive_dir }}"
+      - name: Commit exact original NFL lines to PRIVATE Git before kickoff
+        if: steps.capture.outputs.status == 'private_nfl_gameday_source_precommit_pending'
+        shell: bash
+        env:
+          ARCHIVE_DIR: ${{ steps.capture.outputs.archive_dir }}
+        run: |
+          set -euo pipefail
+          umask 077
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$ARCHIVE_DIR/manifest.json" "$ARCHIVE_DIR"/nfl-*.json
+          git commit -qm 'data(nfl): immutable exact pre-kickoff original partner source, no pick claims'
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main ||
+              { git rebase --abort; exit 1; }
+            # A Git rewrite after kickoff must fail; never retroactively
+            # claim original lines or activity from a delayed commit.
+            node scripts/verify-nfl-gameday-source.cjs "$ARCHIVE_DIR" first-git
+            if git push -q origin HEAD:main; then
+              echo 'PASS: original NFL gameday lines first-Git archived privately before kickoff'
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo '::error::No verified pregame source archive pushed to private GitHub'
+          exit 1

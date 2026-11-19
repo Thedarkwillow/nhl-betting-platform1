@@ -168,3 +168,51 @@ t("first-party NFL reported injuries display separately from verified active lin
   {...e,activeGamedayVerified:true}}});
  a.equal(spoof.goblinFuture.nfl.officialInjuryStatuses,null);
 });
+
+t("official injury corroboration joins CONDITIONAL identities only and stays fail closed",()=>{
+ const e={kind:"nfl_independent_identity_injury_overlap_research_v1",
+  sourceFirstGitBeforeBoard:true,conditionalPlayers:5,
+  officialGsisCorroborated:2,confirmedOut:1,questionableHold:1,
+  doubtfulHold:0,duplicateOrConflictingStatuses:0,
+  notOfficiallyStatusMatched:3,authenticatedProviderGSIS:0,
+  positiveActiveGameday:0,productionEligible:0,modelPromoted:false,
+  providerRequests:0,privatePlayers:["SECRET PLAYER","GSIS PRIVATE"]};
+ const g={...gob,NFL:{...gob.NFL,officialIdentityInjuryOverlap:e}};
+ const out=buildWith(g),x=out.goblinFuture.nfl.identityInjuryOverlap;
+ a.equal(x.officialInjuryGSISCorroborations,2);
+ a.equal(x.outExcluded,1);a.equal(x.questionableHeld,1);
+ a.equal(x.unknownStatus,3);a.equal(x.gameDayActiveConfirmed,0);
+ a.equal(JSON.stringify(out.goblinFuture).includes("SECRET PLAYER"),false);
+ a.match(model({progress:out},Date.parse(now)).rows.find(
+  z=>z.label==="NFL provisional GSIS + official injury overlap").value,
+  /2 conditional GSIS identities.*1 OUT, 1 QUESTIONABLE, 0 DOUBTFUL/);
+ const spoof=buildWith({...gob,NFL:{...gob.NFL,
+  officialIdentityInjuryOverlap:{...e,positiveActiveGameday:4}}});
+ a.equal(spoof.goblinFuture.nfl.identityInjuryOverlap,null);
+ const stale=buildWith({...g,NFL:{...g.NFL,freshFirstGitSourceVerified:false}});
+ a.equal(stale.goblinFuture.nfl.identityInjuryOverlap,null);
+});
+
+t("near-kickoff first-Git source proves observation only, never game-day player eligibility",()=>{
+ const e={kind:"nfl_partner_gameday_original_firstgit_counts_v1",
+  sourceFirstGitVerified:true,capturedAt:"2026-11-19T23:50:00Z",
+  sourceGameKeys:1,originalBoardOffers:500,
+  sourceAuthenticatedApp:false,providerGSISIdentityVerified:false,
+  positiveGamedayActiveVerified:false,modelPromoted:false,
+  approvedSelections:0,privateOffers:[{playerId:"PRIVATE",line:42.5}]};
+ const g={...gob,NFL:{...gob.NFL,gamedayOriginalEvidence:e}};
+ const p=buildWith(g).goblinFuture.nfl;
+ a.equal(p.gamedayOriginal.gamesSourceMatched,1);
+ a.equal(p.gamedayOriginal.archivedOriginalOfferRows,500);
+ a.equal(p.gamedayOriginal.originalAppVerified,false);
+ a.equal(p.gamedayOriginal.positiveGameDayActiveVerified,false);
+ a.equal(JSON.stringify(p).includes("PRIVATE"),false);
+ const rows=model({progress:buildWith(g)},Date.parse(now)).rows;
+ a.match(rows.find(x=>x.label==="NFL pre-kickoff frozen original source").value,
+  /1 source games \/ 500 original NFL offers first-Git archived before kickoff/);
+ const spoof=buildWith({...gob,NFL:{...gob.NFL,gamedayOriginalEvidence:
+  {...e,sourceFirstGitVerified:false}}});
+ a.equal(spoof.goblinFuture.nfl.gamedayOriginal,null);
+ const stale=buildWith({...g,NFL:{...g.NFL,freshFirstGitSourceVerified:false}});
+ a.equal(stale.goblinFuture.nfl.gamedayOriginal,null);
+});

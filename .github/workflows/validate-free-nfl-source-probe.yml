@@ -80,3 +80,16 @@ jobs:
           print('articleMetaSamples',re.findall(r'<meta[^>]+(?:published_time|modified_time)[^>]*>',html)[:2])
           print('containsRenderedLiteralGameWeek',bool(re.search(r'2026 NFL season',html,re.I)))
           PY
+      - name: Diagnose date and player anchors without private data
+        run: |
+          python - <<'PY'
+          import urllib.request,re
+          url='https://fantasy-www.nfl.com/news/nfl-week-11-injury-report-2026-season'
+          with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'}),timeout=12) as r:
+            s=r.read(2200000).decode('utf8','replace')
+          for token in ['datePublished','dateModified','Published:','publishedAt','2026-11-18','datetime=','/players/']:
+            p=s.find(token)
+            print('probe_token',token,'found',p>=0,'snippet',re.sub(r'(?i)(will mallory|c.j. stroud|woody marks)', '[PUBLIC-NAME]',s[max(0,p-75):p+145]) if p>=0 else '')
+          print('li_with_NFL_player_links',len(re.findall(r'/players/',s)))
+          print('json_script_date_matches',re.findall(r'(?:datePublished|dateModified)[^\\n]{0,200}',s)[:3])
+          PY

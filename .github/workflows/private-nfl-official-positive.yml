@@ -1,0 +1,88 @@
+name: Private NFL official positive game-day evidence via public runner
+on:
+  workflow_dispatch:
+  # Initial no-credit smoke on first installation; later runs are scheduled.
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nfl-official-positive.yml']
+  schedule:
+    # Game-day snapshots after typical ~90-minute inactives publication.
+    # Pacific-local times; absence from inactives is NEVER called active.
+    - cron: '2 16 * * 4'
+      timezone: America/Los_Angeles
+    - cron: '35 8 * * 0'
+      timezone: America/Los_Angeles
+    - cron: '40 11 * * 0'
+      timezone: America/Los_Angeles
+    - cron: '5 16 * * 0'
+      timezone: America/Los_Angeles
+    - cron: '2 16 * * 1'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-nfl-positive-gameday-archive
+  cancel-in-progress: false
+jobs:
+  official-nfl-positive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Require source-only private-repo write token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test no-inference and positive NFL.com pregame assertions offline
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s test -p test_nfl_official_active_news.py
+          node --test test/nfl-goblin-official-active-mentions.test.cjs \
+            test/nfl-goblin-free-identity-research.test.cjs
+      - name: Capture only dated positive statements on official NFL.com
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python scripts/collect-nfl-explicit-active-news.py > /tmp/official-status-summary
+          python - <<'PY'
+          import json,pathlib
+          s=json.loads(pathlib.Path('/tmp/official-status-summary').read_text().splitlines()[-1])
+          if s.get('kind')!='nfl_official_explicit_active_news_archive_v1' or s.get('providerRequests')!=0 or s.get('activePlayersVerifiedForPicks')!=0:
+              raise RuntimeError('No positive game-day research status release permitted')
+          print('PASS: official source only; no inferred game-day-active picks')
+          PY
+      - name: Commit immutable official observations to PRIVATE repository only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          shopt -s nullglob
+          files=(outputs/nfl/availability/official-positive-snapshots/*.json)
+          ((${#files[@]} > 0)) || exit 0
+          git add -f -- "${files[@]}"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -qm 'research: first-Git NFL.com explicit active source evidence, no selections'
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then
+              echo 'PASS: first-Git official NFL.com named active evidence saved privately'
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          exit 1

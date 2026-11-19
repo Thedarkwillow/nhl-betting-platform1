@@ -99,3 +99,52 @@ t("public NFL schedule count-only bridge cannot be mistaken for player identity 
   scheduleEvidence:{...e,verifiedGames:3}}});
  a.equal(retro.goblinFuture.nfl.gameSchedule,null);
 });
+
+t("conditional GSIS research counts never release verified player identity or active claims",()=>{
+ const e={kind:"nfl_original_provider_to_gsis_candidate_research_v1",
+  originalProviderPlayers:50,candidateMatches:29,ambiguousPlayers:2,
+  insufficientPriorWeeks:8,noRosterMatch:11,conflictingSourceIdentity:0,
+  invalidPlayerEntries:0,rosterProvenanceVerified:true,
+  independentlyVerifiedMappings:0,playerCrosswalkSourceVerified:false,
+  officialGameDayActiveVerified:0,paidProviderRequests:0,modelPromoted:false,
+  rows:[{providerPlayerId:"PRIVATE",gsisId:"PRIVATE-GSIS"}]};
+ const data={...gob,NFL:{...gob.NFL,conditionalIdentityEvidence:e}};
+ const out=buildWith(data).goblinFuture.nfl;
+ a.equal(out.conditionalGSIS.priorRosterCandidates,29);
+ a.equal(out.conditionalGSIS.verifiedSharedProviderIDs,0);
+ a.equal(out.conditionalGSIS.verifiedGamedayActive,0);
+ a.equal(JSON.stringify(out).includes("PRIVATE-GSIS"),false);
+ const rows=model({progress:buildWith(data)},Date.parse(now)).rows;
+ a.match(rows.find(z=>z.label==="NFL Goblin free GSIS candidate matching").value,
+  /29 of 50 unique source players conditionally paired/);
+ a.match(rows.find(z=>z.label==="NFL Goblin free GSIS candidate matching").value,
+  /NOT game-day active/);
+ const stale=buildWith({...data,NFL:{...data.NFL,freshFirstGitSourceVerified:false}});
+ a.equal(stale.goblinFuture.nfl.conditionalGSIS,null);
+ const invalid=buildWith({...data,NFL:{...data.NFL,conditionalIdentityEvidence:
+   {...e,independentlyVerifiedMappings:29}}});
+ a.equal(invalid.goblinFuture.nfl.conditionalGSIS,null);
+});
+
+t("official named active statements remain separate from provider GSIS and roster approval",()=>{
+ const e={kind:"nfl_official_positive_game_statement_research_counts_v1",
+  articlesObserved:2,explicitMentions:3,corroboratedConditionalPlayers:1,
+  officialPositiveProviderGSISVerified:0,
+  officialCompleteGameRosterVerified:false,
+  approvedSelections:0,originalAppActiveVerified:false,
+  noActiveByOmission:true,modelPromoted:false,providerRequests:0,
+  privateName:"DO_NOT_PUBLISH"};
+ const g={...gob,NFL:{...gob.NFL,officialPositiveEvidence:e}};
+ const published=buildWith(g).goblinFuture;
+ a.equal(published.nfl.positiveGameStatements.conditionalPlayersCorroborated,1);
+ a.equal(published.nfl.positiveGameStatements.sharedProviderIDsConfirmed,0);
+ a.equal(JSON.stringify(published).includes("DO_NOT_PUBLISH"),false);
+ const rows=model({progress:buildWith(g)},Date.parse(now)).rows;
+ a.match(rows.find(x=>x.label==="NFL official named active statements (research)").value,
+  /1 provisional identities.*3 explicit active statements.*2 dated NFL.com articles/);
+ const wrong=buildWith({...gob,NFL:{...gob.NFL,
+  officialPositiveEvidence:{...e,officialPositiveProviderGSISVerified:1}}});
+ a.equal(wrong.goblinFuture.nfl.positiveGameStatements,null);
+ const stale=buildWith({...g,NFL:{...g.NFL,freshFirstGitSourceVerified:false}});
+ a.equal(stale.goblinFuture.nfl.positiveGameStatements,null);
+});

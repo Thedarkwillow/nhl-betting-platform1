@@ -138,6 +138,38 @@
         "provider-to-GSIS player ID and game-day active status NOT verified",
        ageMinutes:age(gob.sourceReportAt,now)});
     }
+    const identities=n?.conditionalGSIS;
+    if(identities?.kind==="public_nfl_conditional_gsis_research_counts_v1"&&
+      identities.verifiedSharedProviderIDs===0&&
+      identities.verifiedGamedayActive===0&&
+      identities.approvedSelections===0&&identities.probabilityApproved===false&&
+      [identities.priorRosterCandidates,identities.sourcePlayers,
+       identities.ambiguous,identities.insufficientPriorWeeks,
+       identities.missingRoster,identities.conflictingSource].every(count)&&
+      identities.priorRosterCandidates<=identities.sourcePlayers){
+      rows.push({label:"NFL Goblin free GSIS candidate matching",
+       value:identities.priorRosterCandidates+" of "+
+        identities.sourcePlayers+" unique source players conditionally paired with "+
+        "prior-week GSIS records; "+identities.ambiguous+" ambiguous; "+
+        "not independently shared-ID verified and NOT game-day active",
+       ageMinutes:age(gob.sourceReportAt,now)});
+    }
+    const activeMentions=n?.positiveGameStatements;
+    if(activeMentions?.kind==="public_nfl_official_explicit_active_mention_research_v1"&&
+      activeMentions.sharedProviderIDsConfirmed===0&&
+      activeMentions.fullOfficialActiveRosterVerified===false&&
+      activeMentions.approvedPicks===0&&
+      activeMentions.playerIdentityAndGamedayBothVerified===false&&
+      [activeMentions.officialArticles,activeMentions.explicitMentions,
+       activeMentions.conditionalPlayersCorroborated].every(count)&&
+      activeMentions.conditionalPlayersCorroborated<=activeMentions.explicitMentions){
+      rows.push({label:"NFL official named active statements (research)",
+       value:activeMentions.conditionalPlayersCorroborated+
+        " provisional identities corroborated by "+activeMentions.explicitMentions+
+        " explicit active statements across "+activeMentions.officialArticles+
+        " dated NFL.com articles; no complete 47/48-player gameday roster or verified PP ID",
+       ageMinutes:age(gob.sourceReportAt,now)});
+    }
     const gaps=n?.prerequisiteGaps;
     if(gaps?.kind==="public_nfl_goblin_missing_prerequisites_v1"&&
        gaps.rowsMayHaveMultipleBlockers===true&&gaps.verifiedActive===false&&

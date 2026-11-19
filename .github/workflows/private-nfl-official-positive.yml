@@ -74,6 +74,7 @@ jobs:
                   print(label,'unavailable',type(e).__name__,
                         getattr(e,'code','no_http_status'))
           PY
+      # Read current NFL.com fantasy-host article with Schema.org publication metadata.
       - name: Capture only dated positive statements on official NFL.com
         shell: bash
         run: |

@@ -15,6 +15,7 @@ on:
       - 'Private NHL shot and point opportunity evaluation'
       - 'Private NHL official stats and projections on free public runner'
       - 'Private NHL prospective grading and baseline audit via public runner'
+      - 'Private NFL official positive game-day evidence via public runner'
     types: [completed]
   # A standalone grading opportunity after most nightly NHL games resolve.
   schedule:

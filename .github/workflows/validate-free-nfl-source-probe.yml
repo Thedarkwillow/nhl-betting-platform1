@@ -1,3 +1,4 @@
+# Allow only the same pregame-prior roster window for official injury evidence when current weeks lag.
 # Test latest nflverse recent_team fallback against live NFL.com official status before promotion.
 name: Validate free NFL identity and gameday feeds (no secrets)
 on:
@@ -124,7 +125,7 @@ jobs:
           t=[x[1] for x in p.blocks if x[0] in ('h3','h2')]
           bs=[x for x in p.blocks if x[0]=='li' and x[1].startswith(('OUT:','DOUBTFUL:','QUESTIONABLE:'))]
           roster=mod['dataset']('weekly_rosters')
-          season=[x for x in roster if int(x.get('season',0))==2026 and 10<=int(x.get('week',0))<=11 and (x.get('team') or x.get('recent_team')) in ('IND','HOU')]
+          season=[x for x in roster if int(x.get('season',0))==2026 and 8<=int(x.get('week',0))<=11 and (x.get('team') or x.get('recent_team')) in ('IND','HOU')]
           print('DIAGNOSTIC_OFFICIAL',{'teamsHeader':[x for x in t if x.upper() in ('COLTS','TEXANS')],'statuses':len(bs),
            'statusesWithLinks':sum(bool(x[2]) for x in bs),'linkedNameCounts':[len(x[2]) for x in bs[:8]],
            'priorRosterEntries':len(season),'priorGSIS':len({x.get('gsis_id') for x in season})})

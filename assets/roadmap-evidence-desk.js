@@ -154,6 +154,20 @@
         "not independently shared-ID verified and NOT game-day active",
        ageMinutes:age(gob.sourceReportAt,now)});
     }
+    const officialRisk=n?.officialInjuryStatuses;
+    if(officialRisk?.kind==="public_nfl_explicit_official_injury_status_counts_v1"&&
+       officialRisk.medicalClearanceVerified===false&&
+       officialRisk.gameDayActiveVerified===false&&officialRisk.bettingEligible===0&&
+       [officialRisk.explicitStatuses,officialRisk.ruledOut,
+        officialRisk.questionable,officialRisk.doubtful].every(count)&&
+       officialRisk.ruledOut+officialRisk.questionable+officialRisk.doubtful===officialRisk.explicitStatuses){
+      rows.push({label:"NFL first-party injury status matches",
+       value:officialRisk.ruledOut+" officially OUT / "+
+        officialRisk.questionable+" QUESTIONABLE / "+
+        officialRisk.doubtful+" DOUBTFUL ("+officialRisk.explicitStatuses+
+        " explicitly reported GSIS-linked statuses); not a full game-day ACTIVE list",
+       ageMinutes:age(officialRisk.reportCapturedAt,now)});
+    }
     const activeMentions=n?.positiveGameStatements;
     if(activeMentions?.kind==="public_nfl_official_explicit_active_mention_research_v1"&&
       activeMentions.sharedProviderIDsConfirmed===0&&

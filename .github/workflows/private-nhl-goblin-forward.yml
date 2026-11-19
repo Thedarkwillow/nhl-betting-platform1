@@ -61,7 +61,8 @@ jobs:
             test/goblin-opportunity-evidence.test.cjs \
             test/goblin-quoted-lineup-research.test.cjs \
             test/goblin-forward-runner.test.cjs \
-            test/goblin-quality-odds-nfl-source-gaps.test.cjs
+            test/goblin-quality-odds-nfl-source-gaps.test.cjs \
+            test/nhl-four-priority-research-audit.test.cjs
           node scripts/report-goblin-forward.cjs > /tmp/goblin-private-summary.json
           node - <<'NODE'
           const s=require('/tmp/goblin-private-summary.json');

@@ -111,7 +111,7 @@ test("Goblin roadmap shows precommitted candidates but no confident betting slip
    payoutsAndSettlementsVerified:false,privatePlayerRowsPublished:0}};
  const rows=model({progress},now).rows;
  assert.match(rows.find(r=>r.label==="NHL Goblin frozen research").value,
-   /3 new candidate \/ 27 abstained/);
+   /3 newly selected .* 27 newly abstained/);
  assert.match(rows.find(r=>r.label==="NFL Goblin opportunity model").value,
    /GSIS bridge and positive active-roster confirmation pending/);
  assert.match(rows.find(r=>r.label==="Goblin Power\/Flex 2–6").value,

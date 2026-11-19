@@ -1,0 +1,69 @@
+# Validate merged private main; schedule proof and GSIS/active gates remain separate.
+name: Validate NFL Goblin archived game schedule bridge
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-nfl-goblin-game-bridge.yml'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/test-goblin-quality-public.cjs'
+  push:
+    branches: [main, 'research/nfl-goblin-game-bridge-public-20261118']
+    paths:
+      - '.github/workflows/validate-nfl-goblin-game-bridge.yml'
+      - 'scripts/publish-safe-research-progress.cjs'
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/test-goblin-quality-public.cjs'
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Public no-private-records scoreboard tests
+        working-directory: public
+        run: |
+          node --check scripts/publish-safe-research-progress.cjs
+          node --test scripts/test-goblin-quality-public.cjs scripts/test-roadmap-evidence-desk.cjs
+      - name: Require existing private read authorization
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Offline private NFL game, GSIS and roster proof regressions
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --check src/nfl-goblin-schedule-bridge-v1.cjs
+          node --check src/nfl-goblin-identity-audit-v1.cjs
+          node --check scripts/report-goblin-forward.cjs
+          node --test test/nfl-goblin-schedule-bridge.test.cjs \
+            test/goblin-selective-and-nfl-identity.test.cjs \
+            test/goblin-quality-odds-nfl-source-gaps.test.cjs \
+            test/goblin-forward-runner.test.cjs
+      - name: Verify actual archived nflverse schedule contract without revealing private player data
+        working-directory: private
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs'),zlib=require('node:zlib'),
+          f='outputs/nfl/history/2026/schedule.json.gz',
+          d=JSON.parse(zlib.gunzipSync(fs.readFileSync(f)).toString('utf8'));
+          if(d.dataset!=='schedule'||d.recordCount!==d.rows?.length||
+             d.rows.length<200||d.rows.some(r=>r.season&&Number(r.season)!==2026))
+             throw Error('No complete 2026 nflverse schedule archive');
+          console.log('PASS: existing 2026 NFL schedule archive readable; no paid request');
+          NODE

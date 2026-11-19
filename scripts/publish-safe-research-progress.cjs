@@ -152,6 +152,27 @@ function safeNFLPrerequisiteGaps(s,total){
   providerToGSIS:s.providerToGSIS,positiveActiveRoster:s.positiveActiveRoster,
   rowsMayHaveMultipleBlockers:true,verifiedActive:false,eligiblePicks:0};
 }
+// Independent pregame game-schedule matches are NOT provider->GSIS
+// player identities and NEVER establish an active, bettable player.
+function safeNFLGameSchedule(e,sourceFresh){
+ if(sourceFresh!==true||
+    e?.kind!=="nfl_independent_pregame_schedule_crosswalk_v1"||
+    e.source!=="archived_nflverse_schedule_and_source_board"||
+    e.sourceProvenanceValid!==true||e.sourceFirstParty!==false||
+    e.noPlayerIdentityProof!==true||
+    e.paidProviderRequests!==0||e.modelPromoted!==false)return null;
+ const keys=["verifiedGames","originalGames","conflictingSourceGames",
+   "missingScheduleMatches","ambiguousScheduleMatches"];
+ if(keys.some(k=>count(e[k])===null))return null;
+ if(e.verifiedGames+e.conflictingSourceGames+
+    e.missingScheduleMatches+e.ambiguousScheduleMatches!==e.originalGames)return null;
+ return {kind:"public_nfl_goblin_independent_game_schedule_counts_v1",
+  verifiedGames:e.verifiedGames,sourceGameKeys:e.originalGames,
+  conflicting:e.conflictingSourceGames,missing:e.missingScheduleMatches,
+  ambiguous:e.ambiguousScheduleMatches,
+  playerGSISVerified:false,gameDayActiveVerified:false,
+  sourceFirstParty:false,modelPromoted:false,approvedPicks:0};
+}
 function safeGoblin(report,now){
  if(report?.kind!=="private_goblin_forward_evidence_v1"||
   !Number.isFinite(dt(report.generatedAt))||
@@ -183,6 +204,7 @@ function safeGoblin(report,now){
    freshFullPlayerIdentityAndAvailabilityVerified:
     report.NFL?.prospectiveOfficialInjuryAndIdentityVerified===true,
    sourceFirstGitCurrent:report.NFL?.freshFirstGitSourceVerified===true,
+   gameSchedule:safeNFLGameSchedule(report.NFL?.scheduleEvidence,report.NFL?.freshFirstGitSourceVerified),
    originalGoblinOffersAudited:n(report.NFL?.auditedOriginalGoblinOffers),
    exactIdentityReadyForModel:n(report.NFL?.identityReadyForNextModelStage),
    verifiedActiveRoster:report.NFL?.officialActiveRosterVerified===true,

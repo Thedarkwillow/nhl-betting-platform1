@@ -75,3 +75,27 @@ t("successful official NHL FINAL sources trigger Goblin-only retrospective gradi
  a.match(w,/node scripts\/report-goblin-forward\.cjs/);
  a.doesNotMatch(w,/AUTO_WAGER|PLACE_BET/);
 });
+
+t("public NFL schedule count-only bridge cannot be mistaken for player identity or active status",()=>{
+ const e={kind:"nfl_independent_pregame_schedule_crosswalk_v1",
+  source:"archived_nflverse_schedule_and_source_board",
+  status:"independent_pregame_schedule_reconciled_not_player_or_roster",
+  verifiedGames:2,originalGames:3,conflictingSourceGames:0,
+  missingScheduleMatches:1,ambiguousScheduleMatches:0,
+  sourceProvenanceValid:true,sourceFirstParty:false,
+  noPlayerIdentityProof:true,paidProviderRequests:0,modelPromoted:false,
+  rows:[{player:"DO NOT PUBLISH",providerGameId:"SECRET"}]};
+ const g={...gob,NFL:{...gob.NFL,scheduleEvidence:e}};
+ const published=buildWith(g);
+ a.equal(published.goblinFuture.nfl.gameSchedule.verifiedGames,2);
+ a.equal(JSON.stringify(published.goblinFuture).includes("DO NOT PUBLISH"),false);
+ const shown=model({progress:published},Date.parse(now)).rows;
+ a.match(shown.find(r=>r.label==="NFL Goblin independent schedule ID bridge").value,
+  /2 \/ 3 source game keys.*provider-to-GSIS player ID and game-day active status NOT verified/);
+ a.equal(published.goblinFuture.nfl.gameSchedule.gameDayActiveVerified,false);
+ const stale=buildWith({...g,NFL:{...g.NFL,freshFirstGitSourceVerified:false}});
+ a.equal(stale.goblinFuture.nfl.gameSchedule,null);
+ const retro=buildWith({...g,NFL:{...g.NFL,
+  scheduleEvidence:{...e,verifiedGames:3}}});
+ a.equal(retro.goblinFuture.nfl.gameSchedule,null);
+});

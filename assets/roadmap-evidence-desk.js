@@ -123,6 +123,21 @@
         "accuracy and payout EV unverified",
        ageMinutes:age(gob.sourceReportAt,now)});
     }
+    const scheduled=n?.gameSchedule;
+    if(scheduled?.kind==="public_nfl_goblin_independent_game_schedule_counts_v1"&&
+      scheduled.playerGSISVerified===false&&scheduled.gameDayActiveVerified===false&&
+      scheduled.sourceFirstParty===false&&scheduled.modelPromoted===false&&
+      scheduled.approvedPicks===0&&
+      [scheduled.verifiedGames,scheduled.sourceGameKeys,scheduled.conflicting,
+       scheduled.missing,scheduled.ambiguous].every(count)&&
+      scheduled.verifiedGames+scheduled.conflicting+scheduled.missing+
+       scheduled.ambiguous===scheduled.sourceGameKeys){
+      rows.push({label:"NFL Goblin independent schedule ID bridge",
+       value:scheduled.verifiedGames+" / "+scheduled.sourceGameKeys+
+        " source game keys reconciled to archived future NFL schedule; "+
+        "provider-to-GSIS player ID and game-day active status NOT verified",
+       ageMinutes:age(gob.sourceReportAt,now)});
+    }
     const gaps=n?.prerequisiteGaps;
     if(gaps?.kind==="public_nfl_goblin_missing_prerequisites_v1"&&
        gaps.rowsMayHaveMultipleBlockers===true&&gaps.verifiedActive===false&&

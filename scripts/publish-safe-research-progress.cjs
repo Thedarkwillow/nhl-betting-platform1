@@ -154,6 +154,29 @@ function safeNFLPrerequisiteGaps(s,total){
 }
 // Independent pregame game-schedule matches are NOT provider->GSIS
 // player identities and NEVER establish an active, bettable player.
+// Reproducible prior-week GSIS candidate research is NOT a verified
+// cross-provider identifier: do not use it to approve NFL picks.
+function safeNFLIdentityCandidates(e,sourceFresh){
+ if(sourceFresh!==true||
+  e?.kind!=="nfl_original_provider_to_gsis_candidate_research_v1"||
+  e.rosterProvenanceVerified!==true||
+  e.independentlyVerifiedMappings!==0||
+  e.playerCrosswalkSourceVerified!==false||
+  e.officialGameDayActiveVerified!==0||
+  e.paidProviderRequests!==0||e.modelPromoted!==false)return null;
+ const keys=["originalProviderPlayers","candidateMatches","ambiguousPlayers",
+  "insufficientPriorWeeks","noRosterMatch","conflictingSourceIdentity","invalidPlayerEntries"];
+ if(keys.some(k=>count(e[k])===null))return null;
+ if(e.candidateMatches+e.ambiguousPlayers+e.insufficientPriorWeeks+
+  e.noRosterMatch+e.conflictingSourceIdentity+e.invalidPlayerEntries>e.originalProviderPlayers)
+  return null;
+ return {kind:"public_nfl_conditional_gsis_research_counts_v1",
+  priorRosterCandidates:e.candidateMatches,sourcePlayers:e.originalProviderPlayers,
+  ambiguous:e.ambiguousPlayers,insufficientPriorWeeks:e.insufficientPriorWeeks,
+  missingRoster:e.noRosterMatch,conflictingSource:e.conflictingSourceIdentity,
+  verifiedSharedProviderIDs:0,verifiedGamedayActive:0,
+  approvedSelections:0,probabilityApproved:false};
+}
 function safeNFLGameSchedule(e,sourceFresh){
  if(sourceFresh!==true||
     e?.kind!=="nfl_independent_pregame_schedule_crosswalk_v1"||
@@ -205,6 +228,7 @@ function safeGoblin(report,now){
     report.NFL?.prospectiveOfficialInjuryAndIdentityVerified===true,
    sourceFirstGitCurrent:report.NFL?.freshFirstGitSourceVerified===true,
    gameSchedule:safeNFLGameSchedule(report.NFL?.scheduleEvidence,report.NFL?.freshFirstGitSourceVerified),
+   conditionalGSIS:safeNFLIdentityCandidates(report.NFL?.conditionalIdentityEvidence,report.NFL?.freshFirstGitSourceVerified),
    originalGoblinOffersAudited:n(report.NFL?.auditedOriginalGoblinOffers),
    exactIdentityReadyForModel:n(report.NFL?.identityReadyForNextModelStage),
    verifiedActiveRoster:report.NFL?.officialActiveRosterVerified===true,

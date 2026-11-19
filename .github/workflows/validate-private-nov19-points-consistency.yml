@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: fix/nhl-evening-utc-pacific-points-cutoff-20261119
+          ref: ${{ inputs.private_ref || 'main' }}
           fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false

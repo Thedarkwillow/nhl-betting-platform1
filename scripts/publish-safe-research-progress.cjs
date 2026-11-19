@@ -187,7 +187,8 @@ function safeGoblin(report,now){
    exactIdentityReadyForModel:n(report.NFL?.identityReadyForNextModelStage),
    verifiedActiveRoster:report.NFL?.officialActiveRosterVerified===true,
    officialGameBridgeMissing:n(report.NFL?.eligibilityReasonCounts?.official_game_crosswalk_unverified),
-   prerequisiteGaps:report.NFL?.freshFirstGitSourceVerified===true?\n    safeNFLPrerequisiteGaps(report.NFL?.prerequisiteGaps,report.NFL?.auditedOriginalGoblinOffers):null,
+   prerequisiteGaps:report.NFL?.freshFirstGitSourceVerified===true?
+    safeNFLPrerequisiteGaps(report.NFL?.prerequisiteGaps,report.NFL?.auditedOriginalGoblinOffers):null,
    providerGSiSBridgeMissing:n(report.NFL?.eligibilityReasonCounts?.exact_provider_player_to_gsis_bridge_unverified),
    positiveActiveStatusMissing:n(report.NFL?.eligibilityReasonCounts?.official_current_active_roster_missing),
    firstGitEligible:n(report.NFL?.newEligibleFirstGitRecords)},

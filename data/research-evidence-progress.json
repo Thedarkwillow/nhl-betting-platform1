@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-19T04:50:48.594Z",
+  "generatedAt": "2026-11-19T08:54:51.392Z",
   "sourceReportAt": "2026-11-19T03:08:44.612Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -91,13 +91,13 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-19T03:07:09.729Z",
+    "nhlReportAt": "2026-11-19T08:53:16.327Z",
     "nflReportAt": "2026-11-18T02:48:16.486Z",
     "nhl": {
-      "registered": 40,
-      "eligible": 11,
-      "abstained": 29,
-      "pending": 11,
+      "registered": 59,
+      "eligible": 15,
+      "abstained": 44,
+      "pending": 15,
       "decided": 0
     },
     "nfl": {
@@ -115,7 +115,7 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-19T03:07:10.162Z",
+    "sourceReportAt": "2026-11-19T08:53:16.821Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
       "completeOfficialGames": 1615,
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-19T04:49:48.461Z",
+    "sourceReportAt": "2026-11-19T08:53:57.374Z",
     "nhl": {
       "sourceEligible": false,
       "examined": 0,
@@ -207,8 +207,8 @@
         "decided": 0,
         "pushes": 0,
         "notStarted": 187,
-        "startedNoFinalWithinFourHours": 33,
-        "fourHoursWithoutOfficialPlayerStat": 34,
+        "startedNoFinalWithinFourHours": 0,
+        "fourHoursWithoutOfficialPlayerStat": 67,
         "conflictingOrInvalidFinal": 0,
         "officialGradingNeeded": 254,
         "verifiedWinRate": null,
@@ -295,21 +295,10 @@
       "gameSchedule": null,
       "conditionalGSIS": null,
       "positiveGameStatements": null,
-      "officialInjuryStatuses": {
-        "kind": "public_nfl_explicit_official_injury_status_counts_v1",
-        "reportCapturedAt": "2026-11-19T04:16:21.394415+00:00",
-        "explicitStatuses": 15,
-        "ruledOut": 9,
-        "questionable": 6,
-        "doubtful": 0,
-        "duplicateStatuses": 0,
-        "medicalClearanceVerified": false,
-        "gameDayActiveVerified": false,
-        "bettingEligible": 0
-      },
+      "officialInjuryStatuses": null,
       "identityInjuryOverlap": null,
       "gamedayOriginal": null,
-      "originalGoblinOffersAudited": 1539,
+      "originalGoblinOffersAudited": 0,
       "exactIdentityReadyForModel": 0,
       "verifiedActiveRoster": false,
       "officialGameBridgeMissing": null,

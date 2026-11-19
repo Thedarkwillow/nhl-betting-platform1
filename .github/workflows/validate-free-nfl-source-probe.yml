@@ -93,3 +93,42 @@ jobs:
           print('li_with_NFL_player_links',len(re.findall(r'/players/',s)))
           print('json_script_date_matches',re.findall(r'(?:datePublished|dateModified)[^\\n]{0,200}',s)[:3])
           PY
+      - name: Authorize existing private repository for source-only regression
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: fix/nfl-free-official-week11-injury-source-20261118
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - name: Validate latest official week report and positive-only declarations
+        working-directory: private
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s test -p test_nfl_week11_first_party_injury_source.py
+          python -m unittest discover -s test -p test_official_pregame_status.py
+          python -m unittest discover -s test -p test_nfl_official_active_news.py
+          node --test test/nfl-goblin-official-active-mentions.test.cjs
+          python scripts/collect-nfl-official-game-status.py > /tmp/official_nfl_counts
+          python - <<'PY'
+          import json,pathlib
+          d=json.loads(pathlib.Path('/tmp/official_nfl_counts').read_text().splitlines()[-1])
+          if d.get('officialReportedStatuses',0)<2 or d.get('medicalClearanceVerified') is not False:
+              raise RuntimeError('Current official injury report not accepted')
+          o=json.loads(pathlib.Path('outputs/nfl/availability/official-report-latest.json').read_text())
+          if not any('fantasy-www.nfl.com/news/' in s for s in o.get('sources',[])):
+              raise RuntimeError('Working official NFL.com subdomain not used')
+          print('PASS: real official reported statuses archived locally as safety exclusions',d['officialReportedStatuses'])
+          PY
+          python scripts/collect-nfl-explicit-active-news.py > /tmp/official_news_counts
+          python - <<'PY'
+          import json,pathlib
+          d=json.loads(pathlib.Path('/tmp/official_news_counts').read_text().splitlines()[-1])
+          if d.get('officialNewsArticles',0)<1 or d.get('activePlayersVerifiedForPicks')!=0:
+              raise RuntimeError('Current official NFL.com news source not parsed or unsupported eligibility')
+          print('PASS: official dated source recognized; no unverified game-day actives',d['officialNewsArticles'])
+          PY

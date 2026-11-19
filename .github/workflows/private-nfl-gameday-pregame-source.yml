@@ -13,6 +13,13 @@ on:
       timezone: America/Los_Angeles
     - cron: '50 15 * * *'
       timezone: America/Los_Angeles
+    # A second original board after the league's ~90-minute inactive window.
+    - cron: '10 9 * * *'
+      timezone: America/Los_Angeles
+    - cron: '15 12 * * *'
+      timezone: America/Los_Angeles
+    - cron: '20 16 * * *'
+      timezone: America/Los_Angeles
 permissions:
   contents: read
 concurrency:

@@ -1,4 +1,4 @@
-# Retest private kickoff normalization after no-lineup DST assertion fix.
+# Validate merged private main; schedule proof and GSIS/active gates remain separate.
 name: Validate NFL Goblin archived game schedule bridge
 on:
   pull_request:
@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: research/nfl-goblin-archive-schedule-bridge-20261118
+          ref: main
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false

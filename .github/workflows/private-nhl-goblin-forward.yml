@@ -91,6 +91,15 @@ jobs:
             node - <<'NODE'
           const fs=require('fs'),p='outputs/health/goblin-forward-latest.json';
           const health=JSON.parse(fs.readFileSync(p,'utf8'));
+          const screening=health.NHL?.postPolicyScreening;
+          if(screening?.kind!=='nhl_goblin_new_policy_first_git_screening_counts_v1'||
+             screening.modelPromoted!==false||
+             screening.selected+screening.abstained+screening.unknownStatus!==screening.screened)
+            throw Error('Missing first-Git NHL Goblin selectivity denominator');
+          const gaps=health.NFL?.prerequisiteGaps;
+          if(!gaps||['officialGame','providerToGSIS','positiveActiveRoster']
+              .some(k=>!Number.isInteger(gaps[k])||gaps[k]<0))
+            throw Error('NFL independent identity blocker counts missing');
           if(health.modelPromoted!==false||
              health.calibratedProbabilityApproved!==false||
              health.actualWagersPlaced!==0||health.providerRequests!==0)

@@ -51,12 +51,20 @@ test("sport picker shows only independently archived NFL and NHL line-change cou
  const at=Date.parse(d.laterCaptureAt)+3600000;
  const nfl=movementView(d,"NFL",at);
  const nhl=movementView(d,"NHL",at);
- assert.match(nfl,/cross-day source comparison/);
- assert.match(nfl,/98 matching-offer lines changed/);
- assert.match(nfl,/6 offered-side changes/);
+ const scope=d.genuineSixToNineComparison===true?
+   "genuine same-day 6-to-9 AM":"cross-day";
+ assert.ok(nfl.includes(scope+" source comparison"));
+ assert.ok(nhl.includes(scope+" source comparison"));
+ for(const [sport,rendered] of [["NFL",nfl],["NHL",nhl]]){
+   const m=d.sports[sport];
+   assert.ok(rendered.includes(m.existingLineChanged+" matching-offer lines changed"));
+   assert.ok(rendered.includes(m.existingSideAvailabilityChanged+" offered-side changes"));
+   assert.ok(rendered.includes(m.newSourceOfferIDs+" newly observed IDs"));
+   if(m.newSourceOfferIDs===m.secondObserved)
+     assert.match(rendered,/No shared offer IDs/);
+ }
  assert.match(nfl,/NOT confirmed removals/);
  assert.match(nfl,/Archived research; not current app availability/);
- assert.match(nhl,/No shared offer IDs/);
  const bad={...d,originalOffersFromPartnerSourceNotVerifiedPrizePicksApp:false};
  assert.match(movementView(bad,"NFL",at),/no verified comparison/);
  const html=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");

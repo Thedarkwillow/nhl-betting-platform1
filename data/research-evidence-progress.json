@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-19T03:46:04.718Z",
+  "generatedAt": "2026-11-19T03:51:09.410Z",
   "sourceReportAt": "2026-11-19T03:08:44.612Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -210,6 +210,7 @@
       "gameSchedule": null,
       "conditionalGSIS": null,
       "positiveGameStatements": null,
+      "officialInjuryStatuses": null,
       "originalGoblinOffersAudited": 1539,
       "exactIdentityReadyForModel": 0,
       "verifiedActiveRoster": false,

@@ -123,6 +123,63 @@
         "accuracy and payout EV unverified",
        ageMinutes:age(gob.sourceReportAt,now)});
     }
+    const triage=h?.pendingOfficialTriage;
+    if(triage?.kind==="public_nhl_goblin_prospective_pending_triage_v1"&&
+       triage.verifiedWinRate===null&&triage.approvedPicks===0&&
+       [triage.registered,triage.abstained,triage.decided,triage.pushes,
+        triage.notStarted,triage.startedNoFinalWithinFourHours,
+        triage.fourHoursWithoutOfficialPlayerStat,
+        triage.conflictingOrInvalidFinal,triage.officialGradingNeeded].every(count)&&
+       triage.registered===triage.abstained+triage.decided+triage.pushes+
+        triage.officialGradingNeeded){
+      rows.push({label:"NHL Goblin official-result reconciliation",
+       value:triage.notStarted+" not started / "+
+        triage.startedNoFinalWithinFourHours+" recently started / "+
+        triage.fourHoursWithoutOfficialPlayerStat+" older games awaiting verified player stats / "+
+        triage.decided+" official decisions; no hypothetical grades",
+       ageMinutes:age(gob.sourceReportAt,now)});
+    }
+    const marketProof=h?.standardSameLineMarkets;
+    if(marketProof?.kind==="public_nhl_standard_frozen_market_baseline_audit_v1"&&
+       marketProof.outperformanceApproved===false&&marketProof.approvedPicks===0&&
+       count(marketProof.decided)){
+      const shot=marketProof.byMarket?.shotsOnGoal;
+      rows.push({label:"NHL Standard exact-line baseline evidence",
+       value:marketProof.decided+" market-level future-frozen decisions; "+
+        (shot&&count(shot.decided)&&typeof shot.modelRate==="number"&&
+        typeof shot.alwaysLowerRate==="number"?
+          "shots model "+Math.round(shot.modelRate*1000)/10+
+          "% vs same-line always-Lower "+Math.round(shot.alwaysLowerRate*1000)/10+"%; ":"")+
+        "market-specific release remains blocked",
+       ageMinutes:age(gob.sourceReportAt,now)});
+    }
+    const quotes=h?.sportsbookConditional;
+    if(quotes?.kind==="public_nhl_historical_conditional_sportsbook_match_v1"&&
+       quotes.currentQuoteFresh===false&&quotes.payoutEVVerified===false&&
+       quotes.independentlyAuthenticatedMatches===0&&quotes.approvedPicks===0&&
+       [quotes.conditionalOfferSides,quotes.bookConsensusGroups,
+        quotes.conditionalExactThresholdGroups,quotes.exactOriginalModelLineMatches].every(count)){
+      rows.push({label:"NHL sportsbook matching — two separate denominators",
+       value:quotes.conditionalOfferSides+
+        " archived conditional board-side matches vs "+
+        quotes.exactOriginalModelLineMatches+
+        " frozen-model-to-book exact-line matches; historical, not live consensus or EV",
+       ageMinutes:age(gob.sourceReportAt,now)});
+    }
+    const cal=h?.standardCalibration;
+    if(cal?.kind==="public_nhl_standard_uncalibrated_future_holdout_v1"&&
+       cal.independentlyCalibrated===false&&cal.approvedPicks===0&&
+       [cal.decided,cal.distinctGames,cal.distinctDates].every(count)&&
+       [cal.meanUncalibratedProbability,cal.observedSelectedHitRate,
+        cal.absoluteConfidenceGap].every(v=>typeof v==="number"&&Number.isFinite(v))){
+      rows.push({label:"NHL Standard future probability calibration",
+       value:cal.decided+" decided / "+cal.distinctDates+
+        " distinct dates; mean raw forecast "+
+        Math.round(cal.meanUncalibratedProbability*1000)/10+
+        "% vs observed "+Math.round(cal.observedSelectedHitRate*1000)/10+
+        "%; displayed confidence not approved",
+       ageMinutes:age(gob.sourceReportAt,now)});
+    }
     const scheduled=n?.gameSchedule;
     if(scheduled?.kind==="public_nfl_goblin_independent_game_schedule_counts_v1"&&
       scheduled.playerGSISVerified===false&&scheduled.gameDayActiveVerified===false&&

@@ -1,3 +1,4 @@
+# Rerun after private causal-quote first-Git chronology patch corrected.
 name: Validate forward Goblin quality and NFL/odds proof gates
 on:
   pull_request:

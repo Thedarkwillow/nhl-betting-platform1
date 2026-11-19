@@ -7,6 +7,7 @@ on:
       - 'scripts/test-goblin-quality-public.cjs'
       - 'scripts/publish-safe-research-progress.cjs'
       - 'assets/roadmap-evidence-desk.js'
+      - '.github/workflows/private-nhl-goblin-forward.yml'
   push:
     branches: [main, 'research/nov18-goblin-quality-public']
     paths:
@@ -14,6 +15,7 @@ on:
       - 'scripts/test-goblin-quality-public.cjs'
       - 'scripts/publish-safe-research-progress.cjs'
       - 'assets/roadmap-evidence-desk.js'
+      - '.github/workflows/private-nhl-goblin-forward.yml'
 permissions:
   contents: read
 jobs:

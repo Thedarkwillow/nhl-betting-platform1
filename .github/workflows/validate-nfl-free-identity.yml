@@ -7,6 +7,8 @@ on:
       - 'assets/roadmap-evidence-desk.js'
       - 'scripts/publish-safe-research-progress.cjs'
       - 'scripts/test-goblin-quality-public.cjs'
+      - '.github/workflows/private-nfl-official-positive.yml'
+      - '.github/workflows/private-nhl-goblin-forward.yml'
   push:
     branches: [main, 'research/nfl-free-identity-source-validation-20261118']
     paths:
@@ -14,6 +16,8 @@ on:
       - 'assets/roadmap-evidence-desk.js'
       - 'scripts/publish-safe-research-progress.cjs'
       - 'scripts/test-goblin-quality-public.cjs'
+      - '.github/workflows/private-nfl-official-positive.yml'
+      - '.github/workflows/private-nhl-goblin-forward.yml'
 permissions:
   contents: read
 jobs:
@@ -37,7 +41,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: main
+          ref: research/nfl-free-gsis-identity-rebased-20261118
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           fetch-depth: 0
@@ -49,8 +53,14 @@ jobs:
           node --check src/nfl-goblin-free-identity-research.cjs
           node --check scripts/report-goblin-forward.cjs
           node --test test/nfl-goblin-free-identity-research.test.cjs \
+            test/nfl-goblin-official-active-mentions.test.cjs \
             test/nfl-goblin-schedule-bridge.test.cjs \
             test/goblin-selective-and-nfl-identity.test.cjs
+      - name: Test standalone official NFL positive-source extraction without network
+        working-directory: private
+        run: |
+          python -m unittest discover -s test -p test_nfl_official_active_news.py
+          node --check src/nfl-goblin-official-active-mentions.cjs
       - name: Audit real original archived roster schema and conditional match totals with no player names
         working-directory: private
         run: |

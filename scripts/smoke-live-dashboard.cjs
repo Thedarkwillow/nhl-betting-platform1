@@ -11,7 +11,8 @@ async function main(){
  for(const id of ["today","slips","results","featuredProps","props",
   "lineupPicks","lineupStatus","prospectiveAudit","boardMode","boardNotice",
   "rebuildLineup","resetLineup","lineupSwapPanel","lineupSwapOption","applyLineupSwap",
-  "saveLineupDraft","restoreLineupDraft","clearLineupDraft","lineupFeedback"])
+  "saveLineupDraft","restoreLineupDraft","clearLineupDraft","lineupFeedback",
+  "accuracyEvidenceContent","accuracyEvidenceStatus","refreshAccuracyEvidence"])
   assert.ok(html.includes('id="'+id+'"'),"Missing NHL customer dashboard component: "+id);
  for(const term of ["Everything behind the model","MoneyPuck","modelComparison",
   "distributionResearch","researchDrawer","stable-shrink-v2"])
@@ -38,6 +39,15 @@ async function main(){
  for(const key of ["historicalModelResearch","distributionResearch",
   "approvedSourceResearch","matchupResearch","prospectiveResearchAudit"])
   assert.equal(data[key],undefined,"Internal research disclosure on public dashboard: "+key);
+ const accuracy=await (await get(ROOT+"data/accuracy-platform-evidence.json?smoke="+Date.now())).json();
+ assert.equal(accuracy.kind,"public_six_priority_accuracy_platform_evidence_desk_v1");
+ assert.equal(accuracy.schemaVersion,1);
+ assert.equal(accuracy.privatePlayerRowsExposed,0);
+ assert.equal(accuracy.automaticWagers,0);
+ assert.equal(accuracy.providerProof.authenticatedPayoutEV,null);
+ assert.equal(accuracy.noActualPlatformSettlementClaim,true);
+ const verifiedScript=await (await get(ROOT+"assets/accuracy-platform-evidence.js?smoke="+Date.now())).text();
+ assert.ok(verifiedScript.includes("public_six_priority_accuracy_platform_evidence_desk_v1"));
  console.log(JSON.stringify({status:"live_public_dashboard_verified",
   schemaVersion:data.schemaVersion,tracked:data.performance.gradedProspectivePicks,
   featured:data.featuredIndividualProps.length,props:data.props.length,

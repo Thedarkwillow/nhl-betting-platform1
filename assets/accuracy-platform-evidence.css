@@ -1,0 +1,31 @@
+/* Public proof and performance panel: mobile-first and independent of backend */
+.ape-panel{background:#0c1d2a;border:1px solid #294459;border-radius:16px;padding:clamp(16px,3vw,24px);margin:20px 0}
+.ape-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.ape-heading h3{font-size:17px;margin:0}
+.ape-explainer{font-size:13px;line-height:1.6;color:#c4d4e0;margin:8px 0 18px}
+.ape-subhead{font-size:14px;letter-spacing:.01em;margin:23px 0 10px}
+.ape-metrics,.ape-captures,.ape-proof{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ape-stat{display:flex;flex-direction:column;gap:8px;background:#112938;border:1px solid #28495a;border-radius:11px;padding:13px;min-width:0}
+.ape-label{font-size:11px;font-weight:750;color:#a4bbc9;line-height:1.4}
+.ape-value{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.36;overflow-wrap:anywhere}
+.ape-table-scroll{width:100%;overflow-x:auto;border:1px solid #284458;border-radius:10px}
+.ape-table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ape-table th,.ape-table td{padding:10px 12px;text-align:left;border-bottom:1px solid #233b4c}
+.ape-table th{color:#b7cbd8;background:#112734;font-weight:800}
+.ape-table tr:last-child td{border-bottom:0}
+.ape-table td:first-child{font-weight:700}
+.ape-note{border-left:3px solid #5eaf9b;background:#112a31;border-radius:6px;padding:14px 15px;margin-top:15px}
+.ape-note strong{font-size:12px}
+.ape-note p{font-size:12px;margin:9px 0 0}
+.ape-footnote{font-size:12px;color:#a9c0ce;line-height:1.6;margin:11px 0}
+.ape-links{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.ape-links a{display:inline-block;padding:8px 10px;border-radius:8px;border:1px solid #355b67;font-size:11px;text-decoration:none}
+.ape-unavailable{padding:14px;border:1px solid #5e5241;border-radius:8px;font-size:12px}
+#accuracyEvidenceStatus{font-size:11px;color:#a1bdcf;margin:0}
+@media (min-width:800px){.ape-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.ape-proof{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:500px){
+ .ape-captures,.ape-proof{grid-template-columns:minmax(0,1fr)}
+ .ape-table{font-size:11px}
+ .ape-table th,.ape-table td{padding:10px 9px}
+ .ape-value{font-size:15px}
+}

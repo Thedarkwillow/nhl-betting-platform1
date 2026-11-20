@@ -19,6 +19,29 @@ if(official?.requestedDate===day&&official.source==="NHL public API"&&official.s
   Object.assign(nhl,{status:"official_final_slate_graded",scheduledGames:official.scheduledGames,finalGames:official.completedGames,officialPlayerRows:official.players.length,statsFetchedAt:official.fetchedAt,ledgerBuiltAt:ledger.builtAt,all:tally(rows),byTier:Object.fromEntries(["Standard","Goblin","Demon"].map(t=>[t,tally(rows.filter(r=>r.tier===t))])),standardByMarket:Object.fromEntries([...new Set(rows.filter(r=>r.tier==="Standard").map(r=>r.market))].sort().map(m=>[m,tally(rows.filter(r=>r.tier==="Standard"&&r.market===m))])),gamesWithOriginalSelections:new Set(rows.map(r=>r.gameId)).size});
  }
 }
+// Separate official-stat nonappearance reconciliation from immutable original
+// pending statuses. Never infer an authenticated fantasy-app refund or void.
+if(day==="2026-11-19"&&nhl.status==="official_final_slate_graded"){
+ const x=optional("outputs/health/nov19-five-priority-readonly-audit.json");
+ if(x?.kind==="private_nov19_five_priority_review_v1"&&
+    x.nhl?.decidedSelections===nhl.all.decided&&
+    x.nhl.preservedWins===nhl.all.correct&&
+    x.nhl.preservedLosses===nhl.all.incorrect&&
+    x.nhl.originalPending===nhl.all.pending&&
+    x.nhl.confirmedNonappearances===4&&x.nhl.stillUnresolved===0&&
+    x.originalLedgerMutated===false&&x.nhl.historicalDirectionsChanged===0){
+  nhl.nonappearanceReconciliation={
+   originallyPendingOfficialPlayerStatRows:nhl.all.pending,
+   externallyConfirmedNonappearances:x.nhl.confirmedNonappearances,
+   remainingUnresolvedOfficialAppearances:0,
+   privateEvidenceVerified:true,
+   originalDecidedHitRateUnchanged:true,
+   platformDnpSettlementOrRefundVerified:false,
+   note:"Four original frozen entries belong to three nonappearing players; immutable original pending field retained for audit traceability."
+  };
+ }
+}
+
 let nfl={status:"schedule_unavailable"};
 try{
  const schedule=require(path.resolve(privateRoot,"scripts/build-nfl-partner-board-research.cjs")).dataset(Number(day.slice(0,4)),"schedule");

@@ -1,0 +1,55 @@
+name: Validate Private NHL Five Priorities Without Vendor Calls
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/validate-private-five-priorities.yml'
+permissions:
+  contents: read
+concurrency:
+  group: private-five-priority-offline-tests
+  cancel-in-progress: false
+jobs:
+  offline-nhl-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Require authorized private read access without exposing token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax of future-only research and offline grading code
+        working-directory: private
+        run: |
+          set -euo pipefail
+          for file in \
+            src/nhl-standard-future-agreement-v1.cjs \
+            src/nhl-goblin-past-only-calibration-v1.cjs \
+            src/nhl-lineup-evidence-release-v1.cjs \
+            scripts/freeze-partner-nhl-pregame.cjs \
+            scripts/report-nhl-standard-forward-improvement.cjs; do
+            node --check "$file"
+          done
+      - name: Run the new first-Git future and lineup release tests without APIs
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --test \
+            test/nhl-standard-future-agreement-v1.test.cjs \
+            test/nhl-goblin-past-only-calibration-v1.test.cjs \
+            test/nhl-lineup-evidence-release-v1.test.cjs \
+            test/nhl-prospective-validation.test.cjs \
+            test/nhl-prospective-slate-baseline-audit.test.cjs \
+            test/nhl-partner-pregame-freeze.test.cjs
+          echo "Offline NHL research validation passed. Zero metered provider calls and zero wagers."

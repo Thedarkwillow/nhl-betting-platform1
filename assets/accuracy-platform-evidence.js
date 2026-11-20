@@ -44,6 +44,7 @@
    remaining:daily.outstandingAppearanceReconciliation,
    originalPending:daily.originalPendingImmutable,
    slots:[slot("06:00"),slot("09:00")],
+   sourceCaptureDate:typeof health.pacificDate==="string"?health.pacificDate:null,
    sixNineVerified:health.comparableSixNineDeltaVerified===true,
    firstGit:health.firstGitFreezeVerified===true,
    firstGitNhl:health.firstGitCapturedNhl,
@@ -118,6 +119,7 @@
    " confirmed · "+remaining+" unresolved. Original pending ledger rows remain "+
    n(v.originalPending)+" for audit traceability; platform refunds are unverified.","ape-footnote"));
   h3(host,"Pacific morning capture verification");
+  host.append(el("p","Capture-health report date: "+safe(v.sourceCaptureDate||"Not verified")+". The capture date and model-grading slate may differ.","ape-footnote"));
   const slotGrid=el("div",undefined,"ape-captures");
   for(const slot of v.slots)line(slotGrid,slot.name,slot.status);
   host.append(slotGrid);

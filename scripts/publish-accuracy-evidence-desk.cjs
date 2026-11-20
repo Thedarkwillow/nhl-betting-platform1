@@ -10,11 +10,14 @@ const read=(root,p)=>{try{return JSON.parse(fs.readFileSync(path.join(root,p),"u
 const get=p=>read(PUBLIC,"data/"+p);
 const priv=p=>PRIVATE?read(PRIVATE,"outputs/health/"+p):null;
 const good=x=>Number.isInteger(x)&&x>=0;
-const toSummary=o=>o&&["registered","decided","correct","incorrect","push","pending"].every(k=>good(o[k]))&&
- o.decided===o.correct+o.incorrect&&o.registered===o.decided+o.push+o.pending?
+const toSummary=o=>{
+ const push=o?.push??o?.pushes,pending=o?.pending??o?.unresolvedPerSlate;
+ return o&&["registered","decided","correct","incorrect"].every(k=>good(o[k]))&&
+ good(push)&&good(pending)&&o.decided===o.correct+o.incorrect&&
+ o.registered===o.decided+push+pending?
  {registered:o.registered,decided:o.decided,correct:o.correct,incorrect:o.incorrect,
-  push:o.push,pending:o.pending,
-  rate:o.decided?o.correct/o.decided:null}:null;
+  push,pending,rate:o.decided?o.correct/o.decided:null}:null;
+};
 const rate=x=>typeof x==="number"&&x>=0&&x<=1?x:null;
 function build(){
  const scores=get("model-scorecards.json"),

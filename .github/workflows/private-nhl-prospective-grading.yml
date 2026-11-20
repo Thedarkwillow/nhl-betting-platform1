@@ -162,3 +162,5 @@ jobs:
 
 # Owner-requested Nov 17 early-Pacific audit: grade Nov 16 official finals only; retain original pregame and pending gates.
 # Owner-requested Nov 19 Pacific: refresh Nov 18 official FINAL boxscores and grade existing first-Git frozen selections only; do not create or rewrite pregame picks.
+
+# 2026-11-20 owner-requested grading for November 19 Pacific games: official finals only; first-Git pregame frozen player markets; no paid PrizePicksAPI collection or wagers.

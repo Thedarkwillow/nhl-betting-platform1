@@ -29,6 +29,10 @@ jobs:
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: true
           fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -46,6 +50,24 @@ jobs:
           node scripts/report-nov19-five-priority-postgame-audit.cjs
           test -s outputs/health/nov19-five-priority-readonly-audit.json
           echo 'PASS: all four nonappearances, original picks unchanged; private report generated.'
+
+      - name: Regression-test sanitized November 19 daily grade output
+        run: |
+          set -euo pipefail
+          node --check public/scripts/publish-safe-daily-grade.cjs
+          node public/scripts/publish-safe-daily-grade.cjs private public 2026-11-19
+          node - <<'NODE'
+          const assert=require('node:assert/strict');
+          const j=require('./public/data/daily-grade-2026-11-19.json');
+          assert.equal(j.nhl.all.pending,4);
+          assert.equal(j.nhl.all.decided,505);
+          assert.equal(j.nhl.nonappearanceReconciliation.externallyConfirmedNonappearances,4);
+          assert.equal(j.nhl.nonappearanceReconciliation.remainingUnresolvedOfficialAppearances,0);
+          assert.equal(j.nfl.decided,269);
+          assert.equal(j.platformSettlementVerified,false);
+          assert.equal(j.rawPropRowsExposed,0);
+          console.log('PASS: public summary shows resolved nonappearances without misgrading or identity leaks');
+          NODE
 
       - name: Archive only the non-sensitive report in private Git history
         working-directory: private

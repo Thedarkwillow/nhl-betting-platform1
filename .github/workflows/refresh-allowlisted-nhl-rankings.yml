@@ -172,6 +172,51 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Workflow-run fanout may start multiple publishers for an unchanged
+          # stale/unapproved source. Avoid committing only a fresh generatedAt
+          # timestamp: that races other safe data publishers on main.
+          git fetch -q origin main
+          if node - <<'NODE'
+          const fs=require('node:fs'),cp=require('node:child_process');
+          const local=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+          const remote=p=>JSON.parse(cp.execFileSync('git',['show','origin/main:'+p],{encoding:'utf8',maxBuffer:32*1024*1024}));
+          const stable=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+          try{
+            const a=local('data/nhl-freshness-diagnostic.json'),
+                  b=remote('data/nhl-freshness-diagnostic.json'),
+                  ld=local('data.json'),rd=remote('data.json'),
+                  lm=local('data/nhl-position-breakdowns.json'),
+                  rm=remote('data/nhl-position-breakdowns.json');
+            const status=x=>({
+              kind:x.kind,approvedArchiveAt:x.approvedArchiveAt,
+              approvedArchiveContractVerified:x.approvedArchiveContractVerified,
+              previewAt:x.previewAt,publicExportApproved:x.publicExportApproved,
+              publishedRows:x.publishedRows,reason:x.reason,
+              partnerSource:x.partnerSource,privateRankingExport:x.privateRankingExport,
+              validation:x.validation
+            });
+            // Only for two independently validated non-eligible exports. Do
+            // not swallow new approved rankings, a new board, or a new status.
+            const safe=x=>x?.kind==='public_nhl_research_cards_not_internal_model'&&
+              Array.isArray(x.props)&&x.props.length===0&&
+              x.performance?.modelCalibrated===false&&
+              x.performance?.originalPlatformSettlementVerified===false;
+            const stale=x=>x?.kind==='public_nhl_freshness_diagnostic_v1'&&
+              x.publicExportApproved===false&&x.publishedRows===0;
+            const ready=stale(a)&&stale(b)&&safe(ld)&&safe(rd)&&
+              stable(status(a),status(b))&&
+              lm.kind==='public_nhl_official_matchup_aggregates_v1'&&
+              rm.kind===lm.kind&&JSON.stringify({...lm,generatedAt:null})===
+                                     JSON.stringify({...rm,generatedAt:null})&&
+              Date.parse(b.generatedAt)<=Date.now()&&
+              Date.parse(b.generatedAt)>0;
+            process.exitCode=ready?0:1;
+          }catch{process.exitCode=1}
+          NODE
+          then
+            echo 'PASS: unchanged unapproved source; safe existing public export retained, no timestamp-only commit.'
+            exit 0
+          fi
           git add data.json data/nhl-freshness-diagnostic.json data/nhl-position-breakdowns.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'data: refresh approved NHL research rankings and suppress stale cards' >/dev/null

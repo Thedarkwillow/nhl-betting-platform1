@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="./assets/dashboard.css">
 <link rel="stylesheet" href="./assets/six-priority-desk.css">
 <link rel="stylesheet" href="./assets/multi-sport-roadmap.css">
+<link rel="stylesheet" href="./assets/accuracy-platform-evidence.css">
 </head>
 <body>
 <header class="app-header"><div class="topbar">
@@ -145,6 +146,12 @@
 </section>
 <section class="desk-section" id="results">
 <div class="section-head"><div><div class="section-kicker">03 / Results</div><h2>Tracked prediction performance</h2><p class="section-sub">Only directions saved before puck drop and graded against completed official game results count toward our prospective track record.</p></div></div>
+<section class="ape-panel" id="accuracyProofDashboard" aria-label="Verified archived NHL NFL performance and platform payout evidence">
+<div class="ape-heading"><h3>Accuracy and platform verification</h3>
+<button type="button" class="secondary-button" id="refreshAccuracyEvidence">Refresh evidence</button></div>
+<p class="minor" id="accuracyEvidenceStatus" role="status" aria-live="polite">Checking archived accuracy and first-Git source records…</p>
+<div id="accuracyEvidenceContent" aria-live="polite"><p class="minor">Loading verified aggregate tier and market scorecards…</p></div>
+</section>
 <div class="card" id="prospectiveAudit" aria-live="polite">Loading verified results…</div>
 <div class="board-panel results-breakdown" id="resultBreakdown" aria-live="polite"><p class="muted">Market results will appear after eligible games are officially final.</p></div>
 <details class="research-drawer" id="cohortAuditDrawer">
@@ -904,5 +911,6 @@ setInterval(()=>{
 },60000);
 </script>
 <script defer src="./assets/six-priority-desk.js"></script>
+<script defer src="./assets/accuracy-platform-evidence.js"></script>
 <script src="assets/nfl-independent-coverage.js" defer></script>
 </body></html>

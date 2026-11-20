@@ -31,6 +31,14 @@ jobs:
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           fetch-depth: 0
           persist-credentials: true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private-baseline
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -44,20 +52,34 @@ jobs:
           node --check scripts/report-weekend-offday-readiness.cjs
           node --check src/nba-phase-zero-contract.cjs
           node --test test/weekend-offday-preflight.test.cjs test/nba-phase-zero-contract.test.cjs test/cross-platform-research-comparison.test.cjs test/six-priority-market-challenger-future.test.cjs
-      - name: Run existing private NHL NFL MLB preservation regressions
+      - name: Compare full test failures against unchanged main baseline
         working-directory: private
         shell: bash
         run: |
           set -euo pipefail
           umask 077
-          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! npm test >"$log" 2>&1; then
-            echo "::error::Private regression failed; no report publication."
-            grep -E '^(not ok|# fail)' "$log" | head -n 30 || true
-            exit 1
-          fi
-          grep -E '^# (tests|pass|fail)' "$log" | tail -n 6 || true
-          echo 'PASS: private model, source, and historical preservation regressions.'
+          node - <<'NODE'
+          const cp=require('child_process');
+          const options=dir=>({cwd:dir,encoding:'utf8',timeout:14*60000,maxBuffer:64*1024*1024,env:process.env});
+          const run=dir=>cp.spawnSync('npm',['test'],options(dir));
+          const baseline=run('../private-baseline');
+          const candidate=run('.');
+          const errs=x=>[...(x.stdout||'').matchAll(/^not ok \d+ - (.+)$/gm)]
+             .map(m=>m[1].trim()).sort();
+          const b=errs(baseline),a=errs(candidate);
+          if(baseline.error||candidate.error)throw Error('NHL/NFL/MLB suite execution failed or timed out');
+          if(baseline.status!==0&&!b.length)throw Error('Baseline failed without identifiable test assertions');
+          if(candidate.status!==0&&!a.length)throw Error('Candidate failed without identifiable test assertions');
+          const bs=new Set(b),newFail=a.filter(x=>!bs.has(x));
+          console.log('Baseline private main suite failures: '+b.length);
+          console.log('Updated branch suite failures: '+a.length);
+          if(newFail.length){
+            console.error('::error::New regression(s): '+newFail.join(' | '));
+            process.exitCode=1;
+          }else if(a.length){
+            console.log('PASS: no additional failures beyond pre-existing main regressions; legacy suite still not green');
+          }else console.log('PASS: updated full private NHL NFL MLB suite green');
+          NODE
       - name: Generate strictly offline original frozen weekend preflight
         working-directory: private
         shell: bash

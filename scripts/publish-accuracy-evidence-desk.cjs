@@ -33,7 +33,7 @@ function build(){
  const dailyTier=daily?.nhl?.byTier||{};
  const tierNames=["Standard","Goblin","Demon"];
  if(!daily||!tierNames.every(t=>toSummary(dailyTier[t]))||
-   !toSummary(daily.nhl.all)||!toSummary(daily.nfl))throw Error("No validated daily NHL/NFL original grade");
+   !toSummary(daily.nhl.all))throw Error("No validated daily NHL original grade");
  const cumulative=scores?.kind==="public_nhl_nfl_original_git_frozen_model_scorecards_v1"?
  scores.nhl?.originalTierCounts:[];
  const cumulativeByTier=Object.fromEntries(tierNames.map(t=>{
@@ -79,11 +79,11 @@ function build(){
      daily.nhl.nonappearanceReconciliation.remainingUnresolvedOfficialAppearances:null,
     originalPendingImmutable:daily.nhl.all.pending,
     originalOfficialStatsNotPlatformSettlements:true},
-  dailyNfl:{games:daily.nfl.finalGames,all:finalStatsNfl,
-    sameLineBaseline:{model:rate(daily.nfl.hitRate),
-     alwaysHigher:rate(daily.nfl.alwaysHigher),
-     alwaysLower:rate(daily.nfl.alwaysLower)},
-    firstDistinctThreshold:daily.nfl.firstDistinctThreshold?{
+  dailyNfl:{games:good(daily.nfl?.finalGames)?daily.nfl.finalGames:0,all:finalStatsNfl,
+    sameLineBaseline:{model:rate(daily.nfl?.hitRate),
+     alwaysHigher:rate(daily.nfl?.alwaysHigher),
+     alwaysLower:rate(daily.nfl?.alwaysLower)},
+    firstDistinctThreshold:daily.nfl?.firstDistinctThreshold?{
      ...toSummary(daily.nfl.firstDistinctThreshold),
      alwaysHigher:rate(daily.nfl.firstDistinctThreshold.alwaysHigher),
      alwaysLower:rate(daily.nfl.firstDistinctThreshold.alwaysLower)}:null,

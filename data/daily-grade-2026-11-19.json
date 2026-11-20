@@ -1,37 +1,37 @@
 {
   "kind": "public_original_daily_grade_v1",
   "slateDate": "2026-11-19",
-  "generatedAt": "2026-11-20T21:53:26.766Z",
+  "generatedAt": "2026-11-20T22:47:40.822Z",
   "nhl": {
     "status": "official_final_slate_graded",
     "scheduledGames": 12,
     "finalGames": 12,
     "officialPlayerRows": 480,
-    "statsFetchedAt": "2026-11-20T18:35:03.780Z",
-    "ledgerBuiltAt": "2026-11-20T18:35:17.660Z",
+    "statsFetchedAt": "2026-11-20T22:43:01.731Z",
+    "ledgerBuiltAt": "2026-11-20T22:43:16.183Z",
     "all": {
       "registered": 509,
-      "correct": 279,
-      "incorrect": 226,
+      "correct": 278,
+      "incorrect": 227,
       "push": 0,
       "pending": 4,
       "decided": 505,
-      "hitRate": 0.5524752475247525,
-      "alwaysHigher": 0.5683168316831683,
-      "alwaysLower": 0.4316831683168317,
+      "hitRate": 0.5504950495049505,
+      "alwaysHigher": 0.5702970297029702,
+      "alwaysLower": 0.4297029702970297,
       "distinctGradedGames": 12
     },
     "byTier": {
       "Standard": {
         "registered": 148,
-        "correct": 63,
-        "incorrect": 83,
+        "correct": 62,
+        "incorrect": 84,
         "push": 0,
         "pending": 2,
         "decided": 146,
-        "hitRate": 0.4315068493150685,
-        "alwaysHigher": 0.4863013698630137,
-        "alwaysLower": 0.5136986301369864,
+        "hitRate": 0.4246575342465753,
+        "alwaysHigher": 0.4931506849315068,
+        "alwaysLower": 0.5068493150684932,
         "distinctGradedGames": 12
       },
       "Goblin": {
@@ -98,27 +98,18 @@
       },
       "shotsOnGoal": {
         "registered": 66,
-        "correct": 26,
-        "incorrect": 39,
+        "correct": 25,
+        "incorrect": 40,
         "push": 0,
         "pending": 1,
         "decided": 65,
-        "hitRate": 0.4,
-        "alwaysHigher": 0.4461538461538462,
-        "alwaysLower": 0.5538461538461539,
+        "hitRate": 0.38461538461538464,
+        "alwaysHigher": 0.46153846153846156,
+        "alwaysLower": 0.5384615384615384,
         "distinctGradedGames": 12
       }
     },
-    "gamesWithOriginalSelections": 12,
-    "nonappearanceReconciliation": {
-      "originallyPendingOfficialPlayerStatRows": 4,
-      "externallyConfirmedNonappearances": 4,
-      "remainingUnresolvedOfficialAppearances": 0,
-      "privateEvidenceVerified": true,
-      "originalDecidedHitRateUnchanged": true,
-      "platformDnpSettlementOrRefundVerified": false,
-      "note": "Four original frozen entries belong to three nonappearing players; immutable original pending field retained for audit traceability."
-    }
+    "gamesWithOriginalSelections": 12
   },
   "nfl": {
     "status": "archived_official_stat_outcomes_only",

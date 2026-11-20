@@ -1,0 +1,74 @@
+name: Grade November 19 Original Frozen NHL Props By Game
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/grade-original-nhl-nov19-full-slate.yml'
+permissions:
+  contents: read
+concurrency:
+  group: nov19-nhl-official-all-game-private-grade
+  cancel-in-progress: false
+jobs:
+  grade-private-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Require private research repo access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private checkout token absent"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test strict original selected slate grading and final-only gates
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check src/nhl-slate-graded-summary.cjs
+          node --check scripts/report-nhl-2026-11-19-slate-grade.cjs
+          node --test test/nhl-slate-graded-summary.test.cjs
+      - name: Grade all 12 November 19 NHL games by Standard Goblin and Demon
+        working-directory: private
+        env:
+          NHL_GRADE_SLATE_DATE: '2026-11-19'
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/report-nhl-2026-11-19-slate-grade.cjs
+      - name: Archive all games aggregate only in private Git history
+        working-directory: private
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/nhl-2026-11-19-all-games-graded.json
+          if git diff --cached --quiet; then
+            echo 'All-game grade already archived unchanged'
+            exit 0
+          fi
+          git commit -qm 'audit(nhl): original frozen November 19 full slate per-game grade'
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main || {
+              git rebase --abort || true
+              exit 1
+            }
+            if git push -q origin HEAD:main; then
+              echo 'PASS: original precommitted all-game scorecard saved privately'
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo '::error::Could not archive private full slate grade'
+          exit 1

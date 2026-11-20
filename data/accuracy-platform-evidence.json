@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "kind": "public_six_priority_accuracy_platform_evidence_desk_v1",
+  "generatedAt": "2026-11-20T15:01:23.594Z",
+  "lastOfficialSlateDate": "2026-11-19",
+  "lastOfficialGradePublishedAt": "2026-11-20T14:29:32.711Z",
+  "cumulativeNhlTiers": {
+    "Standard": {
+      "decided": 958,
+      "correct": 474,
+      "incorrect": 484,
+      "rate": 0.49478079331941544,
+      "distinctGames": 81,
+      "originalCohortHigherOnly": false
+    },
+    "Goblin": {
+      "decided": 1855,
+      "correct": 1293,
+      "incorrect": 562,
+      "rate": 0.6970350404312669,
+      "distinctGames": 82,
+      "originalCohortHigherOnly": true
+    },
+    "Demon": {
+      "decided": 538,
+      "correct": 212,
+      "incorrect": 326,
+      "rate": 0.3940520446096654,
+      "distinctGames": 81,
+      "originalCohortHigherOnly": true
+    }
+  },
+  "dailyNhl": {
+    "games": 12,
+    "all": {
+      "registered": 509,
+      "decided": 505,
+      "correct": 279,
+      "incorrect": 226,
+      "push": 0,
+      "pending": 4,
+      "rate": 0.5524752475247525
+    },
+    "tiers": {
+      "Standard": {
+        "registered": 148,
+        "decided": 146,
+        "correct": 63,
+        "incorrect": 83,
+        "push": 0,
+        "pending": 2,
+        "rate": 0.4315068493150685
+      },
+      "Goblin": {
+        "registered": 268,
+        "decided": 267,
+        "correct": 179,
+        "incorrect": 88,
+        "push": 0,
+        "pending": 1,
+        "rate": 0.6704119850187266
+      },
+      "Demon": {
+        "registered": 93,
+        "decided": 92,
+        "correct": 37,
+        "incorrect": 55,
+        "push": 0,
+        "pending": 1,
+        "rate": 0.40217391304347827
+      }
+    },
+    "standardMarkets": {
+      "assists": {
+        "registered": 22,
+        "decided": 22,
+        "correct": 4,
+        "incorrect": 18,
+        "push": 0,
+        "pending": 0,
+        "rate": 0.18181818181818182
+      },
+      "blockedShots": {
+        "registered": 9,
+        "decided": 9,
+        "correct": 2,
+        "incorrect": 7,
+        "push": 0,
+        "pending": 0,
+        "rate": 0.2222222222222222
+      },
+      "points": {
+        "registered": 51,
+        "decided": 50,
+        "correct": 31,
+        "incorrect": 19,
+        "push": 0,
+        "pending": 1,
+        "rate": 0.62
+      },
+      "shotsOnGoal": {
+        "registered": 66,
+        "decided": 65,
+        "correct": 26,
+        "incorrect": 39,
+        "push": 0,
+        "pending": 1,
+        "rate": 0.4
+      }
+    },
+    "standardSameLineBaseline": {
+      "decided": 146,
+      "model": 0.4315068493150685,
+      "alwaysHigher": 0.4863013698630137,
+      "alwaysLower": 0.5136986301369864
+    },
+    "confirmedNoAppearance": 4,
+    "outstandingAppearanceReconciliation": 0,
+    "originalPendingImmutable": 4,
+    "originalOfficialStatsNotPlatformSettlements": true
+  },
+  "dailyNfl": {
+    "games": 1,
+    "all": {
+      "registered": 271,
+      "decided": 269,
+      "correct": 145,
+      "incorrect": 124,
+      "push": 2,
+      "pending": 0,
+      "rate": 0.5390334572490706
+    },
+    "sameLineBaseline": {
+      "model": 0.5390334572490706,
+      "alwaysHigher": 0.2899628252788104,
+      "alwaysLower": 0.7100371747211895
+    },
+    "firstDistinctThreshold": {
+      "registered": 115,
+      "decided": 114,
+      "correct": 60,
+      "incorrect": 54,
+      "push": 1,
+      "pending": 0,
+      "rate": 0.5263157894736842,
+      "alwaysHigher": 0.2807017543859649,
+      "alwaysLower": 0.7192982456140351
+    },
+    "researchOnly": true
+  },
+  "newProspectiveTrial": {
+    "policyFrom": "2026-11-21T00:00:00Z",
+    "reported": true,
+    "nhlDecided": 0,
+    "nhlDistinctGames": 0,
+    "nhlDistinctDates": 0,
+    "nflDecided": 0,
+    "nflDistinctGames": 0,
+    "independentlyBetterThanSimpleStrategies": false,
+    "calibrated": false,
+    "modelPromoted": false
+  },
+  "collection": {
+    "pacificDate": "2026-11-20",
+    "slots": {
+      "06:00": {
+        "status": "privately_archived_complete",
+        "observedAt": "2026-11-20T14:05:42.711Z",
+        "nhlOffers": 574,
+        "nflOffers": 5979,
+        "complete": true
+      },
+      "09:00": {
+        "status": "no_verified_full_capture",
+        "observedAt": null,
+        "nhlOffers": null,
+        "nflOffers": null,
+        "complete": false
+      }
+    },
+    "firstGitFreezeVerified": true,
+    "firstGitCapturedNhl": 574,
+    "firstGitCapturedNfl": 5979,
+    "comparableSixNineDeltaVerified": false,
+    "originalPrizePicksAppQuoteVerified": false,
+    "note": "A successful workflow is not proof that each Pacific 6 AM/9 AM original source board was captured."
+  },
+  "providerProof": {
+    "originalSourceFirstGitNotAppAttestation": true,
+    "exactSportsbookSameThresholdMatches": 0,
+    "authenticatedOriginalAppOffers": 0,
+    "authenticatedSpecificEntryPayouts": 0,
+    "authenticatedFinalSettlements": 0,
+    "verifiedROI": null,
+    "authenticatedPayoutEV": null,
+    "officialReferencePages": {
+      "prizePicksPayouts": "https://www.prizepicks.com/help-center/payouts",
+      "prizePicksDnp": "https://www.prizepicks.com/help-center/dnps-reboots-and-ties",
+      "underdogStandardFlex": "https://help.underdogsports.com/en/articles/13780101-pick-em-standard-flex-entry-payouts",
+      "underdogVoids": "https://help.underdogsports.com/en/articles/13161362-pick-em-flex-flexed-payouts"
+    },
+    "note": "Official public schedules describe base payouts, not actual captured player-specific multipliers or authenticated entry/settlement receipts."
+  },
+  "uncalibratedPercentagesNotApproved": true,
+  "automaticWagers": 0,
+  "privatePlayerRowsExposed": 0,
+  "noActualPlatformSettlementClaim": true
+}

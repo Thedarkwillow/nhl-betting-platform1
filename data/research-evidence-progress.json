@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-20T23:13:01.328Z",
+  "generatedAt": "2026-11-20T23:21:11.361Z",
   "sourceReportAt": "2026-11-20T22:53:32.646Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -147,27 +147,27 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-20T23:12:08.133Z",
+    "sourceReportAt": "2026-11-20T23:20:21.429Z",
     "nhl": {
       "sourceEligible": true,
-      "examined": 13,
-      "newCandidates": 6,
-      "newAbstentions": 7,
-      "archivedFirstGit": 669,
+      "examined": 0,
+      "newCandidates": 0,
+      "newAbstentions": 0,
+      "archivedFirstGit": 682,
       "duplicatesQuarantined": 108,
       "selectivePolicyRequiresNewSource": false,
       "postPolicyScreening": {
         "kind": "public_goblin_post_policy_screening_counts_v1",
-        "screened": 434,
-        "selected": 208,
-        "abstained": 226,
+        "screened": 447,
+        "selected": 214,
+        "abstained": 233,
         "lateOrUnverified": 0,
         "unknownStatus": 0,
         "byMarket": {
           "shotsOnGoal": {
-            "screened": 292,
-            "selected": 173,
-            "abstained": 119
+            "screened": 304,
+            "selected": 179,
+            "abstained": 125
           },
           "blockedShots": {
             "screened": 29,
@@ -180,20 +180,20 @@
             "abstained": 9
           },
           "points": {
-            "screened": 101,
+            "screened": 102,
             "selected": 26,
-            "abstained": 75
+            "abstained": 76
           }
         },
         "abstentionReasons": {
-          "insufficient_verified_prior_ice_time": 13,
+          "insufficient_verified_prior_ice_time": 14,
           "high_ice_time_or_recent_usage_uncertainty": 4,
           "recent_lineup_role_or_team_not_stable": 1,
           "opponent_defensive_volume_history_unverified": 0,
           "official_pregame_scratched_or_injured": 0,
           "distribution_direction_missing": 0,
-          "model_direction_not_on_original_offered_side": 56,
-          "insufficient_uncalibrated_directional_separation": 151,
+          "model_direction_not_on_original_offered_side": 59,
+          "insufficient_uncalibrated_directional_separation": 154,
           "other_model_abstention": 1
         },
         "verifiedAccuracy": false,
@@ -202,15 +202,15 @@
       },
       "pendingOfficialTriage": {
         "kind": "public_nhl_goblin_prospective_pending_triage_v1",
-        "registered": 669,
-        "abstained": 226,
+        "registered": 682,
+        "abstained": 233,
         "decided": 333,
         "pushes": 0,
-        "notStarted": 109,
+        "notStarted": 115,
         "startedNoFinalWithinFourHours": 0,
         "fourHoursWithoutOfficialPlayerStat": 1,
         "conflictingOrInvalidFinal": 0,
-        "officialGradingNeeded": 110,
+        "officialGradingNeeded": 116,
         "verifiedWinRate": null,
         "approvedPicks": 0
       },
@@ -276,7 +276,7 @@
         "approvedPicks": 0
       },
       "futureDecided": 333,
-      "futureRegistered": 669
+      "futureRegistered": 682
     },
     "nfl": {
       "supportedOpportunityResearchImplemented": true,

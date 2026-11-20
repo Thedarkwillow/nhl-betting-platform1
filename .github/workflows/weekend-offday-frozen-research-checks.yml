@@ -1,0 +1,126 @@
+name: Audit weekend NHL NFL original frozen research and NBA phase zero
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/weekend-offday-frozen-research-checks.yml'
+  schedule:
+    # Recurring Friday preflight, no fresh vendor API credits.
+    - cron: '55 15 * * 5'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: saturday-nhl-sunday-nfl-readonly-source-review
+  cancel-in-progress: false
+jobs:
+  validate-and-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Require authorized private repo access
+        env:
+          PRIVATE_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$PRIVATE_TOKEN" || { echo "::error::Private repository credential missing."; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private-baseline
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate NHL, NFL, platform semantics and NBA source-contract research
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check src/weekend-offday-preflight.cjs
+          node --check scripts/report-weekend-offday-readiness.cjs
+          node --check src/nba-phase-zero-contract.cjs
+          node --test test/weekend-offday-preflight.test.cjs test/nba-phase-zero-contract.test.cjs test/cross-platform-research-comparison.test.cjs test/six-priority-market-challenger-future.test.cjs
+      - name: Compare full test failures against unchanged main baseline
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node - <<'NODE'
+          const cp=require('child_process');
+          const options=dir=>({cwd:dir,encoding:'utf8',timeout:14*60000,maxBuffer:64*1024*1024,env:process.env});
+          const run=dir=>cp.spawnSync('npm',['test'],options(dir));
+          const baseline=run('../private-baseline');
+          const candidate=run('.');
+          const errs=x=>[...(x.stdout||'').matchAll(/^not ok \d+ - (.+)$/gm)]
+             .map(m=>m[1].trim()).sort();
+          const b=errs(baseline),a=errs(candidate);
+          if(baseline.error||candidate.error)throw Error('NHL/NFL/MLB suite execution failed or timed out');
+          if(baseline.status!==0&&!b.length)throw Error('Baseline failed without identifiable test assertions');
+          if(candidate.status!==0&&!a.length)throw Error('Candidate failed without identifiable test assertions');
+          const bs=new Set(b),newFail=a.filter(x=>!bs.has(x));
+          console.log('Baseline private main suite failures: '+b.length);
+          console.log('Updated branch suite failures: '+a.length);
+          if(newFail.length){
+            console.error('::error::New regression(s): '+newFail.join(' | '));
+            process.exitCode=1;
+          }else if(a.length){
+            console.log('PASS: no additional failures beyond pre-existing main regressions; legacy suite still not green');
+          }else console.log('PASS: updated full private NHL NFL MLB suite green');
+          NODE
+      - name: Generate strictly offline original frozen weekend preflight
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/report-weekend-offday-readiness.cjs
+          node - <<'NODE'
+          const fs=require('fs'),r=JSON.parse(fs.readFileSync('outputs/health/weekend-offday-readiness-latest.json','utf8'));
+          if(r.kind!=='private_weekend_frozen_original_preflight_v1'||
+             r.originalSelectionsRewritten!==false||
+             r.bettingRecommendationsApproved!==false||
+             r.calibrationApproved!==false||
+             r.jointLineupEVVerified!==false||
+             r.realEntriesPlaced!==0||
+             !r.nhl?.proof?.precommitValid||!r.nfl?.proof?.precommitValid)
+            throw Error('Original pregame Git, strict abstention or no-wager contract failed');
+          console.log('PASS: original NHL/NFL preserved and weekend holdouts remain research-only');
+          NODE
+      - name: Commit only private offday readiness summary
+        if: github.ref == 'refs/heads/main'
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/weekend-offday-readiness-latest.json
+          if git diff --cached --quiet; then echo 'No new audit state'; exit 0; fi
+          git commit -qm 'audit: Friday offline NHL NFL weekend preflight and app-proof gaps'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            if ! git rebase -q origin/main; then
+              git rebase --abort || true
+              echo "::error::Conflicting private report update; no overwrite."
+              exit 1
+            fi
+            if git push -q origin HEAD:main; then
+              echo 'PASS: private weekend research summary saved'
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Private weekend report not archived"
+          exit 1

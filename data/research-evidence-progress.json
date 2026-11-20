@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-20T13:59:11.552Z",
-  "sourceReportAt": "2026-11-20T10:28:50.686Z",
+  "generatedAt": "2026-11-20T14:01:20.625Z",
+  "sourceReportAt": "2026-11-20T13:59:01.683Z",
   "periodHistory": {
     "accountedDays": 261,
     "calendarDays": 261,
@@ -10,11 +10,11 @@
   },
   "evidence": {
     "nhl": {
-      "firstObserved": 2849,
-      "matchedCalibrationRows": 879
+      "firstObserved": 3354,
+      "matchedCalibrationRows": 1384
     },
     "nfl": {
-      "firstObserved": 2415,
+      "firstObserved": 2669,
       "matchedCalibrationRows": 0
     }
   },
@@ -63,7 +63,7 @@
   },
   "lineupResearch": {
     "NHL": {
-      "distinctResolvedSlates": 5
+      "distinctResolvedSlates": 6
     },
     "NFL": {
       "distinctResolvedSlates": 1
@@ -74,14 +74,14 @@
     "verifiedROI": null
   },
   "validationSample": {
-    "sourceReportAt": "2026-11-20T02:58:32.739Z",
+    "sourceReportAt": "2026-11-20T13:58:30.714Z",
     "nhlStandardFrozenDecisions": 783,
     "nhlStandardFrozenGames": 65,
     "nhlStandardFrozenPacificSlates": 11,
     "matchedFrozenCalibrationDecisions": 579,
     "independentlySupportedCalibrationGroups": 0,
-    "nflFirstDistinctThresholdDecisions": 1289,
-    "nflFirstDistinctThresholdGames": 14,
+    "nflFirstDistinctThresholdDecisions": 1403,
+    "nflFirstDistinctThresholdGames": 15,
     "powerFlexRegisteredReferenceEntries": 25,
     "powerFlexResolvedReferenceEntries": 16,
     "powerFlexUniqueUnderlyingResolvedSlates": 4,

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "kind": "public_nhl_nfl_original_git_frozen_model_scorecards_v1",
-  "generatedAt": "2026-11-20T18:44:59.157Z",
+  "generatedAt": "2026-11-20T21:32:32.671Z",
   "sources": {
     "nhlOriginalFrozenBaselineAt": "2026-11-20T18:35:39.911Z",
-    "nflFirstGitForecastAuditAt": "2026-11-20T13:54:50.057Z",
+    "nflFirstGitForecastAuditAt": "2026-11-20T21:31:15.229Z",
     "nhlForwardChallengerAuditAt": "2026-11-20T18:36:08.406Z"
   },
   "nhl": {
@@ -204,12 +204,12 @@
   "nfl": {
     "sport": "NFL",
     "explicitlyFrozenDirections": {
-      "frozenSelections": 5924,
+      "frozenSelections": 6671,
       "decided": 4099,
       "correct": 1974,
       "incorrect": 2125,
       "push": 17,
-      "pending": 1808,
+      "pending": 2555,
       "distinctFinalGames": 15,
       "hypotheticalHigherWins": 1880,
       "hypotheticalLowerWins": 2219,

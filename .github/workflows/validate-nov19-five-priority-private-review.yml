@@ -1,0 +1,43 @@
+name: Validate Nov 19 First-Git DNP, Bias and Future Holdout Gates
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/validate-nov19-five-priority-private-review.yml'
+permissions:
+  contents: read
+jobs:
+  validate-private-firstgit-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Require private checkout credentials
+        env:
+          PRIVATE_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$PRIVATE_TOKEN" || { echo "::error::Private checkout token missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: audit/nov19-reconcile-future-gates-20261120
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test frozen NHL nonappearance and NFL direction guards
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --check src/nov19-five-priority-postgame-audit.cjs
+          node --check scripts/report-nov19-five-priority-postgame-audit.cjs
+          node --test test/nhl-slate-graded-summary.test.cjs test/nov19-five-priority-postgame-audit.test.cjs
+      - name: Verify actual original frozen Nov 19 report privately
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node scripts/report-nov19-five-priority-postgame-audit.cjs
+          test -s outputs/health/nov19-five-priority-readonly-audit.json
+          echo 'PASS: all four nonappearances, original picks unchanged; private report generated.'

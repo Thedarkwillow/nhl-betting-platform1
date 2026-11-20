@@ -1,0 +1,48 @@
+name: Validate Exact Platform Offer Payout and Settlement Proof
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/validate-platform-exact-proof.yml'
+permissions:
+  contents: read
+jobs:
+  private-exact-platform-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Require private research access
+        env:
+          PRIVATE_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$PRIVATE_TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: feature/platform-evidence-verification-20261120
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test exact player game line tier and settlement verification
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --check src/exact-offer-payout-settlement-proof-v1.cjs
+          node --check scripts/report-exact-platform-proof-readiness.cjs
+          node --test test/exact-offer-payout-settlement-proof.test.cjs
+      - name: Audit real private original source without inventing app proofs
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node scripts/report-exact-platform-proof-readiness.cjs
+          node - <<'NODE'
+          const j=require('./outputs/health/platform-quote-settlement-readiness-latest.json');
+          if(j.liveExactVerifiedAppMatches!==0||j.currentEntryPayoutsVerified!==0||
+             j.finalPlatformSettlementsVerified!==0||j.payoutAdjustedEV!==null)
+            throw Error('Unauthenticated app or per-entry payout wrongly claimed');
+          console.log('PASS: verified app/payout/settlement remains zero without receipts');
+          NODE

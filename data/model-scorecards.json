@@ -1,21 +1,21 @@
 {
   "schemaVersion": 1,
   "kind": "public_nhl_nfl_original_git_frozen_model_scorecards_v1",
-  "generatedAt": "2026-11-19T23:11:01.116Z",
+  "generatedAt": "2026-11-20T00:51:36.034Z",
   "sources": {
-    "nhlOriginalFrozenBaselineAt": "2026-11-19T23:07:23.310Z",
+    "nhlOriginalFrozenBaselineAt": "2026-11-20T00:48:53.873Z",
     "nflFirstGitForecastAuditAt": "2026-11-18T02:47:49.282Z",
-    "nhlForwardChallengerAuditAt": "2026-11-19T23:07:50.661Z"
+    "nhlForwardChallengerAuditAt": "2026-11-20T00:49:13.209Z"
   },
   "nhl": {
     "sport": "NHL",
     "allOriginalSelections": {
-      "frozenSelections": 3386,
+      "frozenSelections": 3390,
       "decided": 2846,
       "correct": 1700,
       "incorrect": 1146,
       "push": 3,
-      "pending": 537,
+      "pending": 541,
       "distinctGames": 70,
       "modelObservedRate": 0.59733,
       "hypotheticalHigherWins": 1649,
@@ -63,11 +63,11 @@
         "decided": 1588,
         "correct": 1114,
         "incorrect": 474,
-        "pending": 281,
+        "pending": 284,
         "push": 0,
         "distinctGames": 70,
         "modelObservedRate": 0.701511,
-        "frozenSelections": 1869,
+        "frozenSelections": 1872,
         "originalCohortHigherOnly": true,
         "platformSettlementVerified": false,
         "payoutAdjustedROI": null
@@ -77,11 +77,11 @@
         "decided": 446,
         "correct": 175,
         "incorrect": 271,
-        "pending": 98,
+        "pending": 99,
         "push": 0,
         "distinctGames": 69,
         "modelObservedRate": 0.392377,
-        "frozenSelections": 544,
+        "frozenSelections": 545,
         "originalCohortHigherOnly": true,
         "platformSettlementVerified": false,
         "payoutAdjustedROI": null

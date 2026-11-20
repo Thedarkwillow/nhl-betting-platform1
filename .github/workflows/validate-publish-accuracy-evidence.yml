@@ -1,0 +1,58 @@
+name: Validate Accuracy And Platform Evidence Dashboard
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/validate-publish-accuracy-evidence.yml'
+permissions:
+  contents: read
+jobs:
+  build-private-public-accuracy-desk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Require private checkout
+        env:
+          PRIVATE_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$PRIVATE_TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform1
+          ref: feature/accuracy-platform-evidence-desk-20261120
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit exact original-app and future trial evidence
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node scripts/report-exact-platform-proof-readiness.cjs
+          node scripts/report-six-priority-future-scorecard.cjs
+      - name: Validate and publish only sanitized public archive in working tree
+        run: |
+          set -euo pipefail
+          node --check public/assets/accuracy-platform-evidence.js
+          node --check public/scripts/publish-accuracy-evidence-desk.cjs
+          node public/scripts/test-accuracy-platform-evidence.cjs
+          node public/scripts/publish-accuracy-evidence-desk.cjs public private
+          node - <<'NODE'
+          const d=require('./public/data/accuracy-platform-evidence.json');
+          if(d.kind!=='public_six_priority_accuracy_platform_evidence_desk_v1'||
+             d.automaticWagers!==0||d.privatePlayerRowsExposed!==0||
+             d.providerProof.authenticatedPayoutEV!==null||
+             d.providerProof.authenticatedOriginalAppOffers!==0||
+             d.dailyNhl.outstandingAppearanceReconciliation!==0)
+             throw Error('Public source audit or privacy gate failed');
+          console.log('PASS: accuracy dashboard, source verification, DNP reconciliation, holdout and privacy');
+          NODE

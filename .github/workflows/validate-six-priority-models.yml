@@ -2,7 +2,7 @@ name: Validate NHL NFL Market Models and Future Trial Gates
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'fix/nov20-nightly-model-participation-audit', 'feat/nightly-validated-nhl-strict-input-ab', 'feat/nightly-nhl-conditional-statistical-accuracy', 'feat/validate-nhl-independent-direction-audit', 'ci/nhl-eight-accuracy-research-20261120', 'ci/nhl-official-shorthanded-toi-validation', 'ci/nhl-immutable-shorthanded-backfill-test']
+    branches: [main, 'fix/nov20-nightly-model-participation-audit', 'feat/nightly-validated-nhl-strict-input-ab', 'feat/nightly-nhl-conditional-statistical-accuracy', 'feat/validate-nhl-independent-direction-audit', 'ci/nhl-eight-accuracy-research-20261120', 'ci/nhl-official-shorthanded-toi-validation', 'ci/nhl-immutable-shorthanded-backfill-test', 'fix/nhl-eight-future-audit-concurrent-recompute']
     paths:
       - '.github/workflows/validate-six-priority-models.yml'
   schedule:
@@ -43,7 +43,7 @@ jobs:
           done
           node --test test/six-priority-market-challenger-future.test.cjs test/nhl-standard-abstention-audit.test.cjs test/nhl-standard-input-frozen-ab.test.cjs test/nhl-standard-statistical-quality.test.cjs test/nhl-standard-independent-duel-v1.test.cjs test/nhl-eight-accuracy-research-v1.test.cjs test/nhl-official-strength-timeonice-source.test.cjs test/nhl-standard-historical-holdout-review-v1.test.cjs test/nfl-goblin-official-active-mentions.test.cjs test/weekend-offday-preflight.test.cjs test/nhl-standard-adaptive-research.test.cjs test/nfl-directional-v2-prospective.test.cjs
       - name: Refresh chronological two-season holdout with prespecified feature ablations
-        if: github.ref != 'refs/heads/ci/nhl-eight-accuracy-research-20261120' && github.ref != 'refs/heads/ci/nhl-official-shorthanded-toi-validation' && github.ref != 'refs/heads/ci/nhl-immutable-shorthanded-backfill-test'
+        if: github.ref != 'refs/heads/ci/nhl-eight-accuracy-research-20261120' && github.ref != 'refs/heads/ci/nhl-official-shorthanded-toi-validation' && github.ref != 'refs/heads/ci/nhl-immutable-shorthanded-backfill-test' && github.ref != 'refs/heads/fix/nhl-eight-future-audit-concurrent-recompute'
         working-directory: private
         run: |
           set -euo pipefail

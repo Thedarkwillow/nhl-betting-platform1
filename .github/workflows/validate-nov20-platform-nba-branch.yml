@@ -1,0 +1,46 @@
+name: Validate private Nov 20 platform identity and NBA phase-zero contracts
+on:
+  push:
+    branches: ['ci/nov20-platform-nba-contract-regression']
+    paths: ['.github/workflows/validate-nov20-platform-nba-branch.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out unmerged private research feature branch
+        uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: feat/nov20-platform-proof-nba-ingestion-gates
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify syntax and targeted no-wager research contracts
+        run: |
+          set -euo pipefail
+          node --check src/cross-platform-research-comparison.cjs
+          node --check src/nba-official-injury-preflight.cjs
+          node --check src/nba-phase-zero-contract.cjs
+          node --test test/cross-platform-research-comparison.test.cjs \
+            test/nba-official-injury-preflight.test.cjs \
+            test/nba-phase-zero-contract.test.cjs \
+            test/weekend-offday-preflight.test.cjs \
+            test/six-priority-market-challenger-future.test.cjs
+      - name: Verify isolated NBA SQLite schema compiles without modifying any existing database
+        run: |
+          python - <<'PY'
+          import sqlite3, pathlib
+          sql=pathlib.Path('config/nba-phase-zero-schema.sql').read_text()
+          with sqlite3.connect(':memory:') as c:
+              c.executescript(sql)
+              rows=[r[0] for r in c.execute("select name from sqlite_master where type='table' and name like 'nba_%'")]
+          expected={'nba_games','nba_players','nba_player_game_boxes','nba_injury_observations','nba_independent_offers','nba_frozen_trials'}
+          assert set(rows)==expected, (set(rows),expected)
+          print('PASS: six isolated NBA research tables compile in memory; no database changed')
+          PY

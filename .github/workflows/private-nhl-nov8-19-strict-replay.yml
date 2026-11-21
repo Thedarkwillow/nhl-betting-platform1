@@ -1,0 +1,87 @@
+name: Private NHL Nov 8-19 strict historical same-line replay
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-nov8-19-strict-replay.yml']
+  pull_request:
+    paths: ['.github/workflows/private-nhl-nov8-19-strict-replay.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-nhl-nov8-19-strict-historical-replay
+  cancel-in-progress: false
+jobs:
+  retrospective-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    steps:
+      - name: Require existing private research token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private research token not configured"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Check new retrospective safety and strict unchanged policy
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check src/nhl-strict-historical-walkforward-v1.cjs
+          node --check scripts/report-nhl-strict-nov8-19-walkforward.cjs
+          node --test test/nhl-strict-historical-walkforward-v1.test.cjs             test/nhl-strict-directional-abstention-v1.test.cjs             test/nhl-strict-official-evidence-v1.test.cjs             test/nhl-eight-accuracy-research-v1.test.cjs >/dev/null
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const v=fs.readFileSync('src/nhl-strict-directional-abstention-v1.cjs','utf8');
+          const b=require('./src/nhl-strict-directional-abstention-v1.cjs').BOUND;
+          if(!v.includes('const BOUND=Object.freeze')||
+            b.shotsOnGoal.higher!==.67||b.points.higher!==.68||
+            b.assists.higher!==.70||b.blockedShots.higher!==.67)
+            throw Error('STRICT gate thresholds changed');
+          console.log('First-Git source safeguards passed; strict thresholds unchanged');
+          NODE
+      - name: Evaluate Nov 8-19 original Standard lines and reconstructed prior-only model
+        run: |
+          set -euo pipefail
+          umask 077
+          node --max-old-space-size=4096 scripts/report-nhl-strict-nov8-19-walkforward.cjs >/dev/null
+          node - <<'NODE'
+          const f=require('./outputs/health/nhl-strict-nov8-19-historical-replay-latest.json');
+          if(f.allOriginal.registered<1||
+             f.strictKept.registered+f.strictSkipped.registered!==f.allOriginal.registered||
+             f.flags.codePolicyWrittenAfterTargetDates!==true||
+             f.flags.bettingEligible!==false||
+             f.flags.modelPromoted!==false||
+             f.sourceSummary.officialSourceArtifactsWereRecoveredLater!==true)
+             throw Error('Original/strict population cannot be verified');
+          console.log(JSON.stringify({firstGitFrames:f.validFirstGitFrames,
+            originals:f.allOriginal.registered,decided:f.allOriginal.decided,
+            reconstructed:f.recomputedModel.registered,
+            kept:f.strictKept.registered,
+            laterRecoveredOfficialContext:f.sourceSummary.scoringArchives+
+              f.sourceSummary.blockArchives,
+            historicalOnly:true,modelPromoted:false}));
+          NODE
+      - name: Archive full aggregate report privately, never publish private props
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          umask 077
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/nhl-strict-nov8-19-historical-replay-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: official prior-only Nov 8-19 NHL original-line reconstruction'
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

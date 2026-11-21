@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-21T21:52:47.613Z",
+  "generatedAt": "2026-11-21T21:54:46.262Z",
   "sourceReportAt": "2026-11-21T21:49:48.234Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-21T21:47:26.670Z",
+    "sourceReportAt": "2026-11-21T21:53:57.730Z",
     "nhl": {
       "sourceEligible": false,
       "examined": 0,

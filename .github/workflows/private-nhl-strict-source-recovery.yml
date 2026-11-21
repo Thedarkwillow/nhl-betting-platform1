@@ -61,7 +61,7 @@ jobs:
           const scoring=fs.readFileSync('src/nhl-strict-official-evidence-v1.cjs','utf8');
           const blockCollector=fs.readFileSync('scripts/collect-nhl-block-exposure-history.cjs','utf8');
           if(!scoring.includes('canonical(r.teamAbbrev)')||
-             !blockCollector.includes('shotAttemptEvidence(plays,players)'))
+             !blockCollector.includes('officialTeamAttemptEvidence(plays,players)'))
             throw Error('Official NHL source schema repair absent');
           if(!f.includes('const BOUND=Object.freeze')||
              !f.includes('function roleCheck')||

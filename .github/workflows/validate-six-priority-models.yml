@@ -132,8 +132,17 @@ jobs:
             git fetch -q origin main
             if ! git rebase -q origin/main; then
               git rebase --abort || true
-              echo '::error::Concurrent archive conflict, no overwriting of original data'
-              exit 1
+              echo '::warning::Concurrent diagnostics changed; recomputing on latest main'
+              # The only staged writes are derived health reports. Resetting
+              # does not modify any immutable frozen original-source capture.
+              git reset --hard origin/main
+              node scripts/report-nhl-position-multiseason-v3.cjs
+              node scripts/report-six-priority-future-scorecard.cjs
+              git add -f -- outputs/health/six-priority-future-evidence-latest.json outputs/health/nhl-position-multiseason-v3-latest.json
+              if git diff --cached --quiet; then
+                echo 'Newer main already has equivalent research evidence'; exit 0
+              fi
+              git commit -qm 'audit: recompute private NHL research after concurrent original archive'
             fi
             if git push -q origin HEAD:main; then
               echo 'PASS: private research diagnostics archived, no model promotion'

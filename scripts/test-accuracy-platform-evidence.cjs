@@ -34,6 +34,16 @@ assert.equal(v.tiers.length,3);
 assert.equal(v.standardMarkets.length,4);
 assert.equal(v.nhlAll.rate,summary.dailyNhl.all.rate);
 assert.equal(v.nonappearances,summary.dailyNhl.confirmedNoAppearance);
+// Unknown appearance reconciliation must remain unknown on the website,
+// and never be displayed as a verified zero or an assumed completed grade.
+const unknown=view({...summary,dailyNhl:{...summary.dailyNhl,
+ confirmedNoAppearance:null,outstandingAppearanceReconciliation:null}});
+assert.equal(unknown.ready,true);
+assert.equal(unknown.nonappearances,null);
+assert.equal(unknown.remaining,null);
+const verifiedZero=view({...summary,dailyNhl:{...summary.dailyNhl,
+ confirmedNoAppearance:0,outstandingAppearanceReconciliation:0}});
+assert.equal(verifiedZero.remaining,0);
 assert.equal(v.proof.payouts,summary.providerProof.authenticatedSpecificEntryPayouts);
 assert.equal(v.verifiedExpectedValue,null);
 assert.equal(view({...summary,privatePlayerRowsExposed:1}).ready,false);

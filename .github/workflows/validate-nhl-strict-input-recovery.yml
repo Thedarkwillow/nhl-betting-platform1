@@ -30,7 +30,7 @@ jobs:
           node --check src/nhl-position-rate-matchup-v2.cjs
           node --check scripts/freeze-partner-nhl-pregame.cjs
           node --test test/nhl-strict-multiseason-inputs.test.cjs test/nhl-standard-adaptive-research.test.cjs test/six-priority-market-challenger-future.test.cjs test/nhl-standard-abstention-audit.test.cjs
-          git diff --exit-code main -- src/nhl-standard-quality-challenger-v2.cjs
+          git diff --exit-code origin/main -- src/nhl-standard-quality-challenger-v2.cjs
       - name: Audit recovered official prior games, opponent and ice-time as-of on real private data
         shell: bash
         run: |

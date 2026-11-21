@@ -31,6 +31,7 @@ jobs:
           node --check scripts/freeze-partner-nhl-pregame.cjs
           node --test test/nhl-strict-multiseason-inputs.test.cjs test/nhl-standard-adaptive-research.test.cjs test/six-priority-market-challenger-future.test.cjs test/nhl-standard-abstention-audit.test.cjs
           git diff --exit-code origin/main -- src/nhl-standard-quality-challenger-v2.cjs
+          echo 'PASS: original strict thresholds and selected-side policy unchanged'
       - name: Audit recovered official prior games, opponent and ice-time as-of on real private data
         shell: bash
         run: |

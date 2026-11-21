@@ -2,7 +2,7 @@ name: Validate NHL NFL Market Models and Future Trial Gates
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 'fix/nov20-nightly-model-participation-audit']
     paths:
       - '.github/workflows/validate-six-priority-models.yml'
   schedule:
@@ -64,6 +64,7 @@ jobs:
             promoted:j.modelPromoted,verifiedPayoutEV:null}));
           NODE
       - name: Preserve private-only prospective diagnostics without changing original freezes
+        if: github.ref == 'refs/heads/main'
         working-directory: private
         shell: bash
         run: |

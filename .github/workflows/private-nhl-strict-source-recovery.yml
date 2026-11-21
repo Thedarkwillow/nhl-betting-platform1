@@ -1,0 +1,94 @@
+name: Freeze-ready official NHL strict source recovery
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-strict-source-recovery.yml']
+  pull_request:
+    paths: ['.github/workflows/private-nhl-strict-source-recovery.yml']
+  schedule:
+    - cron: '45 7,16 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-nhl-strict-source-recovery
+  cancel-in-progress: false
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - name: Require private read/write token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private repository token missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate strict official source and unchanged thresholds
+        run: |
+          set -euo pipefail
+          umask 077
+          for f in src/nhl-strict-official-evidence-v1.cjs \
+            src/nhl-official-block-exposure-v1.cjs \
+            src/nhl-eight-accuracy-research-v1.cjs \
+            src/nhl-eight-accuracy-forward-audit-v1.cjs \
+            src/nhl-strict-directional-abstention-v1.cjs \
+            scripts/freeze-partner-nhl-pregame.cjs \
+            scripts/collect-nhl-pp-scoring-history.cjs \
+            scripts/collect-nhl-block-exposure-history.cjs; do node --check "$f"; done
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! node --test \
+            test/nhl-strict-official-evidence-v1.test.cjs \
+            test/nhl-official-block-exposure-v1.test.cjs \
+            test/nhl-eight-accuracy-research-v1.test.cjs \
+            test/nhl-strict-directional-abstention-v1.test.cjs \
+            >"$log" 2>&1; then
+            echo "::error::Private regression failed; private test contents withheld"
+            exit 1
+          fi
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const f=fs.readFileSync('src/nhl-strict-directional-abstention-v1.cjs','utf8');
+          if(!f.includes('const BOUND=Object.freeze')||
+             !f.includes('function roleCheck')||
+             !f.includes('pp&&v.assists?.individualPPAssistHistoryVerified===true')||
+             !f.includes('v.blocks?.opponentShotAttemptsVerified===true')||
+             !f.includes('v.blocks?.defensiveZoneStartsVerified===true'))
+           throw Error('Strict directional quality gates changed');
+          console.log('Strict gates unchanged; focused research tests passed');
+          NODE
+      - name: Recover bounded free official NHL scoring and defensive context
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/collect-nhl-pp-scoring-history.cjs >/dev/null
+          node scripts/collect-nhl-block-exposure-history.cjs >/dev/null
+      - name: Commit immutable evidence ONLY to private main
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          umask 077
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for d in outputs/research/nhl-pp-scoring-history outputs/research/nhl-block-exposure-history; do
+            if test -d "$d"; then git add -f "$d"/*.json; fi
+          done
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: immutable verified NHL PP scoring and defensive exposure'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

@@ -2,7 +2,7 @@ name: Validate NHL NFL Market Models and Future Trial Gates
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'fix/nov20-nightly-model-participation-audit', 'feat/nightly-validated-nhl-strict-input-ab', 'feat/nightly-nhl-conditional-statistical-accuracy', 'feat/validate-nhl-independent-direction-audit', 'ci/nhl-eight-accuracy-research-20261120']
+    branches: [main, 'fix/nov20-nightly-model-participation-audit', 'feat/nightly-validated-nhl-strict-input-ab', 'feat/nightly-nhl-conditional-statistical-accuracy', 'feat/validate-nhl-independent-direction-audit', 'ci/nhl-eight-accuracy-research-20261120', 'ci/nhl-official-shorthanded-toi-validation']
     paths:
       - '.github/workflows/validate-six-priority-models.yml'
   schedule:
@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: main
+          ref: feat/nhl-verified-shorthanded-toi-source
           path: private
           fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
@@ -41,9 +41,9 @@ jobs:
           for f in src/nhl-pregame-availability-v2.cjs src/nhl-standard-quality-challenger-v2.cjs src/nhl-standard-abstention-audit.cjs src/nhl-standard-input-frozen-ab-v1.cjs src/nhl-standard-input-ab-future-scorecard-v1.cjs src/nhl-standard-statistical-quality-v1.cjs src/nhl-standard-independent-duel-v1.cjs src/nhl-standard-independent-duel-scorecard-v1.cjs src/nhl-eight-accuracy-research-v1.cjs src/nhl-eight-accuracy-forward-audit-v1.cjs src/nhl-standard-historical-holdout-review-v1.cjs src/nhl-position-multiseason-v3.cjs src/nfl-directional-usage-challenger-v3.cjs src/nfl-goblin-official-active-mentions.cjs src/weekend-offday-preflight.cjs src/six-priority-future-scorecard.cjs scripts/report-six-priority-future-scorecard.cjs scripts/freeze-partner-nhl-pregame.cjs scripts/freeze-nfl-partner-pregame.cjs; do
             node --check "$f"
           done
-          node --test test/six-priority-market-challenger-future.test.cjs test/nhl-standard-abstention-audit.test.cjs test/nhl-standard-input-frozen-ab.test.cjs test/nhl-standard-statistical-quality.test.cjs test/nhl-standard-independent-duel-v1.test.cjs test/nhl-eight-accuracy-research-v1.test.cjs test/nhl-standard-historical-holdout-review-v1.test.cjs test/nfl-goblin-official-active-mentions.test.cjs test/weekend-offday-preflight.test.cjs test/nhl-standard-adaptive-research.test.cjs test/nfl-directional-v2-prospective.test.cjs
+          node --test test/six-priority-market-challenger-future.test.cjs test/nhl-standard-abstention-audit.test.cjs test/nhl-standard-input-frozen-ab.test.cjs test/nhl-standard-statistical-quality.test.cjs test/nhl-standard-independent-duel-v1.test.cjs test/nhl-eight-accuracy-research-v1.test.cjs test/nhl-official-strength-timeonice-source.test.cjs test/nhl-standard-historical-holdout-review-v1.test.cjs test/nfl-goblin-official-active-mentions.test.cjs test/weekend-offday-preflight.test.cjs test/nhl-standard-adaptive-research.test.cjs test/nfl-directional-v2-prospective.test.cjs
       - name: Refresh chronological two-season holdout with prespecified feature ablations
-        if: github.ref != 'refs/heads/ci/nhl-eight-accuracy-research-20261120'
+        if: github.ref != 'refs/heads/ci/nhl-eight-accuracy-research-20261120' && github.ref != 'refs/heads/ci/nhl-official-shorthanded-toi-validation'
         working-directory: private
         run: |
           set -euo pipefail

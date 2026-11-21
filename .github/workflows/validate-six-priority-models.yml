@@ -74,6 +74,19 @@ jobs:
           assert.equal(j.nhlIndependentHistoricalHoldout.syntheticThresholdsOnly,true);
           assert.equal(j.nhlIndependentHistoricalHoldout.historicallyValidatedBettingEdge,false);
           assert.equal(j.nhlIndependentHistoricalHoldout.byMarket.points.gridAblations.length,10);
+          assert.equal(j.nhlIndependentHistoricalHoldout.independentExpectedIceTimeCounterfactualTested,true);
+          assert.equal(j.nhlIndependentHistoricalHoldout.independentPowerPlayLineupCounterfactualTested,false);
+          assert.equal(j.nhlIndependentModelDuel.historicalSimulationNotMixedIntoProspective,true);
+          console.log(JSON.stringify({historicalSyntheticHoldout:Object.fromEntries(
+            Object.entries(j.nhlIndependentHistoricalHoldout.byMarket).map(([k,v])=>
+              [k,{games:v.holdoutGames,syntheticLines:v.syntheticThresholds,
+               brierDelta:v.enhancedMinusBaselineBrier,
+               clusterCI:v.pairedGame95,
+               iceTimeDelta:v.expectedIceTimeAdjustmentAblation?.enhancedMinusNoIceTimeBrier,
+               powerPlayEvidenceStrata:v.pregamePowerPlayUsageEvidenceStrata}])),
+            independentForwardOriginals:j.nhlIndependentModelDuel.originals,
+            independentForwardDecided:j.nhlIndependentModelDuel.completedDecisions,
+            modelPromoted:false}));
           assert.equal(j.nhlStandardInputAB.statisticalConditional.noInferredPlayerParticipation,true);
           assert.equal(j.nhlStandardInputAB.bettingEligible,false);
           assert.equal(j.nhlStandardInputAB.modelPromoted,false);

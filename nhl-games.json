@@ -4,24 +4,26 @@
   "source": "NHL Web API",
   "endpoint": "https://api-web.nhle.com/v1/score/2026-11-21",
   "pacificDate": "2026-11-21",
-  "observedAtUTC": "2026-11-21T20:27:43.614Z",
+  "observedAtUTC": "2026-11-21T22:09:53.053Z",
   "note": "Public NHL scores only. No player props, model predictions or platform settlements.",
   "games": [
     {
       "gameId": 2026020359,
       "startTimeUTC": "2026-11-21T18:00:00Z",
-      "state": "LIVE",
+      "state": "OFF",
       "away": "EDM",
       "home": "CAR",
       "awayScore": 4,
-      "homeScore": 5
+      "homeScore": 7
     },
     {
       "gameId": 2026020360,
       "startTimeUTC": "2026-11-21T20:30:00Z",
-      "state": "PRE",
+      "state": "LIVE",
       "away": "CHI",
-      "home": "CGY"
+      "home": "CGY",
+      "awayScore": 3,
+      "homeScore": 2
     },
     {
       "gameId": 2026020361,

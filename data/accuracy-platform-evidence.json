@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_six_priority_accuracy_platform_evidence_desk_v1",
-  "generatedAt": "2026-11-21T00:12:37.555Z",
+  "generatedAt": "2026-11-21T23:32:05.655Z",
   "lastOfficialSlateDate": "2026-11-19",
   "lastOfficialGradePublishedAt": "2026-11-20T22:47:40.822Z",
   "cumulativeNhlTiers": {
@@ -161,26 +161,26 @@
     "modelPromoted": false
   },
   "collection": {
-    "pacificDate": "2026-11-20",
+    "pacificDate": "2026-11-21",
     "slots": {
       "06:00": {
         "status": "privately_archived_complete",
-        "observedAt": "2026-11-20T14:05:42.711Z",
-        "nhlOffers": 574,
-        "nflOffers": 5979,
+        "observedAt": "2026-11-21T14:05:45.548Z",
+        "nhlOffers": 4030,
+        "nflOffers": 7056,
         "complete": true
       },
       "09:00": {
         "status": "privately_archived_complete",
-        "observedAt": "2026-11-20T17:05:41.988Z",
-        "nhlOffers": 673,
-        "nflOffers": 6273,
+        "observedAt": "2026-11-21T17:05:45.971Z",
+        "nhlOffers": 4392,
+        "nflOffers": 7129,
         "complete": true
       }
     },
     "firstGitFreezeVerified": true,
-    "firstGitCapturedNhl": 673,
-    "firstGitCapturedNfl": 6273,
+    "firstGitCapturedNhl": 4392,
+    "firstGitCapturedNfl": 7129,
     "comparableSixNineDeltaVerified": true,
     "originalPrizePicksAppQuoteVerified": false,
     "note": "A successful workflow is not proof that each Pacific 6 AM/9 AM original source board was captured."

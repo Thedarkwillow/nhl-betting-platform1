@@ -37,8 +37,9 @@ jobs:
           fi
           node --check scripts/recover-nhl-specialist-history.cjs
           node --check scripts/report-nhl-eight-priorities.cjs
-          node --test test/nhl-specialist-history-recovery.test.cjs test/nhl-eight-priorities.test.cjs test/nhl-specialist-standard-proof.test.cjs
-      - name: Recover existing archives and collect at most sixteen dates
+          node --check src/nhl-specialist-history-recovery.cjs
+          node --test test/nhl-specialist-history-recovery.test.cjs test/nhl-eight-priorities.test.cjs test/nhl-specialist-standard-proof.test.cjs test/nhl-official-strength-timeonice-source.test.cjs
+      - name: Recover up to sixteen PP dates and eight separately archived SH dates
         run: |
           set -euo pipefail
           umask 077
@@ -50,9 +51,10 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           if test -d outputs/research/nhl-pp-history; then git add -f outputs/research/nhl-pp-history/*.json; fi
+          if test -d outputs/research/nhl-sh-history; then git add -f outputs/research/nhl-sh-history/*.json; fi
           if test -f outputs/health/nhl-specialist-source-recovery-latest.json; then git add -f outputs/health/nhl-specialist-source-recovery-latest.json; fi
           git diff --cached --quiet && exit 0
-          git commit -qm 'research: private NHL specialist history and exact power-play ice time'
+          git commit -qm 'research: immutable NHL PP and independently captured shorthanded historical ice time'
           git restore -- scripts/recover-nhl-specialist-history.cjs
           for attempt in 1 2 3; do
             git fetch -q origin main

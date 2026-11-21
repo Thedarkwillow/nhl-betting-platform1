@@ -1,0 +1,122 @@
+name: NHL market accuracy strict future proof and game-scoped official recovery
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-market-accuracy-sprint.yml']
+  pull_request:
+    paths: ['.github/workflows/private-nhl-market-accuracy-sprint.yml']
+  workflow_run:
+    workflows:
+      - 'Private pregame NHL freeze on public free runner'
+      - 'Private NHL prospective grading and baseline audit via public runner'
+    types: [completed]
+  schedule:
+    - cron: '35 7,18 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-nhl-market-specific-future-proof
+  cancel-in-progress: false
+jobs:
+  private-check:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Verify narrowly-scoped private archive token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private repo token missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate frozen research model safety and official source contracts
+        run: |
+          set -euo pipefail
+          umask 077
+          for p in src/nhl-market-direction-research-v1.cjs src/nhl-market-specific-forward-audit-v1.cjs src/nhl-strict-historical-walkforward-v1.cjs scripts/collect-nhl-block-exposure-shards.cjs scripts/report-nhl-strict-nov8-19-walkforward.cjs scripts/report-nhl-market-specific-future.cjs scripts/freeze-partner-nhl-pregame.cjs; do
+            node --check "$p"
+          done
+          node --test             test/nhl-market-direction-research-v1.test.cjs             test/nhl-block-exposure-shards.test.cjs             test/nhl-strict-historical-walkforward-v1.test.cjs             test/nhl-strict-directional-abstention-v1.test.cjs             test/nhl-strict-official-evidence-v1.test.cjs             test/nhl-official-block-exposure-v1.test.cjs             test/nhl-eight-accuracy-research-v1.test.cjs >/dev/null
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const b=require('./src/nhl-strict-directional-abstention-v1.cjs').BOUND;
+          const source=fs.readFileSync('scripts/freeze-partner-nhl-pregame.cjs','utf8');
+          if(b.shotsOnGoal.higher!==.67||b.points.higher!==.68||
+             b.assists.higher!==.70||b.blockedShots.higher!==.67||
+             !source.includes('snapshot.marketDirectionResearchV1')||
+             !source.includes('snapshot.strictDirectionalShadowV1')||
+             !source.includes('(?:__\\d{10})'))
+            throw Error('Changed strict thresholds or missing first-Git research wiring');
+          console.log('PASS: four-market source safety and unchanged strict gates');
+          NODE
+      - name: Evaluate past original NHL lines separately from genuinely frozen future predictions
+        run: |
+          set -euo pipefail
+          umask 077
+          node --max-old-space-size=4096 scripts/report-nhl-strict-nov8-19-walkforward.cjs >/dev/null
+          node --max-old-space-size=4096 scripts/report-nhl-market-specific-future.cjs >/dev/null
+          node - <<'NODE'
+          const a=require('./outputs/health/nhl-strict-nov8-19-historical-replay-latest.json');
+          const f=require('./outputs/health/nhl-market-specific-future-scorecard-latest.json');
+          if(a.allOriginal.registered!==a.strictKept.registered+a.strictSkipped.registered||
+             a.marketSpecific.registered>a.allOriginal.registered||
+             a.marketResearchWatchlist.registered>a.marketSpecific.registered||
+             a.flags.codePolicyWrittenAfterTargetDates!==true||
+             f.modelPromoted!==false||f.bettingEligible!==false||
+             f.noRetrospectiveModelsIncluded!==true)
+             throw Error('Historical and future original cohorts must remain separate');
+          console.log(JSON.stringify({historicalDecided:a.allOriginal.decided,
+            historicalMarketSpecificDecided:a.marketSpecific.decided,
+            historicalResearchWatchlistDecided:a.marketResearchWatchlist.decided,
+            futureFirstGitFrames:f.acceptedFrames,
+            futureOnlyDecided:f.overall.modeled.decided,
+            noPromotions:true}));
+          NODE
+      - name: Collect bounded game-scoped official evidence on large previous NHL slates
+        if: github.event_name != 'pull_request' && github.event_name != 'workflow_run'
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/collect-nhl-block-exposure-shards.cjs >/dev/null
+          node - <<'NODE'
+          const f=require('./outputs/health/nhl-block-exposure-shards-latest.json');
+          if(f.modelPromoted!==false||f.zeroPaidRequests!==true||
+            f.originalStrictThresholdsUnchanged!==true)
+            throw Error('Block collector attempted unsupported promotion');
+          console.log(JSON.stringify({gameAttempts:f.attempts.length,
+            verifiedGames:f.attempts.filter(x=>x.status==='archived').length,
+            currentPendingBefore:f.pendingCurrentGames,
+            historicalSourceOnly:true}));
+          NODE
+      - name: Save aggregate and source-verified data ONLY to private repository
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          umask 077
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/nhl-strict-nov8-19-historical-replay-latest.json              outputs/health/nhl-market-specific-future-scorecard-latest.json
+          if test -f outputs/health/nhl-block-exposure-shards-latest.json; then
+            git add -f outputs/health/nhl-block-exposure-shards-latest.json
+          fi
+          if test -d outputs/research/nhl-block-exposure-history; then
+            find outputs/research/nhl-block-exposure-history -name '*__*.json' -print0 | xargs -0 -r git add -f --
+          fi
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: private NHL four-market same-line and future-only proof with official shards'
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

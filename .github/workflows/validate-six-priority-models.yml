@@ -2,7 +2,7 @@ name: Validate NHL NFL Market Models and Future Trial Gates
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'fix/nov20-nightly-model-participation-audit']
+    branches: [main, 'fix/nov20-nightly-model-participation-audit', 'feat/nightly-validated-nhl-strict-input-ab']
     paths:
       - '.github/workflows/validate-six-priority-models.yml'
   schedule:

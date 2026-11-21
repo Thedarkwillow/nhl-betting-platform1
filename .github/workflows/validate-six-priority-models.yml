@@ -2,15 +2,20 @@ name: Validate NHL NFL Market Models and Future Trial Gates
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 'fix/nov20-nightly-model-participation-audit']
     paths:
       - '.github/workflows/validate-six-priority-models.yml'
+  schedule:
+    # Nightly review of first-Git future predictions after official results.
+    # No new sportsbook or platform requests; research evidence only.
+    - cron: '20 4 * * *'
+      timezone: America/Los_Angeles
 permissions:
   contents: read
 jobs:
   review-private-prospective-models:
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 18
     steps:
       - name: Require private token
         env:
@@ -19,11 +24,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: feature/six-priority-model-evidence-20261120
+          ref: main
           path: private
           fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
-          persist-credentials: false
+          persist-credentials: true
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -31,10 +36,10 @@ jobs:
         working-directory: private
         run: |
           set -euo pipefail
-          for f in src/nhl-pregame-availability-v2.cjs src/nhl-standard-quality-challenger-v2.cjs src/nfl-directional-usage-challenger-v3.cjs src/six-priority-future-scorecard.cjs scripts/report-six-priority-future-scorecard.cjs scripts/freeze-partner-nhl-pregame.cjs scripts/freeze-nfl-partner-pregame.cjs; do
+          for f in src/nhl-pregame-availability-v2.cjs src/nhl-standard-quality-challenger-v2.cjs src/nhl-standard-abstention-audit.cjs src/nfl-directional-usage-challenger-v3.cjs src/nfl-goblin-official-active-mentions.cjs src/weekend-offday-preflight.cjs src/six-priority-future-scorecard.cjs scripts/report-six-priority-future-scorecard.cjs scripts/freeze-partner-nhl-pregame.cjs scripts/freeze-nfl-partner-pregame.cjs; do
             node --check "$f"
           done
-          node --test test/six-priority-market-challenger-future.test.cjs test/nhl-standard-adaptive-research.test.cjs test/nfl-directional-v2-prospective.test.cjs
+          node --test test/six-priority-market-challenger-future.test.cjs test/nhl-standard-abstention-audit.test.cjs test/nfl-goblin-official-active-mentions.test.cjs test/weekend-offday-preflight.test.cjs test/nhl-standard-adaptive-research.test.cjs test/nfl-directional-v2-prospective.test.cjs
       - name: Run precommitted first-Git future trial audit
         working-directory: private
         run: |
@@ -44,8 +49,44 @@ jobs:
           const assert=require('node:assert/strict');
           const fs=require('node:fs');
           const j=JSON.parse(fs.readFileSync('outputs/health/six-priority-future-evidence-latest.json'));
+          assert.equal(j.nhlStandardAbstention.kind,'nhl_first_git_standard_abstention_coverage_review_20261120_v1');
+          assert.equal(j.nhlStandardAbstention.modelPromoted,false);
+          assert.equal(j.nhlStandardAbstention.bettingEligible,false);
+          assert.equal(j.nhlStandardAbstention.calibrationApproved,false);
+          assert.equal(j.nhlStandardAbstention.selectionQualityProven,false);
           assert.equal(j.originalPlatformSettlementsVerified,false);
           assert.equal(j.modelPromoted,false);
           assert.equal(j.autoWagers,0);
-          console.log(JSON.stringify({nhl:j.nhl.all.decided,nfl:j.nfl.all.decided,promoted:j.modelPromoted}));
+          console.log(JSON.stringify({nhl:j.nhl.all.decided,nfl:j.nfl.all.decided,
+            originalStandard:j.nhlStandardAbstention.acceptedOriginalFrozenThresholds,
+            selectedStandard:j.nhlStandardAbstention.selected.registered,
+            withheldStandard:j.nhlStandardAbstention.abstained.registered,
+            promoted:j.modelPromoted,verifiedPayoutEV:null}));
           NODE
+      - name: Preserve private-only prospective diagnostics without changing original freezes
+        if: github.ref == 'refs/heads/main'
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f -- outputs/health/six-priority-future-evidence-latest.json
+          if git diff --cached --quiet; then
+            echo 'No new future evidence to archive'; exit 0
+          fi
+          git commit -qm 'audit: private future NHL Standard abstention coverage and NFL model baselines'
+          for retry in 1 2 3; do
+            git fetch -q origin main
+            if ! git rebase -q origin/main; then
+              git rebase --abort || true
+              echo '::error::Concurrent archive conflict, no overwriting of original data'
+              exit 1
+            fi
+            if git push -q origin HEAD:main; then
+              echo 'PASS: private research diagnostics archived, no model promotion'
+              exit 0
+            fi
+            sleep "$retry"
+          done
+          exit 1

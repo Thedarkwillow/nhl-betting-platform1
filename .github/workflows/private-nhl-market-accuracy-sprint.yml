@@ -42,10 +42,10 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          for p in src/nhl-market-direction-research-v1.cjs src/nhl-market-specific-forward-audit-v1.cjs src/nhl-strict-historical-walkforward-v1.cjs scripts/collect-nhl-block-exposure-shards.cjs scripts/report-nhl-strict-nov8-19-walkforward.cjs scripts/report-nhl-market-specific-future.cjs scripts/freeze-partner-nhl-pregame.cjs; do
+          for p in src/nhl-market-direction-research-v1.cjs src/nhl-market-specific-forward-audit-v1.cjs src/nhl-older-season-trained-shadow-v1.cjs src/nhl-older-season-trained-forward-v1.cjs src/nhl-strict-historical-walkforward-v1.cjs scripts/collect-nhl-block-exposure-shards.cjs scripts/report-nhl-strict-nov8-19-walkforward.cjs scripts/report-nhl-market-specific-future.cjs scripts/report-nhl-older-season-trained-future.cjs scripts/freeze-partner-nhl-pregame.cjs; do
             node --check "$p"
           done
-          node --test             test/nhl-market-direction-research-v1.test.cjs             test/nhl-block-exposure-shards.test.cjs             test/nhl-strict-historical-walkforward-v1.test.cjs             test/nhl-strict-directional-abstention-v1.test.cjs             test/nhl-strict-official-evidence-v1.test.cjs             test/nhl-official-block-exposure-v1.test.cjs             test/nhl-eight-accuracy-research-v1.test.cjs >/dev/null
+          node --test             test/nhl-older-season-trained-shadow-v1.test.cjs             test/nhl-market-direction-research-v1.test.cjs             test/nhl-block-exposure-shards.test.cjs             test/nhl-strict-historical-walkforward-v1.test.cjs             test/nhl-strict-directional-abstention-v1.test.cjs             test/nhl-strict-official-evidence-v1.test.cjs             test/nhl-official-block-exposure-v1.test.cjs             test/nhl-eight-accuracy-research-v1.test.cjs >/dev/null
           node - <<'NODE'
           const fs=require('node:fs');
           const b=require('./src/nhl-strict-directional-abstention-v1.cjs').BOUND;
@@ -64,20 +64,25 @@ jobs:
           umask 077
           node --max-old-space-size=4096 scripts/report-nhl-strict-nov8-19-walkforward.cjs >/dev/null
           node --max-old-space-size=4096 scripts/report-nhl-market-specific-future.cjs >/dev/null
+          node --max-old-space-size=4096 scripts/report-nhl-older-season-trained-future.cjs >/dev/null
           node - <<'NODE'
           const a=require('./outputs/health/nhl-strict-nov8-19-historical-replay-latest.json');
           const f=require('./outputs/health/nhl-market-specific-future-scorecard-latest.json');
+          const t=require('./outputs/health/nhl-older-season-trained-future-latest.json');
           if(a.allOriginal.registered!==a.strictKept.registered+a.strictSkipped.registered||
              a.marketSpecific.registered>a.allOriginal.registered||
              a.marketResearchWatchlist.registered>a.marketSpecific.registered||
              a.flags.codePolicyWrittenAfterTargetDates!==true||
              f.modelPromoted!==false||f.bettingEligible!==false||
-             f.noRetrospectiveModelsIncluded!==true)
+             f.noRetrospectiveModelsIncluded!==true||
+             t.modelPromoted!==false||t.bettingEligible!==false||
+             t.noRetrospectiveReconstructionInThisScorecard!==true)
              throw Error('Historical and future original cohorts must remain separate');
           console.log(JSON.stringify({historicalDecided:a.allOriginal.decided,
             historicalMarketSpecificDecided:a.marketSpecific.decided,
             historicalResearchWatchlistDecided:a.marketResearchWatchlist.decided,
             futureFirstGitFrames:f.acceptedFrames,
+            olderSeasonTrainedFutureFrames:t.acceptedFrames,
             futureOnlyDecided:f.overall.modeled.decided,
             noPromotions:true}));
           NODE
@@ -104,7 +109,8 @@ jobs:
           umask 077
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f outputs/health/nhl-strict-nov8-19-historical-replay-latest.json              outputs/health/nhl-market-specific-future-scorecard-latest.json
+          git add -f outputs/health/nhl-strict-nov8-19-historical-replay-latest.json              outputs/health/nhl-market-specific-future-scorecard-latest.json \
+             outputs/health/nhl-older-season-trained-future-latest.json
           if test -f outputs/health/nhl-block-exposure-shards-latest.json; then
             git add -f outputs/health/nhl-block-exposure-shards-latest.json
           fi

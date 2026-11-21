@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: feat/nhl-strict-frozen-input-ab-trial
+          ref: feat/nhl-conditional-statistical-input-ab
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
           fetch-depth: 0
@@ -25,14 +25,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for p in src/nhl-standard-input-frozen-ab-v1.cjs src/nhl-standard-input-ab-future-scorecard-v1.cjs scripts/freeze-partner-nhl-pregame.cjs scripts/report-six-priority-future-scorecard.cjs; do node --check "$p"; done
+          for p in src/nhl-standard-input-frozen-ab-v1.cjs src/nhl-standard-input-ab-future-scorecard-v1.cjs src/nhl-standard-statistical-quality-v1.cjs scripts/freeze-partner-nhl-pregame.cjs scripts/report-six-priority-future-scorecard.cjs; do node --check "$p"; done
           git diff --exit-code origin/main -- src/nhl-standard-quality-challenger-v2.cjs
           echo "NHL_STRICT_POLICY_UNCHANGED"
       - name: Test exact original source sides, frozen both arms, official grading and no retrospective leakage
         shell: bash
         run: |
           set -euo pipefail
-          node --test test/nhl-standard-input-frozen-ab.test.cjs test/nhl-standard-abstention-audit.test.cjs test/nhl-strict-multiseason-inputs.test.cjs test/nhl-standard-adaptive-research.test.cjs
+          node --test test/nhl-standard-input-frozen-ab.test.cjs test/nhl-standard-statistical-quality.test.cjs test/nhl-standard-abstention-audit.test.cjs test/nhl-strict-multiseason-inputs.test.cjs test/nhl-standard-adaptive-research.test.cjs
       - name: Offline genuine first-Git scored sample only - no calls, no wagers
         shell: bash
         run: |
@@ -43,7 +43,9 @@ jobs:
           const v=JSON.parse(fs.readFileSync("outputs/health/six-priority-future-evidence-latest.json","utf8"));
           if(!v.nhlStandardInputAB||v.nhlStandardInputAB.modelPromoted!==false||
              v.nhlStandardInputAB.bettingEligible!==false||
-             v.nhlStandardInputAB.strongerInputsOutperformSimpleBaselinesProven!==false)
+             v.nhlStandardInputAB.strongerInputsOutperformSimpleBaselinesProven!==false||
+             v.nhlStandardInputAB.statisticalConditional.bettingEligible!==false||
+             v.nhlStandardInputAB.statisticalConditional.accuracyAdvantageVerified!==false)
              throw Error("A/B model improperly approved or missing");
           const b=v.nhlStandardInputAB;
           console.log("NHL_FUTURE_STRICT_INPUT_AB "+JSON.stringify({
@@ -59,5 +61,11 @@ jobs:
               higher:b.enhanced.selected.alwaysHigherSameThresholdRate,
               lower:b.enhanced.selected.alwaysLowerSameThresholdRate},
             cohorts:b.cohorts,
+            statisticalConditional:{
+              firstGitOriginals:b.statisticalConditional.originalExactThresholds,
+              controlSelected:b.statisticalConditional.currentOnly.selected.registered,
+              enrichedSelected:b.statisticalConditional.enriched.selected.registered,
+              enrichedDecided:b.statisticalConditional.enriched.selected.decided,
+              proofApproved:false,bettingEligible:false},
             strongerInputsProven:false,notBettable:true}));
           NODE

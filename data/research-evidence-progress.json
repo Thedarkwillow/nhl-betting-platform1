@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-21T23:52:00.564Z",
+  "generatedAt": "2026-11-21T23:52:55.444Z",
   "sourceReportAt": "2026-11-21T22:35:05.660Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -147,20 +147,20 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-21T23:50:29.409Z",
+    "sourceReportAt": "2026-11-21T23:52:04.947Z",
     "nhl": {
       "sourceEligible": true,
-      "examined": 17,
-      "newCandidates": 2,
-      "newAbstentions": 15,
-      "archivedFirstGit": 873,
+      "examined": 0,
+      "newCandidates": 0,
+      "newAbstentions": 0,
+      "archivedFirstGit": 890,
       "duplicatesQuarantined": 108,
       "selectivePolicyRequiresNewSource": false,
       "postPolicyScreening": {
         "kind": "public_goblin_post_policy_screening_counts_v1",
-        "screened": 638,
-        "selected": 333,
-        "abstained": 305,
+        "screened": 655,
+        "selected": 335,
+        "abstained": 320,
         "lateOrUnverified": 0,
         "unknownStatus": 0,
         "byMarket": {
@@ -170,19 +170,19 @@
             "abstained": 170
           },
           "blockedShots": {
-            "screened": 73,
-            "selected": 36,
+            "screened": 74,
+            "selected": 37,
             "abstained": 37
           },
           "assists": {
-            "screened": 18,
+            "screened": 19,
             "selected": 3,
-            "abstained": 15
+            "abstained": 16
           },
           "points": {
-            "screened": 114,
-            "selected": 31,
-            "abstained": 83
+            "screened": 129,
+            "selected": 32,
+            "abstained": 97
           }
         },
         "abstentionReasons": {
@@ -192,8 +192,8 @@
           "opponent_defensive_volume_history_unverified": 0,
           "official_pregame_scratched_or_injured": 0,
           "distribution_direction_missing": 0,
-          "model_direction_not_on_original_offered_side": 79,
-          "insufficient_uncalibrated_directional_separation": 198,
+          "model_direction_not_on_original_offered_side": 84,
+          "insufficient_uncalibrated_directional_separation": 208,
           "other_model_abstention": 1
         },
         "verifiedAccuracy": false,
@@ -202,15 +202,15 @@
       },
       "pendingOfficialTriage": {
         "kind": "public_nhl_goblin_prospective_pending_triage_v1",
-        "registered": 873,
-        "abstained": 305,
+        "registered": 890,
+        "abstained": 320,
         "decided": 333,
         "pushes": 0,
-        "notStarted": 173,
+        "notStarted": 175,
         "startedNoFinalWithinFourHours": 45,
         "fourHoursWithoutOfficialPlayerStat": 17,
         "conflictingOrInvalidFinal": 0,
-        "officialGradingNeeded": 235,
+        "officialGradingNeeded": 237,
         "verifiedWinRate": null,
         "approvedPicks": 0
       },
@@ -276,7 +276,7 @@
         "approvedPicks": 0
       },
       "futureDecided": 333,
-      "futureRegistered": 873
+      "futureRegistered": 890
     },
     "nfl": {
       "supportedOpportunityResearchImplemented": true,
@@ -344,21 +344,21 @@
         "approvedPicks": 0
       },
       "gamedayOriginal": null,
-      "originalGoblinOffersAudited": 1918,
+      "originalGoblinOffersAudited": 1915,
       "exactIdentityReadyForModel": 0,
       "verifiedActiveRoster": false,
       "officialGameBridgeMissing": 305,
       "prerequisiteGaps": {
         "kind": "public_nfl_goblin_missing_prerequisites_v1",
-        "originalOffersAudited": 1918,
+        "originalOffersAudited": 1915,
         "officialGame": 305,
-        "providerToGSIS": 1918,
-        "positiveActiveRoster": 1918,
+        "providerToGSIS": 1915,
+        "positiveActiveRoster": 1915,
         "rowsMayHaveMultipleBlockers": true,
         "verifiedActive": false,
         "eligiblePicks": 0
       },
-      "providerGSiSBridgeMissing": 1613,
+      "providerGSiSBridgeMissing": 1610,
       "positiveActiveStatusMissing": null,
       "firstGitEligible": 0
     },

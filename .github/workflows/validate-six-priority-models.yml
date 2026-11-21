@@ -115,6 +115,7 @@ jobs:
             appearanceConditionalEnrichedDecided:j.nhlStandardInputAB.statisticalConditional.enriched.selected.decided,
             promoted:j.modelPromoted,verifiedPayoutEV:null}));
           NODE
+      # Both cohorts must remain non-overlapping and research-only.
       - name: Grade historical original lines separately from frozen future new model
         working-directory: private
         run: |

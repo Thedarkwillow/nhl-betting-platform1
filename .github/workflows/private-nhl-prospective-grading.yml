@@ -48,6 +48,18 @@ jobs:
             echo "::error::Private precommit / settlement-grading regression failed."
             exit 1
           fi
+      - name: Validate prospective multifactor evidence and source chronology
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-pregame-live-context-v1.test.cjs test/nhl-multifactor-future-v1.test.cjs >"$log" 2>&1; then
+            echo "::error::Multifactor future-source tests failed. No trial score will be published."
+            exit 1
+          fi
+          echo "PASS: future-only NHL live-context and baseline audit regression."
       - name: Collect only yesterday's FINAL official NHL games before any grading
         working-directory: private
         shell: bash
@@ -103,7 +115,7 @@ jobs:
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           # Always rebuild the original Git-backed cohort from first commit history
           # AFTER the official final boxscores update; never reuse yesterday's ledger.
-          for script in scripts/grade-nhl-predictions.cjs scripts/build-nhl-private-ledger-and-labs.cjs scripts/report-nhl-prospective-model-release.cjs scripts/report-nhl-prospective-validation.cjs scripts/report-nhl-frozen-baseline-challenge.cjs scripts/report-nhl-frozen-simple-challengers.cjs scripts/report-nhl-standard-triple-challengers.cjs scripts/report-nhl-pregame-close-research.cjs scripts/report-nhl-standard-forward-improvement.cjs; do
+          for script in scripts/grade-nhl-predictions.cjs scripts/build-nhl-private-ledger-and-labs.cjs scripts/report-nhl-prospective-model-release.cjs scripts/report-nhl-prospective-validation.cjs scripts/report-nhl-frozen-baseline-challenge.cjs scripts/report-nhl-frozen-simple-challengers.cjs scripts/report-nhl-standard-triple-challengers.cjs scripts/report-nhl-pregame-close-research.cjs scripts/report-nhl-standard-forward-improvement.cjs scripts/report-nhl-multifactor-future-scorecard.cjs; do
             if ! node "$script" > "$log" 2>&1; then
               if [[ "$script" == "scripts/report-nhl-frozen-baseline-challenge.cjs" ]]; then
                 grep "^Refusing " "$log" | tail -n 1 | cut -c 1-180 || true
@@ -134,7 +146,8 @@ jobs:
             outputs/health/nhl-frozen-simple-challengers-latest.json
             outputs/health/nhl-standard-triple-challenger-latest.json
             outputs/health/nhl-standard-forward-improvement-latest.json
-            outputs/health/nhl-pregame-source-close-latest.json)
+            outputs/health/nhl-pregame-source-close-latest.json
+            outputs/health/nhl-multifactor-future-scorecard-latest.json)
           (("${#files[@]}" > 0)) || { echo "::error::No NHL grading or baseline output"; exit 1; }
           git add -f -- "${files[@]}"
           if git diff --cached --quiet; then

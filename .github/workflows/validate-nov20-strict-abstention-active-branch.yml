@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: fix/nov20-standard-abstention-nfl-active-proof
+          ref: 7013a3fe9debdd99513079241679fced59e2678a
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           fetch-depth: 0
           persist-credentials: false

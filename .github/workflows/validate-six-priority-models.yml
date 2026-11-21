@@ -2,7 +2,7 @@ name: Validate NHL NFL Market Models and Future Trial Gates
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'fix/nov20-nightly-model-participation-audit', 'feat/nightly-validated-nhl-strict-input-ab', 'feat/nightly-nhl-conditional-statistical-accuracy', 'feat/validate-nhl-independent-direction-audit']
+    branches: [main, 'fix/nov20-nightly-model-participation-audit', 'feat/nightly-validated-nhl-strict-input-ab', 'feat/nightly-nhl-conditional-statistical-accuracy', 'feat/validate-nhl-independent-direction-audit', 'ci/diagnose-nhl-independent-duel-freeze']
     paths:
       - '.github/workflows/validate-six-priority-models.yml'
   schedule:
@@ -32,6 +32,41 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Read-only source enrollment diagnostic (counts only)
+        if: github.ref == 'refs/heads/ci/diagnose-nhl-independent-duel-freeze'
+        working-directory: private
+        run: |
+          node - <<'NODE'
+          const fs=require("fs");
+          const key=p=>[p.gameId,p.playerId,p.market,p.line,p.tier].join("|");
+          for(const file of ["20261121T021102Z.json","20261121T021709Z.json"]){
+            const d=JSON.parse(fs.readFileSync("outputs/research/snapshots/"+file,"utf8"));
+            const a=d.standardQualityInputABV1||{},q=a.independentDuel||{},
+              ps=(d.individualPropSelections||[]).filter(p=>p.tier==="Standard"&&
+                ["points","shotsOnGoal","assists","blockedShots"].includes(p.market));
+            const counts={};
+            function bump(n){counts[n]=(counts[n]||0)+1;}
+            for(const p of ps){
+              const raws=(d.rankedProps||[]).filter(x=>
+                key(x)===key(p)&&x.lean===p.lean&&
+                x.capturedAt===p.capturedAt&&x.gameStartAt===p.gameStartAt);
+              if(raws.length!==1)bump("original_raw_not_unique");
+              if(raws.length===1){
+                const pr=raws[0].probabilities||{};
+                if(!Number.isFinite(pr.higher)||!Number.isFinite(pr.lower))bump("probabilities_nonfinite");
+                if(pr.push!==0)bump("push_nonzero_or_undefined");
+                if(Math.abs(pr.higher+pr.lower-1)>1e-5)bump("probabilities_do_not_sum");
+              }
+              if(!Number.isFinite(p.line)||p.line%1!==.5)bump("invalid_half_line");
+              if(Date.parse(p.capturedAt)>Date.parse(d.generatedAt))bump("capture_after_model");
+            }
+            console.log(JSON.stringify({file,generatedAt:d.generatedAt,
+              originalStandards:ps.length,abStatus:a.status,abOriginals:a.originals,
+              duelKind:q.kind??null,duelStatus:q.status??null,duelReason:q.reason??null,
+              duelRows:q.rows?.length??null,diagnosticCounts:counts,
+              hasModels:q.rows?.filter(r=>Number.isFinite(r.models?.enriched)).length??null}));
+          }
+          NODE
       - name: Static checks and focused tests
         working-directory: private
         run: |
@@ -41,11 +76,13 @@ jobs:
           done
           node --test test/six-priority-market-challenger-future.test.cjs test/nhl-standard-abstention-audit.test.cjs test/nhl-standard-input-frozen-ab.test.cjs test/nhl-standard-statistical-quality.test.cjs test/nhl-standard-independent-duel-v1.test.cjs test/nhl-standard-historical-holdout-review-v1.test.cjs test/nfl-goblin-official-active-mentions.test.cjs test/weekend-offday-preflight.test.cjs test/nhl-standard-adaptive-research.test.cjs test/nfl-directional-v2-prospective.test.cjs
       - name: Refresh chronological two-season holdout with prespecified feature ablations
+        if: github.ref != 'refs/heads/ci/diagnose-nhl-independent-duel-freeze'
         working-directory: private
         run: |
           set -euo pipefail
           node scripts/report-nhl-position-multiseason-v3.cjs
       - name: Run precommitted first-Git future trial audit
+        if: github.ref != 'refs/heads/ci/diagnose-nhl-independent-duel-freeze'
         working-directory: private
         run: |
           set -euo pipefail

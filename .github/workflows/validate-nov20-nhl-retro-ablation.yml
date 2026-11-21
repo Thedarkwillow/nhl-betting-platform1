@@ -52,7 +52,7 @@ jobs:
           console.log('RETRO_DIAGNOSTIC_RESULT '+JSON.stringify({
             frames:r.originalFramesChecked,featureFrames:r.originalFramesWithBothFeatureVectors,
             scope:r.claim,all:map(r.all),selected:map(r.selected),skipped:map(r.skipped),
-            reasons:r.abstentionReasons,exclusions:r.exclusions,
+            reasons:r.abstentionReasons,asOfEvidenceGaps:r.asOfEvidenceGapCounts,exclusions:r.exclusions,
             byMarket:Object.fromEntries(Object.entries(r.byMarket).map(([k,v])=>
               [k,{selected:map(v.selected),skipped:map(v.skipped),all:map(v.all)}])),
             calibrated:false,promoted:false,bookable:false}));

@@ -2,7 +2,7 @@ name: Validate NHL NFL Market Models and Future Trial Gates
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'fix/nov20-nightly-model-participation-audit']
+    branches: [main, 'fix/nov20-nightly-model-participation-audit', 'feat/nightly-validated-nhl-strict-input-ab']
     paths:
       - '.github/workflows/validate-six-priority-models.yml'
   schedule:
@@ -36,10 +36,10 @@ jobs:
         working-directory: private
         run: |
           set -euo pipefail
-          for f in src/nhl-pregame-availability-v2.cjs src/nhl-standard-quality-challenger-v2.cjs src/nhl-standard-abstention-audit.cjs src/nfl-directional-usage-challenger-v3.cjs src/nfl-goblin-official-active-mentions.cjs src/weekend-offday-preflight.cjs src/six-priority-future-scorecard.cjs scripts/report-six-priority-future-scorecard.cjs scripts/freeze-partner-nhl-pregame.cjs scripts/freeze-nfl-partner-pregame.cjs; do
+          for f in src/nhl-pregame-availability-v2.cjs src/nhl-standard-quality-challenger-v2.cjs src/nhl-standard-abstention-audit.cjs src/nhl-standard-input-frozen-ab-v1.cjs src/nhl-standard-input-ab-future-scorecard-v1.cjs src/nfl-directional-usage-challenger-v3.cjs src/nfl-goblin-official-active-mentions.cjs src/weekend-offday-preflight.cjs src/six-priority-future-scorecard.cjs scripts/report-six-priority-future-scorecard.cjs scripts/freeze-partner-nhl-pregame.cjs scripts/freeze-nfl-partner-pregame.cjs; do
             node --check "$f"
           done
-          node --test test/six-priority-market-challenger-future.test.cjs test/nhl-standard-abstention-audit.test.cjs test/nfl-goblin-official-active-mentions.test.cjs test/weekend-offday-preflight.test.cjs test/nhl-standard-adaptive-research.test.cjs test/nfl-directional-v2-prospective.test.cjs
+          node --test test/six-priority-market-challenger-future.test.cjs test/nhl-standard-abstention-audit.test.cjs test/nhl-standard-input-frozen-ab.test.cjs test/nfl-goblin-official-active-mentions.test.cjs test/weekend-offday-preflight.test.cjs test/nhl-standard-adaptive-research.test.cjs test/nfl-directional-v2-prospective.test.cjs
       - name: Run precommitted first-Git future trial audit
         working-directory: private
         run: |
@@ -54,6 +54,11 @@ jobs:
           assert.equal(j.nhlStandardAbstention.bettingEligible,false);
           assert.equal(j.nhlStandardAbstention.calibrationApproved,false);
           assert.equal(j.nhlStandardAbstention.selectionQualityProven,false);
+          assert.equal(j.nhlStandardInputAB.kind,'nhl_standard_strict_same_original_input_ab_forward_v1');
+          assert.equal(j.nhlStandardInputAB.strongerInputsOutperformSimpleBaselinesProven,false);
+          assert.equal(j.nhlStandardInputAB.strongerInputsOutperformControlProven,false);
+          assert.equal(j.nhlStandardInputAB.bettingEligible,false);
+          assert.equal(j.nhlStandardInputAB.modelPromoted,false);
           assert.equal(j.originalPlatformSettlementsVerified,false);
           assert.equal(j.modelPromoted,false);
           assert.equal(j.autoWagers,0);
@@ -61,6 +66,10 @@ jobs:
             originalStandard:j.nhlStandardAbstention.acceptedOriginalFrozenThresholds,
             selectedStandard:j.nhlStandardAbstention.selected.registered,
             withheldStandard:j.nhlStandardAbstention.abstained.registered,
+            sameLineABOriginals:j.nhlStandardInputAB.originalExactThresholds,
+            sameLineABControlSelected:j.nhlStandardInputAB.control.selected.registered,
+            sameLineABEnrichedSelected:j.nhlStandardInputAB.enhanced.selected.registered,
+            sameLineABEnrichedDecided:j.nhlStandardInputAB.enhanced.selected.decided,
             promoted:j.modelPromoted,verifiedPayoutEV:null}));
           NODE
       - name: Preserve private-only prospective diagnostics without changing original freezes
@@ -75,7 +84,7 @@ jobs:
           if git diff --cached --quiet; then
             echo 'No new future evidence to archive'; exit 0
           fi
-          git commit -qm 'audit: private future NHL Standard abstention coverage and NFL model baselines'
+          git commit -qm 'audit: private NHL Standard strict A/B, abstention and NFL future baselines'
           for retry in 1 2 3; do
             git fetch -q origin main
             if ! git rebase -q origin/main; then

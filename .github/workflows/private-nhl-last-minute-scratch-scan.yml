@@ -5,6 +5,14 @@ on:
     branches: [main]
     paths: ['.github/workflows/private-nhl-last-minute-scratch-scan.yml']
   schedule:
+    # Saturdays often feature early games; scan before the first matinee,
+    # not only after the afternoon Pacific window.
+    - cron: '0 7 * * 6'
+      timezone: America/Los_Angeles
+    - cron: '30 8 * * 6'
+      timezone: America/Los_Angeles
+    - cron: '15 9 * * 6'
+      timezone: America/Los_Angeles
     - cron: '0,30 14-19 * * *'
       timezone: America/Los_Angeles
 permissions:

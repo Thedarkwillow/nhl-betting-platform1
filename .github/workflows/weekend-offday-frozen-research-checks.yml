@@ -9,6 +9,10 @@ on:
     # Recurring Friday preflight, no fresh vendor API credits.
     - cron: '55 15 * * 5'
       timezone: America/Los_Angeles
+    # Read-only report near early Saturday/Sunday games; prior Git
+    # originals and already-captured sources stay immutable.
+    - cron: '25 9 * * 6,0'
+      timezone: America/Los_Angeles
 permissions:
   contents: read
 concurrency:

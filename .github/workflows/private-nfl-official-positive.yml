@@ -12,6 +12,10 @@ on:
       timezone: America/Los_Angeles
     - cron: '35 8 * * 0'
       timezone: America/Los_Angeles
+    # Second Sunday scan follows the usual first-game inactive window;
+    # absence from the published list still never proves active status.
+    - cron: '10 9 * * 0'
+      timezone: America/Los_Angeles
     - cron: '40 11 * * 0'
       timezone: America/Los_Angeles
     - cron: '5 16 * * 0'

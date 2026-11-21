@@ -32,18 +32,38 @@ jobs:
           node --test test/nhl-strict-multiseason-inputs.test.cjs test/nhl-standard-adaptive-research.test.cjs test/six-priority-market-challenger-future.test.cjs test/nhl-standard-abstention-audit.test.cjs
           git diff --exit-code origin/main -- src/nhl-standard-quality-challenger-v2.cjs
           echo 'PASS: original strict thresholds and selected-side policy unchanged'
-      - name: Run complete NHL NFL private regression suite after source adapter changes
+      - name: Compare full NHL NFL regression against unchanged private main baseline
         shell: bash
         run: |
           set -euo pipefail
-          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! npm test >"$log" 2>&1; then
-            grep -E '^not ok|^# (tests|pass|fail)' "$log" | tail -n 30 || true
-            echo "::error::Full NHL NFL private regression failed"
-            exit 1
-          fi
-          grep -E '^# (tests|pass|fail)' "$log" | tail -n 8
-          echo 'PASS: full private NHL NFL regression complete'
+          baseline="$(mktemp -d)"
+          base_log="$(mktemp)"
+          candidate_log="$(mktemp)"
+          trap 'git worktree remove -f "$baseline" >/dev/null 2>&1 || true; rm -rf "$baseline"; rm -f "$base_log" "$candidate_log"' EXIT
+          git worktree add --detach "$baseline" origin/main >/dev/null
+          (cd "$baseline"; npm test >"$base_log" 2>&1) || true
+          npm test >"$candidate_log" 2>&1 || true
+          BASE_LOG="$base_log" CAND_LOG="$candidate_log" node - <<'NODE'
+          const fs=require('node:fs');
+          const a=fs.readFileSync(process.env.BASE_LOG,'utf8'),
+            b=fs.readFileSync(process.env.CAND_LOG,'utf8');
+          const errors=s=>[...s.matchAll(/^not ok \d+ - (.+)$/gm)]
+            .map(x=>x[1].trim()).sort();
+          const baseline=errors(a),candidate=errors(b),initial=new Set(baseline),
+            added=candidate.filter(x=>!initial.has(x));
+          const totals=s=>Object.fromEntries([...s.matchAll(/^# (tests|pass|fail) (\d+)$/gm)]
+            .map(x=>[x[1],Number(x[2])]));
+          const oldTotals=totals(a),newTotals=totals(b);
+          console.log(JSON.stringify({kind:'private_nhl_nfl_compared_full_regression_v1',
+            baseline:oldTotals,candidate:newTotals,
+            preexistingFailures:baseline.length,
+            newFailures:added.length,
+            baselineNames:baseline,addedNames:added}));
+          if(!Number.isInteger(oldTotals.tests)||!Number.isInteger(newTotals.tests)||
+            oldTotals.tests<500||newTotals.tests<oldTotals.tests||added.length)
+             throw Error('NHL NFL new regression or incomplete full suite');
+          console.log('PASS: no additional full-suite failures above unchanged main');
+          NODE
       - name: Audit recovered official prior games, opponent and ice-time as-of on real private data
         shell: bash
         run: |

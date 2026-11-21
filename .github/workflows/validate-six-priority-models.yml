@@ -32,6 +32,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      # Gate the new source-only NHL accuracy lab without changing main picks.
       - name: Static checks and focused tests
         working-directory: private
         run: |

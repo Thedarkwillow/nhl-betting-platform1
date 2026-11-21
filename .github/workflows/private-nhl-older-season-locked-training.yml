@@ -1,0 +1,102 @@
+name: Private NHL older-season locked market-family training
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-older-season-locked-training.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-nhl-older-season-locked-training-v1
+  cancel-in-progress: false
+jobs:
+  older-season-train-and-holdout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Verify private archive token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private repository token missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Lock chronological split and test no target, same-day or holdout leakage
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check src/nhl-older-season-locked-families-v1.cjs
+          node --check scripts/report-nhl-older-seasons-locked-market-families.cjs
+          node --check scripts/collect-nhl-pp-scoring-history.cjs
+          node --test test/nhl-older-season-locked-families-v1.test.cjs             test/nhl-market-direction-research-v1.test.cjs             test/nhl-strict-directional-abstention-v1.test.cjs             test/nhl-strict-official-evidence-v1.test.cjs >/dev/null
+          node - <<'NODE'
+          const m=require('./src/nhl-older-season-locked-families-v1.cjs');
+          const b=require('./src/nhl-strict-directional-abstention-v1.cjs').BOUND;
+          if(m.MARKETS.shotsOnGoal.length!==3||
+             b.shotsOnGoal.higher!==.67||
+             b.points.higher!==.68||
+             b.assists.higher!==.70||
+             b.blockedShots.higher!==.67)
+            throw Error('Training or strict selection policy changed');
+          console.log('PASS: chronological older-only research and unchanged production gates');
+          NODE
+      - name: Stage 2023-24, 2024-25 and 2025-26 historical source rows temporarily
+        run: |
+          set -euo pipefail
+          umask 077
+          scratch="$(mktemp -d)"
+          printf 'NHL_LOCKED_SCRATCH=%s\n' "$scratch" >> "$GITHUB_ENV"
+          python scripts/stage-nhl-learned-market-history.py "$scratch/history.jsonl" >/dev/null
+          test -s "$scratch/history.jsonl"
+      - name: Choose on 2024-25 only and score fixed families on 2025-26
+        run: |
+          set -euo pipefail
+          umask 077
+          node --max-old-space-size=4096             scripts/report-nhl-older-seasons-locked-market-families.cjs             "$NHL_LOCKED_SCRATCH/history.jsonl" > "$NHL_LOCKED_SCRATCH/aggregate.json"
+          node - <<'NODE'
+          const r=require('./outputs/backtests/nhl-older-seasons-locked-market-families-latest.json');
+          if(r.trainingSeason!=='2024-25'||r.evaluationSeason!=='2025-26'||
+             !r.evaluationNeverUsedForFamilySelection||
+             r.flags.notUntouchedProspectiveEvidence!==true||
+             r.flags.noAutomatedPromotion!==true||
+             r.flags.noHistoricalPrizePicksOrUnderdogQuotes!==true||
+             Object.keys(r.selectedFamilies).length!==4)
+            throw Error('Locked training failed its provenance contract');
+          console.log(JSON.stringify({warmup:r.warmupSeason,train:r.trainingSeason,
+            historicalHoldout:r.evaluationSeason,
+            syntheticThresholds:r.testedSyntheticThresholds,
+            trainingChoices:r.selectedFamilies,modelPromoted:false}));
+          NODE
+      - name: Delete player-level research source rows
+        if: always()
+        shell: bash
+        run: |
+          if test -n "${NHL_LOCKED_SCRATCH:-}" &&
+             test -d "$NHL_LOCKED_SCRATCH"; then
+            rm -rf -- "$NHL_LOCKED_SCRATCH"
+          fi
+      - name: Archive ONLY aggregate historical evidence in private Git
+        run: |
+          set -euo pipefail
+          umask 077
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/backtests/nhl-older-seasons-locked-market-families-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: private older-season training-locked NHL synthetic holdout'
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

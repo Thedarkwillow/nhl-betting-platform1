@@ -1,0 +1,79 @@
+name: Validate frozen NHL strict multi-season history and ice-time research
+on:
+  workflow_dispatch:
+  push:
+    branches: [ci/nhl-strict-input-recovery-validation]
+    paths: ['.github/workflows/validate-nhl-strict-input-recovery.yml']
+permissions:
+  contents: read
+jobs:
+  strict-input-validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: feat/nhl-verified-multiseason-strict-inputs
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify strict selection policy never changes, no-lookahead and source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/nhl-strict-input-source-v1.cjs
+          node --check src/nhl-expected-ice-time-evidence-v1.cjs
+          node --check src/nhl-position-rate-matchup-v2.cjs
+          node --check scripts/freeze-partner-nhl-pregame.cjs
+          node --test test/nhl-strict-multiseason-inputs.test.cjs test/nhl-standard-adaptive-research.test.cjs test/six-priority-market-challenger-future.test.cjs test/nhl-standard-abstention-audit.test.cjs
+          git diff --exit-code main -- src/nhl-standard-quality-challenger-v2.cjs
+      - name: Audit recovered official prior games, opponent and ice-time as-of on real private data
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const {load}=require('./scripts/report-nhl-position-multiseason-v3.cjs');
+          const source=require('./src/nhl-strict-input-source-v1.cjs');
+          const pos=require('./src/nhl-position-rate-matchup-v2.cjs');
+          const ice=require('./src/nhl-expected-ice-time-evidence-v1.cjs');
+          const limits=require('./src/nhl-standard-quality-challenger-v2.cjs').LIMITS;
+          const loaded=load(),v=source.adapt(loaded,'2026-11-20');
+          if(!v.available)throw Error('Archived seasons unavailable: '+v.reason);
+          const files=fs.readdirSync('outputs/research/snapshots').filter(s=>/^20261120T\d{6}Z\.json$/.test(s)).sort();
+          if(!files.length)throw Error('No genuine original Nov20 pregame snapshots');
+          const last=JSON.parse(fs.readFileSync('outputs/research/snapshots/'+files.at(-1),'utf8'));
+          const original=last.positionRateMatchupV2?.rows?.length||0;
+          const upgraded=pos.freeze(last,v.history,v.schedules);
+          const inputs=(last.individualPropSelections||[]).filter(x=>x.tier==='Standard'&&limits[x.market]);
+          const counts={originals:inputs.length,priorPassCurrent:0,priorPassRecovered:0,
+            icePassCurrent:0,icePassRecovered:0,missingIce:0};
+          const histCurrent=JSON.parse(fs.readFileSync('outputs/history/players.json','utf8'));
+          for(const p of inputs){
+            const old=ice.estimate(histCurrent.players[String(p.playerId)]?.games||[],'2026-11-20');
+            const next=ice.estimate(v.history.players[String(p.playerId)]?.games||[],'2026-11-20');
+            const gate=limits[p.market];
+            if(old?.priorGames>=gate.prior)counts.priorPassCurrent++;
+            if(next?.priorGames>=gate.prior)counts.priorPassRecovered++;
+            if(old?.originalExpectedIceSeconds>=gate.ice)counts.icePassCurrent++;
+            if(next?.originalExpectedIceSeconds>=gate.ice)counts.icePassRecovered++;
+            if(!next)counts.missingIce++;
+          }
+          const toi=ice.walkForward(v.history,'2026-11-20',{from:'2026-10-01'});
+          const report={kind:'nhl_strict_source_offline_evidence_recovery_v1',
+            historical:loaded.counts,scheduleSeasons:v.seasons,priorCurrentCounts:counts,
+            originalPositionRows:original,recoveredPositionRows:upgraded.rows.length,
+            recoveredPositionByMarket:Object.fromEntries([...new Set(upgraded.rows.map(x=>x.market))].map(m=>[m,upgraded.rows.filter(x=>x.market===m).length])),
+            expectedIceResearch:{decided:toi.decided,distinctGames:toi.distinctGames,
+             distinctDates:toi.distinctDates,originalMAE:toi.originalBaselineMAESeconds,
+             alternateMAE:toi.alternateMAESeconds,alternateDeployed:false},
+            originalFrozenPredictionsUntouched:true,strictThresholdsUnchanged:true,
+            retrospectiveDataQualityOnly:true,forwardAccuracyProven:false};
+          console.log('ASOF_NHL_STRICT_SOURCE '+JSON.stringify(report));
+          if(report.originalFrozenPredictionsUntouched!==true||
+             !report.strictThresholdsUnchanged)throw Error('Original source policy changed');
+          NODE

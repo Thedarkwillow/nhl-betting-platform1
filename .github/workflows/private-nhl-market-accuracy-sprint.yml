@@ -12,7 +12,7 @@ on:
       - 'Private NHL prospective grading and baseline audit via public runner'
     types: [completed]
   schedule:
-    - cron: '35 7,18 * * *'
+    - cron: '35 3,7,12,18 * * *'
       timezone: America/Los_Angeles
 permissions:
   contents: read

@@ -58,6 +58,11 @@ jobs:
           node - <<'NODE'
           const fs=require('node:fs');
           const f=fs.readFileSync('src/nhl-strict-directional-abstention-v1.cjs','utf8');
+          const scoring=fs.readFileSync('src/nhl-strict-official-evidence-v1.cjs','utf8');
+          const blockCollector=fs.readFileSync('scripts/collect-nhl-block-exposure-history.cjs','utf8');
+          if(!scoring.includes('canonical(r.teamAbbrev)')||
+             !blockCollector.includes('shotAttemptEvidence(plays,players)'))
+            throw Error('Official NHL source schema repair absent');
           if(!f.includes('const BOUND=Object.freeze')||
              !f.includes('function roleCheck')||
              !f.includes('pp&&v.assists?.individualPPAssistHistoryVerified===true')||

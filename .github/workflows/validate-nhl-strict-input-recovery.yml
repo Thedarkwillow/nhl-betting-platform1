@@ -78,3 +78,75 @@ jobs:
           if(report.originalFrozenPredictionsUntouched!==true||
              !report.strictThresholdsUnchanged)throw Error('Original source policy changed');
           NODE
+      - name: Reconstruct exact as-of adaptive and opponent feature coverage without grading or wagering
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --max-old-space-size=4096 - <<'NODE'
+          const fs=require('node:fs');
+          const adaptive=require('./src/nhl-standard-adaptive-research.cjs');
+          const pos=require('./src/nhl-position-rate-matchup-v2.cjs');
+          const quality=require('./src/nhl-standard-quality-challenger-v2.cjs');
+          const loaded=require('./scripts/report-nhl-position-multiseason-v3.cjs').load();
+          const v=require('./src/nhl-strict-input-source-v1.cjs').adapt(loaded,'2026-11-20');
+          if(!v.available)throw Error('No verified asof NHL multi-season source');
+          const files=fs.readdirSync('outputs/research/snapshots')
+             .filter(x=>/^20261120T\d{6}Z\.json$/.test(x)).sort();
+          const original=JSON.parse(fs.readFileSync('outputs/research/snapshots/'+files.at(-1),'utf8'));
+          const start=Date.now();
+          const rebuilt=adaptive.freeze(original,v.history,v.combinedSchedule);
+          const position=pos.freeze(original,v.history,v.schedules);
+          const now=Date.now()-start;
+          const oldMap=new Map((original.standardAdaptiveResearchV2?.rows||[]).map(x=>
+            [[x.gameId,x.playerId,x.market,x.line,x.tier].join('|'),x]));
+          const rows=rebuilt.rows||[],limits=quality.LIMITS;
+          const results={eligibleOriginals:0,previouslyScored:0,
+            recoveredScored:0,previousPriorPass:0,recoveredPriorPass:0,
+            previousOpponentPass:0,recoveredOpponentPass:0,
+            previousIcePass:0,recoveredIcePass:0,
+            originalLearnedAvailable:0,recoveredLearnedAvailable:0};
+          for(const p of original.individualPropSelections||[]){
+            if(p.tier!=='Standard'||!limits[p.market])continue;
+            results.eligibleOriginals++;
+            const k=[p.gameId,p.playerId,p.market,p.line,p.tier].join('|'),
+              old=oldMap.get(k),next=rows.find(x=>[x.gameId,x.playerId,x.market,x.line,x.tier].join('|')===k);
+            const l=limits[p.market];
+            results.previouslyScored+=Number(!!old);
+            results.recoveredScored+=Number(!!next);
+            results.previousPriorPass+=Number(old?.priorGames>=l.prior);
+            results.recoveredPriorPass+=Number(next?.priorGames>=l.prior);
+            results.previousOpponentPass+=Number(old?.opponentGames>=l.opponent&&old?.opponentHistoryUsed===true);
+            results.recoveredOpponentPass+=Number(next?.opponentGames>=l.opponent&&next?.opponentHistoryUsed===true);
+            results.previousIcePass+=Number(old?.expectedIceSeconds>=l.ice);
+            results.recoveredIcePass+=Number(next?.expectedIceSeconds>=l.ice);
+            results.originalLearnedAvailable+=Number(Number.isFinite(old?.predictions?.learned));
+            results.recoveredLearnedAvailable+=Number(Number.isFinite(next?.predictions?.learned));
+          }
+          const pkey=x=>[x.gameId,x.playerId,x.market,x.line,x.tier].join('|');
+          const originalPosition=new Map((original.positionRateMatchupV2?.rows||[]).map(x=>[pkey(x),x]));
+          let pairedPosition=0,opponentSeasonGamesGained=0,changedOpponentFactor=0;
+          for(const x of position.rows||[]){
+            const old=originalPosition.get(pkey(x));
+            if(!old)continue;
+            pairedPosition++;
+            opponentSeasonGamesGained+=Number((x.defense?.season?.games||0)>
+               (old.defense?.season?.games||0));
+            changedOpponentFactor+=Number(Math.abs((x.defenseFactor||1)-
+               (old.defenseFactor||1))>1e-6);
+          }
+          const candidate=quality.freeze({...original,standardAdaptiveResearchV2:rebuilt,
+             positionRateMatchupV2:position});
+          console.log('ASOF_NHL_ADAPTIVE_SOURCE '+JSON.stringify({
+            kind:'strict_asof_nhl_rebuilt_input_diagnostic_only',
+            ...results,pairedPosition,opponentSeasonGamesGained,
+            changedOpponentFactor,originalPositionRows:originalPosition.size,
+            recoveredPositionRows:position.rows.length,
+            originalShadowSelected:original.standardQualityShadowV2?.selected||0,
+            modelOnlyRebuiltSelected:candidate.selected,
+            strictQualityPolicyUnchanged:true,rebuiltFeatureMillis:now,
+            reconstructedAfterOriginalFreeze:true,
+            validatedFutureModelAccuracy:false,
+            approval:false,calibrated:false,noWagers:true}));
+          if(candidate.modelPromoted!==false||candidate.automaticPicksApproved!==false)
+            throw Error('Retrospective quality candidate wrongly promoted');
+          NODE

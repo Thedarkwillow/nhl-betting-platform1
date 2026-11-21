@@ -39,6 +39,7 @@ jobs:
           for f in src/nhl-strict-official-evidence-v1.cjs \
             src/nhl-official-block-exposure-v1.cjs \
             src/nhl-eight-accuracy-research-v1.cjs \
+            src/nhl-eight-accuracy-forward-audit-v1.cjs \
             src/nhl-strict-directional-abstention-v1.cjs \
             scripts/freeze-partner-nhl-pregame.cjs \
             scripts/collect-nhl-pp-scoring-history.cjs \

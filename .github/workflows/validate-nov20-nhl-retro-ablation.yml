@@ -1,0 +1,59 @@
+name: Check NHL Standard strict filter on archived pregame features - retrospective only
+on:
+  push:
+    branches:
+      - ci/nov20-nhl-standard-retrospective-ablation
+    paths:
+      - '.github/workflows/validate-nov20-nhl-retro-ablation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/nov20-nhl-standard-retro-filter-diagnostic
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regression tests and explicit prohibition on live model promotion
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/nhl-standard-quality-retro-replay.cjs
+          node --check scripts/report-nhl-standard-quality-retro.cjs
+          node --test test/nhl-standard-quality-retro-replay.test.cjs test/nhl-standard-abstention-audit.test.cjs test/six-priority-market-challenger-future.test.cjs
+      - name: Re-evaluate original private archived pregame features without paid calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/report-nhl-standard-quality-retro.cjs
+          node - <<'NODE'
+          const fs=require('fs');
+          const r=JSON.parse(fs.readFileSync('outputs/health/nhl-standard-quality-retro-diagnostic-latest.json'));
+          if(r.independentlyValidatedImprovement!==false||
+             r.newQualityPolicyAppliedToOldDataPosthoc!==true||
+             r.noHistoricalInjuryOrActiveProof!==true||
+             r.bettingRecommendationsApproved!==false||
+             r.automaticModelPromotion!==false)throw Error('Posthoc model proof misrepresented');
+          const map=x=>({registered:x.registered,decided:x.decided,
+            correct:x.correct,hitRate:x.hitRate,
+            alwaysLower:x.alwaysLowerOnSameLines,
+            alwaysHigher:x.alwaysHigherOnSameLines,
+            distinctSlates:x.distinctPacificSlates});
+          console.log('RETRO_DIAGNOSTIC_RESULT '+JSON.stringify({
+            frames:r.originalFramesChecked,featureFrames:r.originalFramesWithBothFeatureVectors,
+            scope:r.claim,all:map(r.all),selected:map(r.selected),skipped:map(r.skipped),
+            reasons:r.abstentionReasons,exclusions:r.exclusions,
+            byMarket:Object.fromEntries(Object.entries(r.byMarket).map(([k,v])=>
+              [k,{selected:map(v.selected),skipped:map(v.skipped),all:map(v.all)}])),
+            calibrated:false,promoted:false,bookable:false}));
+          NODE

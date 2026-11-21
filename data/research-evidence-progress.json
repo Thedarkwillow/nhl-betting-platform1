@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-21T01:51:43.093Z",
+  "generatedAt": "2026-11-21T01:57:30.078Z",
   "sourceReportAt": "2026-11-21T01:34:51.517Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -91,7 +91,7 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-21T01:50:08.089Z",
+    "nhlReportAt": "2026-11-21T01:55:54.218Z",
     "nflReportAt": "2026-11-20T21:31:51.525Z",
     "nhl": {
       "registered": 238,
@@ -115,7 +115,7 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-21T01:50:08.573Z",
+    "sourceReportAt": "2026-11-21T01:55:54.925Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
       "completeOfficialGames": 1630,
@@ -147,20 +147,20 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-21T01:50:50.900Z",
+    "sourceReportAt": "2026-11-21T01:56:39.077Z",
     "nhl": {
       "sourceEligible": true,
-      "examined": 1,
+      "examined": 2,
       "newCandidates": 0,
-      "newAbstentions": 1,
-      "archivedFirstGit": 693,
+      "newAbstentions": 2,
+      "archivedFirstGit": 694,
       "duplicatesQuarantined": 108,
       "selectivePolicyRequiresNewSource": false,
       "postPolicyScreening": {
         "kind": "public_goblin_post_policy_screening_counts_v1",
-        "screened": 458,
+        "screened": 459,
         "selected": 218,
-        "abstained": 240,
+        "abstained": 241,
         "lateOrUnverified": 0,
         "unknownStatus": 0,
         "byMarket": {
@@ -180,9 +180,9 @@
             "abstained": 9
           },
           "points": {
-            "screened": 102,
+            "screened": 103,
             "selected": 26,
-            "abstained": 76
+            "abstained": 77
           }
         },
         "abstentionReasons": {
@@ -193,7 +193,7 @@
           "official_pregame_scratched_or_injured": 0,
           "distribution_direction_missing": 0,
           "model_direction_not_on_original_offered_side": 62,
-          "insufficient_uncalibrated_directional_separation": 158,
+          "insufficient_uncalibrated_directional_separation": 159,
           "other_model_abstention": 1
         },
         "verifiedAccuracy": false,
@@ -202,8 +202,8 @@
       },
       "pendingOfficialTriage": {
         "kind": "public_nhl_goblin_prospective_pending_triage_v1",
-        "registered": 693,
-        "abstained": 240,
+        "registered": 694,
+        "abstained": 241,
         "decided": 333,
         "pushes": 0,
         "notStarted": 119,
@@ -276,7 +276,7 @@
         "approvedPicks": 0
       },
       "futureDecided": 333,
-      "futureRegistered": 693
+      "futureRegistered": 694
     },
     "nfl": {
       "supportedOpportunityResearchImplemented": true,
@@ -344,21 +344,21 @@
         "approvedPicks": 0
       },
       "gamedayOriginal": null,
-      "originalGoblinOffersAudited": 1722,
+      "originalGoblinOffersAudited": 1721,
       "exactIdentityReadyForModel": 0,
       "verifiedActiveRoster": false,
       "officialGameBridgeMissing": 292,
       "prerequisiteGaps": {
         "kind": "public_nfl_goblin_missing_prerequisites_v1",
-        "originalOffersAudited": 1722,
+        "originalOffersAudited": 1721,
         "officialGame": 292,
-        "providerToGSIS": 1722,
-        "positiveActiveRoster": 1722,
+        "providerToGSIS": 1721,
+        "positiveActiveRoster": 1721,
         "rowsMayHaveMultipleBlockers": true,
         "verifiedActive": false,
         "eligiblePicks": 0
       },
-      "providerGSiSBridgeMissing": 1430,
+      "providerGSiSBridgeMissing": 1429,
       "positiveActiveStatusMissing": null,
       "firstGitEligible": 0
     },

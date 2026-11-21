@@ -2,7 +2,7 @@ name: Validate NHL NFL Market Models and Future Trial Gates
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'fix/nov20-nightly-model-participation-audit', 'feat/nightly-validated-nhl-strict-input-ab', 'feat/nightly-nhl-conditional-statistical-accuracy', 'feat/validate-nhl-independent-direction-audit', 'ci/nhl-eight-accuracy-research-20261120', 'ci/nhl-official-shorthanded-toi-validation', 'ci/nhl-immutable-shorthanded-backfill-test', 'fix/nhl-eight-future-audit-concurrent-recompute']
+    branches: [main, 'fix/nov20-nightly-model-participation-audit', 'feat/nightly-validated-nhl-strict-input-ab', 'feat/nightly-nhl-conditional-statistical-accuracy', 'feat/validate-nhl-independent-direction-audit', 'ci/nhl-eight-accuracy-research-20261120', 'ci/nhl-official-shorthanded-toi-validation', 'ci/nhl-immutable-shorthanded-backfill-test', 'fix/nhl-eight-future-audit-concurrent-recompute', 'ci/nhl-dual-real-line-hit-rate-evidence-20261120']
     paths:
       - '.github/workflows/validate-six-priority-models.yml'
   schedule:
@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: main
+          ref: feat/nhl-separate-real-line-hit-rate-reports-20261120
           path: private
           fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
@@ -38,12 +38,12 @@ jobs:
         working-directory: private
         run: |
           set -euo pipefail
-          for f in src/nhl-pregame-availability-v2.cjs src/nhl-standard-quality-challenger-v2.cjs src/nhl-standard-abstention-audit.cjs src/nhl-standard-input-frozen-ab-v1.cjs src/nhl-standard-input-ab-future-scorecard-v1.cjs src/nhl-standard-statistical-quality-v1.cjs src/nhl-standard-independent-duel-v1.cjs src/nhl-standard-independent-duel-scorecard-v1.cjs src/nhl-eight-accuracy-research-v1.cjs src/nhl-eight-accuracy-forward-audit-v1.cjs src/nhl-specialist-history-recovery.cjs scripts/recover-nhl-specialist-history.cjs scripts/report-nhl-position-multiseason-v3.cjs src/nhl-standard-historical-holdout-review-v1.cjs src/nhl-position-multiseason-v3.cjs src/nfl-directional-usage-challenger-v3.cjs src/nfl-goblin-official-active-mentions.cjs src/weekend-offday-preflight.cjs src/six-priority-future-scorecard.cjs scripts/report-six-priority-future-scorecard.cjs scripts/freeze-partner-nhl-pregame.cjs scripts/freeze-nfl-partner-pregame.cjs; do
+          for f in src/nhl-pregame-availability-v2.cjs src/nhl-standard-quality-challenger-v2.cjs src/nhl-standard-abstention-audit.cjs src/nhl-standard-input-frozen-ab-v1.cjs src/nhl-standard-input-ab-future-scorecard-v1.cjs src/nhl-standard-statistical-quality-v1.cjs src/nhl-standard-independent-duel-v1.cjs src/nhl-standard-independent-duel-scorecard-v1.cjs src/nhl-eight-accuracy-research-v1.cjs src/nhl-eight-accuracy-forward-audit-v1.cjs src/nhl-dual-real-line-hit-rates-v1.cjs scripts/report-nhl-dual-real-line-hit-rates-v1.cjs src/nhl-specialist-history-recovery.cjs scripts/recover-nhl-specialist-history.cjs scripts/report-nhl-position-multiseason-v3.cjs src/nhl-standard-historical-holdout-review-v1.cjs src/nhl-position-multiseason-v3.cjs src/nfl-directional-usage-challenger-v3.cjs src/nfl-goblin-official-active-mentions.cjs src/weekend-offday-preflight.cjs src/six-priority-future-scorecard.cjs scripts/report-six-priority-future-scorecard.cjs scripts/freeze-partner-nhl-pregame.cjs scripts/freeze-nfl-partner-pregame.cjs; do
             node --check "$f"
           done
-          node --test test/six-priority-market-challenger-future.test.cjs test/nhl-standard-abstention-audit.test.cjs test/nhl-standard-input-frozen-ab.test.cjs test/nhl-standard-statistical-quality.test.cjs test/nhl-standard-independent-duel-v1.test.cjs test/nhl-eight-accuracy-research-v1.test.cjs test/nhl-official-strength-timeonice-source.test.cjs test/nhl-standard-historical-holdout-review-v1.test.cjs test/nfl-goblin-official-active-mentions.test.cjs test/weekend-offday-preflight.test.cjs test/nhl-standard-adaptive-research.test.cjs test/nfl-directional-v2-prospective.test.cjs
+          node --test test/six-priority-market-challenger-future.test.cjs test/nhl-standard-abstention-audit.test.cjs test/nhl-standard-input-frozen-ab.test.cjs test/nhl-standard-statistical-quality.test.cjs test/nhl-standard-independent-duel-v1.test.cjs test/nhl-eight-accuracy-research-v1.test.cjs test/nhl-dual-real-line-hit-rates-v1.test.cjs test/nhl-official-strength-timeonice-source.test.cjs test/nhl-standard-historical-holdout-review-v1.test.cjs test/nfl-goblin-official-active-mentions.test.cjs test/weekend-offday-preflight.test.cjs test/nhl-standard-adaptive-research.test.cjs test/nfl-directional-v2-prospective.test.cjs
       - name: Refresh chronological two-season holdout with prespecified feature ablations
-        if: github.ref != 'refs/heads/ci/nhl-eight-accuracy-research-20261120' && github.ref != 'refs/heads/ci/nhl-official-shorthanded-toi-validation' && github.ref != 'refs/heads/ci/nhl-immutable-shorthanded-backfill-test' && github.ref != 'refs/heads/fix/nhl-eight-future-audit-concurrent-recompute'
+        if: github.ref != 'refs/heads/ci/nhl-eight-accuracy-research-20261120' && github.ref != 'refs/heads/ci/nhl-official-shorthanded-toi-validation' && github.ref != 'refs/heads/ci/nhl-immutable-shorthanded-backfill-test' && github.ref != 'refs/heads/fix/nhl-eight-future-audit-concurrent-recompute' && github.ref != 'refs/heads/ci/nhl-dual-real-line-hit-rate-evidence-20261120'
         working-directory: private
         run: |
           set -euo pipefail
@@ -115,6 +115,44 @@ jobs:
             appearanceConditionalEnrichedDecided:j.nhlStandardInputAB.statisticalConditional.enriched.selected.decided,
             promoted:j.modelPromoted,verifiedPayoutEV:null}));
           NODE
+      - name: Grade historical original lines separately from frozen future new model
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node scripts/report-nhl-dual-real-line-hit-rates-v1.cjs
+          node - <<'NODE'
+          const a=require('node:assert/strict');
+          const f=require('node:fs'),p='outputs/health/';
+          const h=JSON.parse(f.readFileSync(p+'nhl-real-line-retrospective-hit-rate-latest.json'));
+          const v=JSON.parse(f.readFileSync(p+'nhl-real-line-prospective-hit-rate-latest.json'));
+          const s=JSON.parse(f.readFileSync(p+'nhl-real-line-dual-hit-rate-summary-latest.json'));
+          a.equal(h.historicalReconstructionNotPregameFrozen,undefined);
+          a.equal(h.newFixedPolicyWasDevelopedAfterTheseGames,true);
+          a.equal(h.historicalStatFeedAsOfOriginalCaptureIndependentlyVerified,false);
+          a.equal(h.prospectiveResultsNotMerged,true);
+          a.equal(v.noRetrospectiveReconstructionInThisCohort,true);
+          a.equal(v.performanceApproved,false);
+          a.equal(h.modelPromoted,false);
+          a.equal(v.modelPromoted,false);
+          a.equal(s.accuracyImprovementVerified,false);
+          for(const c of [h,v]){
+            for(const [market,r] of Object.entries(c.byMarket)){
+              a.equal(r.exactSameLinePaired.newModel.wins+r.exactSameLinePaired.newModel.losses,
+               r.exactSameLinePaired.selections);
+              a.equal(r.exactSameLinePaired.originalOnTheseLines.wins+
+               r.exactSameLinePaired.originalOnTheseLines.losses,
+               r.exactSameLinePaired.selections);
+              a.equal(r.exploratorySelected.wins+r.exploratorySelected.losses,
+               r.exploratorySelected.decided);
+              a.ok(['shotsOnGoal','points','assists','blockedShots'].includes(market));
+            }
+          }
+          console.log(JSON.stringify({historicalAuthenticLines:h.originalEligible,
+            historicalPairedDecided:h.all.exactSameLinePaired.selections,
+            newProspectiveAccepted:v.originals,
+            newProspectivePairedDecided:v.all.exactSameLinePaired.selections,
+            noBetting:true}));
+          NODE
       - name: Preserve private-only prospective diagnostics without changing original freezes
         if: github.ref == 'refs/heads/main'
         working-directory: private
@@ -123,7 +161,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f -- outputs/health/six-priority-future-evidence-latest.json outputs/health/nhl-position-multiseason-v3-latest.json
+          git add -f -- outputs/health/six-priority-future-evidence-latest.json outputs/health/nhl-position-multiseason-v3-latest.json outputs/health/nhl-real-line-retrospective-hit-rate-latest.json outputs/health/nhl-real-line-prospective-hit-rate-latest.json outputs/health/nhl-real-line-dual-hit-rate-summary-latest.json
           if git diff --cached --quiet; then
             echo 'No new future evidence to archive'; exit 0
           fi
@@ -138,6 +176,7 @@ jobs:
               git reset --hard origin/main
               node scripts/report-nhl-position-multiseason-v3.cjs
               node scripts/report-six-priority-future-scorecard.cjs
+              node scripts/report-nhl-dual-real-line-hit-rates-v1.cjs
               git add -f -- outputs/health/six-priority-future-evidence-latest.json outputs/health/nhl-position-multiseason-v3-latest.json
               if git diff --cached --quiet; then
                 echo 'Newer main already has equivalent research evidence'; exit 0

@@ -120,6 +120,7 @@ jobs:
             appearanceConditionalEnrichedDecided:j.nhlStandardInputAB.statisticalConditional.enriched.selected.decided,
             promoted:j.modelPromoted,verifiedPayoutEV:null}));
           NODE
+      # Check recomputed first-Git strict gates against deliberate post-freeze tampering.
       # Recheck exact Standard original tier after identity fixture repair.
       # Both cohorts must remain non-overlapping and research-only.
       - name: Grade historical original lines separately from frozen future new model

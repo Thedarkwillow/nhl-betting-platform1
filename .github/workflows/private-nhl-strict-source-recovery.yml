@@ -51,6 +51,7 @@ jobs:
             test/nhl-official-block-exposure-v1.test.cjs \
             test/nhl-eight-accuracy-research-v1.test.cjs \
             test/nhl-strict-directional-abstention-v1.test.cjs \
+            test/nhl-older-season-locked-families-v1.test.cjs \
             >"$log" 2>&1; then
             echo "::error::Private regression failed; private test contents withheld"
             exit 1
@@ -77,6 +78,15 @@ jobs:
           set -euo pipefail
           umask 077
           node scripts/collect-nhl-pp-scoring-history.cjs >/dev/null
+          node - <<'NODE'
+          const r=require('./outputs/health/nhl-pp-scoring-recovery-latest.json');
+          if(r.attempts.length>12||r.productionUnaffected!==true||
+             r.zeroPaidRequests!==true)
+            throw Error('Official PP scoring recovery violated bounded source policy');
+          console.log(JSON.stringify({ppDatesTried:r.attempts.length,
+            successfullyVerified:r.attempts.filter(x=>x.status==='archived').length,
+            remainingPriorDates:r.missingDays,strictPolicyUnchanged:true}));
+          NODE
           node scripts/collect-nhl-block-exposure-history.cjs >/dev/null
       - name: Commit immutable evidence ONLY to private main
         if: github.event_name != 'pull_request'

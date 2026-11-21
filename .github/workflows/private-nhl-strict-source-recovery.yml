@@ -83,6 +83,11 @@ jobs:
           for d in outputs/research/nhl-pp-scoring-history outputs/research/nhl-block-exposure-history; do
             if test -d "$d"; then git add -f "$d"/*.json; fi
           done
+          # Persist private aggregate validation status EVEN IF no new source rows qualify.
+          # An empty attempt must never be mistaken for full source coverage.
+          for f in outputs/health/nhl-pp-scoring-recovery-latest.json outputs/health/nhl-block-exposure-recovery-latest.json; do
+            if test -f "$f"; then git add -f "$f"; fi
+          done
           git diff --cached --quiet && exit 0
           git commit -qm 'research: immutable verified NHL PP scoring and defensive exposure'
           for attempt in 1 2 3; do

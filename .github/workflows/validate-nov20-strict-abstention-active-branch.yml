@@ -1,0 +1,55 @@
+name: Validate prospective NHL Standard abstention and NFL positive proof branch
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - ci/nov20-strict-abstention-verify
+    paths:
+      - '.github/workflows/validate-nov20-strict-abstention-active-branch.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 19
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: fix/nov20-standard-abstention-nfl-active-proof
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify isolated safety changes and first-Git source-only regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in src/nhl-standard-abstention-audit.cjs src/nfl-goblin-official-active-mentions.cjs src/weekend-offday-preflight.cjs scripts/report-six-priority-future-scorecard.cjs; do
+            node --check "$file"
+          done
+          node --test test/nhl-standard-abstention-audit.test.cjs test/nfl-goblin-official-active-mentions.test.cjs test/weekend-offday-preflight.test.cjs test/six-priority-market-challenger-future.test.cjs
+      - name: Evaluate real archived future-cohort files without paid APIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/report-six-priority-future-scorecard.cjs
+          node scripts/report-weekend-offday-readiness.cjs
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const x=JSON.parse(fs.readFileSync('outputs/health/six-priority-future-evidence-latest.json','utf8'));
+          const w=JSON.parse(fs.readFileSync('outputs/health/weekend-offday-readiness-latest.json','utf8'));
+          if(x.nhlStandardAbstention?.kind!=='nhl_first_git_standard_abstention_coverage_review_20261120_v1'||
+             x.nhlStandardAbstention?.modelPromoted!==false||
+             x.nhlStandardAbstention?.bettingEligible!==false||
+             w.nfl?.all?.officialActiveVerified!==0||
+             w.nfl?.all?.participationHolds!==w.nfl?.all?.shadowSelected||
+             w.bettingRecommendationsApproved!==false||w.jointLineupEVVerified!==false||
+             w.realEntriesPlaced!==0)throw Error('Prospective audit safety regression');
+          console.log(JSON.stringify({nhlOriginals:x.nhlStandardAbstention.acceptedOriginalFrozenThresholds,
+            nhlSelected:x.nhlStandardAbstention.selected.registered,
+            nflParticipationHolds:w.nfl.all.participationHolds,approvedLineups:0,
+            calibrated:false,paidApiCalls:0}));
+          NODE

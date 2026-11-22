@@ -1,0 +1,81 @@
+name: Validate NHL frozen opponent concession overlap (no vendor calls)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-private-nhl-concessions-pr254.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/validate-private-nhl-concessions-pr254.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-only-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - name: Require authorized private checkout
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        shell: bash
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.event_name == 'pull_request' && 'research/nov22-nhl-cross-archive-concession-evidence' || 'main' }}
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify only official independent archive evidence and exact pregame market gates
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check src/nhl-opponent-opportunity-gate-v1.cjs
+          node --check test/nhl-opponent-opportunity-gate-v1.test.cjs
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-opponent-opportunity-gate-v1.test.cjs >"$log" 2>&1; then
+            echo "::error::Official NHL opponent archive regression failed (private logs withheld)"
+            grep '^not ok' "$log" | head -n 6 || true
+            exit 1
+          fi
+          echo 'PASS: strict original timestamps, 8 distinct prior games, same-source rejection and conflicting concession abstentions'
+      - name: Verify frozen Standard baseline and market-level no-promotion report
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/report-nhl-frozen-baseline-challenge.cjs > "$log" 2>&1; then
+            echo "::error::Original first-Git Standard ledger report failed (private details withheld)"
+            exit 1
+          fi
+          node - <<'NODE'
+          const x=require('./outputs/health/nhl-frozen-baseline-challenge-latest.json');
+          const p=x.futureStandardMarketLossPriority;
+          if(x.evidenceValid!==true||p?.status!=='source_verified_descriptive_only'||
+            p.bettingEligible!==false||p.modelChanged!==false||
+            p.newModelImprovementProven!==false)
+            throw Error('Refuse unverified original future Standard loss benchmark');
+          console.log('PASS: no outcome leakage, same-line Standard benchmark is descriptive only');
+          NODE
+      - name: Verify complete offline NHL NFL MLB regression suite
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test > "$log" 2>&1; then
+            echo "::error::Complete offline regression failed (private logs withheld)"
+            grep '^not ok' "$log" | head -n 6 || true
+            exit 1
+          fi
+          echo 'PASS: complete offline regression suite; zero paid-source API calls'

@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: f8d0127f6b605698e74452d70313256ff2fdfcb0
+          ref: 7dfc3110c3150b2f5de490771cb0e1d042748ca2
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           fetch-depth: 1
@@ -32,7 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          test "$(git rev-parse HEAD)" = f8d0127f6b605698e74452d70313256ff2fdfcb0
+          test "$(git rev-parse HEAD)" = 7dfc3110c3150b2f5de490771cb0e1d042748ca2
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           node --check scripts/probe-prizepicksapi-nhl.cjs >"$log" 2>&1
           for f in test/nhl-board-archive-autostash.test.cjs test/nhl-daily-prospective-gate.test.cjs test/nhl-morning-board-monitor.test.cjs test/nhl-morning-source-delta.test.cjs test/nhl-six-offline-closures.test.cjs test/probe-prizepicksapi-nhl.test.cjs; do
@@ -41,7 +41,11 @@ jobs:
               exit 1;
             fi
           done
-          echo 'PASS all six originally failing private test files'
+          echo 'PASS all six previously failing private test files'
+          if ! node --test test/nhl-opponent-concession-coverage.test.cjs test/nhl-multifactor-future-v1.test.cjs test/nhl-opponent-opportunity-gate-v1.test.cjs >"$log" 2>&1; then
+            echo '::error::New NHL source coverage test failed; private details withheld'; exit 1;
+          fi
+          echo 'PASS official NHL opponent coverage and first-Git research tests'
           if ! npm test >"$log" 2>&1; then
             grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
             echo '::error::Full private offline regression still failing; details withheld';

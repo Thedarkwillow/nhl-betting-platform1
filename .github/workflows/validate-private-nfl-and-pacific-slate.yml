@@ -32,7 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           node --check src/nfl-point-in-time-readiness-v1.cjs
-          node --test test/nfl-point-in-time-readiness-v1.test.cjs test/nfl-original-freeze-dedup.test.cjs test/nfl-live-prop-readiness.test.cjs
+          node --test test/nfl-point-in-time-readiness-v1.test.cjs test/nfl-original-freeze-dedup.test.cjs test/nfl-quote-evidence.test.cjs
   nhl-format-source-only:
     runs-on: ubuntu-24.04
     timeout-minutes: 25

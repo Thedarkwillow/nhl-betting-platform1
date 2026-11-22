@@ -1,0 +1,63 @@
+name: Verify real NHL SOG attempts on precommitted future original lines
+on:
+  pull_request:
+    paths: ['.github/workflows/validate-private-actual-sog-original-future.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-actual-sog-original-future.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pregame-real-attempt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Require private source checkout
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.event_name == 'pull_request' && 'feature/nov22-actual-attempt-frozen-sog-v2' || 'main' }}
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exactly prior official game event source and original pregame grader
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check src/nhl-official-attempt-future-v1.cjs
+          node --check src/nhl-official-attempt-forward-grader-v1.cjs
+          node --check scripts/freeze-partner-nhl-pregame.cjs
+          node --check scripts/report-nhl-standard-forward-improvement.cjs
+          node --test test/nhl-official-attempt-future-v1.test.cjs test/nhl-actual-attempt-volume.test.cjs test/nhl-standard-triple-challenger.test.cjs
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const x=fs.readFileSync('scripts/freeze-partner-nhl-pregame.cjs','utf8');
+          const a=x.indexOf('snapshot.standardTripleChallenger=require(');
+          const b=x.indexOf('snapshot.sogActualAttemptFutureV1=require(');
+          const c=x.indexOf('snapshot.standardCalibrationShadow=fitAtFreeze(');
+          const d=x.indexOf('fs.writeFileSync(output,');
+          if(!(a>=0&&b>a&&c>b&&d>c&&x.includes('committedActualAttemptDates(now)')))
+            throw Error('Original Standard and official attempts both must predate first snapshot save');
+          console.log('PASS: exact original line, sources strictly prior, no model deployment');
+          NODE
+      - name: Complete private NHL NFL MLB test suite without vendor calls
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test > "$log" 2>&1; then
+            echo "::error::Complete offline regression failed (private details withheld)"
+            grep '^not ok' "$log" | head -n 8 || true
+            exit 1
+          fi
+          echo 'PASS: complete multi-sport regression; all original apps and payouts unverified'

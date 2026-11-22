@@ -1,0 +1,101 @@
+name: Private Nov 21 NHL 14-game first-Git fast full-slate grade
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-nhl-nov21-fast-full-grade.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-nhl-nov21-fast-original-slate
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 13
+    steps:
+      - name: Check private access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          fetch-depth: 0
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate original first Git and official final-only grade tests
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check scripts/report-nhl-2026-11-21-slate-grade.cjs
+          node --test test/nhl-slate-graded-summary.test.cjs \
+            test/nhl-frozen-individual-props.test.cjs > /tmp/nhl-nov21-grade-test.log 2>&1 ||
+            { echo "::error::Fail-closed: original selected side or official grade regression"; exit 1; }
+      - name: Rebuild only immutable first-Git selected cohort from official final-only history
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const f=JSON.parse(fs.readFileSync('outputs/player-stats/2026-11-21.json','utf8'));
+          if(f.requestedDate!=='2026-11-21'||f.source!=='NHL public API'||f.sourceSchemaVersion!==5||
+            f.scheduledGames!==14||f.completedGames!==14||f.collectedGames!==14||
+            !Array.isArray(f.errors)||f.errors.length>0||new Set(f.players.map(x=>x.gameId)).size!==14)
+            throw Error('November 21 NHL all 14 official final games not archived');
+          NODE
+          node scripts/build-nhl-private-ledger-and-labs.cjs > /tmp/nhl-rebuild-private.log 2>&1 ||
+            { echo "::error::Could not rebuild original Git-first selected NHL cohort"; exit 1; }
+      - name: Grade all 14 games, tiers, markets and unchanged exact original lines
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/report-nhl-2026-11-21-slate-grade.cjs 2026-11-21 > /tmp/nhl-slate-private-counts.json
+          node - <<'NODE'
+          const fs=require('node:fs'),v=JSON.parse(
+            fs.readFileSync('outputs/health/nhl-2026-11-21-all-games-graded.json','utf8'));
+          if(v.slateDate!=='2026-11-21'||v.officialGamesTotal!==14||v.all14GamesVerified!==true||
+            v.all.registered!==v.playerDetails.length||v.firstGitPregameOnly!==true||
+            v.actualWagersPlaced!==0||v.originalPlatformSettlementVerified!==false)
+            throw Error('Do not label incomplete Nov 21 NHL grade final');
+          console.log(JSON.stringify({officialGames:14,decided:v.all.decided,
+            wins:v.all.correct,losses:v.all.incorrect,pushes:v.all.push,pending:v.all.pending,
+            standardDecided:v.tiers.Standard.decided,goblinDecided:v.tiers.Goblin.decided,
+            demonDecided:v.tiers.Demon.decided,appSettlementVerified:false}));
+          NODE
+      - name: Commit original first-Git ledger and private full-slate grade only
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/research/registry/nhl-precommitted-ledger-latest.json \
+            outputs/health/nhl-2026-11-21-all-games-graded.json \
+            outputs/health/nhl-roadmap-readiness-latest.json \
+            outputs/health/nhl-source-coverage-latest.json \
+            outputs/research/correlation/nhl-count-stat-dependence-latest.json
+          if git diff --cached --quiet; then echo 'No new private NHL grade data'; exit 0; fi
+          git commit -qm 'grade(nhl): official all-final Nov 21 exact first-Git selected props'
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main ||
+              { git rebase --abort || true; exit 1; }
+            if git push -q origin HEAD:main; then
+              echo 'PASS: Nov 21 all-game original NHL grade privately first-Git preserved'; exit 0;
+            fi
+            sleep "$attempt"
+          done
+          echo '::error::Could not archive Nov 21 private NHL grade'; exit 1

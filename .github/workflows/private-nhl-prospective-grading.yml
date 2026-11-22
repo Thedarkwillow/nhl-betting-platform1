@@ -125,6 +125,34 @@ jobs:
             fi
           done
           echo "PASS: refreshed private official-outcome and frozen-baseline audits; unfinished games remain pending."
+      - name: Grade Nov 21 full NHL slate after refreshing official results and first-Git ledger
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check scripts/report-nhl-2026-11-21-slate-grade.cjs
+          node --test test/nhl-slate-graded-summary.test.cjs > /tmp/nhl-slate-grade-test.log 2>&1 || {
+            echo "::error::NHL original first-Git final grade regression failed"; exit 1;
+          }
+          node scripts/report-nhl-2026-11-21-slate-grade.cjs 2026-11-21 > /tmp/nhl-nov21-grade-counts.json
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const x=JSON.parse(fs.readFileSync('outputs/health/nhl-2026-11-21-all-games-graded.json','utf8'));
+          if(x.slateDate!=='2026-11-21'||x.status!=='all_games_official_final_original_frozen_prop_research_only'||
+            x.officialGamesTotal!==14||x.all14GamesVerified!==true||
+            x.games.length!==14||x.firstGitPregameOnly!==true||
+            x.all.registered!==x.playerDetails.length||
+            x.originalPlatformSettlementVerified!==false||
+            x.automaticBettingLineupsApproved!==false||x.actualWagersPlaced!==0)
+            throw Error('Nov 21 complete official slate or first-Git proof unavailable');
+          console.log(JSON.stringify({day:x.slateDate,officialGames:x.officialGamesTotal,
+            firstGitFrozenSelections:x.all.registered,decided:x.all.decided,
+            wins:x.all.correct,losses:x.all.incorrect,push:x.all.push,pending:x.all.pending,
+            standard:x.tiers.Standard.decided,goblin:x.tiers.Goblin.decided,
+            demon:x.tiers.Demon.decided,approvedBets:0,
+            bookmakerPayoutsVerified:false}));
+          NODE
       - name: Archive grading and benchmarks in private repository only
         working-directory: private
         shell: bash
@@ -147,7 +175,8 @@ jobs:
             outputs/health/nhl-standard-triple-challenger-latest.json
             outputs/health/nhl-standard-forward-improvement-latest.json
             outputs/health/nhl-pregame-source-close-latest.json
-            outputs/health/nhl-multifactor-future-scorecard-latest.json)
+            outputs/health/nhl-multifactor-future-scorecard-latest.json
+            outputs/health/nhl-2026-11-21-all-games-graded.json)
           (("${#files[@]}" > 0)) || { echo "::error::No NHL grading or baseline output"; exit 1; }
           git add -f -- "${files[@]}"
           if git diff --cached --quiet; then

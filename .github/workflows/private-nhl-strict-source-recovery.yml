@@ -17,7 +17,46 @@ concurrency:
   group: private-nhl-strict-source-recovery
   cancel-in-progress: false
 jobs:
+  verify-retry-contract:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - name: Require private checkout token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: fix/nov22-bounded-official-nhl-retry-cooldown
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify actual official-source failure reason and cooldown expiration offline
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check scripts/collect-nhl-opponent-concessions-history.cjs
+          node --test test/nhl-opponent-concessions-history.test.cjs test/nhl-opponent-opportunity-gate-v1.test.cjs
+      - name: Complete private offline NHL NFL MLB regression
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Source cooldown offline regressions failed (private details withheld)"
+            grep '^not ok' "$log" | head -n 8 || true
+            exit 1
+          fi
+          echo 'PASS: strict official data only, no paid provider calls or wagers'
   recover:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 24
     steps:
@@ -120,7 +159,7 @@ jobs:
           done
           # Persist private aggregate validation status EVEN IF no new source rows qualify.
           # An empty attempt must never be mistaken for full source coverage.
-          for f in outputs/health/nhl-pp-scoring-recovery-latest.json outputs/health/nhl-block-exposure-recovery-latest.json outputs/health/nhl-opponent-concessions-recovery-latest.json outputs/health/nhl-opponent-concession-coverage-latest.json; do
+          for f in outputs/health/nhl-pp-scoring-recovery-latest.json outputs/health/nhl-block-exposure-recovery-latest.json outputs/health/nhl-opponent-concessions-recovery-latest.json outputs/health/nhl-opponent-concessions-retry-latest.json outputs/health/nhl-opponent-concession-coverage-latest.json; do
             if test -f "$f"; then git add -f "$f"; fi
           done
           git diff --cached --quiet && exit 0

@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 7dfc3110c3150b2f5de490771cb0e1d042748ca2
+          ref: 7dc35f8a48ed5f9b0fab56ee249461b684a27dc3
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           fetch-depth: 1
@@ -32,7 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          test "$(git rev-parse HEAD)" = 7dfc3110c3150b2f5de490771cb0e1d042748ca2
+          test "$(git rev-parse HEAD)" = 7dc35f8a48ed5f9b0fab56ee249461b684a27dc3
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           node --check scripts/probe-prizepicksapi-nhl.cjs >"$log" 2>&1
           for f in test/nhl-board-archive-autostash.test.cjs test/nhl-daily-prospective-gate.test.cjs test/nhl-morning-board-monitor.test.cjs test/nhl-morning-source-delta.test.cjs test/nhl-six-offline-closures.test.cjs test/probe-prizepicksapi-nhl.test.cjs; do

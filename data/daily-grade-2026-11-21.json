@@ -1,0 +1,135 @@
+{
+  "kind": "public_original_daily_grade_v1",
+  "slateDate": "2026-11-21",
+  "generatedAt": "2026-11-22T16:49:11.126Z",
+  "nhl": {
+    "status": "official_final_slate_graded",
+    "scheduledGames": 14,
+    "finalGames": 14,
+    "officialPlayerRows": 560,
+    "statsFetchedAt": "2026-11-22T16:44:20.578Z",
+    "ledgerBuiltAt": "2026-11-22T16:44:35.478Z",
+    "all": {
+      "registered": 646,
+      "correct": 375,
+      "incorrect": 258,
+      "push": 0,
+      "pending": 13,
+      "decided": 633,
+      "hitRate": 0.5924170616113744,
+      "alwaysHigher": 0.5781990521327014,
+      "alwaysLower": 0.4218009478672986,
+      "distinctGradedGames": 14
+    },
+    "byTier": {
+      "Standard": {
+        "registered": 201,
+        "correct": 109,
+        "incorrect": 90,
+        "push": 0,
+        "pending": 2,
+        "decided": 199,
+        "hitRate": 0.5477386934673367,
+        "alwaysHigher": 0.5025125628140703,
+        "alwaysLower": 0.49748743718592964,
+        "distinctGradedGames": 14
+      },
+      "Goblin": {
+        "registered": 339,
+        "correct": 219,
+        "incorrect": 110,
+        "push": 0,
+        "pending": 10,
+        "decided": 329,
+        "hitRate": 0.6656534954407295,
+        "alwaysHigher": 0.6656534954407295,
+        "alwaysLower": 0.3343465045592705,
+        "distinctGradedGames": 14
+      },
+      "Demon": {
+        "registered": 106,
+        "correct": 47,
+        "incorrect": 58,
+        "push": 0,
+        "pending": 1,
+        "decided": 105,
+        "hitRate": 0.44761904761904764,
+        "alwaysHigher": 0.44761904761904764,
+        "alwaysLower": 0.5523809523809524,
+        "distinctGradedGames": 14
+      }
+    },
+    "standardByMarket": {
+      "assists": {
+        "registered": 23,
+        "correct": 13,
+        "incorrect": 10,
+        "push": 0,
+        "pending": 0,
+        "decided": 23,
+        "hitRate": 0.5652173913043478,
+        "alwaysHigher": 0.6086956521739131,
+        "alwaysLower": 0.391304347826087,
+        "distinctGradedGames": 11
+      },
+      "blockedShots": {
+        "registered": 31,
+        "correct": 15,
+        "incorrect": 15,
+        "push": 0,
+        "pending": 1,
+        "decided": 30,
+        "hitRate": 0.5,
+        "alwaysHigher": 0.5,
+        "alwaysLower": 0.5,
+        "distinctGradedGames": 13
+      },
+      "goals": {
+        "registered": 1,
+        "correct": 1,
+        "incorrect": 0,
+        "push": 0,
+        "pending": 0,
+        "decided": 1,
+        "hitRate": 1,
+        "alwaysHigher": 0,
+        "alwaysLower": 1,
+        "distinctGradedGames": 1
+      },
+      "points": {
+        "registered": 58,
+        "correct": 36,
+        "incorrect": 22,
+        "push": 0,
+        "pending": 0,
+        "decided": 58,
+        "hitRate": 0.6206896551724138,
+        "alwaysHigher": 0.5517241379310345,
+        "alwaysLower": 0.4482758620689655,
+        "distinctGradedGames": 14
+      },
+      "shotsOnGoal": {
+        "registered": 88,
+        "correct": 44,
+        "incorrect": 43,
+        "push": 0,
+        "pending": 1,
+        "decided": 87,
+        "hitRate": 0.5057471264367817,
+        "alwaysHigher": 0.4482758620689655,
+        "alwaysLower": 0.5517241379310345,
+        "distinctGradedGames": 14
+      }
+    },
+    "gamesWithOriginalSelections": 14
+  },
+  "nfl": {
+    "status": "no_games_on_archived_schedule",
+    "scheduledGames": 0,
+    "finalGames": 0
+  },
+  "platformSettlementVerified": false,
+  "payoutROI": null,
+  "modelPromoted": false,
+  "rawPropRowsExposed": 0
+}

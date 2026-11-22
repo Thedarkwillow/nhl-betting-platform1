@@ -44,7 +44,8 @@ jobs:
             scripts/freeze-partner-nhl-pregame.cjs \
             scripts/collect-nhl-pp-scoring-history.cjs \
             scripts/collect-nhl-block-exposure-history.cjs \
-            scripts/collect-nhl-opponent-concessions-history.cjs; do node --check "$f"; done
+            scripts/collect-nhl-opponent-concessions-history.cjs \
+            scripts/report-nhl-opponent-concession-coverage.cjs; do node --check "$f"; done
           log="$(mktemp)"
           trap 'rm -f "$log"' EXIT
           if ! node --test \
@@ -52,6 +53,7 @@ jobs:
             test/nhl-official-block-exposure-v1.test.cjs \
             test/nhl-opponent-opportunity-gate-v1.test.cjs \
             test/nhl-opponent-concessions-history.test.cjs \
+            test/nhl-opponent-concession-coverage.test.cjs \
             test/nhl-eight-accuracy-research-v1.test.cjs \
             test/nhl-strict-directional-abstention-v1.test.cjs \
             test/nhl-older-season-locked-families-v1.test.cjs \
@@ -92,6 +94,7 @@ jobs:
           NODE
           node scripts/collect-nhl-block-exposure-history.cjs >/dev/null
           node scripts/collect-nhl-opponent-concessions-history.cjs >/dev/null
+          node scripts/report-nhl-opponent-concession-coverage.cjs >/dev/null
           node - <<'NODE'
           const r=require('./outputs/health/nhl-opponent-concessions-recovery-latest.json');
           if(r.zeroPaidRequests!==true||r.neverQualifiesPastFrozenPicks!==true||
@@ -114,7 +117,7 @@ jobs:
           done
           # Persist private aggregate validation status EVEN IF no new source rows qualify.
           # An empty attempt must never be mistaken for full source coverage.
-          for f in outputs/health/nhl-pp-scoring-recovery-latest.json outputs/health/nhl-block-exposure-recovery-latest.json outputs/health/nhl-opponent-concessions-recovery-latest.json; do
+          for f in outputs/health/nhl-pp-scoring-recovery-latest.json outputs/health/nhl-block-exposure-recovery-latest.json outputs/health/nhl-opponent-concessions-recovery-latest.json outputs/health/nhl-opponent-concession-coverage-latest.json; do
             if test -f "$f"; then git add -f "$f"; fi
           done
           git diff --cached --quiet && exit 0

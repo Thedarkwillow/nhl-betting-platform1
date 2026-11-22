@@ -1,3 +1,4 @@
+# Owner-requested 2026-11-22: refresh public count-only research coverage after 43 official opponent concession archives.
 name: Publish sanitized NHL NFL model and history research progress
 on:
   workflow_dispatch:

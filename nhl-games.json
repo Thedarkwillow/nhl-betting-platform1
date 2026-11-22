@@ -4,7 +4,7 @@
   "source": "NHL Web API",
   "endpoint": "https://api-web.nhle.com/v1/score/2026-11-22",
   "pacificDate": "2026-11-22",
-  "observedAtUTC": "2026-11-22T20:40:48.198Z",
+  "observedAtUTC": "2026-11-22T22:25:53.959Z",
   "note": "Public NHL scores only. No player props, model predictions or platform settlements.",
   "games": [
     {
@@ -19,9 +19,11 @@
     {
       "gameId": 2026020374,
       "startTimeUTC": "2026-11-22T22:00:00Z",
-      "state": "FUT",
+      "state": "LIVE",
       "away": "BUF",
-      "home": "TBL"
+      "home": "TBL",
+      "awayScore": 1,
+      "homeScore": 0
     },
     {
       "gameId": 2026020375,

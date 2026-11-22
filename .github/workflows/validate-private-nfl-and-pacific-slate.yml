@@ -33,6 +33,32 @@ jobs:
           set -euo pipefail
           node --check src/nfl-point-in-time-readiness-v1.cjs
           node --test test/nfl-point-in-time-readiness-v1.test.cjs test/nfl-original-freeze-dedup.test.cjs test/nfl-quote-evidence.test.cjs
+  nhl-calibration-source-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Require private research access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.event_name == 'pull_request' && 'research/nov22-calibration-slate-integrity' || 'main' }}
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify no overnight UTC artificial NHL calibration samples
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check src/forward-calibration-evidence.cjs
+          node --check src/nhl-original-line-calibration-pairs.cjs
+          node --test test/forward-calibration-game-weight.test.cjs test/nhl-original-line-calibration-pairs.test.cjs test/nhl-standard-forward-improvement.test.cjs
   nhl-format-source-only:
     runs-on: ubuntu-24.04
     timeout-minutes: 25

@@ -1,0 +1,48 @@
+name: Validate mixed NHL NFL archived sportsbook contract
+on:
+  push:
+    branches: ['validation/nov22-mixed-sport-archive']
+    paths: ['.github/workflows/validate-nov22-mixed-sport-archive.yml']
+permissions:
+  contents: read
+jobs:
+  offline-private:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 0f15c460a42433cd14d553f5271148d9cd2c548e
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test exact candidate and real mixed-sport archived source contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 0f15c460a42433cd14d553f5271148d9cd2c548e
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-four-priority-research-audit.test.cjs >"$log" 2>&1; then echo '::error::Archive unit tests failed'; exit 1; fi
+          echo 'PASS: exact mixed-sport contract tests'
+          if ! node - >"$log" 2>&1 <<'NODE'
+          const fs=require('node:fs'),a=require('./src/nhl-four-priority-research-audit.cjs');
+          const read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+          const baseline=a.standardMarkets(read('outputs/health/nhl-frozen-baseline-challenge-latest.json'));
+          const sb=a.sportsbookGap(read('outputs/sportsbooks/bounded-live/matched-board-latest.json'),
+            read('outputs/health/nhl-sportsbook-comparison-latest.json'));
+          const cal=a.calibrationHoldout(read('outputs/health/nhl-prospective-validation-latest.json'));
+          if(!baseline.valid||baseline.decided<100||baseline.releaseApproved!==false||
+             !sb.archiveKindValid||sb.conditionalSameOfferSides<1||
+             sb.independentlyAuthenticatedSamePropModelComparisons!==0||
+             !cal.sourceValid||cal.approvedProbabilityDisplay!==false)
+             throw Error('Real private archive did not pass unchanged safety gates');
+          console.log('PASS archived real NHL subset with NFL source rows excluded');
+          NODE
+          then echo '::error::Real archived private source contract failed'; exit 1; fi
+          echo 'PASS: archived source contract; zero verified app quotes or EV'
+          if ! npm test >"$log" 2>&1; then grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true; echo '::error::Full private regression failed'; exit 1; fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          echo 'PASS: full private regression; zero paid provider calls'

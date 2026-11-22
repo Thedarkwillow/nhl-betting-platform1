@@ -1,3 +1,4 @@
+# Owner-requested 2026-11-22: rerun immutable official NFL active-roster/GSIS and exact-offer release gates after PR #246.
 name: Private NFL live active exact app and EV readiness audit via public runner
 on:
   workflow_dispatch:

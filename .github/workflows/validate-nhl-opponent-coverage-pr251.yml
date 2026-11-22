@@ -1,0 +1,58 @@
+name: Validate private NHL opponent coverage branch safely
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-nhl-opponent-coverage-pr251.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/validate-nhl-opponent-coverage-pr251.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-private:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Require private repository checkout access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.event_name == 'pull_request' && 'feat/nov22-balanced-nhl-opponent-coverage' || 'main' }}
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify bounded official recovery and immutable source-proofs
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check scripts/collect-nhl-opponent-concessions-history.cjs
+          node --check src/nhl-opponent-opportunity-gate-v1.cjs
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-opponent-concessions-history.test.cjs test/nhl-opponent-opportunity-gate-v1.test.cjs test/nhl-opponent-concession-coverage.test.cjs > "$log" 2>&1; then
+            echo "::error::Private focused opponent-source regressions failed; logs withheld"
+            exit 1
+          fi
+          echo "PASS: immutable official opponent history, balanced recovery and existing strict gate"
+      - name: Run full private offline regression suite
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test > "$log" 2>&1; then
+            echo "::error::Private research regression failed; logs withheld"
+            exit 1
+          fi
+          echo "PASS: full private research regression suite with zero paid-source calls"

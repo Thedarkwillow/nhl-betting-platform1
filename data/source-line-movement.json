@@ -1,7 +1,7 @@
 {
   "kind": "public_safe_nhl_nfl_board_line_movement_counts_v1",
   "schemaVersion": 1,
-  "generatedAt": "2026-11-22T14:06:27.183Z",
+  "generatedAt": "2026-11-22T14:26:33.369Z",
   "earlierCaptureAt": "2026-11-21T17:05:45.971Z",
   "laterCaptureAt": "2026-11-22T14:05:43.265Z",
   "comparisonKind": "cross_day_previous_full_source",

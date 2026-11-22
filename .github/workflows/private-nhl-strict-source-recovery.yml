@@ -1,3 +1,4 @@
+# Per-team SOG, points, assists and opponent shot-attempt coverage is source-only; private PR #240 merged with 1421/1421 offline tests.
 name: Freeze-ready official NHL strict source recovery
 on:
   workflow_dispatch:

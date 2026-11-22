@@ -67,3 +67,48 @@ jobs:
       - name: No private artifacts published
         if: always()
         run: echo 'No private source, model rows or test logs are uploaded.'
+  test-nfl-named-active:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 5bb8ef8e60a42b03c5b96e80693dbdaf1f23500f
+          path: candidate
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: baseline
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate NFL active context without releasing private player records
+        working-directory: candidate
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --check src/nfl-official-named-positive-active-v1.cjs
+          node --check scripts/report-nfl-live-prop-readiness.cjs
+          if ! node --test test/nfl-official-named-positive-active-v1.test.cjs test/nfl-point-in-time-readiness-v1.test.cjs >"$log" 2>&1; then
+            echo '::error::NFL named-active focused test failed'; exit 1;
+          fi
+          echo 'PASS NFL positive named official research and strict active roster tests'
+          if npm test >"$log" 2>&1; then echo 'PASS candidate full suite'; else echo 'FAIL candidate full suite'; fi
+          current=$(sed -n -E 's/^not ok [0-9]+ - (.*)$/\1/p' "$log" | LC_ALL=C sort | sha256sum | cut -d' ' -f1)
+          current_n=$(grep -c '^not ok [0-9]' "$log" || true)
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          cd ../baseline
+          if npm test >"$log" 2>&1; then echo 'PASS original main full suite'; else echo 'FAIL original main full suite'; fi
+          base=$(sed -n -E 's/^not ok [0-9]+ - (.*)$/\1/p' "$log" | LC_ALL=C sort | sha256sum | cut -d' ' -f1)
+          base_n=$(grep -c '^not ok [0-9]' "$log" || true)
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          if test "$current" != "$base" || test "$current_n" != "$base_n"; then
+            echo '::error::New NFL regression relative to unmodified main'; exit 1;
+          fi
+          echo "PASS NFL candidate: same $base_n preexisting failed test identities; no regressions"

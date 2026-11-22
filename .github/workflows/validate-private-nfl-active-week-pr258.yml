@@ -1,0 +1,53 @@
+name: Validate NFL original game-week and positive active proof
+on:
+  pull_request:
+    paths: ['.github/workflows/validate-private-nfl-active-week-pr258.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-nfl-active-week-pr258.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  independent-no-vendor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - name: Require authorized private checkout
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.event_name == 'pull_request' && 'research/nov22-nfl-week-and-roster-envelope' || 'main' }}
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require NFL GSIS and whole official roster game envelope
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check src/nfl-point-in-time-readiness-v1.cjs
+          node --test test/nfl-point-in-time-readiness-v1.test.cjs test/nfl-original-freeze-dedup.test.cjs
+      - name: Validate calibration and all nine legal Power/Flex research formats
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --test test/four-priority-evidence-status.test.cjs test/nhl-original-line-calibration-pairs.test.cjs test/nhl-lineup-slate-resampling.test.cjs test/underdog-board-pagination-integrity.test.cjs
+      - name: Complete offline NHL NFL MLB suite
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Private multi-sport regression failed; private details withheld"
+            grep '^not ok' "$log" | head -n 7 || true
+            exit 1
+          fi
+          echo 'PASS: complete offline suite; no official lineup/model release, no paid calls'

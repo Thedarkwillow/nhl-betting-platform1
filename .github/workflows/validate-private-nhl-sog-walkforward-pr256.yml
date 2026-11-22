@@ -1,0 +1,77 @@
+name: Validate NHL actual shot attempt walk-forward and research no-promotion
+on:
+  pull_request:
+    paths: ['.github/workflows/validate-private-nhl-sog-walkforward-pr256.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-nhl-sog-walkforward-pr256.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  private-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - name: Require private GitHub access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.event_name == 'pull_request' && 'research/nov22-sog-attempt-recent-walkforward' || 'main' }}
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify official attempt evidence and synthetic game/slate uncertainty
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --check scripts/report-nhl-actual-attempt-volume.cjs
+          if ! node --test test/nhl-actual-attempt-volume.test.cjs >"$log" 2>&1; then
+            echo "::error::Private shot-attempt model regression failed"
+            grep '^not ok' "$log" | head -n 5 || true
+            exit 1
+          fi
+          echo 'PASS: no-vendor synthetic and source chronology model checks'
+      - name: Run real official archived two-season past-only SOG replay
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/report-nhl-actual-attempt-volume.cjs > "$log" 2>&1; then
+            echo "::error::Real official NHL SOG replay failed; private details withheld"
+            exit 1
+          fi
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const a=JSON.parse(fs.readFileSync('outputs/backtests/nhl-actual-attempt-volume-latest.json','utf8'));
+          if(a.kind!=='nhl_actual_attempt_volume_replay_v2'||
+            a.strictlyPriorDays!==true||a.originalPlatformLinesMatched!==false||
+            a.threeThresholdsNotIndependent!==true||
+            a.calibrationApproved!==false||a.modelPromoted!==false||
+            a.bettingEligible!==false||a.models?.defenseRecency?.n<1||
+            !a.models?.defenseRecency?.bySeason)
+            throw Error('Refusing unverified actual NHL attempt research audit');
+          console.log('PASS: official historical attempt challenger with independently clustered descriptive diagnostics, no promotion');
+          NODE
+      - name: Verify full offline NHL NFL MLB regression
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Private full regression failed; details withheld"
+            grep '^not ok' "$log" | head -n 8 || true
+            exit 1
+          fi
+          echo 'PASS: full offline NHL NFL MLB suite, zero paid requests'

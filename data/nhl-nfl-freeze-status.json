@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_safe_nhl_nfl_original_pregame_freeze_status_v1",
-  "generatedAt": "2026-11-22T17:09:11.346Z",
+  "generatedAt": "2026-11-22T17:28:00.257Z",
   "sourceCaptureFinishedUTC": "2026-11-22T17:05:50.658Z",
   "captureSlotPacific": "09:00",
   "originalPrivateGitCommitUTC": "2026-11-22T17:08:20Z",

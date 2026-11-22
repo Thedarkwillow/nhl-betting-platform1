@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-22T14:28:13.111Z",
-  "sourceReportAt": "2026-11-22T14:17:27.747Z",
+  "generatedAt": "2026-11-22T14:32:44.636Z",
+  "sourceReportAt": "2026-11-22T14:29:35.800Z",
   "periodHistory": {
     "accountedDays": 261,
     "calendarDays": 261,
@@ -74,7 +74,7 @@
     "verifiedROI": null
   },
   "validationSample": {
-    "sourceReportAt": "2026-11-22T14:09:56.911Z",
+    "sourceReportAt": "2026-11-22T14:29:10.851Z",
     "nhlStandardFrozenDecisions": 929,
     "nhlStandardFrozenGames": 77,
     "nhlStandardFrozenPacificSlates": 12,
@@ -82,7 +82,7 @@
     "independentlySupportedCalibrationGroups": 0,
     "nflFirstDistinctThresholdDecisions": 1403,
     "nflFirstDistinctThresholdGames": 15,
-    "powerFlexRegisteredReferenceEntries": 34,
+    "powerFlexRegisteredReferenceEntries": 41,
     "powerFlexResolvedReferenceEntries": 25,
     "powerFlexUniqueUnderlyingResolvedSlates": 5,
     "probabilitiesCalibrated": false,
@@ -91,13 +91,13 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-22T14:08:30.206Z",
+    "nhlReportAt": "2026-11-22T14:27:46.244Z",
     "nflReportAt": "2026-11-20T21:31:51.525Z",
     "nhl": {
-      "registered": 281,
-      "eligible": 65,
-      "abstained": 216,
-      "pending": 35,
+      "registered": 316,
+      "eligible": 74,
+      "abstained": 242,
+      "pending": 44,
       "decided": 30
     },
     "nfl": {
@@ -115,7 +115,7 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-22T14:08:30.739Z",
+    "sourceReportAt": "2026-11-22T14:27:46.736Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
       "completeOfficialGames": 1630,
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-22T14:27:13.065Z",
+    "sourceReportAt": "2026-11-22T14:28:33.563Z",
     "nhl": {
       "sourceEligible": true,
       "examined": 0,

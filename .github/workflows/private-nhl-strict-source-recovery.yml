@@ -100,6 +100,7 @@ jobs:
           node - <<'NODE'
           const r=require('./outputs/health/nhl-opponent-concessions-recovery-latest.json');
           if(r.zeroPaidRequests!==true||r.neverQualifiesPastFrozenPicks!==true||
+             r.coverageSelection!=='undercovered_team_prioritized_no_threshold_changes'||
              r.selectedGames>12||r.attempts.length>12)
             throw Error('Concession recovery violated budget or no-lookahead policy');
           console.log(JSON.stringify({concessionGamesAttempted:r.attempts.length,

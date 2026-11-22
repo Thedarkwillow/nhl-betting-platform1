@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 7931e9b1a7d63979665eb3fe6314e115fc1a60c4
+          ref: e380036d7c469ec333353a206080c79db3d0c658
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -23,7 +23,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 7931e9b1a7d63979665eb3fe6314e115fc1a60c4
+          test "$(git rev-parse HEAD)" = e380036d7c469ec333353a206080c79db3d0c658
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           for f in             test/nhl-multifactor-future-v1.test.cjs             test/nhl-pregame-live-context-v1.test.cjs             test/nfl-point-in-time-readiness-v1.test.cjs             test/exact-offer-payout-settlement-proof.test.cjs             test/nhl-opponent-concession-coverage.test.cjs; do
             if ! node --test "$f" > "$log" 2>&1; then

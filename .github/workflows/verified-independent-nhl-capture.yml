@@ -63,7 +63,7 @@ jobs:
           }
           if(process.env.EVENT==='workflow_run'){
             // One recovery opportunity during the actual 6/9 slot; no late retries.
-            capture=[6,9].includes(hour);
+            capture=capture&&[6,9].includes(hour);
             
           }
           if(['schedule','workflow_run'].includes(process.env.EVENT)){

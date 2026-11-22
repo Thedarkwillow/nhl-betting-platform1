@@ -1,0 +1,57 @@
+name: Verify NHL original four-market challenger precommit
+on:
+  pull_request:
+    paths: ['.github/workflows/validate-private-four-market-freeze.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-four-market-freeze.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-frozen-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Require private research access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.event_name == 'pull_request' && 'feature/nov22-original-frozen-four-market-shadow' || 'main' }}
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require pregame snapshot wiring and same-original-offer invariants
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --check scripts/freeze-partner-nhl-pregame.cjs
+          node --test test/nhl-standard-triple-challenger.test.cjs test/nhl-standard-forward-improvement.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nhl-original-line-calibration-pairs.test.cjs
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const s=fs.readFileSync('scripts/freeze-partner-nhl-pregame.cjs','utf8');
+          const freeze=s.indexOf('snapshot.standardTripleChallenger=require(');
+          const fix=s.indexOf('snapshot.standardForwardCalibrationShadow=require(');
+          const save=s.indexOf('fs.writeFileSync(output,');
+          if(freeze<0||fix<=freeze||save<=fix||!s.includes('asOf:now,approved:'))
+            throw Error('All research arms must be attached before immutable first Git snapshot save');
+          console.log('PASS: same original pregame Standard source with strict future-first Git gating');
+          NODE
+      - name: Verify NHL NFL MLB offline regression
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Private regression failed (details withheld)"
+            grep '^not ok' "$log" | head -n 8 || true
+            exit 1
+          fi
+          echo 'PASS: full no-provider NHL NFL MLB suite; uncalibrated confidence/ROI withheld'

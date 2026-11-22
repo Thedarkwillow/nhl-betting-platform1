@@ -120,3 +120,30 @@ test("Goblin roadmap shows precommitted candidates but no confident betting slip
   ...progress.goblinFuture,prospectiveEdgeVerified:true}}},now).rows;
  assert.equal(bad.some(r=>r.label==="Goblin Power/Flex 2–6"),false);
 });
+
+test("research website reports independent-slate validation shortfall and lineup overlap instead of fake EV",()=>{
+ const now=Date.parse("2026-11-22T21:01:00Z");
+ const progress={kind:"public_research_progress_counts_v1",
+  proprietaryRowsPublished:0,calibrationApproved:false,modelPromoted:false,
+  sourceReportAt:"2026-11-22T20:58:05Z",
+  validationSample:{sourceReportAt:"2026-11-22T20:58:03Z",
+   nhlStandardFrozenDecisions:1128,nhlStandardFrozenGames:91,
+   nhlStandardFrozenPacificSlates:13,
+   matchedFrozenCalibrationDecisions:1663,independentlySupportedCalibrationGroups:0,
+   powerFlexRegisteredReferenceEntries:41,powerFlexResolvedReferenceEntries:34,
+   powerFlexUniqueUnderlyingResolvedSlates:6,
+   probabilitiesCalibrated:false,modelPromoted:false,platformPayoutROI:null}};
+ const rows=model({progress},now).rows;
+ assert.match(rows.find(x=>x.label==="NHL Standard prospective sample").value,
+  /13 Pacific slates \(20 distinct-slate minimum; 7 more needed\)/);
+ assert.match(rows.find(x=>x.label==="Power/Flex 2–6 paper scenarios").value,
+  /34 resolved \/ 41 registered.*6 distinct underlying slates.*50 resolved slates per format/);
+ assert.match(rows.find(x=>x.label==="Frozen calibration trials").value,
+  /0 groups meeting sample gate; probability release withheld/);
+ // Do not overstate independent slates if supplied value is logically impossible.
+ const tampered={...progress,validationSample:{...progress.validationSample,
+  powerFlexUniqueUnderlyingResolvedSlates:35}};
+ const safe=model({progress:tampered},now).rows;
+ assert.match(safe.find(x=>x.label==="Power/Flex 2–6 paper scenarios").value,
+  /distinct underlying slate count unverified/);
+});

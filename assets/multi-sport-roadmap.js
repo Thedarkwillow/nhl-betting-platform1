@@ -8,6 +8,15 @@
  "use strict";
  const KIND="public_safe_nhl_nfl_original_pregame_freeze_status_v1";
  function viewModel(data,sport="NHL",now=Date.now()){
+  // Sports that do not yet have source-authenticated pregame pipes must
+  // NEVER silently inherit NHL counts, current app offers or odds.
+  if(["NBA","Esports","MLB"].includes(sport))
+   return {sport,available:false,title:sport+" · source verification pending",
+    explanation:sport==="MLB"?
+     "Existing MLB research is preserved separately. No MLB original-platform live offers or independently validated betting probabilities are available on this site.":
+     "Dedicated historical data, authorized current lines, original identity, prospective holdout and payout verification are not complete for this sport.",
+    counts:null,sourceFresh:false,calibrated:false,
+    platformOffersVerified:false,paidLineupEVAvailable:false};
   const code=["NHL","NFL"].includes(sport)?sport:"NHL";
   if(data?.schemaVersion!==1||data.kind!==KIND||
      data.firstGitAdditionVerified!==true||
@@ -50,6 +59,8 @@
    " · 6-to-9 comparison "+(d.sixToNineChangesVerified===true?"archived":"unavailable");
  }
  function movementView(d,sport="NHL",now=Date.now()){
+  if(["NBA","Esports","MLB"].includes(sport))
+   return sport+" original-platform line-movement evidence unavailable; no current offers verified.";
   const code=["NHL","NFL"].includes(sport)?sport:"NHL",
    m=d?.sports?.[code],before=Date.parse(d?.earlierCaptureAt),
    after=Date.parse(d?.laterCaptureAt);
@@ -96,7 +107,9 @@
   const note=byId("scope");
   if(note)note.textContent=view.sport==="NFL"?
    "NFL individual props and lineup EV are not published until platform evidence, calibration and postgame grading pass.":
-   "The detailed board below is NHL-only. Its model estimates are uncalibrated research, not authenticated PrizePicks offers.";
+   view.sport==="NHL"?
+   "The detailed board below is NHL-only. Its model estimates are uncalibrated research, not authenticated PrizePicks offers.":
+   "This sport is not production-ready. The detailed props below remain NHL-only, not research picks for this selected sport.";
  }
  function init(){
   const host=document.getElementById("multiSportEvidence");
@@ -105,8 +118,13 @@
   let status=null,movement=null;
   const movements=host.querySelector('[data-multi="movement"]');
   const draw=()=>{
-   render(host,viewModel(status,picker?.value||"NHL"));
-   if(movements)movements.textContent=movementView(movement,picker?.value||"NHL");
+   const code=picker?.value||"NHL";
+   render(host,viewModel(status,code));
+   if(movements)movements.textContent=movementView(movement,code);
+   const nfl=host.querySelector("#nflIndependentCoverage");
+   if(nfl)nfl.hidden=code!=="NFL";
+   const scorecard=host.querySelector("#modelScorecardEvidence");
+   if(scorecard)scorecard.hidden=!["NHL","NFL"].includes(code);
   };
   const ops=host.querySelector('[data-multi="operations"]');
   if(ops){

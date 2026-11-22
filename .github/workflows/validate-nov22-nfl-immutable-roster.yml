@@ -1,0 +1,36 @@
+name: Validate official NFL full-active-roster proof and frozen app research
+on:
+  push:
+    branches: ['validation/nov22-nfl-immutable-roster']
+    paths: ['.github/workflows/validate-nov22-nfl-immutable-roster.yml']
+permissions:
+  contents: read
+jobs:
+  offline-private:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: b10f9d622425bfbd99a7b1460e77fdd4c60b5d97
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check positive NFL active roster and all NHL NFL MLB tests, no provider calls
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = b10f9d622425bfbd99a7b1460e77fdd4c60b5d97
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nfl-point-in-time-readiness-v1.test.cjs test/nfl-authenticated-entry-ev-v1.test.cjs test/nfl-official-named-positive-active-v1.test.cjs > "$log" 2>&1; then
+            echo '::error::NFL source and payout evidence guard tests failed'; exit 1;
+          fi
+          echo 'PASS: NFL positive full roster/GSIS, named-only and app payout guards'
+          if ! npm test > "$log" 2>&1; then
+            grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+            echo '::error::Full private suite failed'; exit 1;
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          echo 'PASS full private offline suite; NFL game-day active remains unverified without official source'

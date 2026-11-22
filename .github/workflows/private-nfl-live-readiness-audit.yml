@@ -67,6 +67,8 @@ jobs:
              x.automaticWagersPlaced!==0||x.payoutExpectedValue!==null||
              x.bookableApproved!==0||x.kind!=='nfl_point_in_time_prop_release_audit_v1')
             throw Error('NFL source readiness must not convert research into wagers');
+          if(x.rowsAudited>0&&x.firstGitSource?.firstGitVerified!==true)
+            throw Error('Original NFL independent board/forward snapshot first-Git proof unavailable');
           console.log(JSON.stringify({status:x.status,rowsAudited:x.rowsAudited,
             clubPracticeRows:x.officialClubPracticeReportsFound||0,
             exactAppQuotes:x.authenticatedExactAppOffers||0,

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-22T17:28:49.780Z",
-  "sourceReportAt": "2026-11-22T17:16:50.580Z",
+  "generatedAt": "2026-11-22T17:33:00.701Z",
+  "sourceReportAt": "2026-11-22T17:29:42.986Z",
   "periodHistory": {
     "accountedDays": 261,
     "calendarDays": 261,
@@ -74,7 +74,7 @@
     "verifiedROI": null
   },
   "validationSample": {
-    "sourceReportAt": "2026-11-22T17:10:01.240Z",
+    "sourceReportAt": "2026-11-22T17:29:39.862Z",
     "nhlStandardFrozenDecisions": 1128,
     "nhlStandardFrozenGames": 91,
     "nhlStandardFrozenPacificSlates": 13,
@@ -91,13 +91,13 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-22T17:09:39.392Z",
+    "nhlReportAt": "2026-11-22T17:28:22.633Z",
     "nflReportAt": "2026-11-20T21:31:51.525Z",
     "nhl": {
-      "registered": 316,
-      "eligible": 74,
-      "abstained": 242,
-      "pending": 11,
+      "registered": 325,
+      "eligible": 76,
+      "abstained": 249,
+      "pending": 13,
       "decided": 63
     },
     "nfl": {
@@ -115,7 +115,7 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-22T17:09:39.898Z",
+    "sourceReportAt": "2026-11-22T17:28:23.250Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
       "completeOfficialGames": 1644,
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-22T17:27:51.101Z",
+    "sourceReportAt": "2026-11-22T17:29:11.160Z",
     "nhl": {
       "sourceEligible": true,
       "examined": 0,

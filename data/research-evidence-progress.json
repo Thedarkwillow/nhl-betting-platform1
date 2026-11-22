@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-22T17:10:17.615Z",
-  "sourceReportAt": "2026-11-22T16:51:35.093Z",
+  "generatedAt": "2026-11-22T17:17:04.768Z",
+  "sourceReportAt": "2026-11-22T17:13:18.915Z",
   "periodHistory": {
     "accountedDays": 261,
     "calendarDays": 261,
@@ -74,7 +74,7 @@
     "verifiedROI": null
   },
   "validationSample": {
-    "sourceReportAt": "2026-11-22T16:51:32.349Z",
+    "sourceReportAt": "2026-11-22T17:10:01.240Z",
     "nhlStandardFrozenDecisions": 1128,
     "nhlStandardFrozenGames": 91,
     "nhlStandardFrozenPacificSlates": 13,
@@ -147,26 +147,26 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-22T17:09:12.317Z",
+    "sourceReportAt": "2026-11-22T17:10:25.472Z",
     "nhl": {
       "sourceEligible": true,
-      "examined": 1,
-      "newCandidates": 1,
+      "examined": 0,
+      "newCandidates": 0,
       "newAbstentions": 0,
-      "archivedFirstGit": 935,
+      "archivedFirstGit": 936,
       "duplicatesQuarantined": 108,
       "selectivePolicyRequiresNewSource": false,
       "postPolicyScreening": {
         "kind": "public_goblin_post_policy_screening_counts_v1",
-        "screened": 700,
-        "selected": 361,
+        "screened": 701,
+        "selected": 362,
         "abstained": 339,
         "lateOrUnverified": 0,
         "unknownStatus": 0,
         "byMarket": {
           "shotsOnGoal": {
-            "screened": 467,
-            "selected": 281,
+            "screened": 468,
+            "selected": 282,
             "abstained": 186
           },
           "blockedShots": {
@@ -202,15 +202,15 @@
       },
       "pendingOfficialTriage": {
         "kind": "public_nhl_goblin_prospective_pending_triage_v1",
-        "registered": 935,
+        "registered": 936,
         "abstained": 339,
         "decided": 538,
         "pushes": 0,
-        "notStarted": 50,
+        "notStarted": 51,
         "startedNoFinalWithinFourHours": 0,
         "fourHoursWithoutOfficialPlayerStat": 8,
         "conflictingOrInvalidFinal": 0,
-        "officialGradingNeeded": 58,
+        "officialGradingNeeded": 59,
         "verifiedWinRate": null,
         "approvedPicks": 0
       },
@@ -276,7 +276,7 @@
         "approvedPicks": 0
       },
       "futureDecided": 538,
-      "futureRegistered": 935
+      "futureRegistered": 936
     },
     "nfl": {
       "supportedOpportunityResearchImplemented": true,

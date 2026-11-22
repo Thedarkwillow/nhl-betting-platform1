@@ -57,7 +57,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! node --test test/nfl-independent-source-preview.test.cjs test/prizepicksapi-asof-board.test.cjs >"$log" 2>&1; then echo '::error::Offline tests failed; no provider requests.'; exit 1; fi
+          if ! node --test test/nfl-independent-source-preview.test.cjs test/prizepicksapi-asof-board.test.cjs test/nfl-point-in-time-readiness-v1.test.cjs test/nfl-authenticated-entry-ev-v1.test.cjs >"$log" 2>&1; then echo '::error::Offline tests failed; no provider requests.'; exit 1; fi
       - name: Capture only the Standard-filtered NFL scope under legacy quota and build private preview
         if: steps.recovery.outputs.capture == 'true'
         working-directory: private
@@ -121,7 +121,11 @@ jobs:
               const r=JSON.parse(fs.readFileSync('outputs/nfl/availability/'+file,'utf8'));
               if(Number.isFinite(Date.parse(r.capturedAt))&&Date.now()-Date.parse(r.capturedAt)>=0&&Date.now()-Date.parse(r.capturedAt)<=12*3600000){injuryReport=r;break;}
             }catch{}
-            const report=buildIndependentNflPreview({board:doc,weeklyRows,schedule,injuryReport});
+            // Club-reported full Friday practice is relevant, but never
+            // a positive game-day active roster or official app quote.
+            let clubPractice=null;
+            try{clubPractice=JSON.parse(fs.readFileSync('outputs/nfl/availability/club-practice-latest.json','utf8'))}catch{}
+            const report=buildIndependentNflPreview({board:doc,weeklyRows,schedule,injuryReport,clubPractice});
             fs.writeFileSync('outputs/nfl/independent-source/research-preview-latest.json',JSON.stringify(report)+'\n');
             const years=[2024,2025,2026];
             const forward=freeze(report,{weeklyRows,schedule,teamWeekly:years.flatMap(y=>dataset(y,'team_weekly')),snapCounts:years.flatMap(y=>dataset(y,'snap_counts'))});

@@ -1,0 +1,98 @@
+name: Private NFL live active exact app and EV readiness audit via public runner
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/private-nfl-live-readiness-audit.yml'
+  schedule:
+    # Typical ~90-minute pre-kickoff inactive publication.
+    # Existing positive-source capture is separate; this never infers
+    # "active" from injury-report omission or makes paid provider calls.
+    - cron: '50 8 * * 0'
+      timezone: America/Los_Angeles
+    - cron: '20 9 * * 0'
+      timezone: America/Los_Angeles
+    - cron: '50 12 * * 0'
+      timezone: America/Los_Angeles
+    - cron: '10 16 * * 0'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: nfl-private-live-readiness-after-inactives
+  cancel-in-progress: false
+jobs:
+  audit-private:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Require private GitHub authorization
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test live active quote and correlated payout safeguards without provider calls
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --check scripts/report-nfl-live-prop-readiness.cjs
+          if ! node --test \
+            test/nfl-point-in-time-readiness-v1.test.cjs \
+            test/nfl-authenticated-entry-ev-v1.test.cjs \
+            test/nfl-independent-source-preview.test.cjs >"$log" 2>&1; then
+            echo "::error::No NFL readiness report permitted; regression failed."
+            exit 1
+          fi
+          echo "PASS: official active, exact quoted line, calibrated probability and entry EV guards"
+      - name: Audit ALL NFL Standard preview rows with focused Rice and Pollard checks
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/report-nfl-live-prop-readiness.cjs > /tmp/nfl-readiness-safe-counts.json
+          node - <<'NODE'
+          const fs=require('node:fs'),x=JSON.parse(
+            fs.readFileSync('outputs/health/nfl-live-prop-readiness-latest.json','utf8'));
+          if(x.researchOnly!==true||x.probabilitiesNotCalibrated!==true||
+             x.automaticWagersPlaced!==0||x.payoutExpectedValue!==null||
+             x.bookableApproved!==0||x.kind!=='nfl_point_in_time_prop_release_audit_v1')
+            throw Error('NFL source readiness must not convert research into wagers');
+          console.log(JSON.stringify({status:x.status,rowsAudited:x.rowsAudited,
+            clubPracticeRows:x.officialClubPracticeReportsFound||0,
+            exactAppQuotes:x.authenticatedExactAppOffers||0,
+            confirmedGamedayActive:x.independentlyConfirmedGameDayActive||0,
+            calibrated:x.independentlyProspectivelyCalibrated||0,
+            approved:x.bookableApproved,paidProviderRequests:0}));
+          NODE
+      - name: Archive private research-only readiness (no public player props)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f -- outputs/health/nfl-live-prop-readiness-latest.json
+          if git diff --cached --quiet; then
+            echo "No changed NFL private readiness"; exit 0
+          fi
+          git commit -qm "audit(nfl): exact active, app quote and entry payout proof gaps"
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q -X theirs origin/main ||
+              { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then
+              echo "PASS: private NFL readiness archived; no app authentication asserted"
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "::error::Private NFL readiness archive not saved"; exit 1

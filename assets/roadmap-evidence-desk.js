@@ -39,6 +39,26 @@
   if(progress?.kind==="public_research_progress_counts_v1"&&progress.proprietaryRowsPublished===0&&progress.calibrationApproved===false&&progress.modelPromoted===false&&age(progress.sourceReportAt,now)!==null){
    const a=age(progress.sourceReportAt,now),p=progress.periodHistory;
    if(p&&count(p.accountedDays)&&count(p.calendarDays)&&p.calendarDays>0&&p.accountedDays<=p.calendarDays)rows.push({label:"NHL historical periods",value:p.accountedDays+" / "+p.calendarDays+" dates accounted; "+(p.calendarDays-p.accountedDays)+" pending",ageMinutes:a});
+   const opponent=progress.nhlOpponentEvidence;
+   if(opponent?.kind==="public_nhl_official_opponent_coverage_counts_v1"&&
+      opponent.sourceOnly===true&&opponent.originalPlatformOffersVerified===false&&
+      opponent.probabilitiesCalibrated===false&&
+      opponent.approvedPicks===0&&opponent.approvedLineups===0&&
+      age(opponent.sourceReportAt,now)!==null&&
+      Object.keys(opponent.byMarket||{}).length===4){
+    const names={shotsOnGoal:"shots",blockedShots:"blocks",points:"points",assists:"assists"};
+    const details=[];
+    for(const market of ["shotsOnGoal","blockedShots","points","assists"]){
+     const m=opponent.byMarket[market];
+     if(!m||m.minimumPriorGames!==8||m.teamsEvaluated!==32||
+        !count(m.teamsVerified)||m.teamsVerified>32){details.length=0;break}
+     details.push(names[market]+" "+m.teamsVerified+"/32");
+    }
+    if(details.length===4)
+     rows.push({label:"NHL verified opponent source coverage",
+      value:details.join(" · ")+" teams have 8 official prior games; source only, no approved picks",
+      ageMinutes:age(opponent.sourceReportAt,now)});
+   }
    const v=progress.validationSample;
    if(v&&v.probabilitiesCalibrated===false&&v.modelPromoted===false&&v.platformPayoutROI===null&&
       age(v.sourceReportAt,now)!==null&&parse(v.sourceReportAt)<=parse(progress.sourceReportAt)){

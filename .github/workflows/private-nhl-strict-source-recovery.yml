@@ -43,12 +43,15 @@ jobs:
             src/nhl-strict-directional-abstention-v1.cjs \
             scripts/freeze-partner-nhl-pregame.cjs \
             scripts/collect-nhl-pp-scoring-history.cjs \
-            scripts/collect-nhl-block-exposure-history.cjs; do node --check "$f"; done
+            scripts/collect-nhl-block-exposure-history.cjs \
+            scripts/collect-nhl-opponent-concessions-history.cjs; do node --check "$f"; done
           log="$(mktemp)"
           trap 'rm -f "$log"' EXIT
           if ! node --test \
             test/nhl-strict-official-evidence-v1.test.cjs \
             test/nhl-official-block-exposure-v1.test.cjs \
+            test/nhl-opponent-opportunity-gate-v1.test.cjs \
+            test/nhl-opponent-concessions-history.test.cjs \
             test/nhl-eight-accuracy-research-v1.test.cjs \
             test/nhl-strict-directional-abstention-v1.test.cjs \
             test/nhl-older-season-locked-families-v1.test.cjs \
@@ -88,6 +91,17 @@ jobs:
             remainingPriorDates:r.missingDays,strictPolicyUnchanged:true}));
           NODE
           node scripts/collect-nhl-block-exposure-history.cjs >/dev/null
+          node scripts/collect-nhl-opponent-concessions-history.cjs >/dev/null
+          node - <<'NODE'
+          const r=require('./outputs/health/nhl-opponent-concessions-recovery-latest.json');
+          if(r.zeroPaidRequests!==true||r.neverQualifiesPastFrozenPicks!==true||
+             r.selectedGames>12||r.attempts.length>12)
+            throw Error('Concession recovery violated budget or no-lookahead policy');
+          console.log(JSON.stringify({concessionGamesAttempted:r.attempts.length,
+            opponentSogVerified:r.attempts.filter(x=>x.sogConcessions).length,
+            opponentScoringVerified:r.attempts.filter(x=>x.scoringConcessions).length,
+            retrospectivePromotion:false}));
+          NODE
       - name: Commit immutable evidence ONLY to private main
         if: github.event_name != 'pull_request'
         run: |
@@ -95,12 +109,12 @@ jobs:
           umask 077
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          for d in outputs/research/nhl-pp-scoring-history outputs/research/nhl-block-exposure-history; do
+          for d in outputs/research/nhl-pp-scoring-history outputs/research/nhl-block-exposure-history outputs/research/nhl-opponent-concessions-history; do
             if test -d "$d"; then git add -f "$d"/*.json; fi
           done
           # Persist private aggregate validation status EVEN IF no new source rows qualify.
           # An empty attempt must never be mistaken for full source coverage.
-          for f in outputs/health/nhl-pp-scoring-recovery-latest.json outputs/health/nhl-block-exposure-recovery-latest.json; do
+          for f in outputs/health/nhl-pp-scoring-recovery-latest.json outputs/health/nhl-block-exposure-recovery-latest.json outputs/health/nhl-opponent-concessions-recovery-latest.json; do
             if test -f "$f"; then git add -f "$f"; fi
           done
           git diff --cached --quiet && exit 0

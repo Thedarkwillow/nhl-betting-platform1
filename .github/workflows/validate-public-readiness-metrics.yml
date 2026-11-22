@@ -1,0 +1,31 @@
+name: Validate public website research readiness (no secrets)
+on:
+  pull_request:
+    paths:
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/test-roadmap-evidence-desk.cjs'
+      - '.github/workflows/validate-public-readiness-metrics.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'assets/roadmap-evidence-desk.js'
+      - 'scripts/test-roadmap-evidence-desk.cjs'
+      - '.github/workflows/validate-public-readiness-metrics.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source-only readiness, true unique slates and no false betting eligibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check assets/roadmap-evidence-desk.js
+          node --test scripts/test-roadmap-evidence-desk.cjs scripts/test-publish-safe-research-progress.cjs

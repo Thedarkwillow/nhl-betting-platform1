@@ -66,7 +66,7 @@
        count(v.nhlStandardFrozenPacificSlates))
      rows.push({label:"NHL Standard prospective sample",
       value:v.nhlStandardFrozenDecisions+" original decisions in "+v.nhlStandardFrozenGames+
-       " games / "+v.nhlStandardFrozenPacificSlates+" Pacific slates; evidence, not calibrated confidence",
+       " games / "+v.nhlStandardFrozenPacificSlates+" Pacific slates (20 distinct-slate minimum; "+Math.max(0,20-v.nhlStandardFrozenPacificSlates)+" more needed); evidence, not calibrated confidence",
       ageMinutes:age(v.sourceReportAt,now)});
     if(count(v.matchedFrozenCalibrationDecisions)&&count(v.independentlySupportedCalibrationGroups))
      rows.push({label:"Frozen calibration trials",
@@ -77,7 +77,12 @@
        v.powerFlexResolvedReferenceEntries<=v.powerFlexRegisteredReferenceEntries)
      rows.push({label:"Power/Flex 2–6 paper scenarios",
       value:v.powerFlexResolvedReferenceEntries+" resolved / "+
-       v.powerFlexRegisteredReferenceEntries+" registered across nine overlapping formats; payout unverified",
+       v.powerFlexRegisteredReferenceEntries+" registered across nine overlapping formats; "+
+       (count(v.powerFlexUniqueUnderlyingResolvedSlates)&&
+        v.powerFlexUniqueUnderlyingResolvedSlates<=v.powerFlexResolvedReferenceEntries?
+        v.powerFlexUniqueUnderlyingResolvedSlates+" distinct underlying slates":
+        "distinct underlying slate count unverified")+
+       " (formats are correlated, 50 resolved slates per format required for evaluation); payout unverified",
       ageMinutes:age(v.sourceReportAt,now)});
    }
    const selective=progress.selectiveAccuracy;

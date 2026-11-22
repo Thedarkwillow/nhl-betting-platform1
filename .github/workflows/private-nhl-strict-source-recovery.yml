@@ -1,3 +1,4 @@
+# Owner-requested 2026-11-22 post-merge smoke: apply strictly bounded official NHL opponent-team coverage prioritization; no paid provider calls.
 # Per-team SOG, points, assists and opponent shot-attempt coverage is source-only; private PR #240 merged with 1421/1421 offline tests.
 name: Freeze-ready official NHL strict source recovery
 on:

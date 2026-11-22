@@ -1,4 +1,4 @@
-name: Validate private NHL opponent coverage branch safely
+name: Validate private NHL opponent gate safeguards
 on:
   pull_request:
     paths:
@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: ${{ github.event_name == 'pull_request' && 'feat/nov22-balanced-nhl-opponent-coverage' || 'main' }}
+          ref: ${{ github.event_name == 'pull_request' && 'fix/nhl-cross-archive-attempt-overlap' || 'main' }}
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
@@ -39,7 +39,7 @@ jobs:
           node --check scripts/collect-nhl-opponent-concessions-history.cjs
           node --check src/nhl-opponent-opportunity-gate-v1.cjs
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          if ! node --test test/nhl-opponent-concessions-history.test.cjs test/nhl-opponent-opportunity-gate-v1.test.cjs test/nhl-opponent-concession-coverage.test.cjs > "$log" 2>&1; then
+          if ! node --test test/nhl-opponent-concessions-history.test.cjs test/nhl-opponent-opportunity-gate-v1.test.cjs test/nhl-opponent-concession-coverage.test.cjs test/nhl-multifactor-future-v1.test.cjs > "$log" 2>&1; then
             echo "::error::Private focused opponent-source regressions failed; logs withheld"
             exit 1
           fi

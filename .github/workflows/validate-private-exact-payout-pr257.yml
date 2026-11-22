@@ -1,0 +1,47 @@
+name: Validate exact signed payout and settlement contracts
+on:
+  pull_request:
+    paths: ['.github/workflows/validate-private-exact-payout-pr257.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-exact-payout-pr257.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  private-offline-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - name: Require private checkout token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.event_name == 'pull_request' && 'research/nov22-exact-lineup-receipt-contract' || 'main' }}
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify strict original line, exact game player period and payout identity
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --check src/exact-offer-payout-settlement-proof-v1.cjs
+          node --test test/exact-offer-payout-settlement-proof.test.cjs test/lineup-reference-payout-bounds.test.cjs test/underdog-board-pagination-integrity.test.cjs test/nfl-point-in-time-readiness-v1.test.cjs
+      - name: Run complete offline private regression without vendor calls
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Full private research tests failed; details withheld"
+            grep '^not ok' "$log" | head -n 6 || true
+            exit 1
+          fi
+          echo 'PASS: exact platform payout proof, all sports offline tests, no paid requests'

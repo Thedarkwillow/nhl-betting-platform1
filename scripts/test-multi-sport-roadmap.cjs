@@ -72,3 +72,21 @@ test("sport picker shows only independently archived NFL and NHL line-change cou
  assert.equal(d.privateOfferIDsPublished,0);
  assert.equal(d.rawLinesPublished,0);
 });
+
+test("unfinished NBA esports and preserved MLB cannot borrow NHL or NFL archived lines",()=>{
+ const html=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
+ for(const sport of ["NBA","Esports","MLB"]){
+  assert.match(html,new RegExp('<option value="'+sport+'">'));
+  const v=viewModel(source,sport,clock+1000);
+  assert.equal(v.sport,sport);
+  assert.equal(v.available,false);
+  assert.equal(v.counts,null);
+  assert.equal(v.sourceFresh,false);
+  assert.equal(v.platformOffersVerified,false);
+  assert.equal(v.paidLineupEVAvailable,false);
+  assert.match(v.explanation,/not|not complete|separately/i);
+  assert.match(movementView(null,sport),/unavailable/);
+ }
+ assert.equal(viewModel(source,"NHL",clock+1000).available,true);
+ assert.equal(viewModel(source,"NFL",clock+1000).available,true);
+});

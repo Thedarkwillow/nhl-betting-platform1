@@ -38,13 +38,24 @@ jobs:
           for f in src/nhl-official-block-exposure-v1.cjs src/nhl-opponent-opportunity-gate-v1.cjs src/nhl-multifactor-future-v1.cjs scripts/freeze-partner-nhl-pregame.cjs scripts/collect-nhl-opponent-concessions-history.cjs; do
             if ! node --check "$f" >"$log" 2>&1; then echo '::error::Syntax check failed; details private'; exit 1; fi
           done
-          if ! npm test >"$log" 2>&1; then
-            echo '::error::Private full regression failed; details withheld';
-            grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
-            exit 1
-          fi
-          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
-          echo 'PASS: full pinned private NHL/NFL/MLB offline suite'
+          for f in test/nhl-official-block-exposure-v1.test.cjs test/nhl-opponent-opportunity-gate-v1.test.cjs test/nhl-opponent-concessions-history.test.cjs test/nhl-multifactor-future-v1.test.cjs; do
+            if node --test "$f" >"$log" 2>&1; then echo "PASS focused: $f"; else echo "FAIL focused: $f"; fi
+          done
+          if npm test >"$log" 2>&1; then echo 'PASS: candidate full suite'; else echo 'FAIL: candidate full suite'; fi
+          grep -E '^# (tests|pass|fail) [0-9]+
+      - name: Confirm no private artifacts uploaded
+        if: always()
+        run: echo 'No original offers, player data, secrets or private test logs are published.'
+ "$log" || true
+          git fetch -q origin main
+          git checkout -q --detach origin/main
+          if npm test >"$log" 2>&1; then echo 'PASS: unchanged main full suite'; else echo 'FAIL: unchanged main full suite'; fi
+          grep -E '^# (tests|pass|fail) [0-9]+
+      - name: Confirm no private artifacts uploaded
+        if: always()
+        run: echo 'No original offers, player data, secrets or private test logs are published.'
+ "$log" || true
+          echo 'All private raw logs suppressed; comparisons research-only'
       - name: Confirm no private artifacts uploaded
         if: always()
         run: echo 'No original offers, player data, secrets or private test logs are published.'

@@ -13,7 +13,7 @@ concurrency:
 jobs:
   diagnose:
     runs-on: ubuntu-24.04
-    timeout-minutes: 14
+    timeout-minutes: 18
     steps:
       - name: Validate token
         env:
@@ -86,3 +86,5 @@ jobs:
           done
           echo "::error::Failed to durably write private CI diagnostic report"
           exit 1
+
+# Owner-requested Nov 22 full regression baseline audit; all failing TAP details stay in private repository.

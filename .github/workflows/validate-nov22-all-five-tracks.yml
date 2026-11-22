@@ -1,0 +1,40 @@
+name: Validate five-track NHL NFL original app and prospective research repairs
+on:
+  push:
+    branches: ['validation/nov22-all-five-tracks']
+    paths: ['.github/workflows/validate-nov22-all-five-tracks.yml']
+permissions:
+  contents: read
+jobs:
+  private-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 7931e9b1a7d63979665eb3fe6314e115fc1a60c4
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate exact integrated source, official NHL, NFL and payout contracts with zero provider calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 7931e9b1a7d63979665eb3fe6314e115fc1a60c4
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for f in             test/nhl-multifactor-future-v1.test.cjs             test/nhl-pregame-live-context-v1.test.cjs             test/nfl-point-in-time-readiness-v1.test.cjs             test/exact-offer-payout-settlement-proof.test.cjs             test/nhl-opponent-concession-coverage.test.cjs; do
+            if ! node --test "$f" > "$log" 2>&1; then
+              echo '::error::Focused private source/payout/regression test failed';
+              exit 1;
+            fi
+          done
+          echo 'PASS: all five source, PP, NFL, operator and prospective acceptance labs'
+          if ! npm test > "$log" 2>&1; then
+            grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+            echo '::error::Complete private regression failed'; exit 1;
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          echo 'PASS: full NHL NFL NBA Esports MLB private offline suite; zero vendor requests'

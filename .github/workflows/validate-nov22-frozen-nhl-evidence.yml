@@ -1,0 +1,50 @@
+name: Validate Nov 22 frozen NHL evidence on public runner
+on:
+  push:
+    branches: ['validation/nhl-multifactor-20261122']
+    paths: ['.github/workflows/validate-nov22-frozen-nhl-evidence.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-private:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - name: Require approved private checkout token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo '::error::Private token unavailable'; exit 1; }
+      - name: Checkout exact private candidate without persistent credentials
+        uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: e3278385181082c58b0c5d236234e57c31029ec5
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax-check and full offline NHL NFL MLB test suite
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(git rev-parse HEAD)" = e3278385181082c58b0c5d236234e57c31029ec5
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          for f in src/nhl-official-block-exposure-v1.cjs src/nhl-opponent-opportunity-gate-v1.cjs src/nhl-multifactor-future-v1.cjs scripts/freeze-partner-nhl-pregame.cjs scripts/collect-nhl-opponent-concessions-history.cjs; do
+            if ! node --check "$f" >"$log" 2>&1; then echo '::error::Syntax check failed; details private'; exit 1; fi
+          done
+          if ! npm test >"$log" 2>&1; then
+            echo '::error::Private full regression failed; details withheld';
+            grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          echo 'PASS: full pinned private NHL/NFL/MLB offline suite'
+      - name: Confirm no private artifacts uploaded
+        if: always()
+        run: echo 'No original offers, player data, secrets or private test logs are published.'

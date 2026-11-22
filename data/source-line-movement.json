@@ -1,38 +1,38 @@
 {
   "kind": "public_safe_nhl_nfl_board_line_movement_counts_v1",
   "schemaVersion": 1,
-  "generatedAt": "2026-11-22T14:46:28.210Z",
-  "earlierCaptureAt": "2026-11-21T17:05:45.971Z",
-  "laterCaptureAt": "2026-11-22T14:05:43.265Z",
-  "comparisonKind": "cross_day_previous_full_source",
+  "generatedAt": "2026-11-22T17:06:40.268Z",
+  "earlierCaptureAt": "2026-11-22T14:05:43.265Z",
+  "laterCaptureAt": "2026-11-22T17:05:50.658Z",
+  "comparisonKind": "genuine_same_day_six_to_nine",
   "sourceDays": {
-    "earlier": "2026-11-21",
+    "earlier": "2026-11-22",
     "later": "2026-11-22"
   },
-  "genuineSixToNineComparison": false,
-  "crossDayComparison": true,
+  "genuineSixToNineComparison": true,
+  "crossDayComparison": false,
   "sports": {
     "NHL": {
-      "firstObserved": 4392,
-      "secondObserved": 1435,
-      "newSourceOfferIDs": 1435,
-      "noLongerSeenSourceIDsUnverified": 4392,
-      "existingLineChanged": 0,
-      "existingTierChanged": 0,
-      "existingSideAvailabilityChanged": 0,
+      "firstObserved": 1435,
+      "secondObserved": 1576,
+      "newSourceOfferIDs": 175,
+      "noLongerSeenSourceIDsUnverified": 34,
+      "existingLineChanged": 13,
+      "existingTierChanged": 2,
+      "existingSideAvailabilityChanged": 31,
       "existingStartChanged": 0,
-      "unchanged": 0
+      "unchanged": 1358
     },
     "NFL": {
-      "firstObserved": 7129,
-      "secondObserved": 7954,
-      "newSourceOfferIDs": 1412,
-      "noLongerSeenSourceIDsUnverified": 587,
-      "existingLineChanged": 702,
-      "existingTierChanged": 10,
-      "existingSideAvailabilityChanged": 220,
+      "firstObserved": 7954,
+      "secondObserved": 8002,
+      "newSourceOfferIDs": 520,
+      "noLongerSeenSourceIDsUnverified": 472,
+      "existingLineChanged": 474,
+      "existingTierChanged": 2,
+      "existingSideAvailabilityChanged": 105,
       "existingStartChanged": 0,
-      "unchanged": 5723
+      "unchanged": 6935
     }
   },
   "originalOffersFromPartnerSourceNotVerifiedPrizePicksApp": true,

@@ -21,6 +21,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          path: public
+      - uses: actions/checkout@v4
+        with:
           repository: Thedarkwillow/nhl-betting-platform
           ref: main
           path: private
@@ -37,18 +40,21 @@ jobs:
         run: |
           node - <<'NODE'
           const fs=require('node:fs');
-          const now=Date.now(),hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'2-digit',hourCycle:'h23'}).format(now));
-          let capture=true;
-          if(process.env.EVENT==='workflow_run'){
-            // One recovery opportunity during the actual 6/9 slot; no late retries.
-            capture=[6,9].includes(hour);
-            const weekday=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',weekday:'short'}).format(now);capture=capture&&['Sun','Mon','Thu'].includes(weekday)&&hour===6;
-          }
+          const {shouldCapture}=require('../public/scripts/nfl-standard-capture-window.cjs');
+          const now=Date.now();
+          let freshArchive=false;
           if(['schedule','workflow_run'].includes(process.env.EVENT)){
-            try{const b=JSON.parse(fs.readFileSync('outputs/nfl/independent-source/latest.json','utf8')),t=Date.parse(b.generatedAt);if(b.completePagination===true&&t<=now&&now-t<3600000)capture=false;}catch{}
+            try{
+              const b=JSON.parse(fs.readFileSync('outputs/nfl/independent-source/latest.json','utf8'));
+              const t=Date.parse(b.generatedAt);
+              freshArchive=b.completePagination===true&&Number.isFinite(t)&&t<=now&&now-t<3600000;
+            }catch{}
           }
+          // GitHub can delay cron runs by hours; do not spend a quota-probe
+          // request on a stale afternoon 07:15 PT scheduled capture.
+          const capture=shouldCapture({event:process.env.EVENT,now,freshArchive});
           fs.appendFileSync(process.env.GITHUB_OUTPUT,'capture='+capture+'\n');
-          console.log('Bounded capture needed: '+capture);
+          console.log('Bounded NFL Standard capture needed: '+capture+' (late runs are skipped)');
           NODE
       - name: Test independent NFL identity and immutable source gates
         if: steps.recovery.outputs.capture == 'true'

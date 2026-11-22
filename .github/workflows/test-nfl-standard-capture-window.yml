@@ -1,0 +1,30 @@
+name: Test NFL Standard delayed schedule quota guard
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/independent-nfl-standard-private-preview.yml'
+      - 'scripts/nfl-standard-capture-window.cjs'
+      - 'scripts/test-nfl-standard-capture-window.cjs'
+      - '.github/workflows/test-nfl-standard-capture-window.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/independent-nfl-standard-private-preview.yml'
+      - 'scripts/nfl-standard-capture-window.cjs'
+      - 'scripts/test-nfl-standard-capture-window.cjs'
+      - '.github/workflows/test-nfl-standard-capture-window.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-no-vendor:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify no late automatic provider calls and preserve manual runs
+        run: |
+          node --check scripts/nfl-standard-capture-window.cjs
+          node --test scripts/test-nfl-standard-capture-window.cjs

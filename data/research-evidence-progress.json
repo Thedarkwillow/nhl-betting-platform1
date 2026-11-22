@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-22T00:24:28.518Z",
+  "generatedAt": "2026-11-22T00:28:09.759Z",
   "sourceReportAt": "2026-11-21T23:58:50.375Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-22T00:23:34.778Z",
+    "sourceReportAt": "2026-11-22T00:27:18.707Z",
     "nhl": {
       "sourceEligible": true,
       "examined": 0,
@@ -320,29 +320,17 @@
       },
       "officialInjuryStatuses": {
         "kind": "public_nfl_explicit_official_injury_status_counts_v1",
-        "reportCapturedAt": "2026-11-21T20:10:19.521410+00:00",
-        "explicitStatuses": 111,
-        "ruledOut": 46,
-        "questionable": 60,
-        "doubtful": 5,
+        "reportCapturedAt": "2026-11-22T00:26:44.343887+00:00",
+        "explicitStatuses": 123,
+        "ruledOut": 50,
+        "questionable": 66,
+        "doubtful": 7,
         "duplicateStatuses": 0,
         "medicalClearanceVerified": false,
         "gameDayActiveVerified": false,
         "bettingEligible": 0
       },
-      "identityInjuryOverlap": {
-        "kind": "public_nfl_conditional_gsis_official_injury_overlap_v1",
-        "provisionalPlayers": 274,
-        "officialInjuryGSISCorroborations": 18,
-        "outExcluded": 4,
-        "questionableHeld": 13,
-        "doubtfulHeld": 1,
-        "unknownStatus": 256,
-        "identityConflicts": 0,
-        "verifiedPrizePicksGSIS": 0,
-        "gameDayActiveConfirmed": 0,
-        "approvedPicks": 0
-      },
+      "identityInjuryOverlap": null,
       "gamedayOriginal": null,
       "originalGoblinOffersAudited": 1936,
       "exactIdentityReadyForModel": 0,

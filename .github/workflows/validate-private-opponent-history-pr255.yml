@@ -1,0 +1,48 @@
+name: Verify archived official NHL opponent history recovery
+on:
+  pull_request:
+    paths: ['.github/workflows/validate-private-opponent-history-pr255.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-opponent-history-pr255.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  history-source-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Require private repository access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.event_name == 'pull_request' && 'fix/nov22-official-concession-archive-history' || 'main' }}
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate official archive filename and strict market opportunity gates
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check scripts/collect-nhl-opponent-concessions-history.cjs
+          node --test test/nhl-opponent-concessions-history.test.cjs test/nhl-opponent-opportunity-gate-v1.test.cjs test/nhl-opponent-concession-coverage.test.cjs
+      - name: Complete offline NHL NFL MLB regression without paid provider calls
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test > "$log" 2>&1; then
+            echo "::error::Offline multi-sport regression failed; private details withheld"
+            grep '^not ok' "$log" | head -n 6 || true
+            exit 1
+          fi
+          echo 'PASS: full offline private suite, no current-offer promotion and zero paid API calls'

@@ -1,0 +1,36 @@
+name: Validate bounded official NHL opponent-source prioritization
+on:
+  push:
+    branches: ['validation/nov22-balanced-opponent-priority']
+    paths: ['.github/workflows/validate-nov22-balanced-opponent.yml']
+permissions:
+  contents: read
+jobs:
+  private-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: d35dfcbf10dac2dabe7194dc6695e1ef0f421850
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test source budget, frozen chronology and full private suite without vendor access
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = d35dfcbf10dac2dabe7194dc6695e1ef0f421850
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-opponent-concessions-history.test.cjs test/nhl-opponent-concession-coverage.test.cjs test/nhl-opponent-opportunity-gate-v1.test.cjs test/nhl-multifactor-future-v1.test.cjs > "$log" 2>&1; then
+            echo '::error::Official source evidence tests failed'; exit 1;
+          fi
+          echo 'PASS: bounded official opponent-source and strict future-gate tests'
+          if ! npm test > "$log" 2>&1; then
+            grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+            echo '::error::Full private regression failed'; exit 1;
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          echo 'PASS: private NHL NFL MLB regression, 0 vendor requests'

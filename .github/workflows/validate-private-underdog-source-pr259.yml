@@ -1,0 +1,48 @@
+name: Validate independent Underdog live-source pagination contract
+on:
+  pull_request:
+    paths: ['.github/workflows/validate-private-underdog-source-pr259.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-underdog-source-pr259.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-private:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - name: Require private checkout token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.event_name == 'pull_request' && 'research/nov22-underdog-strict-page-contract' || 'main' }}
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate actual documented Underdog response schema and no live-app claims
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check src/underdog-board-pagination-integrity.cjs
+          node --test test/underdog-board-pagination-integrity.test.cjs test/exact-offer-payout-settlement-proof.test.cjs test/lineup-reference-payout-bounds.test.cjs
+      - name: Complete full offline NHL NFL MLB regression
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test > "$log" 2>&1; then
+            echo "::error::Private tests failed; details withheld"
+            grep '^not ok' "$log" | head -n 6 || true
+            exit 1
+          fi
+          echo 'PASS: full offline private suite; zero Underdog/PrizePicks provider calls'

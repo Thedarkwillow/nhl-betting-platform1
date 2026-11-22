@@ -175,3 +175,45 @@ test("Goblin private status is reduced to approved public counts and never leaks
  assert.equal(build(source,{now,goblin:{...r,lineups:{
   approvedLineups:1,exactGoblinEntryMultipliersCaptured:false}}}).goblinFuture,null);
 });
+
+test("private opponent team-level details never leak; only eight-game verified market coverage appears",()=>{
+ const e={kind:"nhl_historical_opponent_concession_coverage_v1",
+  generatedAt:"2026-11-15T13:10:00Z",source:"NHL official complete final-game archives",
+  verifiedConcessionArchiveGames:34,verifiedAttemptArchiveGames:65,
+  asOfHistoricalOnly:true,researchOnly:true,
+  sourceFirstGitBeforeAnyFutureFreezeStillRequired:true,
+  historicalSourceDataCannotRequalifyOlderSelections:true,
+  opponentOpportunityAloneNeverProvesPlayerProjection:true,
+  allMarketProbabilitiesUncalibrated:true,
+  originalPlatformOfferAuthenticated:false,approvedHighConfidencePicks:0,
+  approvedLineups:0,bettingEligible:false,paidProviderRequests:0,
+  byMarket:Object.fromEntries(["shotsOnGoal","blockedShots","points","assists"]
+   .map((k,i)=>[k,{teamsEvaluated:32,minimumRequiredGames:8,
+    teamsAtEightSourceVerified:i<2?2:1,teamsWithFourOrMorePriorGames:4,
+    maxVerifiedPriorGames:8}])),
+  byOpponent:{CAR:{name:"SECRET PLAYER",line:3.5,opponent:"SECRET GAME"}}};
+ const d=build(source,{now,nhlOpponentCoverage:e});
+ assert.equal(d.nhlOpponentEvidence.kind,"public_nhl_official_opponent_coverage_counts_v1");
+ assert.equal(d.nhlOpponentEvidence.byMarket.shotsOnGoal.teamsVerified,2);
+ assert.equal(d.nhlOpponentEvidence.originalPlatformOffersVerified,false);
+ assert.equal(d.nhlOpponentEvidence.approvedPicks,0);
+ assert.ok(!JSON.stringify(d).includes("SECRET PLAYER"));
+ assert.ok(!JSON.stringify(d).includes("SECRET GAME"));
+ assert.ok(!JSON.stringify(d).includes("CAR"));
+ assert.ok(!JSON.stringify(d).includes("3.5"));
+ const rows=model({progress:d},Date.parse(now)).rows;
+ assert.match(rows.find(r=>r.label==="NHL verified opponent source coverage").value,
+   /shots 2\/32 .* blocks 2\/32 .* points 1\/32 .* assists 1\/32/);
+ for(const corrupt of [
+  {...e,bettingEligible:true},
+  {...e,originalPlatformOfferAuthenticated:true},
+  {...e,approvedHighConfidencePicks:1},
+  {...e,byMarket:{...e.byMarket,shotsOnGoal:{...e.byMarket.shotsOnGoal,teamsAtEightSourceVerified:33}}},
+  {...e,generatedAt:"2026-11-16T00:00:00Z"}
+ ]){
+  const bad=build(source,{now,nhlOpponentCoverage:corrupt});
+  assert.equal(bad.nhlOpponentEvidence,null);
+  assert.equal(model({progress:bad},Date.parse(now)).rows.some(r=>
+   r.label==="NHL verified opponent source coverage"),false);
+ }
+});

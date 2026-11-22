@@ -415,7 +415,48 @@ function safeGoblin(report,now){
   modelPromoted:false,prospectiveEdgeVerified:false,
   payoutsAndSettlementsVerified:false,privatePlayerRowsPublished:0};
 }
-function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelective=null,modelIdeas=null,goblin=null}={}){
+// Public allowlist: ONLY aggregate 32-team official opponent history coverage.
+// No team IDs, raw rows, original platform lines, private models or payout data.
+function safeNHLOpponentCoverage(e,now){
+ const markets=["shotsOnGoal","blockedShots","points","assists"];
+ if(e?.kind!=="nhl_historical_opponent_concession_coverage_v1"||
+    !Number.isFinite(dt(e.generatedAt))||dt(e.generatedAt)>dt(now)||
+    e.source!=="NHL official complete final-game archives"||
+    e.asOfHistoricalOnly!==true||e.researchOnly!==true||
+    e.sourceFirstGitBeforeAnyFutureFreezeStillRequired!==true||
+    e.historicalSourceDataCannotRequalifyOlderSelections!==true||
+    e.opponentOpportunityAloneNeverProvesPlayerProjection!==true||
+    e.allMarketProbabilitiesUncalibrated!==true||
+    e.originalPlatformOfferAuthenticated!==false||
+    e.approvedHighConfidencePicks!==0||e.approvedLineups!==0||
+    e.bettingEligible!==false||e.paidProviderRequests!==0||
+    count(e.verifiedConcessionArchiveGames)===null||
+    count(e.verifiedAttemptArchiveGames)===null||
+    Object.keys(e.byMarket||{}).length!==4||
+    markets.some(k=>!Object.hasOwn(e.byMarket,k)))return null;
+ const byMarket={};
+ for(const market of markets){
+  const m=e.byMarket[market];
+  if(!m||m.teamsEvaluated!==32||m.minimumRequiredGames!==8||
+     [m.teamsAtEightSourceVerified,m.teamsWithFourOrMorePriorGames,
+      m.maxVerifiedPriorGames].some(x=>count(x)===null)||
+     m.teamsAtEightSourceVerified>32||
+     m.teamsWithFourOrMorePriorGames>32||
+     m.teamsAtEightSourceVerified>m.teamsWithFourOrMorePriorGames||
+     m.maxVerifiedPriorGames>10||
+     (m.teamsAtEightSourceVerified>0&&m.maxVerifiedPriorGames<8))return null;
+  byMarket[market]={teamsVerified:m.teamsAtEightSourceVerified,
+   teamsWithFourOrMore:m.teamsWithFourOrMorePriorGames,
+   teamsEvaluated:32,minimumPriorGames:8};
+ }
+ return {kind:"public_nhl_official_opponent_coverage_counts_v1",
+  sourceReportAt:e.generatedAt,
+  verifiedHistoricalConcessionGames:e.verifiedConcessionArchiveGames,
+  verifiedHistoricalAttemptGames:e.verifiedAttemptArchiveGames,
+  byMarket,sourceOnly:true,originalPlatformOffersVerified:false,
+  probabilitiesCalibrated:false,approvedPicks:0,approvedLineups:0};
+}
+function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelective=null,modelIdeas=null,goblin=null,nhlOpponentCoverage=null}={}){
  if(source?.kind!=="private_source_completion_readiness_v1"||!Number.isFinite(dt(now))||!Number.isFinite(dt(source.generatedAt))||dt(source.generatedAt)>dt(now)||source.modelPromoted!==false||source.wagersPlaced!==0)return null;
  const d=source.periodCoverage,p=d&&count(d.calendarDays)>0&&count(d.accountedDays)!==null&&count(d.pendingDays)!==null&&d.accountedDays+d.pendingDays===d.calendarDays?{accountedDays:d.accountedDays,calendarDays:d.calendarDays,pendingDays:d.pendingDays}:null;
  const evidence=Object.fromEntries(["nhl","nfl"].map(s=>[s,{firstObserved:count(source.prospective?.[s]?.firstObserved),matchedCalibrationRows:count(source.prospective?.[s]?.matchedCalibrationRows)}]));
@@ -446,6 +487,7 @@ function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelecti
   selectiveAccuracy:buildSelectiveAccuracy(nhlSelective,nflSelective,now),
   modelIdeas:safeModelIdeas(modelIdeas,now),
   goblinFuture:safeGoblin(goblin,now),
+  nhlOpponentEvidence:safeNHLOpponentCoverage(nhlOpponentCoverage,now),
   proprietaryRowsPublished:0,calibrationApproved:false,modelPromoted:false};
 }
 function main([privateRoot,publicRoot]=process.argv.slice(2)){
@@ -455,7 +497,8 @@ function main([privateRoot,publicRoot]=process.argv.slice(2)){
   nhlSelective:read("outputs/health/nhl-shot-point-opportunity-latest.json"),
   nflSelective:read("outputs/nfl/backtests/directional-v2-future-only-latest.json"),
   modelIdeas:(()=>{try{return read("outputs/health/open-model-ideas-latest.json")}catch{return null}})(),
-  goblin:(()=>{try{return read("outputs/health/goblin-forward-latest.json")}catch{return null}})()
+  goblin:(()=>{try{return read("outputs/health/goblin-forward-latest.json")}catch{return null}})(),
+  nhlOpponentCoverage:(()=>{try{return read("outputs/health/nhl-opponent-concession-coverage-latest.json")}catch{return null}})()
  });
  if(!out||!out.selectiveAccuracy)throw Error("Missing verified private prospective selective reports; refuse publication");
  const f=path.join(publicRoot,"data/research-evidence-progress.json");fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,JSON.stringify(out,null,2)+"\n");

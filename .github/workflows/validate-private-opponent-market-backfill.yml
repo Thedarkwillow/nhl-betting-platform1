@@ -1,0 +1,48 @@
+name: Verify official NHL multi-market opponent backfill priorities
+on:
+  pull_request:
+    paths: ['.github/workflows/validate-private-opponent-market-backfill.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-opponent-market-backfill.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  no-vendor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Require private research checkout token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.event_name == 'pull_request' && 'research/nov22-source-market-coverage-priority' || 'main' }}
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify only official opponent SOG, scoring and assist evidence counts
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check scripts/collect-nhl-opponent-concessions-history.cjs
+          node --test test/nhl-opponent-concessions-history.test.cjs test/nhl-opponent-opportunity-gate-v1.test.cjs test/nhl-opponent-concession-coverage.test.cjs
+      - name: Multi-sport full offline regression
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test > "$log" 2>&1; then
+            echo "::error::Private complete regression failed (details withheld)"
+            grep '^not ok' "$log" | head -n 8 || true
+            exit 1
+          fi
+          echo 'PASS: fixed official bounded source queue, no extra provider calls'

@@ -53,9 +53,17 @@ jobs:
           const fs=require('node:fs');
           const now=Date.now(),hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'2-digit',hourCycle:'h23'}).format(now));
           let capture=true;
+          // November 2026 independent paid-provider request lock has priority
+          // over ALL schedules and manual runs. No partial board or false
+          // successful capture can result from a quota-blocked request.
+          const {RESET_AT_UTC}=require('./src/prizepicksapi-november-quota-lock.cjs');
+          if(now<Date.parse(RESET_AT_UTC)){
+            capture=false;
+            console.log('NHL independent metered capture skipped: November quota lock; no vendor calls.');
+          }
           if(process.env.EVENT==='workflow_run'){
             // One recovery opportunity during the actual 6/9 slot; no late retries.
-            capture=[6,9].includes(hour);
+            capture=capture&&[6,9].includes(hour);
             
           }
           if(['schedule','workflow_run'].includes(process.env.EVENT)){

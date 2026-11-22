@@ -52,10 +52,18 @@ jobs:
           done
           if npm test >"$log" 2>&1; then echo 'PASS candidate full suite'; else echo 'FAIL candidate full suite'; fi
           grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          new_failures=$(sed -n -E 's/^not ok [0-9]+ - (.*)$/\1/p' "$log" | LC_ALL=C sort | sha256sum | cut -d' ' -f1)
+          new_count=$(grep -c '^not ok [0-9]' "$log" || true)
           cd ../baseline
           if npm test >"$log" 2>&1; then echo 'PASS unmodified main full suite'; else echo 'FAIL unmodified main full suite'; fi
           grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
-          echo 'All private raw test logs suppressed; comparison research-only'
+          old_failures=$(sed -n -E 's/^not ok [0-9]+ - (.*)$/\1/p' "$log" | LC_ALL=C sort | sha256sum | cut -d' ' -f1)
+          old_count=$(grep -c '^not ok [0-9]' "$log" || true)
+          if test "$new_count" != "$old_count" || test "$new_failures" != "$old_failures"; then
+            echo '::error::Candidate introduces new failures or changes baseline failures'; exit 1;
+          fi
+          echo "PASS: same $new_count existing failures (name hashes match); no new failures"
+          echo 'All private failure names and logs withheld'
       - name: No private artifacts published
         if: always()
         run: echo 'No private source, model rows or test logs are uploaded.'

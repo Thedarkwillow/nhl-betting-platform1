@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_nhl_nfl_pacific_morning_collection_health_v1",
-  "generatedAt": "2026-11-22T17:06:36.160Z",
+  "generatedAt": "2026-11-22T17:10:00.791Z",
   "pacificDate": "2026-11-22",
   "slots": {
     "06:00": {
@@ -45,8 +45,8 @@
   "latestSourceFreshWithin30Minutes": true,
   "originalPregameFreezeVerifiedForToday": true,
   "frozenSelectionCounts": {
-    "NHL": 144,
-    "NFL": 444
+    "NHL": 157,
+    "NFL": 434
   },
   "sixToNineChangesVerified": true,
   "allMorningCapturesVerified": true,

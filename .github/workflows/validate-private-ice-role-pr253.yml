@@ -1,0 +1,81 @@
+name: Validate private NHL future ice role and Standard loss research
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-private-ice-role-pr253.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/validate-private-ice-role-pr253.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-private:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Require private checkout access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.event_name == 'pull_request' && 'research/nov22-ice-role-and-frozen-blocker-diagnostics' || 'main' }}
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check source-only and strict original-pick diagnostics
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          for f in src/nhl-multifactor-position-matchup-v1.cjs src/nhl-multifactor-future-v1.cjs src/nhl-standard-market-loss-priority-v1.cjs scripts/report-nhl-frozen-baseline-challenge.cjs; do node --check "$f"; done
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-multifactor-position-matchup-v1.test.cjs test/nhl-multifactor-future-v1.test.cjs test/nhl-standard-market-loss-priority-v1.test.cjs >"$log" 2>&1; then
+            echo "::error::Private TOI original-match, first Git, or Standard loss gate failed; private logs withheld"
+            grep '^not ok' "$log" | head -n 8 || true
+            exit 1
+          fi
+          echo "PASS: source as-of, unchanged cohort, live blocker statuses and same-line Standard diagnostics"
+      - name: Execute real frozen Standard ledger baseline audit
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/report-nhl-frozen-baseline-challenge.cjs > "$log" 2>&1; then
+            echo "::error::Real first-Git Standard ledger research report refused; private details withheld"
+            exit 1
+          fi
+          node - <<'NODE'
+          const r=require('./outputs/health/nhl-frozen-baseline-challenge-latest.json');
+          const p=r.futureStandardMarketLossPriority;
+          if(r.evidenceValid!==true||p?.kind!=='nhl_standard_original_market_loss_priority_v1'||
+            p.status!=='source_verified_descriptive_only'||
+            p.actionableConfidenceApproved!==false||p.modelChanged!==false||
+            p.bettingEligible!==false||p.newModelImprovementProven!==false)
+            throw Error('Invalid original Standard comparison / release safety');
+          console.log('PASS: current immutable first-Git Standard market error budget, research only');
+          NODE
+      - name: Execute complete offline regression tests
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test > "$log" 2>&1; then
+            echo "::error::Private all-sports regression failed; source details withheld"
+            grep '^not ok' "$log" | head -n 8 || true
+            exit 1
+          fi
+          echo "PASS: complete private NHL NFL MLB regression suite without paid provider calls"

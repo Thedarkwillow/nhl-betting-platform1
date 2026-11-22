@@ -1,0 +1,54 @@
+name: Validate nine baseline repairs without paid source calls
+on:
+  push:
+    branches: ['validation/nov22-nine-baseline-repairs']
+    paths: ['.github/workflows/validate-nov22-nine-baseline-repairs.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  private-offline-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Require approved private repository token
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo '::error::No authorized private checkout token'; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: f8d0127f6b605698e74452d70313256ff2fdfcb0
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check exact private commit, quota lock, six focused files and full suite
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(git rev-parse HEAD)" = f8d0127f6b605698e74452d70313256ff2fdfcb0
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --check scripts/probe-prizepicksapi-nhl.cjs >"$log" 2>&1
+          for f in test/nhl-board-archive-autostash.test.cjs test/nhl-daily-prospective-gate.test.cjs test/nhl-morning-board-monitor.test.cjs test/nhl-morning-source-delta.test.cjs test/nhl-six-offline-closures.test.cjs test/probe-prizepicksapi-nhl.test.cjs; do
+            if ! node --test "$f" >"$log" 2>&1; then
+              echo "::error::Private focused test failed; no private details in public logs";
+              exit 1;
+            fi
+          done
+          echo 'PASS all six originally failing private test files'
+          if ! npm test >"$log" 2>&1; then
+            grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+            echo '::error::Full private offline regression still failing; details withheld';
+            exit 1;
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+          echo 'PASS: full private offline regression; 0 vendor requests'
+      - name: Do not upload private files or raw logs
+        if: always()
+        run: echo 'Only aggregate private test counts; no offers, source code, secrets or player rows published.'

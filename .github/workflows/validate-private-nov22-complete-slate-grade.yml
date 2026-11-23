@@ -1,0 +1,56 @@
+name: Validate exact Nov 22 NHL full-slate pregame grading safely
+on:
+  pull_request:
+    paths: ['.github/workflows/validate-private-nov22-complete-slate-grade.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-nov22-complete-slate-grade.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  official-source-only-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - name: Require private read-only credential
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.event_name == 'pull_request' && 'fix/nov23-grade-original-full-final-daily-nhl' || 'main' }}
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify any final NHL slate, same original first-Git player prop line and side
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check scripts/report-nhl-2026-11-21-slate-grade.cjs
+          node --test test/nhl-slate-graded-summary.test.cjs test/grade-nhl-predictions.test.cjs test/nhl-frozen-individual-props.test.cjs test/nhl-prospective-slate-baseline-audit.test.cjs
+          node - <<'NODE'
+          const fs=require('node:fs'),x=fs.readFileSync('scripts/report-nhl-2026-11-21-slate-grade.cjs','utf8');
+          if(!x.includes('official.scheduledGames<1')||
+           !x.includes('all14GamesVerified:result.officialGamesTotal===14')||
+           !x.includes('if(!day)throw Error(')||x.includes('official.scheduledGames!==14'))
+            throw Error('Refuse hardcoded or non-explicit original slate grader');
+          console.log('PASS: no frozen pick recomputation, no incomplete slate grade or paid calls');
+          NODE
+      - name: Complete private NHL NFL MLB offline suite
+        working-directory: private
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Offline all-sport research regression failed; private details withheld"
+            grep '^not ok' "$log" | head -n 7 || true
+            exit 1
+          fi
+          echo 'PASS: original NHL final-only grade against the entire private no-provider suite'

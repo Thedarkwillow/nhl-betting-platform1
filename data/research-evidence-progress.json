@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-23T17:09:30.617Z",
-  "sourceReportAt": "2026-11-23T16:32:12.848Z",
+  "generatedAt": "2026-11-23T17:17:32.132Z",
+  "sourceReportAt": "2026-11-23T17:12:12.407Z",
   "periodHistory": {
     "accountedDays": 261,
     "calendarDays": 261,
@@ -74,7 +74,7 @@
     "verifiedROI": null
   },
   "validationSample": {
-    "sourceReportAt": "2026-11-23T14:55:37.382Z",
+    "sourceReportAt": "2026-11-23T17:10:43.923Z",
     "nhlStandardFrozenDecisions": 1193,
     "nhlStandardFrozenGames": 96,
     "nhlStandardFrozenPacificSlates": 14,
@@ -91,7 +91,7 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-23T14:27:58.833Z",
+    "nhlReportAt": "2026-11-23T17:09:01.029Z",
     "nflReportAt": "2026-11-23T14:50:22.915Z",
     "nhl": {
       "registered": 373,
@@ -115,7 +115,7 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-23T14:27:59.395Z",
+    "sourceReportAt": "2026-11-23T17:09:01.851Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
       "completeOfficialGames": 1649,
@@ -147,27 +147,27 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-23T17:08:16.399Z",
+    "sourceReportAt": "2026-11-23T17:09:52.858Z",
     "nhl": {
       "sourceEligible": true,
-      "examined": 5,
-      "newCandidates": 1,
-      "newAbstentions": 4,
-      "archivedFirstGit": 1086,
+      "examined": 0,
+      "newCandidates": 0,
+      "newAbstentions": 0,
+      "archivedFirstGit": 1091,
       "duplicatesQuarantined": 108,
       "selectivePolicyRequiresNewSource": false,
       "postPolicyScreening": {
         "kind": "public_goblin_post_policy_screening_counts_v1",
-        "screened": 851,
-        "selected": 435,
-        "abstained": 416,
+        "screened": 856,
+        "selected": 436,
+        "abstained": 420,
         "lateOrUnverified": 0,
         "unknownStatus": 0,
         "byMarket": {
           "shotsOnGoal": {
-            "screened": 563,
-            "selected": 337,
-            "abstained": 226
+            "screened": 566,
+            "selected": 338,
+            "abstained": 228
           },
           "blockedShots": {
             "screened": 89,
@@ -180,9 +180,9 @@
             "abstained": 23
           },
           "points": {
-            "screened": 169,
+            "screened": 171,
             "selected": 45,
-            "abstained": 124
+            "abstained": 126
           }
         },
         "abstentionReasons": {
@@ -192,8 +192,8 @@
           "opponent_defensive_volume_history_unverified": 0,
           "official_pregame_scratched_or_injured": 0,
           "distribution_direction_missing": 0,
-          "model_direction_not_on_original_offered_side": 115,
-          "insufficient_uncalibrated_directional_separation": 268,
+          "model_direction_not_on_original_offered_side": 116,
+          "insufficient_uncalibrated_directional_separation": 271,
           "other_model_abstention": 1
         },
         "verifiedAccuracy": false,
@@ -202,15 +202,15 @@
       },
       "pendingOfficialTriage": {
         "kind": "public_nhl_goblin_prospective_pending_triage_v1",
-        "registered": 1086,
-        "abstained": 416,
+        "registered": 1091,
+        "abstained": 420,
         "decided": 596,
         "pushes": 0,
-        "notStarted": 66,
+        "notStarted": 67,
         "startedNoFinalWithinFourHours": 0,
         "fourHoursWithoutOfficialPlayerStat": 8,
         "conflictingOrInvalidFinal": 0,
-        "officialGradingNeeded": 74,
+        "officialGradingNeeded": 75,
         "verifiedWinRate": null,
         "approvedPicks": 0
       },
@@ -286,7 +286,7 @@
         "approvedPicks": 0
       },
       "futureDecided": 596,
-      "futureRegistered": 1086
+      "futureRegistered": 1091
     },
     "nfl": {
       "supportedOpportunityResearchImplemented": true,

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-23T04:06:10.063Z",
+  "generatedAt": "2026-11-23T07:22:41.873Z",
   "sourceReportAt": "2026-11-23T04:01:43.304Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-23T04:05:18.107Z",
+    "sourceReportAt": "2026-11-23T07:21:49.028Z",
     "nhl": {
       "sourceEligible": false,
       "examined": 0,
@@ -207,8 +207,8 @@
         "decided": 538,
         "pushes": 0,
         "notStarted": 43,
-        "startedNoFinalWithinFourHours": 12,
-        "fourHoursWithoutOfficialPlayerStat": 54,
+        "startedNoFinalWithinFourHours": 0,
+        "fourHoursWithoutOfficialPlayerStat": 66,
         "conflictingOrInvalidFinal": 0,
         "officialGradingNeeded": 109,
         "verifiedWinRate": null,

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-23T11:18:03.219Z",
+  "generatedAt": "2026-11-23T13:45:53.282Z",
   "sourceReportAt": "2026-11-23T11:14:36.332Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -92,7 +92,7 @@
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
     "nhlReportAt": "2026-11-23T09:12:19.777Z",
-    "nflReportAt": "2026-11-20T21:31:51.525Z",
+    "nflReportAt": "2026-11-23T13:44:53.373Z",
     "nhl": {
       "registered": 337,
       "eligible": 83,

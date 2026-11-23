@@ -1,7 +1,7 @@
 {
   "kind": "public_original_daily_grade_v1",
   "slateDate": "2026-11-22",
-  "generatedAt": "2026-11-23T13:48:34.410Z",
+  "generatedAt": "2026-11-23T14:38:57.559Z",
   "nhl": {
     "status": "official_final_slate_graded",
     "scheduledGames": 5,
@@ -109,7 +109,20 @@
         "distinctGradedGames": 5
       }
     },
-    "gamesWithOriginalSelections": 5
+    "gamesWithOriginalSelections": 5,
+    "officialBoxscoreAppearanceAudit": {
+      "originallyPending": 4,
+      "absentFromOfficialFinalPlayerRows": 4,
+      "playerPresentButMarketUnresolved": 0,
+      "source": "Same-game NHL final official player ID, never same-name guess",
+      "confirmedDnp": 0,
+      "confirmedPlatformVoids": 0,
+      "automaticGradeChanges": 0,
+      "playerIdentityExposed": false,
+      "originalSelectionsImmutable": true,
+      "absentRowNotProofOfPlatformVoid": true,
+      "requiresIndependentRosterAndSettlementProof": true
+    }
   },
   "nfl": {
     "status": "archived_official_stat_outcomes_only",
@@ -322,7 +335,14 @@
       }
     },
     "originalIdsReconciled": true,
-    "sourceReportGeneratedAt": "2026-11-23T13:44:01.061Z"
+    "sourceReportGeneratedAt": "2026-11-23T13:44:01.061Z",
+    "appearanceReconciliation": {
+      "status": "awaiting_exact_id_evidence",
+      "sourceGradeReconciled": false,
+      "originalUnresolved": 146,
+      "gradeChanged": 0,
+      "platformVoidsAuthenticated": false
+    }
   },
   "platformSettlementVerified": false,
   "payoutROI": null,

@@ -1,0 +1,93 @@
+{
+  "kind": "public_daily_six_quality_gates_v1",
+  "slateDate": "2026-11-22",
+  "sourceGeneratedAt": "2026-11-23T14:38:57.559Z",
+  "generatedAt": "2026-11-23T14:38:57.742Z",
+  "tracks": [
+    {
+      "id": "nhl_points",
+      "status": "needs_new_future_challenger",
+      "observed": {
+        "decided": 22,
+        "wins": 7,
+        "losses": 15,
+        "observedHitRate": 0.3181818181818182,
+        "alwaysHigherSameLine": 0.5909090909090909,
+        "alwaysLowerSameLine": 0.4090909090909091
+      },
+      "mustUsePregameEvidence": true,
+      "remedy": "Audit frozen points, TOI, PP, linemates and opponent concessions; test any new policy only on later first-Git games"
+    },
+    {
+      "id": "nhl_standard",
+      "status": "underperformed_same_line_baseline",
+      "observed": {
+        "decided": 65,
+        "wins": 30,
+        "losses": 35,
+        "observedHitRate": 0.46153846153846156,
+        "alwaysHigherSameLine": 0.5692307692307692,
+        "alwaysLowerSameLine": 0.4307692307692308
+      },
+      "modelPromotionApproved": false,
+      "remedy": "Require positive paired future game/slate-cluster bounds versus BOTH directional baselines before promotion"
+    },
+    {
+      "id": "nfl_rushing",
+      "status": "underperformed_market_benchmark",
+      "yards": {
+        "decided": 149,
+        "wins": 69,
+        "losses": 80,
+        "observedHitRate": 0.46308724832214765,
+        "alwaysHigherSameLine": 0.5100671140939598,
+        "alwaysLowerSameLine": 0.4899328859060403
+      },
+      "attempts": {
+        "decided": 84,
+        "wins": 39,
+        "losses": 45,
+        "observedHitRate": 0.4642857142857143,
+        "alwaysHigherSameLine": 0.39285714285714285,
+        "alwaysLowerSameLine": 0.6071428571428571
+      },
+      "notIndependentEntries": true,
+      "remedy": "Investigate carries, snaps, injuries, matchup and source identity using past-only evidence; freeze any new filter before games"
+    },
+    {
+      "id": "unresolved",
+      "status": "needs_individual_evidence",
+      "nhlPending": 4,
+      "nflUnresolved": 146,
+      "nflFirstDistinctThresholdUnresolved": 65,
+      "evidenceNeeded": "Official boxscore and exact identity/appearance; do not convert to a loss or a platform refund"
+    },
+    {
+      "id": "probability_payout",
+      "status": "not_verified",
+      "calibratedHigherLowerProbability": false,
+      "originalAppSettlementVerified": false,
+      "authenticatedPlatformPayout": false,
+      "expectedValue": null,
+      "approvedLineups": 0,
+      "remedy": "Withhold wagering-ready confidence, EV and Power/Flex lineup claims until independent held-out calibration and exact platform settlement"
+    },
+    {
+      "id": "automated_grading",
+      "status": "aggregate_evidence_reconciled",
+      "officialNhlFinals": true,
+      "officialNflFinals": true,
+      "privateLedgerPreserved": true,
+      "remedy": "Generate this fail-closed aggregate check each day after final-only original Git grading; never publish player rows"
+    }
+  ],
+  "gradedNhlFinalOnly": true,
+  "gradedNflFinalOnly": true,
+  "notActualBettingROI": true,
+  "officialWagersPlaced": 0,
+  "modelPromoted": false,
+  "originalPlatformSettlementVerified": false,
+  "calibrated": false,
+  "payoutAdjustedEV": null,
+  "rawPropRowsExposed": 0
+}

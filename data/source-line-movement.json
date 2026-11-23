@@ -1,38 +1,38 @@
 {
   "kind": "public_safe_nhl_nfl_board_line_movement_counts_v1",
   "schemaVersion": 1,
-  "generatedAt": "2026-11-22T17:46:34.190Z",
-  "earlierCaptureAt": "2026-11-22T14:05:43.265Z",
-  "laterCaptureAt": "2026-11-22T17:05:50.658Z",
-  "comparisonKind": "genuine_same_day_six_to_nine",
+  "generatedAt": "2026-11-23T14:06:46.716Z",
+  "earlierCaptureAt": "2026-11-22T17:05:50.658Z",
+  "laterCaptureAt": "2026-11-23T14:05:54.475Z",
+  "comparisonKind": "cross_day_previous_full_source",
   "sourceDays": {
     "earlier": "2026-11-22",
-    "later": "2026-11-22"
+    "later": "2026-11-23"
   },
-  "genuineSixToNineComparison": true,
-  "crossDayComparison": false,
+  "genuineSixToNineComparison": false,
+  "crossDayComparison": true,
   "sports": {
     "NHL": {
-      "firstObserved": 1435,
-      "secondObserved": 1576,
-      "newSourceOfferIDs": 175,
-      "noLongerSeenSourceIDsUnverified": 34,
-      "existingLineChanged": 13,
-      "existingTierChanged": 2,
-      "existingSideAvailabilityChanged": 31,
+      "firstObserved": 1576,
+      "secondObserved": 1997,
+      "newSourceOfferIDs": 1997,
+      "noLongerSeenSourceIDsUnverified": 1576,
+      "existingLineChanged": 0,
+      "existingTierChanged": 0,
+      "existingSideAvailabilityChanged": 0,
       "existingStartChanged": 0,
-      "unchanged": 1358
+      "unchanged": 0
     },
     "NFL": {
-      "firstObserved": 7954,
-      "secondObserved": 8002,
-      "newSourceOfferIDs": 520,
-      "noLongerSeenSourceIDsUnverified": 472,
-      "existingLineChanged": 474,
-      "existingTierChanged": 2,
-      "existingSideAvailabilityChanged": 105,
+      "firstObserved": 8002,
+      "secondObserved": 2549,
+      "newSourceOfferIDs": 1827,
+      "noLongerSeenSourceIDsUnverified": 7280,
+      "existingLineChanged": 88,
+      "existingTierChanged": 1,
+      "existingSideAvailabilityChanged": 27,
       "existingStartChanged": 0,
-      "unchanged": 6935
+      "unchanged": 618
     }
   },
   "originalOffersFromPartnerSourceNotVerifiedPrizePicksApp": true,

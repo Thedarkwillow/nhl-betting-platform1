@@ -1,0 +1,50 @@
+name: Validate future NHL points and NFL rushing models privately
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-future-nhl-points-nfl-rushing.yml'
+  schedule:
+    - cron: '15 7 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-forward-market-shadow-tests
+  cancel-in-progress: false
+jobs:
+  validate-private-forward-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Verify authorized private source
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::Private code access missing"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test pregame NHL points role and NFL rushing prior-week policies
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node --check src/nhl-points-role-shadow-v3.cjs
+          node --check src/nfl-rushing-stability-shadow-v4.cjs
+          node --check src/nhl-standard-quality-challenger-v2.cjs
+          node --check scripts/freeze-nfl-partner-pregame.cjs
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-points-role-shadow-v3.test.cjs test/nfl-rushing-stability-shadow-v4.test.cjs >"$log" 2>&1; then
+            echo "::error::Pregame evidence chronology, original identity, or prospective abstention regression."
+            exit 1
+          fi
+          echo "PASS: NHL/NFL future shadow checks; no original side rewritten, no calibrated hit rate, no wagers."

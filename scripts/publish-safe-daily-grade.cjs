@@ -19,6 +19,29 @@ if(official?.requestedDate===day&&official.source==="NHL public API"&&official.s
   Object.assign(nhl,{status:"official_final_slate_graded",scheduledGames:official.scheduledGames,finalGames:official.completedGames,officialPlayerRows:official.players.length,statsFetchedAt:official.fetchedAt,ledgerBuiltAt:ledger.builtAt,all:tally(rows),byTier:Object.fromEntries(["Standard","Goblin","Demon"].map(t=>[t,tally(rows.filter(r=>r.tier===t))])),standardByMarket:Object.fromEntries([...new Set(rows.filter(r=>r.tier==="Standard").map(r=>r.market))].sort().map(m=>[m,tally(rows.filter(r=>r.tier==="Standard"&&r.market===m))])),gamesWithOriginalSelections:new Set(rows.map(r=>r.gameId)).size});
  }
 }
+// Every official final slate, distinguish absent player-game boxscore rows
+// from present players whose MARKET stats cannot be reconciled. This is an
+// ID-exact investigation only: missing rows are not proved DNP or app voids.
+if(nhl.status==="official_final_slate_graded"){
+ const officialGames=new Set(official.players.map(x=>x.gameId));
+ const actualPlayers=new Set(official.players.map(x=>x.gameId+"|"+x.playerId));
+ const pending=ledger.records.filter(x=>officialGames.has(x.gameId)&&
+  x.selectionStatus==="pending_official_player_stats");
+ if(pending.length!==nhl.all.pending)
+  throw Error("NHL pending rows do not reconcile with untouched ledger");
+ const withoutPlayerRow=pending.filter(x=>!actualPlayers.has(x.gameId+"|"+x.playerId)).length;
+ nhl.officialBoxscoreAppearanceAudit={
+  originallyPending:pending.length,
+  absentFromOfficialFinalPlayerRows:withoutPlayerRow,
+  playerPresentButMarketUnresolved:pending.length-withoutPlayerRow,
+  source:"Same-game NHL final official player ID, never same-name guess",
+  confirmedDnp:0,confirmedPlatformVoids:0,automaticGradeChanges:0,
+  playerIdentityExposed:false, originalSelectionsImmutable:true,
+  absentRowNotProofOfPlatformVoid:true,
+  requiresIndependentRosterAndSettlementProof:true
+ };
+}
+
 // Separate official-stat nonappearance reconciliation from immutable original
 // pending statuses. Never infer an authenticated fantasy-app refund or void.
 if(day==="2026-11-19"&&nhl.status==="official_final_slate_graded"){
@@ -81,6 +104,38 @@ try{
   }
  }
 }catch(e){nfl={...nfl,status:"original_grade_reconciliation_failed",unresolvedPerSlate:null};console.error("NFL daily reconciliation failed: "+e.message);}
+// Publish only reason COUNTS from the ID-exact private Sunday diagnostic,
+// after independently verifying its source grade timestamp and total. Missing
+// diagnostic evidence never converts an unresolved prop to a loss or refund.
+if(nfl.status==="archived_official_stat_outcomes_only"){
+ const audit=optional("outputs/nfl/backtests/unresolved-appearance-"+day+".json");
+ nfl.appearanceReconciliation={status:"awaiting_exact_id_evidence",
+  sourceGradeReconciled:false,originalUnresolved:nfl.unresolvedPerSlate,
+  gradeChanged:0,platformVoidsAuthenticated:false};
+ if(audit?.kind==="nfl_unresolved_player_appearance_diagnostic_v1"&&
+    audit.slateDate===day&&audit.sourceGradeAt===nfl.sourceReportGeneratedAt&&
+    audit.registeredUnresolved===nfl.unresolvedPerSlate&&
+    audit.automaticGradeChanges===0&&audit.missingStatsImputedZero===false&&
+    audit.platformSettlementVerified===false&&
+    Array.isArray(Object.entries(audit.byReason||{}))&&
+    Object.values(audit.byReason).every(x=>Number.isSafeInteger(x)&&x>=0)&&
+    Object.values(audit.byReason).reduce((a,b)=>a+b,0)===nfl.unresolvedPerSlate){
+  const allowed=new Set(["official_game_or_final_unverified",
+   "ambiguous_weekly_stat_rows","weekly_stat_team_alias_or_grade_refresh_needed",
+   "weekly_stat_team_mismatch","roster_crosswalk_ambiguous_or_missing",
+   "roster_identity_not_matched","duplicate_snap_rows",
+   "snap_record_missing_not_dnp_proof","positive_snaps_weekly_stats_missing",
+   "zero_recorded_snaps_not_platform_void_proof","incomplete_snap_counts"]);
+  nfl.appearanceReconciliation={status:"identity_diagnostic_archived",
+   sourceGradeReconciled:true,originalUnresolved:nfl.unresolvedPerSlate,
+   distinctThresholds:audit.distinctThresholds,
+   distinctPlayerGames:audit.distinctPlayerGames,
+   genericReasonCounts:Object.fromEntries(Object.entries(audit.byReason).filter(([k])=>allowed.has(k))),
+   otherUnclassifiedCount:Object.entries(audit.byReason).filter(([k])=>!allowed.has(k)).reduce((n,[,v])=>n+v,0),
+   gradeChanged:0,platformVoidsAuthenticated:false};
+ }
+}
+
 const out={kind:"public_original_daily_grade_v1",slateDate:day,generatedAt:new Date().toISOString(),nhl,nfl,platformSettlementVerified:false,payoutROI:null,modelPromoted:false,rawPropRowsExposed:0};
 if(nfl.status==="original_grade_reconciliation_failed")throw Error("NFL slate reconciliation incomplete; existing report retained");
 if(nhl.status!=="official_final_slate_graded"){console.log("Daily grade not ready; no stale totals published.");process.exit(0);}

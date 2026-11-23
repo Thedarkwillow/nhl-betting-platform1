@@ -106,6 +106,23 @@ jobs:
              distinctThresholdCorrect:r.explicitFrozenDirections.firstDistinctThresholdGrade.earliestPerPlayerGameMarketAndLine.correct,
              officialSettlementVerified:false,calibrated:false}));
           NODE
+      - name: Diagnose most recent Sunday unresolved NFL player appearances from archived IDs
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          # Diagnostic only; no zero imputation, name-based grade changes,
+          # retrospective model direction, or platform DNP settlement.
+          day="$(TZ=America/Los_Angeles date -d 'last sunday' '+%Y-%m-%d')"
+          echo "NFL official Sunday identity audit for $day"
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/audit-nfl-unresolved-appearances.cjs "$day" >"$log" 2>&1; then
+            echo "::warning::NFL Sunday player-appearance diagnostic unavailable; original grade remains immutable."
+          else
+            echo "PASS: archived diagnostic of missing NFL player appearances; no unverified refunds."
+            printf 'SUNDAY_AUDIT_DATE=%s\n' "$day" >> "$GITHUB_ENV"
+          fi
       - name: Commit source-refresh and graded forecast report privately only
         working-directory: private
         run: |
@@ -113,6 +130,9 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -f outputs/nfl/history/manifest.json outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/backtests/pregame-forecast-proof-latest.json outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json outputs/nfl/backtests/frozen-shadow-prospective-grading-latest.json outputs/nfl/backtests/matchup-context-forward-grade-latest.json outputs/nfl/backtests/independent-source-forward-latest.json outputs/nfl/backtests/directional-v2-future-only-latest.json outputs/nfl/backtests/directional-first-threshold-review-latest.json
+          if test -n "${SUNDAY_AUDIT_DATE:-}"; then
+            git add -f "outputs/nfl/backtests/unresolved-appearance-$SUNDAY_AUDIT_DATE.json" "outputs/nfl/backtests/unresolved-identity-review-$SUNDAY_AUDIT_DATE.json"
+          fi
           if git diff --cached --quiet; then
             echo "PASS: NFL private report unchanged."
             exit 0

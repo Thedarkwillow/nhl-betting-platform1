@@ -9,6 +9,8 @@ on:
       - 'scripts/publish-safe-pregame-scorecards.cjs'
       - 'scripts/test-publish-safe-pregame-scorecards.cjs'
       - 'scripts/publish-safe-daily-grade.cjs'
+      - 'scripts/build-daily-grade-quality-gates.cjs'
+      - 'scripts/test-daily-grade-quality-gates.cjs'
       - 'scripts/publish-safe-research-progress.cjs'
       - 'scripts/test-publish-safe-research-progress.cjs'
       - 'assets/roadmap-evidence-desk.js'
@@ -58,6 +60,9 @@ jobs:
         working-directory: public
         run: |
           set -euo pipefail
+          node --test scripts/test-daily-grade-quality-gates.cjs
+          node --check scripts/build-daily-grade-quality-gates.cjs
+          node --check scripts/publish-safe-daily-grade.cjs
           node --test scripts/test-publish-safe-pregame-scorecards.cjs
           node --check scripts/publish-safe-pregame-scorecards.cjs
           node --test scripts/test-publish-safe-research-progress.cjs scripts/test-roadmap-evidence-desk.cjs
@@ -82,6 +87,7 @@ jobs:
           set -euo pipefail
           day="$(TZ=America/Los_Angeles date -d 'yesterday' '+%Y-%m-%d')"
           node public/scripts/publish-safe-daily-grade.cjs "$GITHUB_WORKSPACE/private" "$GITHUB_WORKSPACE/public" "$day"
+          node public/scripts/build-daily-grade-quality-gates.cjs "$GITHUB_WORKSPACE/public/data/daily-grade-$day.json" "$GITHUB_WORKSPACE/public/data/daily-grade-quality-$day.json"
       - name: Export allowlisted research progress from dated private evidence
         run: |
           set -euo pipefail
@@ -96,6 +102,7 @@ jobs:
           git add data/model-scorecards.json data/research-evidence-progress.json
           day="$(TZ=America/Los_Angeles date -d 'yesterday' '+%Y-%m-%d')"
           if test -f "data/daily-grade-$day.json"; then git add "data/daily-grade-$day.json"; fi
+          if test -f "data/daily-grade-quality-$day.json"; then git add "data/daily-grade-quality-$day.json"; fi
           if git diff --cached --quiet; then
             echo "PASS: previously published counts unchanged."
             exit 0

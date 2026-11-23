@@ -19,6 +19,29 @@ if(official?.requestedDate===day&&official.source==="NHL public API"&&official.s
   Object.assign(nhl,{status:"official_final_slate_graded",scheduledGames:official.scheduledGames,finalGames:official.completedGames,officialPlayerRows:official.players.length,statsFetchedAt:official.fetchedAt,ledgerBuiltAt:ledger.builtAt,all:tally(rows),byTier:Object.fromEntries(["Standard","Goblin","Demon"].map(t=>[t,tally(rows.filter(r=>r.tier===t))])),standardByMarket:Object.fromEntries([...new Set(rows.filter(r=>r.tier==="Standard").map(r=>r.market))].sort().map(m=>[m,tally(rows.filter(r=>r.tier==="Standard"&&r.market===m))])),gamesWithOriginalSelections:new Set(rows.map(r=>r.gameId)).size});
  }
 }
+// Every official final slate, distinguish absent player-game boxscore rows
+// from present players whose MARKET stats cannot be reconciled. This is an
+// ID-exact investigation only: missing rows are not proved DNP or app voids.
+if(nhl.status==="official_final_slate_graded"){
+ const officialGames=new Set(official.players.map(x=>x.gameId));
+ const actualPlayers=new Set(official.players.map(x=>x.gameId+"|"+x.playerId));
+ const pending=ledger.records.filter(x=>officialGames.has(x.gameId)&&
+  x.selectionStatus==="pending_official_player_stats");
+ if(pending.length!==nhl.all.pending)
+  throw Error("NHL pending rows do not reconcile with untouched ledger");
+ const withoutPlayerRow=pending.filter(x=>!actualPlayers.has(x.gameId+"|"+x.playerId)).length;
+ nhl.officialBoxscoreAppearanceAudit={
+  originallyPending:pending.length,
+  absentFromOfficialFinalPlayerRows:withoutPlayerRow,
+  playerPresentButMarketUnresolved:pending.length-withoutPlayerRow,
+  source:"Same-game NHL final official player ID, never same-name guess",
+  confirmedDnp:0,confirmedPlatformVoids:0,automaticGradeChanges:0,
+  playerIdentityExposed:false, originalSelectionsImmutable:true,
+  absentRowNotProofOfPlatformVoid:true,
+  requiresIndependentRosterAndSettlementProof:true
+ };
+}
+
 // Separate official-stat nonappearance reconciliation from immutable original
 // pending statuses. Never infer an authenticated fantasy-app refund or void.
 if(day==="2026-11-19"&&nhl.status==="official_final_slate_graded"){

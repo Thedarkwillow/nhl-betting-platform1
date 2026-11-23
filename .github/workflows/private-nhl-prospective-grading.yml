@@ -19,7 +19,41 @@ concurrency:
   group: free-runner-private-nhl-official-grading
   cancel-in-progress: false
 jobs:
+  offline-contract:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Require private research access
+        env:
+          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test -n "$TOKEN"
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: fix/nov23-grade-original-full-final-daily-nhl
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify full-slate original-Git final-only grade without paid or NHL source requests
+        working-directory: private
+        run: |
+          set -euo pipefail
+          node --check scripts/report-nhl-2026-11-21-slate-grade.cjs
+          node --test test/nhl-slate-graded-summary.test.cjs test/grade-nhl-predictions.test.cjs test/nhl-frozen-individual-props.test.cjs
+          node - <<'NODE'
+          const fs=require('node:fs'),src=fs.readFileSync('scripts/report-nhl-2026-11-21-slate-grade.cjs','utf8');
+          if(!src.includes('official.scheduledGames<1')||
+           !src.includes('all14GamesVerified:result.officialGamesTotal===14')||
+           src.includes('official.scheduledGames!==14'))
+            throw Error('NHL grader still assumes Nov 21 fourteen-game schedule');
+          console.log('PASS: arbitrary-sized official full-final NHL slate, exact pregame directions');
+          NODE
   grade-private-only:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 18
     steps:
@@ -126,33 +160,40 @@ jobs:
             fi
           done
           echo "PASS: refreshed private official-outcome and frozen-baseline audits; unfinished games remain pending."
-      - name: Grade Nov 21 full NHL slate after refreshing official results and first-Git ledger
+      - name: Grade all official FINAL games from the actual previous Pacific day
         working-directory: private
         shell: bash
         run: |
           set -euo pipefail
-          umask 077
           node --check scripts/report-nhl-2026-11-21-slate-grade.cjs
           node --test test/nhl-slate-graded-summary.test.cjs > /tmp/nhl-slate-grade-test.log 2>&1 || {
-            echo "::error::NHL original first-Git final grade regression failed"; exit 1;
+            echo "::error::NHL exact-original full-final grading regression failed"; exit 1;
           }
-          node scripts/report-nhl-2026-11-21-slate-grade.cjs 2026-11-21 > /tmp/nhl-nov21-grade-counts.json
+          node scripts/report-nhl-2026-11-21-slate-grade.cjs "$OFFICIAL_FINAL_DATE" > /tmp/nhl-yesterday-private-grade.json
           node - <<'NODE'
-          const fs=require('node:fs');
-          const x=JSON.parse(fs.readFileSync('outputs/health/nhl-2026-11-21-all-games-graded.json','utf8'));
-          if(x.slateDate!=='2026-11-21'||x.status!=='all_games_official_final_original_frozen_prop_research_only'||
-            x.officialGamesTotal!==14||x.all14GamesVerified!==true||
-            x.games.length!==14||x.firstGitPregameOnly!==true||
-            x.all.registered!==x.playerDetails.length||
-            x.originalPlatformSettlementVerified!==false||
-            x.automaticBettingLineupsApproved!==false||x.actualWagersPlaced!==0)
-            throw Error('Nov 21 complete official slate or first-Git proof unavailable');
-          console.log(JSON.stringify({day:x.slateDate,officialGames:x.officialGamesTotal,
-            firstGitFrozenSelections:x.all.registered,decided:x.all.decided,
-            wins:x.all.correct,losses:x.all.incorrect,push:x.all.push,pending:x.all.pending,
+          const fs=require('node:fs'),day=process.env.OFFICIAL_FINAL_DATE;
+          const stats=JSON.parse(fs.readFileSync('outputs/player-stats/'+day+'.json','utf8'));
+          const x=JSON.parse(fs.readFileSync('outputs/health/nhl-'+day+'-all-games-graded.json','utf8'));
+          if(x.slateDate!==day||
+             x.status!=='all_games_official_final_original_frozen_prop_research_only'||
+             x.officialGamesTotal!==stats.scheduledGames||
+             x.games.length!==stats.scheduledGames||
+             x.allGamesVerified!==true||
+             x.all.registered!==x.playerDetails.length||
+             x.firstGitPregameOnly!==true||
+             x.originalSelectedSideNeverRecomputed!==true||
+             x.all.correct+x.all.incorrect!==x.all.decided||
+             x.originalPlatformSettlementVerified!==false||
+             x.automaticBettingLineupsApproved!==false||x.actualWagersPlaced!==0)
+            throw Error('Refusing to publish an incomplete original NHL official slate');
+          console.log(JSON.stringify({day,
+            scheduledAndOfficialFinalGames:stats.scheduledGames,
+            originalFrozenSelections:x.all.registered,
+            decided:x.all.decided,wins:x.all.correct,losses:x.all.incorrect,
+            pushes:x.all.push,pending:x.all.pending,
             standard:x.tiers.Standard.decided,goblin:x.tiers.Goblin.decided,
-            demon:x.tiers.Demon.decided,approvedBets:0,
-            bookmakerPayoutsVerified:false}));
+            demon:x.tiers.Demon.decided,
+            originalAppSettlementVerified:false}));
           NODE
       - name: Archive grading and benchmarks in private repository only
         working-directory: private
@@ -177,7 +218,7 @@ jobs:
             outputs/health/nhl-standard-forward-improvement-latest.json
             outputs/health/nhl-pregame-source-close-latest.json
             outputs/health/nhl-multifactor-future-scorecard-latest.json
-            outputs/health/nhl-2026-11-21-all-games-graded.json)
+            "outputs/health/nhl-${OFFICIAL_FINAL_DATE}-all-games-graded.json")
           (("${#files[@]}" > 0)) || { echo "::error::No NHL grading or baseline output"; exit 1; }
           git add -f -- "${files[@]}"
           if git diff --cached --quiet; then

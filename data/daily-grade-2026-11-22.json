@@ -1,7 +1,7 @@
 {
   "kind": "public_original_daily_grade_v1",
   "slateDate": "2026-11-22",
-  "generatedAt": "2026-11-23T14:38:57.559Z",
+  "generatedAt": "2026-11-23T14:40:51.706Z",
   "nhl": {
     "status": "official_final_slate_graded",
     "scheduledGames": 5,
@@ -335,11 +335,17 @@
       }
     },
     "originalIdsReconciled": true,
-    "sourceReportGeneratedAt": "2026-11-23T13:44:01.061Z",
+    "sourceReportGeneratedAt": "2026-11-23T14:39:07.518Z",
     "appearanceReconciliation": {
-      "status": "awaiting_exact_id_evidence",
-      "sourceGradeReconciled": false,
+      "status": "identity_diagnostic_archived",
+      "sourceGradeReconciled": true,
       "originalUnresolved": 146,
+      "distinctThresholds": 65,
+      "distinctPlayerGames": 15,
+      "genericReasonCounts": {
+        "roster_identity_not_matched": 146
+      },
+      "otherUnclassifiedCount": 0,
       "gradeChanged": 0,
       "platformVoidsAuthenticated": false
     }

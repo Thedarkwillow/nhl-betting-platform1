@@ -129,7 +129,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f outputs/nfl/history/manifest.json outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/backtests/pregame-forecast-proof-latest.json outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json outputs/nfl/backtests/frozen-shadow-prospective-grading-latest.json outputs/nfl/backtests/matchup-context-forward-grade-latest.json outputs/nfl/backtests/independent-source-forward-latest.json outputs/nfl/backtests/directional-v2-future-only-latest.json outputs/nfl/backtests/directional-first-threshold-review-latest.json
+          git add -f outputs/nfl/history/manifest.json outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/history/2026/weekly_rosters.json.gz outputs/nfl/history/2026/snap_counts.json.gz outputs/nfl/backtests/pregame-forecast-proof-latest.json outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json outputs/nfl/backtests/frozen-shadow-prospective-grading-latest.json outputs/nfl/backtests/matchup-context-forward-grade-latest.json outputs/nfl/backtests/independent-source-forward-latest.json outputs/nfl/backtests/directional-v2-future-only-latest.json outputs/nfl/backtests/directional-first-threshold-review-latest.json
           if test -n "${SUNDAY_AUDIT_DATE:-}"; then
             git add -f "outputs/nfl/backtests/unresolved-appearance-$SUNDAY_AUDIT_DATE.json" "outputs/nfl/backtests/unresolved-identity-review-$SUNDAY_AUDIT_DATE.json"
           fi

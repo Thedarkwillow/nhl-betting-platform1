@@ -104,6 +104,38 @@ try{
   }
  }
 }catch(e){nfl={...nfl,status:"original_grade_reconciliation_failed",unresolvedPerSlate:null};console.error("NFL daily reconciliation failed: "+e.message);}
+// Publish only reason COUNTS from the ID-exact private Sunday diagnostic,
+// after independently verifying its source grade timestamp and total. Missing
+// diagnostic evidence never converts an unresolved prop to a loss or refund.
+if(nfl.status==="archived_official_stat_outcomes_only"){
+ const audit=optional("outputs/nfl/backtests/unresolved-appearance-"+day+".json");
+ nfl.appearanceReconciliation={status:"awaiting_exact_id_evidence",
+  sourceGradeReconciled:false,originalUnresolved:nfl.unresolvedPerSlate,
+  gradeChanged:0,platformVoidsAuthenticated:false};
+ if(audit?.kind==="nfl_unresolved_player_appearance_diagnostic_v1"&&
+    audit.slateDate===day&&audit.sourceGradeAt===nfl.sourceReportGeneratedAt&&
+    audit.registeredUnresolved===nfl.unresolvedPerSlate&&
+    audit.automaticGradeChanges===0&&audit.missingStatsImputedZero===false&&
+    audit.platformSettlementVerified===false&&
+    Array.isArray(Object.entries(audit.byReason||{}))&&
+    Object.values(audit.byReason).every(x=>Number.isSafeInteger(x)&&x>=0)&&
+    Object.values(audit.byReason).reduce((a,b)=>a+b,0)===nfl.unresolvedPerSlate){
+  const allowed=new Set(["official_game_or_final_unverified",
+   "ambiguous_weekly_stat_rows","weekly_stat_team_alias_or_grade_refresh_needed",
+   "weekly_stat_team_mismatch","roster_crosswalk_ambiguous_or_missing",
+   "roster_identity_not_matched","duplicate_snap_rows",
+   "snap_record_missing_not_dnp_proof","positive_snaps_weekly_stats_missing",
+   "zero_recorded_snaps_not_platform_void_proof","incomplete_snap_counts"]);
+  nfl.appearanceReconciliation={status:"identity_diagnostic_archived",
+   sourceGradeReconciled:true,originalUnresolved:nfl.unresolvedPerSlate,
+   distinctThresholds:audit.distinctThresholds,
+   distinctPlayerGames:audit.distinctPlayerGames,
+   genericReasonCounts:Object.fromEntries(Object.entries(audit.byReason).filter(([k])=>allowed.has(k))),
+   otherUnclassifiedCount:Object.entries(audit.byReason).filter(([k])=>!allowed.has(k)).reduce((n,[,v])=>n+v,0),
+   gradeChanged:0,platformVoidsAuthenticated:false};
+ }
+}
+
 const out={kind:"public_original_daily_grade_v1",slateDate:day,generatedAt:new Date().toISOString(),nhl,nfl,platformSettlementVerified:false,payoutROI:null,modelPromoted:false,rawPropRowsExposed:0};
 if(nfl.status==="original_grade_reconciliation_failed")throw Error("NFL slate reconciliation incomplete; existing report retained");
 if(nhl.status!=="official_final_slate_graded"){console.log("Daily grade not ready; no stale totals published.");process.exit(0);}

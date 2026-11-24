@@ -46,7 +46,7 @@
     {
       "sport": "Call of Duty",
       "description": "Separate 2026 bounded sample: 187 complete maps, 1,496 valid player-map rows across 15 dates. Mode-conditioned kills MAE 5.56 vs last-20 8.93; deaths MAE 5.07 vs 8.64, 304 matched observations per market. 2025 cohort (125 maps) and 2019 baseline remain separate.",
-      "historicalRows": 1000
+      "historicalRows": 1496
     },
     {
       "sport": "MLB",
@@ -128,7 +128,23 @@
         "DOTA2": 18,
         "COD": null
       },
-      "originalOffersVerified": 0
+      "originalOffersVerified": 0,
+      "freshnessAtCheck": {
+        "PrizePicks": {
+          "CS2": false,
+          "VALORANT": false,
+          "LOL": false,
+          "DOTA2": false,
+          "COD": false
+        },
+        "Underdog": {
+          "CS2": true,
+          "VALORANT": true,
+          "LOL": false,
+          "DOTA2": true,
+          "COD": null
+        }
+      }
     },
     "coverageNote": "Provider metadata only, historical snapshot, not current app availability or authenticated individual lines. Underdog CS2, VALORANT and DOTA2 were one minute old at check; PrizePicks CS2 was 20 minutes old and failed freshness check. PrizePicks charged-credit header absent; Underdog reported zero. No documented metered endpoints called.",
     "exportIntake": {

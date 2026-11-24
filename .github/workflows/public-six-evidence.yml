@@ -9,7 +9,7 @@ on:
       - '.github/workflows/public-six-evidence.yml'
   push:
     branches: [main]
-    paths: ['.github/workflows/public-six-evidence.yml']
+    paths: ['.github/workflows/public-six-evidence.yml', 'scripts/public-six-esports-history.py']
   workflow_dispatch:
   schedule:
     - cron: '38 10 * * *'

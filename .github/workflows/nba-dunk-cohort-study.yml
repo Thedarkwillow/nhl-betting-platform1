@@ -1,0 +1,76 @@
+name: Validate NBA historical cohort and optional bounded collection
+on:
+  push:
+    branches: [nba-dunk-cohort-research-20261124]
+    paths: ['.github/workflows/nba-dunk-cohort-study.yml']
+  workflow_dispatch:
+    inputs:
+      collect_one:
+        description: 'Authorize one eligible research request (maximum 10 credits)'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: nba-dunk-cohort-research
+  cancel-in-progress: false
+jobs:
+  validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.ref == 'refs/heads/main' && 'main' || '3abde7309b55ff89edcd9e9fbc5df8665c39a8df' }}
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test complete logs, chronology and cohort rules offline
+        run: |
+          set -euo pipefail
+          node --test test/nba-dunk-cohort-study.test.cjs test/nba-alternate-providers.test.cjs test/nba-authorized-provider-access.test.cjs
+          node scripts/run-nba-dunk-cohort-study.cjs
+  collection:
+    needs: validation
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.collect_one
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Collect one eligible source request only
+        env:
+          NBA_DUNK_COHORT_MANUAL: '1'
+          NBA_DUNKAPI_API_KEY: ${{ secrets.NBA_DUNKAPI_API_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          node scripts/run-nba-dunk-cohort-study.cjs --collect-one
+      - name: Archive cohort observations privately
+        if: always()
+        run: |
+          set -euo pipefail
+          test -d outputs/nba/authorized-providers/cohort-v1 || exit 0
+          git add -f outputs/nba/authorized-providers/cohort-v1
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: private NBA cohort observation'
+          for attempt in 1 2 3 4 5 6; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$((attempt*2))"
+          done
+          exit 1

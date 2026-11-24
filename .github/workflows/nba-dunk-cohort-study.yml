@@ -6,6 +6,8 @@ on:
   schedule:
     # One user-approved collection, exact 2026 date also enforced in backend.
     - cron: '15 5 25 11 *'
+    # Bounded continuation: backend enforces dates, cap and verified first log.
+    - cron: '15 6 * * *'
   workflow_dispatch:
     inputs:
       collect_one:
@@ -35,7 +37,7 @@ jobs:
       - name: Test complete logs, chronology and cohort rules offline
         run: |
           set -euo pipefail
-          node --test test/nba-dunk-cohort-study.test.cjs test/nba-alternate-providers.test.cjs test/nba-authorized-provider-access.test.cjs
+          node --test test/nba-context-calibration-v2.test.cjs test/nba-dunk-cohort-study.test.cjs test/nba-alternate-providers.test.cjs test/nba-authorized-provider-access.test.cjs
           node scripts/run-nba-dunk-cohort-study.cjs
   collection:
     needs: validation
@@ -55,7 +57,7 @@ jobs:
       - name: Collect one eligible source request only
         env:
           NBA_DUNK_COHORT_MANUAL: '1'
-          NBA_DUNK_COHORT_EXPECTED_TASK: ${{ github.event_name == 'schedule' && 'jokic_log_20261125' || '' }}
+          NBA_DUNK_COHORT_EXPECTED_TASK: ${{ github.event_name == 'schedule' && (github.event.schedule == '15 5 25 11 *' && 'jokic_log_20261125' || 'bounded_daily_cohort_v2') || '' }}
           NBA_DUNKAPI_API_KEY: ${{ secrets.NBA_DUNKAPI_API_KEY }}
         run: |
           set -euo pipefail

@@ -18,14 +18,15 @@ async function check(platform,key,client=fetch){
  const p=providers[platform];
  try{
   const r=await client(p.url,{headers:{Authorization:"Bearer "+key,"X-User-Request":"Esports coverage metadata integration check",Accept:"application/json"},redirect:"error",signal:AbortSignal.timeout(25000)});
-  const charge=r.headers.get("X-Credits-Cost");
+  const costs=[r.headers.get("X-Credits-Cost"),r.headers.get("X-Credits-Charged")].filter(x=>x!==null);
+  const charge=costs.find(x=>x!=="0")??costs[0]??null;
   if(!r.ok)return {platform,configured:true,http:r.status,status:"unavailable"};
   if(charge!==null&&charge!=="0")return {platform,configured:true,status:"unexpected_nonzero_charge",chargedCredits:/^\d+$/.test(charge)?Number(charge):null};
   if(!r.body)throw Error();
   const rd=r.body.getReader(),buf=[];let n=0;
   try{for(;;){const q=await rd.read();if(q.done)break;n+=q.value.length;if(n>2_000_000){await rd.cancel();throw Error();}buf.push(Buffer.from(q.value));}}finally{rd.releaseLock();}
-  const rows=summary(JSON.parse(Buffer.concat(buf).toString("utf8")));
-  return {platform,configured:true,status:"authenticated_independent_metadata",chargedCredits:charge==="0"?0:null,rows,originalAppAvailabilityVerified:false};
+  const checkedAt=new Date().toISOString(),rows=summary(JSON.parse(Buffer.concat(buf).toString("utf8"))).map(x=>({...x,ageMinutes:x.observedAt===null?null:Math.max(0,Math.round((Date.parse(checkedAt)-Date.parse(x.observedAt))/60000)),freshnessVerified:x.observedAt!==null&&Date.parse(x.observedAt)<=Date.parse(checkedAt)&&Date.parse(checkedAt)-Date.parse(x.observedAt)<=900000}));
+  return {platform,configured:true,status:"authenticated_independent_metadata",checkedAt,chargedCredits:charge==="0"?0:null,rows,originalAppAvailabilityVerified:false};
  }catch{return {platform,configured:true,status:"coverage_contract_unavailable"};}
 }
 async function main(){const results=[];for(const [p,c] of Object.entries(providers))results.push(await check(p,process.env[c.key]));console.log(JSON.stringify({kind:"esports_independent_zero_credit_coverage_v1",results,documentedMeteredEndpointsCalled:0,originalOffersVerified:0,rawRowsPublished:0}));if(results.some(x=>x.status==="unexpected_nonzero_charge"))process.exitCode=1;}

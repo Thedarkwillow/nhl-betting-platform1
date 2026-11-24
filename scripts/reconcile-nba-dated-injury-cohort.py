@@ -62,7 +62,9 @@ def historical_inputs():
         with urllib.request.urlopen(urllib.request.Request(a["url"],headers={"User-Agent":"NBAIdentityResearch/1.0"}),timeout=35) as f:raw=f.read(a["bytes"]+1)
         if len(raw)!=a["bytes"] or hashlib.sha1(("blob "+str(len(raw))).encode()+b"\0"+raw).hexdigest()!=a["gitBlob"]:raise ValueError("historical source integrity")
         rows=pq.read_table(io.BytesIO(raw)).to_pylist()
-        if "crosswalk" in a["path"]:cross.extend(rows)
+        if "crosswalk" in a["path"]:
+            season=a["path"].rsplit("_",1)[-1].split(".")[0]
+            cross.extend({**x,"identityEvidenceSeason":season} for x in rows)
         elif a["repo"].endswith("hoopR-nba-data"):er.extend(rows)
         else:nr.extend(rows)
     return cross,er,nr
@@ -74,18 +76,18 @@ def historical_index(cross,er,nr):
     for x in nr:
         for name in names(str(x.get("first_name",""))+" "+str(x.get("last_name",""))):
             if ident(x.get("player_id")):nn[name].add(ident(x["player_id"]))
-    pairs=defaultdict(set);ni=defaultdict(set);ei=defaultdict(set);corroboration=defaultdict(int)
+    pairs=defaultdict(set);ni=defaultdict(set);ei=defaultdict(set);corroboration=defaultdict(set)
     for x in cross:
         n,e=ident(x.get("nba_player_id")),ident(x.get("espn_athlete_id"))
         if not n or not e:continue
         ni[n].add(e);ei[e].add(n)
         for nm in names(x.get("nba_player_name"))&names(x.get("espn_full_name")):
             if en[nm]=={e} and nn[nm]=={n}:pairs[nm].add((n,e))
-            if en[nm]=={e} or nn[nm]=={n}:corroboration[nm,n,e]+=1
+            if (en[nm]=={e} or nn[nm]=={n}) and x.get("identityEvidenceSeason"):corroboration[nm,n,e].add(x["identityEvidenceSeason"])
     strong={nm:{(n,e) for n,e in vals if ni[n]=={e} and ei[e]=={n}} for nm,vals in pairs.items()}
     # Report-ID-bound fallback requires corroborated name and two historical crosswalk rows.
     for (nm,n,e),num in corroboration.items():
-        if num>=2 and ni[n]=={e} and ei[e]=={n}:strong.setdefault("reportid:"+nm,set()).add((n,e))
+        if len(num)>=2 and ni[n]=={e} and ei[e]=={n}:strong.setdefault("reportid:"+nm,set()).add((n,e))
     return strong
 
 def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,historical=None):

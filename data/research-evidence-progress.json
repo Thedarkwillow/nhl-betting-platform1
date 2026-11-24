@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-24T03:05:06.310Z",
+  "generatedAt": "2026-11-24T03:08:06.933Z",
   "sourceReportAt": "2026-11-24T02:08:30.352Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -92,7 +92,7 @@
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
     "nhlReportAt": "2026-11-24T01:41:50.899Z",
-    "nflReportAt": "2026-11-24T01:13:39.278Z",
+    "nflReportAt": "2026-11-24T03:06:12.951Z",
     "nhl": {
       "registered": 380,
       "eligible": 94,
@@ -373,7 +373,7 @@
   },
   "matchupEvidence": {
     "kind": "public_matchup_evidence_counts_v1",
-    "sourceReportAt": "2026-11-24T01:14:29.546Z",
+    "sourceReportAt": "2026-11-24T03:07:07.579Z",
     "rankingTables": 70,
     "completeRankingTables": 70,
     "teamGames": 1412,

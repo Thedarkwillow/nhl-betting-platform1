@@ -1,0 +1,58 @@
+name: Validate private NHL NFL matchup research PR 272
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-private-matchup-pr272.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 89079b6f80b7ae4ce7fc01534732a98c20b1c5a3
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Full offline regression
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Private regression failed; private logs withheld"
+            grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log"
+      - name: Real archived chronological paired replay
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! node scripts/report-cross-sport-position-h2h-replay.cjs >"$log" 2>&1; then
+            echo "::error::Private archive replay failed; details withheld"
+            exit 1
+          fi
+          node - <<'NODE'
+          const r=require('./outputs/health/cross-sport-position-h2h-replay-latest.json');
+          if(r.modelPromoted!==false || r.prospectiveAccuracyVerified!==false || r.nfl.exactOriginalLines!==false || !r.nhl.syntheticThresholdsOnly) throw Error('invalid research flags');
+          const n=Object.values(r.nhl.byMarketPosition),f=Object.values(r.nfl.byMarketPosition);
+          if(!n.length||!f.length||!n.some(x=>x.headToHeadPairedMAE?.appearances>0)||!f.some(x=>x.combinedPaired>0)) throw Error('empty paired cohort');
+          console.log('PASS: both sports have nonempty matched historical H2H cohorts; no model promotion.');
+          NODE

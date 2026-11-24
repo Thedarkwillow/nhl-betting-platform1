@@ -39,5 +39,6 @@ async function run(key,client=fetch){
  }
  return {kind:"cito_zero_credit_readiness_v1",health,previews,documentedMeteredDataCalls:0,rawRowsPublished:0,actualPropLines:0,modelPromoted:false};
 }
-if(require.main===module)run(process.env.CITO_API_KEY||process.env.CITO_KEY||process.env.CITO).then(r=>console.log(JSON.stringify(r))).catch(()=>{console.error("Cito readiness failed closed");process.exitCode=1;});
-module.exports={healthSummary,schema,run};
+function credentialReady(r){return r?.health?.configured===true&&r.health.keyValid===true;}
+if(require.main===module)run(process.env.CITO_API_KEY||process.env.CITO_KEY||process.env.CITO).then(r=>{console.log(JSON.stringify(r));if(process.argv.includes("--require-key")&&!credentialReady(r)){console.error("Cito credential not verified");process.exitCode=1;}}).catch(()=>{console.error("Cito readiness failed closed");process.exitCode=1;});
+module.exports={healthSummary,schema,run,credentialReady};

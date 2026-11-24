@@ -7,8 +7,11 @@ on:
       - '.github/workflows/cito-zero-credit-readiness.yml'
   push:
     branches: [main]
-    paths: ['.github/workflows/cito-zero-credit-readiness.yml']
+    paths: ['.github/workflows/cito-zero-credit-readiness.yml', 'scripts/cito-zero-credit-readiness.cjs']
   workflow_dispatch:
+concurrency:
+  group: cito-zero-credit-readiness
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:
@@ -40,4 +43,4 @@ jobs:
           CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
           CITO_KEY: ${{ secrets.CITO_KEY }}
           CITO: ${{ secrets.CITO }}
-        run: node scripts/cito-zero-credit-readiness.cjs
+        run: node scripts/cito-zero-credit-readiness.cjs --require-key

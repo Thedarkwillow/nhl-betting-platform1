@@ -1,0 +1,35 @@
+name: Archive and audit official historical NBA pregame injuries
+on:
+  push:
+    branches: [nba-injury-cutoff-audit-20261124]
+    paths: ['.github/workflows/nba-injury-cutoff-audit.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: nba-injury-cutoff-audit-20261124
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'pandas>=2.2,<3' 'pyarrow>=18,<24'
+      - name: Verify source assets and select historical T90 injury listings
+        run: |
+          set -euo pipefail
+          umask 077
+          python scripts/audit-nba-historical-injury-cutoffs.py
+      - name: Preserve archive privately
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nba/isolated-bulk-history/injury-report-audit-v1
+          git commit -qm 'research: archive three-season official injury report source and T90 coverage'
+          git push -q origin HEAD:nba-injury-cutoff-audit-20261124

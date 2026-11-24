@@ -288,3 +288,5 @@ jobs:
 # 2026-11-20 owner-requested grading for November 19 Pacific games: official finals only; first-Git pregame frozen player markets; no paid PrizePicksAPI collection or wagers.
 
 # Owner-requested November 24 Pacific: grade November 23 original frozen selections on verified final results only; no paid calls.
+
+# Owner-requested deployment of validated PR 288: bounded PlayerWON historical backfill, private original-line audit.

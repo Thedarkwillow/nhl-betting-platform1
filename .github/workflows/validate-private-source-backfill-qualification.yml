@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: c2eb5c3de2fae5e7164d496e9bccad4981ab4959
+          ref: d860dcc7d93fbb8133b5a36dc4332d7a10566adc
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
@@ -82,3 +82,13 @@ jobs:
             exit 1
           fi
           cat "$log"
+      - name: Train portable shadow and validate exact-line inference
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python scripts/train-priority-common-ml-shadow.py
+          node --test test/priority-common-ml-shadow-v1.test.cjs
+          node --check scripts/freeze-partner-nhl-pregame.cjs
+          node --check src/nfl-independent-forward-evidence.cjs

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-24T20:45:52.966Z",
+  "generatedAt": "2026-11-24T20:46:48.374Z",
   "sourceReportAt": "2026-11-24T19:43:36.624Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-24T19:08:23.718Z",
+    "sourceReportAt": "2026-11-24T20:45:44.929Z",
     "nhl": {
       "sourceEligible": false,
       "examined": 0,
@@ -378,7 +378,7 @@
     "kind": "public_expanded_ml_research_counts_v1",
     "sourceReportAt": "2026-11-24T16:52:59.817419+00:00",
     "marketEvidence": {
-      "sourceReportAt": "2026-11-24T17:48:31.514Z",
+      "sourceReportAt": "2026-11-24T20:45:44.377Z",
       "acceptedArchives": 9,
       "trackedSeries": 2231,
       "repeatedSeries": 0,
@@ -393,7 +393,7 @@
     "testedThresholds": 55,
     "thresholdsBeatingAllBaselines": 16,
     "prospective": {
-      "sourceReportAt": "2026-11-24T17:48:31.514Z",
+      "sourceReportAt": "2026-11-24T20:45:44.377Z",
       "registered": 29,
       "decided": 0,
       "correct": 0

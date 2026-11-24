@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 05d3e89bb496c747493c537fd089cfea3e03e3da
+          ref: 6a06e671167435698613fa09090432f0ac0f8fb9
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
@@ -69,6 +69,12 @@ jobs:
           console.log(JSON.stringify({broadNHL:broad(r.nhl.byMarketPosition),broadNFL:broad(r.nfl.byMarketPosition)}));
           console.log(JSON.stringify({countDistributionNHL:Object.fromEntries(Object.entries(r.nhl.byMarketPosition).filter(([k,v])=>!k.includes('|')&&v.countDistributionHoldout).map(([k,v])=>[k,v.countDistributionHoldout])),targetShareNFL:Object.fromEntries(Object.entries(r.nfl.byMarketPosition).filter(([k,v])=>v.independentFactorHoldout?.targetShare).map(([k,v])=>[k,{...v.independentFactorHoldout.targetShare,weight:undefined}]))}));
           console.log(JSON.stringify({receivingDepthNFL:Object.fromEntries(Object.entries(r.nfl.byMarketPosition).filter(([k,v])=>v.independentFactorHoldout?.receivingDepth).map(([k,v])=>[k,{...v.independentFactorHoldout.receivingDepth,weight:undefined}]))}));
+          const f3=Object.fromEntries(Object.entries(r.nfl.byMarketPosition).filter(([k])=>k==='passing_attempts|QB'||k==='receiving_yards|WR'||k==='receiving_yards|TE'||k==='receiving_yards|RB').map(([k,v])=>[k,Object.fromEntries(Object.entries(v.independentFactorHoldout||{}).filter(([n])=>['passVolume','receivingMatchup','targetShare'].includes(n)).map(([n,x])=>[n,{...x,weight:undefined}]))]));
+          console.log(JSON.stringify({priorityNFL:f3}));
+          const {load}=require('./scripts/report-nhl-position-multiseason-v3.cjs'),{history,schedules}=load();
+          const points=require('./src/nhl-shot-point-opportunity-v1.cjs').prepare(history,{...schedules.at(-1),games:schedules.flatMap(x=>x.games)},{cutoff:new Date().toISOString().slice(0,10)}).report.byMarketAndPosition.points;
+          if(!points?.models?.teamGoalParticipation?.n)throw Error('No valid held-out NHL team goal participation observations');
+          console.log(JSON.stringify({priorityNHLPoints:{thresholds:points.thresholds,games:points.games,models:points.models},modelPromoted:false}));
           NODE
   refresh-trial:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -78,7 +84,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 05d3e89bb496c747493c537fd089cfea3e03e3da
+          ref: 6a06e671167435698613fa09090432f0ac0f8fb9
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false

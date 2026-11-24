@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          test "$(git rev-parse HEAD)" = "0e7662afbe5ec03f6b35f2e9d18c0aaf45cd7799"
+          test "$(git rev-parse HEAD)" = "c35e33913ba185e1898bd64546f62d1467c586e7"
           report="outputs/health/ci-diagnostics/sportsbook-matched-pr294-${GITHUB_RUN_ID}.txt"
           mkdir -p "$(dirname "$report")"
           overall=0
@@ -39,13 +39,13 @@ jobs:
             printf '\n=== %s ===\n' "$name" >> "$report"
             if "$@" >> "$report" 2>&1; then printf '%s: PASS\n' "$name" >> "$report"; else printf '%s: FAIL\n' "$name" >> "$report"; overall=1; fi
           }
-          stage regression node --test test/sportsbook-matched-model-research.test.cjs test/sportsbook-event-quota.test.cjs test/nhl-sportsbook-event-bridge.test.cjs test/nhl-sportsbook-original-name.test.cjs test/expanded-common-ml-grade.test.cjs test/nhl-goalie-starter-history.test.cjs test/priority-common-ml-shadow-v1.test.cjs
+          stage regression node --test test/sportsbook-matched-model-research.test.cjs test/sportsbook-event-quota.test.cjs test/nhl-sportsbook-event-bridge.test.cjs test/nhl-sportsbook-original-name.test.cjs test/expanded-common-ml-grade.test.cjs test/nhl-goalie-starter-history.test.cjs test/priority-common-ml-shadow-v1.test.cjs test/underdog-sportsbook-match-v1.test.cjs
           stage collector_syntax node --check scripts/collect-bounded-sportsbook-quotes.cjs
           stage nhl_syntax node --check scripts/freeze-partner-nhl-pregame.cjs
           stage nfl_syntax node --check scripts/freeze-nfl-partner-pregame.cjs
           if [ "$overall" -eq 0 ]; then stage goalie_reconciliation node scripts/collect-nhl-goalie-starter-history.cjs; fi
           if [ "$overall" -eq 0 ]; then stage archive_grade node scripts/report-expanded-common-ml-forward.cjs; fi
-          if [ "$overall" -eq 0 ]; then stage summarize node -e 'const d=require("./outputs/health/expanded-common-ml-forward-latest.json"); const x=d.sportsbookObservedLineHistory;console.log(JSON.stringify({matched:d.sportsbookMatched,lines:{acceptedArchives:x.acceptedArchives,trackedSeries:x.trackedSeries,repeatedSeries:x.repeatedSeries,changedLines:x.changedLines},modelPromoted:d.modelPromoted}));'; fi
+          if [ "$overall" -eq 0 ]; then stage summarize node -e 'const d=require("./outputs/health/expanded-common-ml-forward-latest.json"); const x=d.sportsbookObservedLineHistory;console.log(JSON.stringify({matched:d.sportsbookMatched,lines:{acceptedArchives:x.acceptedArchives,trackedSeries:x.trackedSeries,repeatedSeries:x.repeatedSeries,changedLines:x.changedLines},underdog:d.underdogSportsbookResearch?.bySport,modelPromoted:d.modelPromoted}));'; fi
           printf '\noverall_exit=%s\n' "$overall" >> "$report"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'

@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: d8a4ae3d9aaf52630fde5f4c7f1741b27b5df91b
+          ref: 8f4567519f5bf7d49644b8654315f46e1738eb69
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -21,5 +21,5 @@ jobs:
           node-version: '22'
       - run: |
           set -euo pipefail
-          node --test test/nba-context-calibration-v2.test.cjs test/nba-dunk-cohort-study.test.cjs test/nba-alternate-providers.test.cjs test/nba-authorized-provider-access.test.cjs
+          node --test test/nba-real-line-priority.test.cjs test/nba-context-calibration-v2.test.cjs test/nba-dunk-cohort-study.test.cjs test/nba-alternate-providers.test.cjs test/nba-authorized-provider-access.test.cjs
           node scripts/run-nba-dunk-cohort-study.cjs

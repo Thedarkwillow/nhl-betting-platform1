@@ -86,6 +86,22 @@ jobs:
             exit 1
           fi
           echo "PASS: prior-season specialist metadata enriched with original game/play identities preserved."
+      - name: Collect validated full-play drive boundary evidence privately
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! python scripts/collect-nfl-full-drive-boundaries.py >"$log" 2>&1; then
+            for year in 2024 2025 2026; do
+              file="outputs/nfl/history/$year/drive_boundary_plays.json.gz"
+              if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then git restore -- "$file"; else rm -f "$file"; fi
+            done
+            echo "::warning::Full-play boundaries unavailable; retained previous evidence and filtered-archive fallback."
+          else
+            echo "PASS: full-play historical identities checked; no inferred drive endings."
+          fi
       - name: Grade only first-Git-original numeric and explicit directional NFL research
         working-directory: private
         run: |
@@ -148,6 +164,10 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for year in 2024 2025 2026; do
+            file="outputs/nfl/history/$year/drive_boundary_plays.json.gz"
+            if test -f "$file"; then git add -f "$file"; fi
+          done
           git add -f outputs/nfl/history/2024/pbp_specialty_events.json.gz outputs/nfl/history/2025/pbp_specialty_events.json.gz
           git add -f outputs/nfl/history/manifest.json outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/history/2026/weekly_rosters.json.gz outputs/nfl/history/2026/snap_counts.json.gz outputs/nfl/history/2026/team_weekly.json.gz outputs/nfl/history/2026/kicking_pbp.json.gz outputs/nfl/history/2026/pbp_specialty_events.json.gz outputs/health/cross-sport-position-h2h-replay-latest.json outputs/nfl/backtests/pregame-forecast-proof-latest.json outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json outputs/nfl/backtests/frozen-shadow-prospective-grading-latest.json outputs/nfl/backtests/matchup-context-forward-grade-latest.json outputs/nfl/backtests/independent-source-forward-latest.json outputs/nfl/backtests/directional-v2-future-only-latest.json outputs/nfl/backtests/directional-first-threshold-review-latest.json
           if test -n "${SUNDAY_AUDIT_DATE:-}"; then

@@ -1,0 +1,49 @@
+name: Archive NHL Goalie and Ice Time Context (manual-only fallback)
+on:
+  workflow_dispatch:
+# Scheduled work moved to public nhl-betting-platform1/private-nhl-goalie-usage.yml.
+# Old private-runner schedule retired while private minutes are exhausted.
+permissions:
+  contents: write
+concurrency:
+  group: nhl-usage-backfill
+  cancel-in-progress: false
+jobs:
+  archive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate official NHL usage and abstention code
+        run: |
+          node --check scripts/backfill-nhl-usage.cjs
+          node --test test/nhl-usage-goalie.test.cjs test/nhl-usage-backtest.test.cjs test/free-nhl-research.test.cjs test/nhl-lineup-optimizer.test.cjs
+      - name: Backfill only missing past official FINAL player minute data
+        run: node scripts/backfill-nhl-usage.cjs
+      - name: Compare goalie saves and skater SOG/blocks against prior-minute rate shadows
+        run: node scripts/backtest-nhl-usage.cjs
+      - name: Commit isolated verified official usage history
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/nhl-usage/latest.json outputs/nhl-usage/daily/*.json outputs/backtests/nhl-usage-role-shadow-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: backfill NHL official goalie and skater TOI usage"
+            git pull --rebase -X theirs origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-usage-final-boxscore
+          path: |
+            outputs/nhl-usage/latest.json
+            outputs/nhl-usage/daily/*.json
+            outputs/backtests/nhl-usage-role-shadow-latest.json
+          if-no-files-found: warn

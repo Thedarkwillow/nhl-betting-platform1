@@ -1,0 +1,49 @@
+name: Walk-forward Historical PrizePicks NHL Model
+# Compute fixed-direction benchmarks and two-season holdout experiments from cached official NHL logs.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/oddspapi-nhl-walkforward.yml']
+  workflow_run:
+    workflows: ['Audit Historical PrizePicks NHL Outcomes']
+    types: [completed]
+permissions:
+  contents: write
+concurrency:
+  group: oddspapi-nhl-walkforward-once
+  cancel-in-progress: false
+jobs:
+  test:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test no-lookahead historical grading
+        run: |
+          node --check scripts/backtest-oddspapi-nhl.cjs
+          node --test test/oddspapi-walkforward.test.cjs
+      - name: Verify past-only NHL player model on archived PrizePicks lines
+        run: node scripts/backtest-oddspapi-nhl.cjs
+      - name: Save isolated retrospective results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/oddspapi/nhl/retrospective-model-latest.json outputs/oddspapi/nhl/official-historical-player-logs-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: historical PrizePicks walk-forward model audit"
+            git pull --rebase -X theirs origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: archived-nhl-prizepicks-model-audit
+          path: outputs/oddspapi/nhl/retrospective-model-latest.json
+          if-no-files-found: ignore

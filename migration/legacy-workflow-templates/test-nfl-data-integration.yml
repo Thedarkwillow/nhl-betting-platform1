@@ -1,0 +1,48 @@
+name: Verify NFL Research, Historical and Morning Capture Code
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/nfl-research-sources.cjs'
+      - 'scripts/collect-nfl-board.cjs'
+      - 'scripts/diff-nfl-morning-boards.cjs'
+      - 'scripts/collect-nfl-history.py'
+      - 'test/nfl-research-history-board.test.cjs'
+      - 'test/test_nfl_history.py'
+      - '.github/workflows/collect-nfl-history.yml'
+      - '.github/workflows/collect-nfl-morning-boards.yml'
+      - '.github/workflows/test-nfl-data-integration.yml'
+  push:
+    branches: [main, 'feat/**', 'feature/**', 'fix/**']
+    paths:
+      - 'src/nfl-research-sources.cjs'
+      - 'scripts/collect-nfl-board.cjs'
+      - 'scripts/diff-nfl-morning-boards.cjs'
+      - 'scripts/collect-nfl-history.py'
+      - 'test/nfl-research-history-board.test.cjs'
+      - 'test/test_nfl_history.py'
+      - '.github/workflows/test-nfl-data-integration.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Validate NFL source registry, approved market mappings, and morning safety gates
+        run: |
+          node --check src/nfl-research-sources.cjs
+          node --check scripts/collect-nfl-board.cjs
+          node --check scripts/diff-nfl-morning-boards.cjs
+          node --test test/nfl-research-history-board.test.cjs test/nfl-market-registry.test.cjs
+      - name: Validate historical collector syntax and fake-data archives without network
+        run: |
+          python -m py_compile scripts/collect-nfl-history.py
+          python -m unittest discover -s test -p 'test_nfl_*.py'

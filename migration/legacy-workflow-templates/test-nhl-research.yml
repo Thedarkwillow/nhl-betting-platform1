@@ -1,0 +1,400 @@
+name: Test NHL Research Builder
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/build-nhl-research.cjs'
+      - 'src/free-nhl-research.cjs'
+      - 'src/nhl-seven-roadmap-readiness.cjs'
+      - 'src/nhl-four-priority-markets.cjs'
+      - 'src/nhl-four-priority-shadow.cjs'
+      - 'src/nhl-extra-market-shadow.cjs'
+      - 'src/nhl-new-market-model.cjs'
+      - 'src/nhl-experimental-offer-bridge.cjs'
+      - 'src/nhl-combo-period-research.cjs'
+      - 'src/nhl-official-period-events.cjs'
+      - 'src/nhl-combo-source-evidence.cjs'
+      - 'src/nhl-combo-joint-shadow.cjs'
+      - 'src/nhl-period-count-model.cjs'
+      - 'src/nhl-period-combo-launch-evidence.cjs'
+      - 'scripts/report-nhl-combo-period-release.cjs'
+      - 'test/nhl-combo-period-release-evidence.test.cjs'
+      - 'src/nhl-lineup-optimizer.cjs'
+      - 'docs/NHL_COMBO_PERIOD_FIVE_STAGE_RELEASE_AUDIT_2026-11-07.md'
+      - 'src/nhl-period-offer-research.cjs'
+      - 'scripts/backfill-nhl-prior-season-periods.cjs'
+      - '.github/workflows/backfill-nhl-prior-season-periods.yml'
+      - 'test/nhl-prior-season-period-backfill.test.cjs'
+      - 'test/nhl-period-offer-research.test.cjs'
+      - 'scripts/build-nhl-period-combo-models.cjs'
+      - 'test/nhl-period-count-model.test.cjs'
+      - 'test/nhl-combo-joint-shadow.test.cjs'
+      - 'test/nhl-combo-source-evidence.test.cjs'
+      - 'src/nhl-period-history.cjs'
+      - 'scripts/collect-nhl-official-period-events.cjs'
+      - 'scripts/build-nhl-period-history.cjs'
+      - '.github/workflows/collect-nhl-period-events.yml'
+      - 'test/nhl-official-period-events.test.cjs'
+      - 'src/nhl-experimental-market-outcome.cjs'
+      - 'test/nhl-experimental-market-outcome.test.cjs'
+      - 'test/nhl-combo-period-research.test.cjs'
+      - 'src/nhl-official-skater-summary.cjs'
+      - 'test/nhl-expanded-markets.test.cjs'
+      - 'src/nhl-official-faceoff-wins.cjs'
+      - 'src/nhl-official-goalie-fantasy.cjs'
+      - 'test/nhl-official-goalie-fantasy.test.cjs'
+      - 'src/boxscore.cjs'
+      - 'src/history.cjs'
+      - 'scripts/collect-player-stats.cjs'
+      - 'scripts/build-projections.cjs'
+      - 'test/nhl-four-priority-markets.test.cjs'
+      - 'test/nhl-official-faceoff-wins.test.cjs'
+      - '.github/workflows/collect-player-stats.yml'
+      - 'src/nhl-github-run-health.cjs'
+      - 'test/nhl-github-run-health.test.cjs'
+      - 'src/nhl-lineup-source-revalidation.cjs'
+      - 'src/nhl-forward-market-v3-grader.cjs'
+      - 'src/nhl-frozen-baseline-challenge.cjs'
+      - 'src/nfl-market-registry.cjs'
+      - 'scripts/audit-nfl-archived-board.cjs'
+      - 'src/nfl-prizepicks-fantasy-scoring.cjs'
+      - 'test/nfl-market-registry.test.cjs'
+      - 'docs/NFL_PRIZEPICKS_UNDERDOG_PROP_CATALOG_2026-11-08.md'
+      - '.github/workflows/test-nfl-market-inventory.yml'
+      - 'src/nhl-simple-pregame-challengers.cjs'
+
+      - 'src/nhl-frozen-simple-challenger-grader.cjs'
+      - 'src/nhl-no-credit-freeze-recovery.cjs'
+      - 'scripts/build-free-nhl-research.cjs'
+      - 'scripts/check-nhl-no-credit-freeze-recovery.cjs'
+      - 'scripts/report-nhl-frozen-simple-challengers.cjs'
+      - 'test/nhl-simple-pregame-challengers.test.cjs'
+      - 'test/nhl-no-credit-freeze-recovery.test.cjs'
+      - '.github/workflows/nhl-no-credit-pregame-freeze-recovery.yml'
+      - '.github/workflows/grade-nhl-predictions.yml'
+      - 'docs/NHL_FROZEN_SIMPLE_STRATEGY_CHALLENGE_2026-11-08.md'
+      - 'scripts/report-nhl-frozen-baseline-challenge.cjs'
+      - 'test/nhl-frozen-baseline-challenge.test.cjs'
+      - 'scripts/grade-nhl-forward-market-v3.cjs'
+      - 'test/nhl-forward-market-v3-grader.test.cjs'
+      - 'test/nhl-distribution-snapshot.test.cjs'
+      - 'test/nhl-lineup-source-revalidation.test.cjs'
+      - 'test/nhl-seven-roadmap-readiness.test.cjs'
+      - 'scripts/report-nhl-seven-roadmap-readiness.cjs'
+      - 'src/nhl-public-dashboard-payload.cjs'
+      - 'src/nhl-offer-claim-guard.cjs'
+      - 'src/nhl-public-evidence-labels.cjs'
+      - 'config/canonical-research-entities-v1.json'
+      - 'docs/CANONICAL_RESEARCH_ENTITY_CONTRACT_V1.md'
+      - 'docs/NHL_MOBILE_DEGRADED_MODE_AND_RECOVERY.md'
+      - 'docs/NHL_RESPONSIBLE_RESEARCH_POLICY.md'
+      - 'test/nhl-six-offline-closures.test.cjs'
+      - '.github/workflows/probe-pickfinder.yml'
+      - '.github/workflows/import-pickfinder.yml'
+      - '.github/workflows/collect-prizepicks-cloud.yml'
+      - '.github/workflows/nhl-immediate-board-capture-20261106.yml'
+      - '.github/workflows/nhl-recover-immutable-board-20261106.yml'
+      - '.github/workflows/nhl-one-time-compact-repair-freeze.yml'
+      - '.github/workflows/verify-prizepicksapi-once.yml'
+      - 'test/nhl-public-dashboard-payload.test.cjs'
+      - 'scripts/collect-prizepicks-asof-nhl.cjs'
+      - 'test/prizepicksapi-asof-board.test.cjs'
+      - 'src/nhl-daily-prospective-gate.cjs'
+      - 'scripts/check-nhl-daily-prospective.cjs'
+      - 'test/nhl-daily-prospective-gate.test.cjs'
+      - 'scheduler/nhl-board-dispatcher/**'
+      - '.github/workflows/deploy-nhl-independent-scheduler.yml'
+      - 'docs/NHL_INDEPENDENT_MORNING_SCHEDULER.md'
+      - 'src/nhl-morning-board-monitor.cjs'
+      - 'scripts/check-nhl-0900-board-gate.cjs'
+      - 'test/nhl-morning-board-monitor.test.cjs'
+      - 'src/nhl-morning-source-delta.cjs'
+      - 'test/nhl-morning-source-delta.test.cjs'
+      - 'test/nhl-board-archive-autostash.test.cjs'
+      - 'scripts/report-nhl-remaining-today.cjs'
+      - 'test/nhl-remaining-today.test.cjs'
+      - '.github/workflows/nhl-on-demand-remaining-20261107.yml'
+      - '.github/workflows/nhl-0900-board-delta.yml'
+      - 'test/backfill-2025-26-fall-prizepicks-odds-api.test.cjs'
+      - '.github/workflows/test-nhl-research.yml'
+      - 'src/nhl-market-registry.cjs'
+      - 'src/prizepicksapi-nhl-coverage-stability.cjs'
+      - 'test/nhl-coverage-stability.test.cjs'
+      - 'test/prizepicksapi-board.test.cjs'
+      - 'src/nhl-prospective-freeze-readiness.cjs'
+      - 'test/nhl-prospective-freeze-readiness.test.cjs'
+      - 'scripts/preflight-nhl-future-capture.cjs'
+      - 'src/nhl-frozen-commit-verifier.cjs'
+      - 'scripts/verify-nhl-frozen-pregame-commit.cjs'
+      - 'test/nhl-frozen-commit-verifier.test.cjs'
+      - '.github/workflows/trial-free-prizepicks-nhl.yml'
+      - '.github/workflows/one-shot-nhl-prospective-freeze-20261103.yml'
+      - 'test/nhl-retired-collectors.test.cjs'
+      - '.github/workflows/collect-pickfinder-cloud.yml'
+      - '.github/workflows/collect-nhl-market-batch.yml'
+      - '.github/workflows/discover-nhl-categories.yml'
+      - 'test/nhl-market-registry.test.cjs'
+      - 'src/nhl-research-evidence.cjs'
+      - 'test/nhl-research-evidence.test.cjs'
+      - 'scripts/build-free-nhl-research.cjs'
+      - 'scripts/build-approved-nhl-shadow.cjs'
+      - 'scripts/build-nhl-dfo-role-goalie-shadow.cjs'
+      - 'src/nhl-dfo-role-goalie-shadow.cjs'
+      - 'src/nhl-dfo-goalie-starter-audit.cjs'
+      - 'test/nhl-dfo-role-goalie-shadow.test.cjs'
+      - 'test/nhl-dfo-goalie-starter-audit.test.cjs'
+      - 'src/nhl-moneypuck-goalie-game-lab.cjs'
+      - 'test/nhl-moneypuck-goalie-game-lab.test.cjs'
+      - 'scripts/evaluate-moneypuck-goalie-history.cjs'
+      - 'src/nhl-platform-line-shop.cjs'
+      - 'src/nhl-oddsapi-underdog.cjs'
+      - 'test/nhl-oddsapi-underdog.test.cjs'
+      - 'scripts/collect-underdog-oddsapi-nhl-sample.cjs'
+      - 'test/nhl-underdog-oddsapi-collector.test.cjs'
+      - 'test/nhl-platform-line-shop.test.cjs'
+      - 'scripts/export-public-nhl-data.cjs'
+      - 'src/nhl-public-research-extensions.cjs'
+      - 'src/nhl-model-release-gate.cjs'
+      - 'src/nhl-lineup-correlation-evidence.cjs'
+      - 'scripts/report-nhl-prospective-model-release.cjs'
+      - 'test/nhl-six-roadmap-upgrades.test.cjs'
+      - 'test/nhl-platform-line-shop.test.cjs'
+      - 'src/nhl-roadmap-foundations.cjs'
+      - 'src/nhl-operational-alerts.cjs'
+      - 'src/nhl-premium-access-policy.cjs'
+      - 'scripts/build-nhl-private-ledger-and-labs.cjs'
+      - 'scripts/report-nhl-operator-alerts.cjs'
+      - 'test/nhl-roadmap-next-sprint.test.cjs'
+      - '.github/workflows/nhl-overnight-health.yml'
+      - '.github/workflows/grade-nhl-predictions.yml'
+      - 'src/nhl-historical-pair-correlation.cjs'
+      - 'src/nhl-historical-pair-source.cjs'
+      - 'src/nhl-source-coverage-audit.cjs'
+      - 'src/nhl-public-prospective-cohort.cjs'
+      - 'test/nhl-cohort-correlation-coverage.test.cjs'
+      - 'config/private-prizepicks-follow-target.json'
+      - 'src/private-prizepicks-follow-review.cjs'
+      - 'src/private-follow-discord-alerts.cjs'
+      - 'scripts/preview-private-prizepicks-follow.cjs'
+      - 'test/private-prizepicks-follow.test.cjs'
+      - '.github/workflows/preview-private-brigue-follow.yml'
+      - 'src/nhl-public-dashboard-payload.cjs'
+      - 'test/nhl-public-dashboard-payload.test.cjs'
+      - 'scripts/publish-public-nhl-data.cjs'
+      - 'scripts/report-nhl-overnight-health.cjs'
+      - 'test/nhl-overnight-health.test.cjs'
+      - '.github/workflows/nhl-overnight-health.yml'
+      - 'test/free-nhl-research.test.cjs'
+      - 'src/puckapi-historical-backtest.cjs'
+      - 'test/puckapi-historical-backtest.test.cjs'
+      - 'scripts/sample-puckapi-nhl-history.cjs'
+      - '.github/workflows/sample-puckapi-nhl-history.yml'
+      - 'src/nhl-retrospective-backtest.cjs'
+      - 'scripts/backtest-nhl-prizepicks-history.cjs'
+      - 'test/nhl-retrospective-backtest.test.cjs'
+      - 'src/oddspapi-prizepicks-history.cjs'
+      - 'test/oddspapi-prizepicks-history.test.cjs'
+      - 'src/oddspapi-historical-identity.cjs'
+      - 'test/oddspapi-historical-identity.test.cjs'
+      - 'src/oddspapi-walkforward.cjs'
+      - 'scripts/backtest-oddspapi-nhl.cjs'
+      - 'test/oddspapi-walkforward.test.cjs'
+      - 'src/nhl-historical-baselines.cjs'
+      - 'test/nhl-historical-baselines.test.cjs'
+      - 'src/nhl-temporal-model-comparison.cjs'
+      - 'test/nhl-temporal-model-comparison.test.cjs'
+      - 'src/nhl-historical-uncertainty.cjs'
+      - 'test/nhl-historical-uncertainty.test.cjs'
+      - 'src/nhl-stats-backfill.cjs'
+      - 'test/nhl-stats-backfill.test.cjs'
+      - '.github/workflows/oddspapi-nhl-walkforward.yml'
+      - 'scripts/audit-oddspapi-nhl-history.cjs'
+      - 'scripts/expand-oddspapi-nhl-history.cjs'
+      - '.github/workflows/expand-oddspapi-nhl-history.yml'
+      - 'test/oddspapi-audit-runner.test.cjs'
+      - '.github/workflows/audit-oddspapi-nhl-history.yml'
+      - 'scripts/probe-oddspapi-prizepicks-nhl.cjs'
+      - '.github/workflows/probe-oddspapi-prizepicks-nhl.yml'
+      - '.github/workflows/backtest-archived-prizepicks-nhl.yml'
+      - 'test/nhl-free-official-schedule.test.cjs'
+      - 'test/nhl-free-market-comparison.test.cjs'
+      - 'src/nhl-opponent-context.cjs'
+      - 'src/nhl-count-distribution-shadow.cjs'
+      - 'src/nhl-approved-shadow-grader.cjs'
+      - 'scripts/grade-approved-nhl-source-shadow.cjs'
+      - 'test/nhl-approved-shadow-grader.test.cjs'
+      - '.github/workflows/grade-approved-nhl-source-shadow.yml'
+      - 'src/nhl-distribution-snapshot.cjs'
+      - 'test/nhl-count-distribution-shadow.test.cjs'
+      - 'test/nhl-distribution-snapshot.test.cjs'
+      - 'scripts/evaluate-nhl-distribution-shadow.cjs'
+      - 'src/nhl-matchup-scout.cjs'
+      - 'test/nhl-matchup-scout.test.cjs'
+      - 'src/nhl-pregame-intel.cjs'
+      - 'scripts/collect-nhl-pregame-intel.cjs'
+      - 'scripts/build-free-nhl-research.cjs'
+      - 'test/nhl-pregame-intel.test.cjs'
+      - 'src/nhl-context-backtest.cjs'
+      - 'test/nhl-opponent-context.test.cjs'
+      - 'test/nhl-context-backtest.test.cjs'
+      - 'src/nhl-morning-source-delta.cjs'
+      - 'test/nhl-morning-source-delta.test.cjs'
+      - 'scripts/track-free-nhl-line-movement.cjs'
+      - 'src/nhl-free-line-movement.cjs'
+      - 'scripts/track-free-nhl-line-movement.cjs'
+      - 'test/nhl-free-line-movement.test.cjs'
+      - 'src/nhl-six-priority-evidence-brief.cjs'
+      - 'test/nhl-six-priority-evidence-brief.test.cjs'
+      - 'src/nhl-priority-market-walkforward.cjs'
+      - 'scripts/report-nhl-priority-market-walkforward.cjs'
+      - 'test/nhl-priority-market-walkforward.test.cjs'
+      - 'test/nhl-free-line-movement-tier.test.cjs'
+      - 'src/nhl-free-line-movement.cjs'
+      - 'src/nhl-public-research-extensions.cjs'
+      - 'scripts/backtest-nhl-context.cjs'
+      - 'scripts/grade-nhl-predictions.cjs'
+      - 'src/nhl-graded-summary.cjs'
+      - 'test/nhl-graded-summary.test.cjs'
+      - 'scripts/export-public-nhl-data.cjs'
+      - 'scripts/build-nhl-site.cjs'
+      - 'site/index.html'
+      - 'src/nhl-lineup-optimizer.cjs'
+      - 'scripts/build-nhl-source-preview.cjs'
+      - 'test/nhl-source-preview.test.cjs'
+      - 'src/nhl-paired-market-model-audit.cjs'
+      - 'test/nhl-paired-market-model-audit.test.cjs'
+      - 'scripts/report-nhl-market-model-audit.cjs'
+      - 'scripts/export-public-nhl-data.cjs'
+      - 'src/nhl-lineup-revalidation.cjs'
+      - 'test/nhl-lineup-revalidation.test.cjs'
+      - 'src/nhl-outcome-evidence.cjs'
+      - 'test/nhl-outcome-evidence.test.cjs'
+      - 'src/nhl-provider-quality-manifest.cjs'
+      - 'test/nhl-provider-quality-manifest.test.cjs'
+      - 'scripts/report-nhl-provider-quality.cjs'
+      - 'test/nhl-lineup-optimizer.test.cjs'
+      - 'src/nhl-game-identity.cjs'
+      - 'src/nhl-archived-game-identity.cjs'
+      - 'src/nhl-prospective-quality.cjs'
+      - 'src/nhl-frozen-individual-props.cjs'
+      - 'src/nhl-frozen-selected-lineup-grader.cjs'
+      - 'test/nhl-frozen-individual-props.test.cjs'
+      - 'test/nhl-frozen-selected-lineup-grader.test.cjs'
+      - 'test/nhl-archived-game-identity.test.cjs'
+      - 'test/nhl-prospective-quality.test.cjs'
+      - 'test/nhl-game-identity.test.cjs'
+      - 'src/grade-nhl-predictions.cjs'
+      - 'test/grade-nhl-predictions.test.cjs'
+      - 'src/prop-probabilities.cjs'
+      - 'test/prop-probabilities.test.cjs'
+      - 'test/nhl-research.test.cjs'
+      - 'scripts/collect-nhl-category.cjs'
+      - 'src/tinyfish-errors.cjs'
+      - 'test/tinyfish-errors.test.cjs'
+      - '.github/workflows/collect-nhl-market-batch.yml'
+      - 'scripts/collect-nhl-sportsbook-odds.cjs'
+      - 'test/sportsbook-collector.test.cjs'
+      - 'src/nhl-daily-prospective-gate.cjs'
+      - 'scripts/check-nhl-daily-prospective.cjs'
+      - 'test/nhl-daily-prospective-gate.test.cjs'
+      - '.github/workflows/nhl-bounded-daily-pregame-freeze.yml'
+      - 'src/prizepicksapi-normalize.cjs'
+      - 'src/prizepicksapi-nhl-request.cjs'
+      - 'scripts/probe-prizepicksapi-nhl.cjs'
+      - 'test/prizepicksapi-nhl-request.test.cjs'
+      - 'test/probe-prizepicksapi-nhl.test.cjs'
+      - 'src/nhl-prospective-evidence.cjs'
+      - 'test/nhl-prospective-evidence.test.cjs'
+      - 'scripts/collect-prizepicks-free-api.cjs'
+      - 'test/prizepicksapi-normalize.test.cjs'
+      - '.github/workflows/trial-free-prizepicks-nhl.yml'
+      - 'src/sgo-nhl-contract.cjs'
+      - 'test/sgo-nhl-contract.test.cjs'
+      - 'scripts/collect-sportsgameodds-nhl.cjs'
+      - 'scripts/probe-sportsgameodds-historical-nhl.cjs'
+      - '.github/workflows/test-nhl-research.yml'
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Run unit tests without credentials
+        run: |
+          node --check scripts/build-free-nhl-research.cjs
+          node --check src/nhl-four-priority-markets.cjs
+          node --check src/nhl-four-priority-shadow.cjs
+          node --check src/nhl-extra-market-shadow.cjs
+          node --check src/nhl-new-market-model.cjs
+          node --check src/nhl-experimental-offer-bridge.cjs
+          node --check src/nhl-combo-period-research.cjs
+          node --check src/nhl-official-period-events.cjs
+          node --check src/nhl-combo-source-evidence.cjs
+          node --check src/nhl-combo-joint-shadow.cjs
+          node --check src/nhl-period-count-model.cjs
+          node --check src/nhl-period-offer-research.cjs
+          node --check scripts/backfill-nhl-prior-season-periods.cjs
+          node --check scripts/build-nhl-period-combo-models.cjs
+          node --check src/nhl-period-history.cjs
+          node --check scripts/collect-nhl-official-period-events.cjs
+          node --check scripts/build-nhl-period-history.cjs
+          node --check src/nhl-experimental-market-outcome.cjs
+          node --check src/nhl-official-skater-summary.cjs
+          node --check src/nhl-official-faceoff-wins.cjs
+          node --check src/nhl-official-goalie-fantasy.cjs
+          node --check scripts/collect-player-stats.cjs
+          node --check scripts/collect-prizepicks-asof-nhl.cjs
+          node --check scripts/check-nhl-0900-board-gate.cjs
+          node --check src/nhl-market-registry.cjs
+          node --check src/nhl-frozen-individual-props.cjs
+          node --check src/nhl-prospective-evidence.cjs
+          node --check src/prizepicksapi-nhl-request.cjs
+          node --check scripts/probe-prizepicksapi-nhl.cjs
+          node --check scripts/grade-nhl-predictions.cjs
+          node --check scripts/grade-nhl-forward-market-v3.cjs
+          node --check src/nhl-forward-market-v3-grader.cjs
+          node --check scripts/build-approved-nhl-shadow.cjs
+          node --check scripts/build-nhl-dfo-role-goalie-shadow.cjs
+          node --check src/nhl-offer-claim-guard.cjs
+          node --check src/nhl-public-evidence-labels.cjs
+          npm test
+          # Check original historical Git-frozen cohort with the new comparison
+          # protocol before any automatic grading workflow can adopt it.
+          node scripts/report-nhl-frozen-baseline-challenge.cjs
+          node --check scheduler/nhl-board-dispatcher/src/index.mjs
+          node --test scheduler/nhl-board-dispatcher/test/dispatcher.test.mjs
+      - name: Build research output
+        run: node scripts/build-nhl-research.cjs
+      - name: Validate public dashboard data export
+        run: |
+          node --check scripts/export-public-nhl-data.cjs
+          node --check scripts/report-nhl-overnight-health.cjs
+          node scripts/export-public-nhl-data.cjs
+          node - <<'NODE'
+          const d=require('./site/data.json');
+          if(!Array.isArray(d.featuredIndividualProps)||d.featuredPropsPolicy!=='nhl-individual-prop-max-available-direction-v1')process.exit(1);
+          for(const p of d.featuredIndividualProps){
+            if(p.expectedValue!==null||p.modelProbabilityCalibrated!==false||
+             p.originalPlatformSettlementVerified!==false||p.probability<=0.5)process.exit(1);
+          }
+          console.log('Featured individuals are explicit model preferences, not payouts, live settlements or raw offered-side pairs');
+          NODE
+          node -e 'const d=require("./site/data.json");if(!d.lineups||!d.dataProvider||d.matchupResearch?.sources?.length!==5||d.matchupResearch?.thirdPartyDataAccessAuthorized!==false||d.matchupResearch?.noNewModelAdjustment!==true||d.props.some(p=>!p.matchupScout||p.matchupScout.modelProbabilityAdjusted!==false))process.exit(1);console.log(JSON.stringify({source:d.dataProvider,props:d.props.length,playerRates:d.matchupResearch.playerRateAvailable,opponentContext:d.matchupResearch.opponentContextAvailable}))'
+      - name: Validate output and report counts
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const d=JSON.parse(fs.readFileSync('outputs/research/nhl-latest.json','utf8'));
+          if(!Array.isArray(d.rankedProps)||!d.excluded||!d.lineups)process.exit(1);
+          if(d.rankedProps.some(x=>x.verified!==false||x.probabilityCalibrated!==false||x.expectedValue!==null))process.exit(1);
+          console.log(JSON.stringify({totalRows:d.totalRows,matchedRows:d.matchedRows,uniqueMatchedProps:d.uniqueMatchedProps,excluded:d.excluded,coverageComplete:d.boardCoverageComplete},null,2));
+          NODE
+      - uses: actions/upload-artifact@v6
+        with:
+          name: nhl-research-test
+          path: outputs/research/nhl-latest.json

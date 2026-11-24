@@ -1,0 +1,62 @@
+name: NHL Seven-Workstream Daily Research Status (Read Only)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/nhl-seven-workstream-readiness.yml'
+  schedule:
+    - cron: '17 16 * * *'
+      timezone: 'America/Los_Angeles'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: nhl-seven-workstream-readiness
+  cancel-in-progress: false
+jobs:
+  report:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate all seven independent-source research status contracts
+        run: |
+          node --check src/nhl-github-run-health.cjs
+          node --check src/nhl-seven-roadmap-readiness.cjs
+          node --check scripts/report-nhl-seven-roadmap-readiness.cjs
+          node --test test/nhl-seven-roadmap-readiness.test.cjs test/nhl-github-run-health.test.cjs
+      - name: Evaluate current candidate models on archived official NHL results, no provider credits
+        run: |
+          node --check scripts/report-nhl-market-model-audit.cjs
+          node --test test/nhl-paired-market-model-audit.test.cjs
+          node scripts/report-nhl-market-model-audit.cjs
+      - name: Collect limited GitHub Actions job outcomes without vendor calls
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p outputs/health
+          if gh api -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/actions/runs?per_page=100" \
+            --jq '[.workflow_runs[] | {name: .name, event: .event, status: .status, conclusion: .conclusion, created_at: .created_at, html_url: .html_url}]' \
+            > outputs/health/nhl-github-run-window.json; then
+            echo "Cloud run evidence available for daily report."
+          else
+            echo "::warning::GitHub Actions run history unavailable; report will show unknown rather than success."
+            rm -f outputs/health/nhl-github-run-window.json
+          fi
+      - name: Summarize NHL evidence, missing boards, payouts and source status
+        run: node scripts/report-nhl-seven-roadmap-readiness.cjs
+      - uses: actions/upload-artifact@v6
+        with:
+          name: nhl-seven-roadmap-readiness
+          path: |
+            outputs/health/nhl-seven-workstream-readiness.json
+            outputs/health/nhl-market-model-challenger-audit.json
+          retention-days: 30
+          if-no-files-found: error

@@ -1,0 +1,118 @@
+{
+  "kind": "nba_context_study_v2",
+  "study": "2025-26 10-player 20-market-series fixed cohort",
+  "dates": {
+    "training": "2025-10-21 through 2026-01-19; exclude Jokić points pilot through 2025-12-07",
+    "calibration": "2026-01-20 through 2026-01-31",
+    "holdout": "2026-02-01 through 2026-04-12"
+  },
+  "sources": {
+    "playerLogs": {
+      "provider": "DunkAPI",
+      "endpoint": "get_player_games",
+      "credits": 5,
+      "fields": [
+        "minutes",
+        "starter",
+        "did_not_play",
+        "fga",
+        "fta",
+        "tov",
+        "pts",
+        "reb",
+        "ast",
+        "tpm"
+      ],
+      "roleIsPastOnly": true
+    },
+    "teamContext": {
+      "provider": "DunkAPI",
+      "endpoint": "get_team_stats",
+      "credits": 5,
+      "cutoffs": [
+        "2026-01-05",
+        "2026-01-12",
+        "2026-01-19",
+        "2026-01-26",
+        "2026-02-02",
+        "2026-02-09"
+      ],
+      "requiredTeams": 30,
+      "maxAgeDays": 7,
+      "sourceCutoffDocumented": true,
+      "note": "Six existing snapshots cover only January/February; extended full-season pace/defense requires separately validated free box-score reconstruction."
+    },
+    "historicalInjuries": {
+      "provider": "DunkAPI",
+      "endpoint": "get_injuries",
+      "availableForStudy": false,
+      "reason": "Provider injury snapshots begin at launch; exact historical pregame teammate status unavailable",
+      "alternateCandidate": {
+        "provider": "NBA official injury reports / SportsDataverse parsed archive",
+        "officialExample": "https://ak-static.cms.nba.com/referee/injury/Injury-Report_2026-01-20_12_30PM.pdf",
+        "documentation": "https://hoopr.sportsdataverse.org/reference/load_nba_stats_injury_report.html",
+        "archiveRelease": "https://github.com/sportsdataverse/sportsdataverse-data/releases/tag/nba_stats_injury_report",
+        "status": "source located; ingestion, rights, ID crosswalk and complete point-in-time team submission coverage unverified",
+        "rules": [
+          "Never treat an unlisted player or NOT YET SUBMITTED team as verified active",
+          "Convert Eastern wall clock using America/New_York, verify against scheduled tip and fixed pregame cutoff",
+          "Require exact game, team and player identity with dated roster membership",
+          "Use only confirmed pre-cutoff Out designations for historical absence features; no final box-score participation inference"
+        ]
+      }
+    },
+    "positionalDefense": {
+      "provider": "BALLDONTLIE",
+      "candidateEndpoint": "/nba/v1/stats/defense",
+      "availableForStudy": false,
+      "reason": "Entitlement and historical positional grouping/identity not verified; defended-shot statistics are not opponent production by position",
+      "researchPlan": "Derive from complete prior-game opponent box scores and dated position/role membership; normalize by minutes or possessions and compare with league baseline; exclude target-date and later games. Do not use end-of-season rankings."
+    },
+    "usage": {
+      "kind": "historical shot-use proxy per minute",
+      "trueUsageRequiresTeamPossessionContext": true
+    },
+    "realMarket": {
+      "provider": "DunkAPI",
+      "endpoint": "get_prop_history",
+      "platformOfferVerified": false,
+      "closingLineIsNotExactEarlierPregameQuote": true
+    }
+  },
+  "budget": {
+    "dailyMaxCredits": 10,
+    "previousPilotEstimated": 10,
+    "originalCohortCap": 259,
+    "teamContextExtraCap": 30,
+    "totalNewStudyCap": 389,
+    "independentReserve": 100,
+    "unallocatedFrom500AssumingNoOtherUsage": 1,
+    "accountBalanceVerified": false,
+    "calibrationSeriesExtraCap": 100
+  },
+  "futureCollection": {
+    "firstScheduledTask": "2026-11-25 Jokić full game log",
+    "remainingTasksRequireBoundedEligibleCollection": true,
+    "automaticRecurringPaidCollectionEnabled": true,
+    "scheduledBoundedCreditCollection": {
+      "window": "2026-11-26 through 2027-01-31 Eastern",
+      "cron": "15 6 * * *",
+      "maxRequestsPerDay": 1,
+      "requiresFirstVerifiedJokicLog": true,
+      "haltOnUnresolvedReservation": true,
+      "creditCap": 389,
+      "noRetry": true
+    },
+    "subscriptionPurchasesAuthorized": false
+  },
+  "approval": {
+    "minimumCalibrationRowsPerMarket": 100,
+    "minimumDistinctGames": 30,
+    "minimumDates": 10,
+    "minimumBinRows": 20,
+    "productionModelChanged": false,
+    "prospectiveApproval": false,
+    "independentCalibrationArchiveIsMarketOnly": true,
+    "priorSeasonLogBlocker": "Independent 2024-25 player model calibration requires matching prior-season game logs; no extra credits authorized or included."
+  }
+}

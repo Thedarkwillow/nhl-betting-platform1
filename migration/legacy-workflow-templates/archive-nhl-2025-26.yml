@@ -1,0 +1,56 @@
+name: Archive NHL 2025-26 History
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '21 10,22 * * *'
+concurrency:
+  group: nhl-historical-archive
+  cancel-in-progress: false
+jobs:
+  archive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - run: npm test
+      - name: Collect next fourteen historical dates
+        run: |
+          mkdir -p outputs/historical-archive/2025-26
+          python3 - <<'PY' > /tmp/nhl-archive-dates.txt
+          from datetime import date,timedelta
+          from pathlib import Path
+          start,end=date(2025,10,7),date(2026,4,16)
+          missing=[(start+timedelta(days=i)).isoformat() for i in range((end-start).days+1) if not Path("outputs/historical-archive/2025-26", (start+timedelta(days=i)).isoformat()+".json").exists()]
+          print("\n".join(missing[:14]))
+          PY
+          while IFS= read -r day; do
+            [ -n "$day" ] || continue
+            echo "Archiving $day"
+            npm run collect:players -- "$day"
+            mv "outputs/player-stats/$day.json" "outputs/historical-archive/2025-26/$day.json"
+          done < /tmp/nhl-archive-dates.txt
+      - name: Backtest archive separately
+        run: node scripts/backtest-archived-season.cjs
+      - name: Commit historical archive and evaluation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/historical-archive/2025-26/*.json outputs/backtests/nhl-2025-26.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: expand independent 2025-26 NHL historical archive"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-2025-26-archive-progress
+          path: outputs/backtests/nhl-2025-26.json
+          if-no-files-found: warn

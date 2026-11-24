@@ -1,0 +1,59 @@
+name: Verify NHL Morning Board Captures and Flag Missing Runs
+on:
+  workflow_dispatch:
+  schedule:
+    # After 06:00 retry window, and after 09:00 retry window.
+    - cron: '17 8 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '53 10 * * *'
+      timezone: 'America/Los_Angeles'
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: nhl-morning-board-watchdog
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify watchdog contracts offline
+        run: |
+          node --check src/nhl-morning-board-monitor.cjs
+          node --check scripts/report-nhl-morning-board-watchdog.cjs
+          node --test test/nhl-morning-board-monitor.test.cjs
+      - name: Audit archived boards and 6:00 versus 9:00 comparison
+        env:
+          NHL_MORNING_WATCHDOG_STAGE: ${{ github.event.schedule == '17 8 * * *' && 'six' || 'both' }}
+        run: node scripts/report-nhl-morning-board-watchdog.cjs
+      - name: Open or update one private GitHub issue for missed morning captures
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NHL_MORNING_WATCHDOG_STAGE: ${{ github.event.schedule == '17 8 * * *' && 'six' || 'both' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          date_pacific=$(TZ=America/Los_Angeles date +%F)
+          title="NHL morning board capture failure — ${date_pacific} Pacific"
+          body="Automatic NHL board watchdog found a missing or invalid 06:00 or 09:00 independent-source capture, or a missing same-day comparison. Check the failing GitHub Actions run and provider credit availability. Stage: ${NHL_MORNING_WATCHDOG_STAGE}. No wagers placed and no Brigue Discord alerts sent. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state all --limit 100 --json number,title             --jq ".[] | select(.title == \"$title\") | .number" | head -n1)
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-morning-board-watchdog
+          path: outputs/health/nhl-morning-board-watchdog.json
+          if-no-files-found: warn
+          retention-days: 14

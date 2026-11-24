@@ -1,0 +1,47 @@
+name: Probe Older NHL PrizePicks via The Odds API
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-older-nhl-prizepicks-odds-api.yml'
+permissions:
+  contents: write
+concurrency:
+  group: older-nhl-prizepicks-oddsapi-probe
+  cancel-in-progress: false
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate bounded source probe tests
+        run: |
+          node --check scripts/probe-the-odds-api-prizepicks-history.cjs
+          node --test test/probe-the-odds-api-prizepicks-history.test.cjs
+      - name: Preserve historical 2024-2025 PrizePicks sample offers (max 75 credits)
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: node scripts/probe-the-odds-api-prizepicks-history.cjs
+      - name: Save sanitized source test
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/the-odds-api/nhl/prizepicks-older-probe-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: sample historical PrizePicks NHL availability from The Odds API"
+            git pull --rebase -X theirs origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: older-nhl-prizepicks-source-sample
+          path: outputs/the-odds-api/nhl/prizepicks-older-probe-latest.json
+          if-no-files-found: ignore

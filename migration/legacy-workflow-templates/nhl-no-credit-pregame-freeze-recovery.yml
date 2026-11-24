@@ -1,0 +1,99 @@
+name: Verify and Repair Missing NHL Pregame Freeze (No Credits)
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Bounded Daily NHL Pregame Freeze (Legacy Requests)']
+    types: [completed]
+permissions:
+  contents: write
+  issues: write
+concurrency:
+  group: nhl-free-api-trial
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate no-credit repair and frozen challenger contracts
+        run: |
+          node --check scripts/check-nhl-no-credit-freeze-recovery.cjs
+          node --check scripts/build-free-nhl-research.cjs
+          node --test test/nhl-no-credit-freeze-recovery.test.cjs test/nhl-simple-pregame-challengers.test.cjs test/nhl-frozen-commit-verifier.test.cjs
+      - id: audit
+        name: Check original first-Git-frozen model selections today
+        run: node scripts/check-nhl-no-credit-freeze-recovery.cjs
+      - name: Rebuild only from cached independent board and official history
+        if: steps.audit.outputs.recover == 'true'
+        run: |
+          node scripts/build-projections.cjs
+          node scripts/build-free-nhl-research.cjs
+      - name: Preserve new first-write pregame picks and baselines
+        if: steps.audit.outputs.recover == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          stamp=$(node -p "require('./outputs/free-source/nhl/research-latest.json').generatedAt.slice(0,19).replace(/[-:]/g,'')+'Z'")
+          test -f "outputs/research/snapshots/${stamp}.json" || {
+            echo "::error::No eligible pregame model selections from cached board"; exit 1;
+          }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/free-source/nhl/research-latest.json outputs/free-source/nhl/research-snapshots/*.json outputs/research/snapshots/*.json
+          git add -f outputs/projections/distribution-shadow-latest.json outputs/projections/distribution-snapshots/*.json
+          git add -f outputs/backtests/nhl-context-latest.json
+          if git diff --cached --quiet; then
+            echo "::error::Repair generated no new first-write frozen research"; exit 1
+          fi
+          git commit -m "data(NHL): no-credit recovery of fresh pregame selections and baselines"
+          pushed=0
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git -c rebase.autoStash=true rebase -X theirs origin/main
+            if git push origin HEAD:main; then pushed=1; break; fi
+            sleep $((attempt * 2))
+          done
+          test "$pushed" -eq 1 || { echo "::error::Repair Git archive failed"; exit 1; }
+      - name: Prove original Git-commit and pre-puck-drop selection
+        if: steps.audit.outputs.recover == 'true'
+        run: node scripts/verify-nhl-frozen-pregame-commit.cjs
+      - id: verify
+        name: Recheck persisted original selected-model picks
+        if: always() && steps.audit.outcome == 'success'
+        run: node scripts/check-nhl-no-credit-freeze-recovery.cjs
+      - name: Fail visibly if scheduled freeze remains missing
+        if: always() && steps.audit.outcome == 'success'
+        env:
+          VERIFIED: ${{ steps.verify.outputs.verified }}
+          SKIP: ${{ steps.verify.outputs.skip }}
+          STATUS: ${{ steps.verify.outputs.status }}
+        shell: bash
+        run: |
+          if [ "$VERIFIED" != "true" ] && [ "$SKIP" != "true" ]; then
+            echo "::error::06 AM model precommit missing or unrecoverable: $STATUS"
+            exit 1
+          fi
+          echo "Verified frozen picks or no eligible NHL games; zero paid requests."
+      - name: Open or update one date-specific private issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          date_pacific=$(TZ=America/Los_Angeles date +%F)
+          title="NHL missing original pregame model choices — ${date_pacific}"
+          body="No-credit freeze recovery did not prove an original first-Git-frozen model pick. See ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. An archived board is not a picked direction. No paid source request or wager. Check original commit chronology, independent board freshness and official schedule. Never backfill a postgame model selection."
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state all --limit 100 --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n1)
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          fi

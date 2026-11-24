@@ -1,0 +1,100 @@
+{
+  "kind": "nba_context_study_v2",
+  "study": "2025-26 10-player 20-market-series fixed cohort",
+  "dates": {
+    "training": "2026-01-05 through 2026-01-19",
+    "calibration": "2026-01-20 through 2026-01-31",
+    "holdout": "2026-02-01 through 2026-02-15"
+  },
+  "sources": {
+    "playerLogs": {
+      "provider": "DunkAPI",
+      "endpoint": "get_player_games",
+      "credits": 5,
+      "fields": [
+        "minutes",
+        "starter",
+        "did_not_play",
+        "fga",
+        "fta",
+        "tov",
+        "pts",
+        "reb",
+        "ast",
+        "tpm"
+      ],
+      "roleIsPastOnly": true
+    },
+    "teamContext": {
+      "provider": "DunkAPI",
+      "endpoint": "get_team_stats",
+      "credits": 5,
+      "cutoffs": [
+        "2026-01-05",
+        "2026-01-12",
+        "2026-01-19",
+        "2026-01-26",
+        "2026-02-02",
+        "2026-02-09"
+      ],
+      "requiredTeams": 30,
+      "maxAgeDays": 7,
+      "sourceCutoffDocumented": true
+    },
+    "historicalInjuries": {
+      "provider": "DunkAPI",
+      "endpoint": "get_injuries",
+      "availableForStudy": false,
+      "reason": "Provider injury snapshots begin at launch; exact historical pregame teammate status unavailable"
+    },
+    "positionalDefense": {
+      "provider": "BALLDONTLIE",
+      "candidateEndpoint": "/nba/v1/stats/defense",
+      "availableForStudy": false,
+      "reason": "Entitlement and historical positional grouping/identity not verified; defended-shot statistics are not opponent production by position"
+    },
+    "usage": {
+      "kind": "historical shot-use proxy per minute",
+      "trueUsageRequiresTeamPossessionContext": true
+    },
+    "realMarket": {
+      "provider": "DunkAPI",
+      "endpoint": "get_prop_history",
+      "platformOfferVerified": false,
+      "closingLineIsNotExactEarlierPregameQuote": true
+    }
+  },
+  "budget": {
+    "dailyMaxCredits": 10,
+    "previousPilotEstimated": 10,
+    "originalCohortCap": 259,
+    "teamContextExtraCap": 30,
+    "totalNewStudyCap": 289,
+    "independentReserve": 100,
+    "unallocatedFrom500AssumingNoOtherUsage": 101,
+    "accountBalanceVerified": false
+  },
+  "futureCollection": {
+    "firstScheduledTask": "2026-11-25 Jokić full game log",
+    "remainingTasksRequireBoundedEligibleCollection": true,
+    "automaticRecurringPaidCollectionEnabled": true,
+    "scheduledBoundedCreditCollection": {
+      "window": "2026-11-26 through 2027-01-31 Eastern",
+      "cron": "15 6 * * *",
+      "maxRequestsPerDay": 1,
+      "requiresFirstVerifiedJokicLog": true,
+      "haltOnUnresolvedReservation": true,
+      "creditCap": 289,
+      "noRetry": true
+    },
+    "subscriptionPurchasesAuthorized": false
+  },
+  "approval": {
+    "minimumCalibrationRowsPerMarket": 100,
+    "minimumDistinctGames": 30,
+    "minimumDates": 10,
+    "minimumBinRows": 20,
+    "productionModelChanged": false,
+    "prospectiveApproval": false
+  }
+}

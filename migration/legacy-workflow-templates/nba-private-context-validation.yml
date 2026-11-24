@@ -1,0 +1,84 @@
+name: NBA private zero-credit context validation
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/collect-nba-sdv-context.py'
+      - 'scripts/run-nba-sdv-real-line-audit.cjs'
+      - 'src/nba-sdv-context-replay-v1.cjs'
+      - 'src/nba-context-calibration-v2.cjs'
+      - 'test/nba-sdv-context-replay-v1.test.cjs'
+      - 'src/nba-fixed-holdout-gate-v1.cjs'
+      - 'test/nba-fixed-holdout-gate-v1.test.cjs'
+      - 'src/nba-pinnacle-independent-replay-v1.cjs'
+      - 'scripts/run-nba-pinnacle-independent-replay.cjs'
+      - 'test/nba-pinnacle-independent-replay-v1.test.cjs'
+      - '.github/workflows/nba-private-context-validation.yml'
+permissions:
+  contents: read
+concurrency:
+  group: nba-private-context-validation-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  offline-tests:
+    if: github.event.repository.private == true && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: node --test test/nba-context-calibration-v2.test.cjs test/nba-sdv-context-replay-v1.test.cjs test/nba-fixed-holdout-gate-v1.test.cjs test/nba-pinnacle-independent-replay-v1.test.cjs
+  independent-replay:
+    if: github.event.repository.private == true && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run independent free CSV replay
+        run: node scripts/run-nba-pinnacle-independent-replay.cjs > "$RUNNER_TEMP/nba-pinnacle-replay.json"
+      - uses: actions/upload-artifact@v4
+        if: always() && !cancelled()
+        with:
+          name: nba-pinnacle-replay-aggregate
+          path: ${{ runner.temp }}/nba-pinnacle-replay.json
+          if-no-files-found: warn
+  validate:
+    if: github.event.repository.private == true && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: node --test test/nba-context-calibration-v2.test.cjs test/nba-sdv-context-replay-v1.test.cjs test/nba-fixed-holdout-gate-v1.test.cjs
+      - run: python -m py_compile scripts/collect-nba-sdv-context.py
+      - run: python -m pip install --disable-pip-version-check pyarrow==19.0.1
+      - name: Import private historical context
+        run: |
+          export NBA_IMPORT_DIAGNOSTICS="$RUNNER_TEMP/nba-import-diagnostics.jsonl"
+          status=0
+          python scripts/collect-nba-sdv-context.py 2025 --private-research || status=1
+          python scripts/collect-nba-sdv-context.py 2026 --private-research || status=1
+          exit "$status"
+      - name: Generate aggregate-only retrospective audit
+        if: always() && !cancelled()
+        run: |
+          node scripts/run-nba-sdv-real-line-audit.cjs > "$RUNNER_TEMP/nba-sdv-audit.json"
+          echo '### NBA research-only audit' >> "$GITHUB_STEP_SUMMARY"
+          echo 'No metered requests or production freeze. Raw archives are not uploaded.' >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/nba-sdv-audit.json" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always() && !cancelled()
+        with:
+          name: nba-sdv-aggregate-audit
+          path: |
+            ${{ runner.temp }}/nba-sdv-audit.json
+            ${{ runner.temp }}/nba-import-diagnostics.jsonl
+          if-no-files-found: warn
+          retention-days: 14

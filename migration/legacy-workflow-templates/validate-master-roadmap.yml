@@ -1,0 +1,31 @@
+name: Validate Master Betting Platform Roadmap
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/MASTER_BETTING_PLATFORM_ROADMAP.md'
+      - 'scripts/validate-master-roadmap.cjs'
+      - 'test/validate-master-roadmap.test.cjs'
+      - '.github/workflows/validate-master-roadmap.yml'
+  pull_request:
+    paths:
+      - 'docs/MASTER_BETTING_PLATFORM_ROADMAP.md'
+      - 'scripts/validate-master-roadmap.cjs'
+      - 'test/validate-master-roadmap.test.cjs'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify roadmap IDs, evidence and sport order
+        run: |
+          node --check scripts/validate-master-roadmap.cjs
+          node scripts/validate-master-roadmap.cjs
+          node --test test/validate-master-roadmap.test.cjs

@@ -1,0 +1,87 @@
+name: One-time NHL remaining Nov 7 source capture
+on:
+  # One-time opt-in: the merge that creates this file on main triggers one
+  # bounded capture attempt. Subsequent source data commits do not rerun it.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/nhl-on-demand-remaining-20261107.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: nhl-free-api-trial
+  cancel-in-progress: false
+jobs:
+  collect:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate NHL provider source, remaining-today scope and quota protection
+        run: |
+          node --check scripts/collect-prizepicks-asof-nhl.cjs
+          node --check scripts/report-nhl-remaining-today.cjs
+          node --test test/nhl-remaining-today.test.cjs test/prizepicksapi-asof-board.test.cjs test/nhl-coverage-stability.test.cjs
+      - name: Collect a new immutable NHL board only when provider is fresh and quota is safe
+        id: capture
+        env:
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+          NHL_CAPTURE_SLOT: ""
+        run: node scripts/collect-prizepicks-asof-nhl.cjs
+      - name: Save only still-upcoming November 7 Pacific NHL props
+        env:
+          NHL_REMAINING_PACIFIC_DATE: "2026-11-07"
+        run: node scripts/report-nhl-remaining-today.cjs
+      - name: Save original full board and filtered remaining props to private GitHub repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/free-source/nhl/latest.json
+          git add -f outputs/free-source/nhl/snapshots/*.json
+          git add -f outputs/free-source/nhl/raw-snapshots/*.json
+          git add -f outputs/free-source/nhl/remaining-2026-11-07.json
+          git diff --cached --quiet && { echo "::error::Missing new current board"; exit 1; }
+          git commit -m "data: capture remaining Nov 7 NHL third-party prop board"
+          pushed=0
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git -c rebase.autoStash=true rebase -X theirs origin/main
+            if git push origin HEAD:main; then pushed=1; break; fi
+            sleep $((2 * attempt))
+          done
+          if test "$pushed" -ne 1; then
+            echo "::error::Current NHL board was collected but not durably committed"
+            exit 1
+          fi
+      - name: Verify saved snapshot and output summary
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const r=JSON.parse(fs.readFileSync('outputs/free-source/nhl/remaining-2026-11-07.json','utf8'));
+          console.log(JSON.stringify({provider:r.provider,date:r.datePacific,
+            remainingSelectionRows:r.remainingSelectionRows,
+            distinctListedStartTimes:r.distinctListedStartTimes,
+            marketCounts:r.marketCounts,
+            onlyResearch:true,firstPartyVerified:false}));
+          if(r.datePacific!=='2026-11-07'||r.sourceStatus!=='fresh'||
+             r.originalPrizePicksAppAuthenticated!==false)process.exit(1);
+          NODE
+      - uses: actions/upload-artifact@v6
+        if: success()
+        with:
+          name: nhl-remaining-nov7-source-board
+          path: |
+            outputs/free-source/nhl/remaining-2026-11-07.json
+          if-no-files-found: error
+          retention-days: 14

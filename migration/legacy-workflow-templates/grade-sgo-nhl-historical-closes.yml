@@ -1,0 +1,63 @@
+name: Grade Historical NHL Pickem Closes Against Official Results
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/grade-sgo-nhl-historical-closes.yml'
+      - 'scripts/grade-sgo-nhl-full-game-history.cjs'
+      - 'src/sgo-nhl-official-grader.cjs'
+      - 'test/sgo-nhl-official-grader.test.cjs'
+  schedule:
+    # Five staggered overnight runs Pacific time (PST); the job resumes from
+    # committed official game boxscores instead of repeating completed work.
+    - cron: '17 5,7,9,11,13 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: nhl-official-outcome-grading
+  cancel-in-progress: false
+jobs:
+  grade:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 34
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate historical grade logic and time leakage guards
+        run: |
+          node --check src/sgo-nhl-official-grader.cjs
+          node --check scripts/grade-sgo-nhl-full-game-history.cjs
+          node --test test/sgo-nhl-official-grader.test.cjs
+      - name: Cache bounded official NHL boxscores and grade independent historical closes
+        env:
+          NHL_BOX_SCORE_BUDGET: '180'
+        run: node scripts/grade-sgo-nhl-full-game-history.cjs
+      - name: Preserve successfully fetched official boxscores and partial grading results
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -d outputs/official-nhl/prop-grading-boxscores ]; then
+            git add -f outputs/official-nhl/prop-grading-boxscores/
+          fi
+          if [ -d outputs/sportsgameodds/nhl/official-outcome-grading ]; then
+            git add -f outputs/sportsgameodds/nhl/official-outcome-grading/
+          fi
+          if ! git diff --cached --quiet; then
+            git commit -m "data: retain official NHL game grading and historical model replay"
+            git pull --rebase -X theirs origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-history-graded-outcomes
+          path: |
+            outputs/sportsgameodds/nhl/official-outcome-grading/summary-latest.json
+            outputs/sportsgameodds/nhl/official-outcome-grading/retrospective-model-latest.json
+          if-no-files-found: ignore

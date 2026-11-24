@@ -1,0 +1,54 @@
+name: Collect 2025-26 All NHL Standard and Alternate Markets Overnight
+on:
+  workflow_dispatch:
+  # Source-only changes do not trigger extra paid historical requests.
+  # Only the scheduled or manually dispatched job is allowed.
+  schedule:
+    # 03:17 Pacific standard time (11:17 UTC), after 02:37 fall backfill.
+    - cron: '17 11 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: shared-nhl-2025-26-oddsapi-paid-history
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate complete NHL Standard and alternate matching safeguards
+        run: |
+          node --check scripts/collect-2025-26-all-prizepicks-nhl-markets.cjs
+          node --test test/collect-2025-26-all-prizepicks-nhl-markets.test.cjs
+      - name: Backfill 2025-26 NHL documented standard and alternate markets with 180 credit run cap
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: node scripts/collect-2025-26-all-prizepicks-nhl-markets.cjs
+      - name: Commit resumable all-markets archive and joined Standard/alternate report
+        if: always()
+        run: |
+          if [ -f outputs/the-odds-api/nhl/2025-26-all-props/progress.json ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -f outputs/the-odds-api/nhl/2025-26-all-props
+            if ! git diff --cached --quiet; then
+              git commit -m "data: archive 2025-26 NHL Standard alternate goalie and skater market snapshots"
+              git pull --rebase -X theirs origin main
+              git push origin HEAD:main
+            fi
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: 2025-26-nhl-all-markets-progress
+          path: |
+            outputs/the-odds-api/nhl/2025-26-all-props/progress.json
+            outputs/the-odds-api/nhl/2025-26-all-props/standard-alternate-matches-latest.json
+          if-no-files-found: ignore

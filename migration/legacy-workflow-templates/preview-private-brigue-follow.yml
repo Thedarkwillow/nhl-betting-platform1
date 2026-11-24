@@ -1,0 +1,42 @@
+name: Preview Manual brigue Followed Lineup (Private)
+on:
+  workflow_dispatch:
+    inputs:
+      shared_slip_json:
+        description: "Structured JSON copied from a user-approved shared lineup. No feed polling."
+        type: string
+        required: true
+      send_discord:
+        description: "Explicitly request one private Discord message (still disabled until setup approval)"
+        type: boolean
+        required: true
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: private-prizepicks-follow-manual-preview
+  cancel-in-progress: false
+jobs:
+  preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test private follow matching without credentials
+        run: node --test test/private-prizepicks-follow.test.cjs
+      - name: Preview manually supplied shared lineup against last archived NHL independent source
+        env:
+          USER_SHARED_SLIP_JSON: ${{ inputs.shared_slip_json }}
+          EXPLICIT_DISCORD_ALERT: ${{ inputs.send_discord }}
+          PRIVATE_DISCORD_WEBHOOK_URL: ${{ secrets.PRIVATE_DISCORD_WEBHOOK_URL }}
+        run: node scripts/preview-private-prizepicks-follow.cjs
+      - name: Retain private review for one day
+        uses: actions/upload-artifact@v6
+        with:
+          name: private-brigue-manual-lineup-review
+          retention-days: 1
+          if-no-files-found: error
+          path: outputs/private-follow/manual-slip-review.json

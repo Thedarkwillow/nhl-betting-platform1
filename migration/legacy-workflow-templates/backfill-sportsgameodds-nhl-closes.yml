@@ -1,0 +1,49 @@
+name: Expand SportsGameOdds NHL Book Closing Lines
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/backfill-sportsgameodds-nhl-closes.yml', 'test/backfill-sportsgameodds-nhl-closes.test.cjs', 'scripts/backfill-sportsgameodds-nhl-closes.cjs']
+permissions:
+  contents: write
+concurrency:
+  group: sportsgameodds-nhl-closing-archive
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Check archive parser and isolated test cases
+        run: |
+          node --check scripts/backfill-sportsgameodds-nhl-closes.cjs
+          node --test test/backfill-sportsgameodds-nhl-closes.test.cjs test/sportsgameodds-historical-nhl.test.cjs
+      - name: Collect bounded two-season NHL historical book-level closes
+        env:
+          SPORTSGAMEODDS_API_KEY: ${{ secrets.SPORTSGAMEODDS_API_KEY }}
+        run: node scripts/backfill-sportsgameodds-nhl-closes.cjs
+      - name: Preserve completed windows on a provider failure
+        if: always()
+        run: |
+          if [ -d outputs/sportsgameodds/nhl/closing-windows ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -f outputs/sportsgameodds/nhl/closing-windows/ outputs/sportsgameodds/nhl/closing-coverage-latest.json
+            if ! git diff --cached --quiet; then
+              git commit -m "data: archive two NHL seasons of independent book-level closes"
+              git pull --rebase -X theirs origin main
+              git push origin HEAD:main
+            fi
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: sportsgameodds-nhl-closes
+          path: outputs/sportsgameodds/nhl/closing-coverage-latest.json
+          if-no-files-found: ignore

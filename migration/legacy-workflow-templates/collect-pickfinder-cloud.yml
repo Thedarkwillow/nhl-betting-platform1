@@ -1,0 +1,14 @@
+name: Retired PickFinder NHL Collector (No Provider Requests)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  retired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Explain retired NHL source
+        run: |
+          echo "::notice::PickFinder NHL collector is retired as a source. No TinyFish requests, paid source calls, wagers, or archive modifications were made."
+          echo "Historical PickFinder code and prior snapshots remain in the private repository for audit only."

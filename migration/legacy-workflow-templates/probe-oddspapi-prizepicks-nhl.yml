@@ -1,0 +1,43 @@
+name: Probe Historical PrizePicks NHL - OddsPapi
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: oddspapi-prizepicks-nhl-history
+  cancel-in-progress: false
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test exact PrizePicks archive parsing
+        run: |
+          node --check scripts/probe-oddspapi-prizepicks-nhl.cjs
+          node --test test/oddspapi-prizepicks-history.test.cjs
+      - name: Check free historical NHL archive - maximum 21 API calls
+        env:
+          ODDSPAPI_API_KEY: ${{ secrets.ODDSPAPI_API_KEY }}
+        run: node scripts/probe-oddspapi-prizepicks-nhl.cjs
+      - name: Archive results separately from model hit rates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/oddspapi/nhl/archive-probe-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: verify historical PrizePicks NHL lines by season"
+            git pull --rebase -X theirs origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: historical-prizepicks-oddspapi-probe
+          path: outputs/oddspapi/nhl/archive-probe-latest.json
+          if-no-files-found: ignore

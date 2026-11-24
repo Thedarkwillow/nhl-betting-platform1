@@ -1,0 +1,55 @@
+name: NHL Distribution Shadow Git Archive Proof
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, feature/nhl-distribution-git-proof-audit]
+    paths:
+      - 'scripts/audit-nhl-distribution-git-proof.cjs'
+      - 'test/nhl-distribution-git-proof.test.cjs'
+      - '.github/workflows/nhl-distribution-git-proof.yml'
+  workflow_run:
+    workflows: ['Trial Free PrizePicks NHL API']
+    types: [completed]
+  schedule:
+    - cron: '55 17 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: nhl-distribution-git-proof
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify source-time, commit-time and official-puck-drop contract
+        run: |
+          node --check scripts/audit-nhl-distribution-git-proof.cjs
+          node --test test/nhl-distribution-git-proof.test.cjs
+      - name: Audit real archived current NHL probability shadow snapshots
+        run: node scripts/audit-nhl-distribution-git-proof.cjs
+      - name: Save verified audit without altering original frozen shadow predictions
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_run'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/backtests/nhl-distribution-pregame-proof-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data(EDGE-01): verify NHL shadow original commit before official start"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-shadow-git-start-proof
+          path: outputs/backtests/nhl-distribution-pregame-proof-latest.json
+          if-no-files-found: warn

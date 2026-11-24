@@ -1,0 +1,24 @@
+# PrizePicksAPI.com is an independent metered third-party source.
+# Retired the automatic 09:00 full-board + retry schedule to prevent another
+# free-plan monthly quota exhaustion after the November 2026 warning.
+# Public runner NHL/NFL 09:00 partner-source collection remains unchanged.
+# Comparison of archived independent morning boards remains available offline.
+name: Metered NHL 9 AM Collector Paused (No Vendor Calls)
+on:
+  workflow_dispatch:
+    inputs:
+      trigger_source:
+        description: "Legacy external dispatch; safely ignored without metered calls"
+        required: false
+        type: string
+permissions:
+  contents: read
+jobs:
+  notice:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Report metered collector paused
+        run: |
+          echo "::notice::PrizePicksAPI metered 09:00 auto-capture disabled; zero billable vendor requests."
+          echo "NHL/NFL independent partner-source 06:00 and 09:00 collections are separate."

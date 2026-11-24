@@ -1,0 +1,25 @@
+# PrizePicksAPI.com is an independent metered third-party source.
+# Previous daily 06:00 capture and external Cloudflare dispatch could spend
+# multiple paginated requests per attempt. Disabled to preserve monthly quota.
+# Morning NHL/NFL partner-source feeds in the PUBLIC runner remain separate.
+# For a deliberately authorized metered snapshot, use the bounded trial
+# workflow; never re-enable daily calls without a measured monthly budget.
+name: Metered NHL 6 AM Collector Paused (No Vendor Calls)
+on:
+  workflow_dispatch:
+    inputs:
+      trigger_source:
+        description: "Legacy external dispatch; safely ignored without metered calls"
+        required: false
+        type: string
+permissions:
+  contents: read
+jobs:
+  notice:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Report metered collector paused
+        run: |
+          echo "::notice::PrizePicksAPI metered 06:00 auto-capture disabled; zero billable vendor requests."
+          echo "NHL/NFL independent partner-source 06:00 and 09:00 collections are separate."

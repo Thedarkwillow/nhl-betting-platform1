@@ -1,0 +1,27 @@
+name: One-Time Private Discord Connection Test
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/test-private-discord-connectivity-20261106.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: private-brigue-one-time-discord-connection-test
+  cancel-in-progress: false
+jobs:
+  webhook_connectivity:
+    # No future unrelated code push should post a Discord message.
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[discord-connectivity-test]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate connection without accessing PrizePicks or placing wagers
+        env:
+          PRIVATE_DISCORD_WEBHOOK_URL: ${{ secrets.PRIVATE_DISCORD_WEBHOOK_URL }}
+        run: node scripts/test-private-discord-connectivity.cjs

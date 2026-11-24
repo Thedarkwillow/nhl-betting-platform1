@@ -1,0 +1,103 @@
+name: NHL Official Season Projection Challenger Lab
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/nhl-trained-market-shadow.cjs'
+      - 'scripts/build-projections.cjs'
+      - 'test/nhl-trained-market-shadow.test.cjs'
+      - '.github/workflows/nhl-official-season-projection-lab.yml'
+  push:
+    branches: [main, feature/nhl-official-history-projection-lab]
+    paths:
+      - 'src/nhl-season-model-lab.cjs'
+      - 'src/nhl-trained-market-shadow.cjs'
+      - 'test/nhl-trained-market-shadow.test.cjs'
+      - 'src/projections.cjs'
+      - 'test/nhl-season-model-lab.test.cjs'
+      - 'scripts/evaluate-nhl-season-projections.cjs'
+      - 'scripts/build-projections.cjs'
+      - 'scripts/evaluate-nhl-archived-line-challenger.cjs'
+      - 'src/nhl-temporal-model-comparison.cjs'
+      - 'test/nhl-temporal-model-comparison.test.cjs'
+      - '.github/workflows/nhl-official-season-projection-lab.yml'
+  schedule:
+    # Monthly cached, read-only historical audit (no paid provider requests).
+    - cron: '43 13 5 * *'
+permissions:
+  contents: write
+concurrency:
+  group: nhl-official-season-projection-lab-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  evaluate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate time-separated model and seasonal official-stat source
+        run: |
+          node --check src/nhl-season-model-lab.cjs
+          node --check scripts/evaluate-nhl-season-projections.cjs
+          node --check src/nhl-trained-market-shadow.cjs
+          node --test test/nhl-season-model-lab.test.cjs test/projections.test.cjs test/nhl-trained-market-shadow.test.cjs
+      - name: Check champion unchanged, shadow separate and write-once snapshot
+        run: |
+          node scripts/build-projections.cjs
+          node scripts/build-projections.cjs
+          node - <<'NODE'
+          const fs=require('node:fs'),path=require('node:path');
+          const a=require('./outputs/projections/players.json');
+          const b=require('./outputs/projections/stable-shrink-v2-latest.json');
+          const p=require('./outputs/projections/prior-mean-v2-latest.json');
+          const t=require('./outputs/projections/nhl-market-trained-v3-latest.json');
+          const audit=require('./outputs/backtests/nhl-trained-market-v3-holdout-latest.json');
+          if(a.model!=='weighted-form-v1'||b.model!=='stable-shrink-v2'||p.model!=='prior-mean-v2'||b.status!=='research_shadow_not_deployed'||p.status!=='research_shadow_not_deployed')process.exit(1);
+          if(t.model!=='nhl-market-trained-v3-shadow'||t.status!=='research_shadow_not_deployed'||audit.modelPromoted!==false||audit.trulyUntouchedProspectiveHoldout!==false)process.exit(1);
+          const files=fs.readdirSync('outputs/projections/shadow-snapshots').filter(x=>x.endsWith('.json'));
+          if(!files.length)process.exit(1);
+          const frozen=JSON.parse(fs.readFileSync(path.join('outputs/projections/shadow-snapshots',files[0]),'utf8'));
+          if(!frozen.models?.['stable-shrink-v2']||!frozen.models?.['prior-mean-v2'])process.exit(1);
+          console.log('Validated archived research shadow',files.length);
+          NODE
+      - name: Evaluate official NHL historical seasons, without external API calls
+        run: node scripts/evaluate-nhl-season-projections.cjs
+      - name: Evaluate cached archived real lines against official NHL statistics
+        run: |
+          node --test test/nhl-temporal-model-comparison.test.cjs
+          node scripts/evaluate-nhl-archived-line-challenger.cjs
+      - name: Save research-only report
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # Build smoke test rewrote tracked champion outputs in the runner.
+          # Restore those test artifacts before rebasing; only commit two reports.
+          git restore --worktree -- outputs/projections
+          git clean -fdx -- outputs/projections
+          # The shadow projection builder also regenerates this tracked
+          # by-market audit with a new timestamp. It is not one of this
+          # lab's two publishable outputs; reset it before git pull --rebase.
+          # The independent official stat workflow archives this audit.
+          git restore --worktree -- outputs/backtests/nhl-trained-market-v3-holdout-latest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/backtests/nhl-official-season-projection-lab-latest.json outputs/backtests/nhl-archived-line-challenger-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data(EDGE-05): update cached NHL two-season projection challenger comparison"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-two-season-projection-lab
+          path: |
+            outputs/backtests/nhl-official-season-projection-lab-latest.json
+            outputs/backtests/nhl-archived-line-challenger-latest.json
+          if-no-files-found: warn

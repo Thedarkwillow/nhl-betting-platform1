@@ -1,0 +1,16 @@
+name: Retired One-Shot NHL Freeze Nov 3 (No Requests)
+# Audit-only stub: previous workflow source remains in Git history.
+# No schedule, no vendor credentials, no paid calls, no archive writes.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  retired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Explain retired workflow
+        run: |
+          echo "::notice::This legacy workflow is retired. No provider requests, paid calls, archive changes, Discord notifications, or wagers."
+          echo "Use the current NHL 06:00 and 09:00 fixed-time collector workflows instead."

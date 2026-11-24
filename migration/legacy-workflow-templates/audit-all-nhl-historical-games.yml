@@ -1,0 +1,64 @@
+name: Audit and Backfill All NHL Historical Game Dates
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-all-nhl-historical-games.yml'
+      - 'scripts/audit-official-nhl-full-game-schedules.cjs'
+      - 'scripts/backfill-sportsgameodds-all-nhl-games.cjs'
+      - 'test/all-nhl-historical-game-coverage.test.cjs'
+  schedule:
+    # Catch newly completed NHL games; re-use completed historical week files.
+    - cron: '45 16 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: all-nhl-historical-game-coverage
+  cancel-in-progress: false
+jobs:
+  backfill:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate complete-game audit and leakage protection
+        run: |
+          node --check scripts/audit-official-nhl-full-game-schedules.cjs
+          node --check scripts/backfill-sportsgameodds-all-nhl-games.cjs
+          node --test test/all-nhl-historical-game-coverage.test.cjs
+      - name: Retrieve and deduplicate every official NHL game across four seasons
+        run: node scripts/audit-official-nhl-full-game-schedules.cjs
+      - name: Audit all eligible completed 2025-26 and 2026-27 games for documented closes
+        env:
+          SPORTSGAMEODDS_API_KEY: ${{ secrets.SPORTSGAMEODDS_API_KEY }}
+        run: node scripts/backfill-sportsgameodds-all-nhl-games.cjs
+      - name: Preserve all successfully completed windows and official manifests
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -d outputs/official-nhl/season-schedules ]; then
+            git add -f outputs/official-nhl/season-schedules/
+          fi
+          if [ -d outputs/sportsgameodds/nhl/full-game-coverage ]; then
+            git add -f outputs/sportsgameodds/nhl/full-game-coverage/
+          fi
+          if ! git diff --cached --quiet; then
+            git commit -m "data: preserve verified NHL schedule and historical closing-line game coverage"
+            git pull --rebase -X theirs origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: all-nhl-historical-game-coverage
+          path: |
+            outputs/official-nhl/season-schedules/coverage-latest.json
+            outputs/sportsgameodds/nhl/full-game-coverage/coverage-latest.json
+          if-no-files-found: ignore

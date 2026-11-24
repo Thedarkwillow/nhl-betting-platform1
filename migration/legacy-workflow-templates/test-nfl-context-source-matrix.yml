@@ -1,0 +1,45 @@
+name: NFL All-Market Matchup Source Coverage and Licensing Audit
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/nfl-context-source-matrix.cjs'
+      - 'src/nfl-research-sources.cjs'
+      - 'test/nfl-context-source-matrix.test.cjs'
+      - 'scripts/audit-nfl-context-sources.cjs'
+      - 'scripts/collect-nfl-history.py'
+      - '.github/workflows/collect-nfl-history.yml'
+      - '.github/workflows/test-nfl-context-source-matrix.yml'
+  push:
+    branches: [main, 'feat/**', 'feature/**']
+    paths:
+      - 'src/nfl-context-source-matrix.cjs'
+      - 'src/nfl-research-sources.cjs'
+      - 'test/nfl-context-source-matrix.test.cjs'
+      - 'scripts/audit-nfl-context-sources.cjs'
+      - '.github/workflows/test-nfl-context-source-matrix.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Verify every NFL market mapped without live source or payout claims
+        run: |
+          node --check src/nfl-context-source-matrix.cjs
+          node --check scripts/audit-nfl-context-sources.cjs
+          node --test test/nfl-context-source-matrix.test.cjs test/nfl-user-screen-prop-catalog.test.cjs
+      - name: Validate available historical context and mark unconnected references as gaps
+        run: node scripts/audit-nfl-context-sources.cjs
+      - name: Verify source loader syntax and archived fake-data tests
+        run: |
+          python -m py_compile scripts/collect-nfl-history.py
+          python -m unittest discover -s test -p 'test_nfl_*.py'

@@ -1,0 +1,109 @@
+{
+  "kind": "nba_dunk_cohort_study_v1",
+  "players": [
+    {
+      "name": "Nikola Jokic",
+      "verifiedId": "3112335",
+      "markets": [
+        "player_points",
+        "player_points_rebounds_assists"
+      ]
+    },
+    {
+      "name": "Shai Gilgeous-Alexander",
+      "verifiedId": null,
+      "markets": [
+        "player_points",
+        "player_assists"
+      ]
+    },
+    {
+      "name": "Luka Doncic",
+      "verifiedId": null,
+      "markets": [
+        "player_points",
+        "player_threes"
+      ]
+    },
+    {
+      "name": "Giannis Antetokounmpo",
+      "verifiedId": null,
+      "markets": [
+        "player_points",
+        "player_rebounds"
+      ]
+    },
+    {
+      "name": "Jalen Brunson",
+      "verifiedId": null,
+      "markets": [
+        "player_assists",
+        "player_threes"
+      ]
+    },
+    {
+      "name": "Stephen Curry",
+      "verifiedId": null,
+      "markets": [
+        "player_threes",
+        "player_assists"
+      ]
+    },
+    {
+      "name": "Anthony Edwards",
+      "verifiedId": null,
+      "markets": [
+        "player_threes",
+        "player_points_rebounds_assists"
+      ]
+    },
+    {
+      "name": "Victor Wembanyama",
+      "verifiedId": null,
+      "markets": [
+        "player_rebounds",
+        "player_points_rebounds_assists"
+      ]
+    },
+    {
+      "name": "Domantas Sabonis",
+      "verifiedId": null,
+      "markets": [
+        "player_rebounds",
+        "player_assists"
+      ]
+    },
+    {
+      "name": "Bam Adebayo",
+      "verifiedId": null,
+      "markets": [
+        "player_rebounds",
+        "player_points_rebounds_assists"
+      ]
+    }
+  ],
+  "season": 2026,
+  "from": "2025-10-21",
+  "to": "2026-04-12",
+  "holdoutStarts": "2026-02-01",
+  "maxHistoryGames": 100,
+  "weights": [
+    0,
+    0.15,
+    0.35,
+    0.5,
+    0.75,
+    1
+  ],
+  "maxDailyCredits": 10,
+  "maxStudyCredits": 259,
+  "reservedForIndependentFutureCredits": 100,
+  "estimatedPreviousPilotCredits": 10,
+  "accountBalanceVerified": false,
+  "knownIdEvidence": "DunkAPI archived Nikola Jokic response 43970f485cc14cb60a6a1c3a042e4c3554df516c",
+  "purpose": "Private retrospective fixed cohort; no current wager selections",
+  "prospectiveApproval": false,
+  "liveBoardSourceRightsPending": true,
+  "developmentEnds": "2026-01-19",
+  "amendment": "Full-season retrospective series before collection to increase development and holdout sample without changing request count. Exclude entire Jokić points pilot date span from development. Existing daily and total credit limits unchanged; estimate-first and no retry remain mandatory."
+}

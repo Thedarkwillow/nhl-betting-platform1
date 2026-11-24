@@ -1,0 +1,24 @@
+name: Probe NHL PrizePicks board
+on:
+  workflow_dispatch:
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - run: npm test
+      - name: Test live NHL PrizePicks collection
+        run: npm run collect:prizepicks
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: nhl-prizepicks-probe
+          path: outputs/prizepicks/*.json
+          if-no-files-found: warn
+          retention-days: 7

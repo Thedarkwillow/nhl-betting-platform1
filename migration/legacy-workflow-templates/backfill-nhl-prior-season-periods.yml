@@ -1,0 +1,72 @@
+name: Backfill prior-season NHL official period results
+on:
+  workflow_dispatch:
+  schedule:
+    # Slow, bounded historical training only; no paid props provider.
+    - cron: '11 11 * * *'
+    - cron: '31 23 * * *'
+  push:
+    branches: [main]
+    paths: ['.github/workflows/backfill-nhl-prior-season-periods.yml']
+concurrency:
+  group: nhl-prior-season-period-backfill
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate prior-season official period-source contract
+        run: npm test
+      - name: Collect at most five historical 2025-26 official dates
+        run: npm run backfill:period-prior
+      - name: Commit isolated older NHL period source and results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/period-stats/prior-season-backfill-status-latest.json
+          for PATTERN in \
+            "outputs/period-stats/dates/2025-*.json" \
+            "outputs/period-stats/dates/2026-0[1-6]-*.json" \
+            "outputs/period-stats/training-source/*.json" \
+            "outputs/period-stats/empty-dates/*.json"; do
+            for FILE in $PATTERN; do
+              test -f "$FILE" && git add -f "$FILE" || true
+            done
+          done
+          if git diff --cached --quiet; then
+            echo "No new historical NHL official period source"
+          else
+            git commit -m "data: collect isolated NHL 2025-26 period history"
+            pushed=0
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              git rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((2 * attempt))
+            done
+            if [ "$pushed" -ne 1 ]; then
+              echo "::error::Historical period backfill could not push to main"
+              exit 1
+            fi
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-prior-season-period-training
+          path: |
+            outputs/period-stats/dates/2025-*.json
+            outputs/period-stats/dates/2026-0[1-6]-*.json
+            outputs/period-stats/training-source/*.json
+            outputs/period-stats/empty-dates/*.json
+            outputs/period-stats/prior-season-backfill-status-latest.json
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,58 @@
+name: NHL Distribution Shadow Model and Real-Line Audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, feature/nhl-count-distribution-shadow-calibration]
+    paths:
+      - 'src/nhl-count-distribution-shadow.cjs'
+      - 'test/nhl-count-distribution-shadow.test.cjs'
+      - 'src/nhl-distribution-snapshot.cjs'
+      - 'test/nhl-distribution-snapshot.test.cjs'
+      - 'scripts/build-free-nhl-research.cjs'
+      - 'scripts/export-public-nhl-data.cjs'
+      - 'scripts/evaluate-nhl-distribution-shadow.cjs'
+      - '.github/workflows/nhl-distribution-shadow-lab.yml'
+  schedule:
+    - cron: '37 14 * * 2'
+permissions:
+  contents: write
+concurrency:
+  group: nhl-distribution-shadow-lab-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test mathematical count distribution and past-only outcomes
+        run: |
+          node --check src/nhl-count-distribution-shadow.cjs
+          node --check scripts/evaluate-nhl-distribution-shadow.cjs
+          node --check scripts/build-free-nhl-research.cjs
+          node --test test/nhl-count-distribution-shadow.test.cjs test/nhl-distribution-snapshot.test.cjs test/prop-probabilities.test.cjs test/nhl-temporal-model-comparison.test.cjs
+      - name: Score same archived real prop lines using Poisson and overdispersion shadow
+        run: node scripts/evaluate-nhl-distribution-shadow.cjs
+      - name: Save retrospective comparison separately from champion
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/backtests/nhl-count-distribution-shadow-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data(EDGE-02): benchmark NHL Poisson and NB shadow on archived real lines"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-count-distribution-shadow-real-line-brier
+          path: outputs/backtests/nhl-count-distribution-shadow-latest.json
+          if-no-files-found: warn

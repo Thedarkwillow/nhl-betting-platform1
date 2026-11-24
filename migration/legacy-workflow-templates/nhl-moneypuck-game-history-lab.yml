@@ -1,0 +1,59 @@
+name: NHL MoneyPuck Historical Shot Quality Lab (research only)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/nhl-moneypuck-game-lab.cjs'
+      - 'test/nhl-moneypuck-game-lab.test.cjs'
+      - 'src/nhl-moneypuck-goalie-game-lab.cjs'
+      - 'test/nhl-moneypuck-goalie-game-lab.test.cjs'
+      - 'scripts/stage-moneypuck-goalie-archive.py'
+      - 'scripts/evaluate-moneypuck-goalie-history.cjs'
+      - 'scripts/evaluate-moneypuck-game-lab.cjs'
+      - 'scripts/stage-moneypuck-game-archive.py'
+      - '.github/workflows/nhl-moneypuck-game-history-lab.yml'
+jobs:
+  historical-shot-quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Unit tests and script validation
+        run: |
+          node --test test/nhl-moneypuck-game-lab.test.cjs test/nhl-moneypuck-goalie-game-lab.test.cjs
+          npm test
+          node --check scripts/evaluate-moneypuck-game-lab.cjs
+          python3 -m py_compile scripts/stage-moneypuck-game-archive.py scripts/stage-moneypuck-goalie-archive.py
+      - name: Stage published MoneyPuck game-level season ZIPs (temporary private runner files)
+        run: python3 scripts/stage-moneypuck-game-archive.py
+      - name: Evaluate past-only 2025-26 held-out skater counts
+        run: node scripts/evaluate-moneypuck-game-lab.cjs /tmp/moneypuck-game-lab/2024.csv /tmp/moneypuck-game-lab/2025.csv
+      - name: Stage published past-season MoneyPuck goalie games privately
+        run: python3 scripts/stage-moneypuck-goalie-archive.py
+      - name: Compare past-only goalie saves as conditional-on-playing forecasts
+        run: node scripts/evaluate-moneypuck-goalie-history.cjs /tmp/moneypuck-game-lab/goalies-2024.csv /tmp/moneypuck-game-lab/goalies-2025.csv
+      - name: Commit sanitized aggregate study to private repo on main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/backtests/nhl-moneypuck-historical-game-lab-latest.json outputs/backtests/nhl-moneypuck-goalie-history-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: refresh past-only MoneyPuck skater model ablation summary"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - name: Upload sanitized model comparison only
+        uses: actions/upload-artifact@v6
+        with:
+          name: nhl-moneypuck-game-history-research
+          path: |
+            outputs/backtests/nhl-moneypuck-historical-game-lab-latest.json
+            outputs/backtests/nhl-moneypuck-goalie-history-latest.json
+          retention-days: 14

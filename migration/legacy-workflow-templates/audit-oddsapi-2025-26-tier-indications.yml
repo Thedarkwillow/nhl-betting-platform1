@@ -1,0 +1,51 @@
+name: Audit Historical 2025-26 PrizePicks Tier Indicators
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-oddsapi-2025-26-tier-indications.yml'
+  workflow_run:
+    workflows: ['Incremental 2025-26 Fall PrizePicks NHL Historical Backfill']
+    types: [completed]
+  schedule:
+    - cron: '11 11 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: nhl-2025-26-tier-inference-audit
+  cancel-in-progress: false
+jobs:
+  audit:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify provider-indicator separation and source provenance
+        run: |
+          node --check scripts/audit-2025-26-odds-api-tier-indications.cjs
+          node --test test/audit-2025-26-odds-api-tier-indications.test.cjs
+      - name: Analyze existing archived quotes only (zero Odds API credits)
+        run: node scripts/audit-2025-26-odds-api-tier-indications.cjs
+      - name: Archive derived audit separately from raw historical quotes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/the-odds-api/nhl/2025-26-tier-indications-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: summarize unverified 2025-26 PrizePicks tier indicators"
+            git pull --rebase -X theirs origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: historical-2025-26-tier-indicators
+          path: outputs/the-odds-api/nhl/2025-26-tier-indications-latest.json
+          if-no-files-found: ignore

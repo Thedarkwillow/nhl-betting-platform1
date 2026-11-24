@@ -1,0 +1,123 @@
+name: Collect NHL official period events and shifts
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Completed NHL game date YYYY-MM-DD; blank uses bounded catch-up"
+        required: false
+        type: string
+  schedule:
+    - cron: '27 16 * * *'
+    - cron: '37 7 * * *'
+  push:
+    branches: [main]
+    paths: ['.github/workflows/collect-nhl-period-events.yml']
+concurrency:
+  group: nhl-official-period-events
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate official event and shift parsers
+        run: npm test
+      - name: Collect official final per-period player results
+        env:
+          SPECIFIC_DATE: ${{ inputs.date }}
+        run: |
+          count=0
+          if [ -n "$SPECIFIC_DATE" ]; then
+            npm run collect:periods -- "$SPECIFIC_DATE"
+          else
+            # Most recent complete official final-game dates first.
+            for DAYS_AGO in 0 1 2 3 4 5 6 7; do
+              DATE="$(TZ=America/Los_Angeles date -d "$DAYS_AGO days ago" +%F)"
+              SOURCE="outputs/player-stats/$DATE.json"
+              TARGET="outputs/period-stats/dates/$DATE.json"
+              if [ ! -f "$SOURCE" ]; then continue; fi
+              if ! node -e 'const x=require("./"+process.argv[1]);process.exit(x.errors?.length===0&&x.scheduledGames>0&&x.scheduledGames===x.completedGames&&x.completedGames===x.collectedGames?0:1)' "$SOURCE"; then
+                continue
+              fi
+              if [ -f "$TARGET" ] && node -e 'const o=require("./"+process.argv[1]),n=require("./"+process.argv[2]);process.exit(o.complete===true&&(o.baseOfficialPlayerStatSchemaVersion||0)>=(n.sourceSchemaVersion||1)?0:1)' "$TARGET" "$SOURCE"; then
+                continue
+              fi
+              npm run collect:periods -- "$DATE"
+              count=$((count+1))
+              if [ "$count" -ge 8 ]; then break; fi
+            done
+            # Up to eight bounded final-date pulls per run, using free NHL APIs.
+            # Backfill older final dates already in our Git archive gradually.
+            for SOURCE in outputs/player-stats/????-??-??.json; do
+              test -f "$SOURCE" || continue
+              if [ "$count" -ge 8 ]; then break; fi
+              DATE="$(basename "$SOURCE" .json)"
+              TARGET="outputs/period-stats/dates/$DATE.json"
+              if [ -f "$TARGET" ] && node -e 'const o=require("./"+process.argv[1]),n=require("./"+process.argv[2]);process.exit(o.complete===true&&(o.baseOfficialPlayerStatSchemaVersion||0)>=(n.sourceSchemaVersion||1)?0:1)' "$TARGET" "$SOURCE"; then
+                continue
+              fi
+              if ! node -e 'const x=require("./"+process.argv[1]);process.exit(x.errors?.length===0&&x.scheduledGames>0&&x.scheduledGames===x.completedGames&&x.completedGames===x.collectedGames?0:1)' "$SOURCE"; then
+                continue
+              fi
+              npm run collect:periods -- "$DATE"
+              count=$((count+1))
+            done
+            echo "Completed NHL period event/shift game-day archives: $count"
+          fi
+      - name: Rebuild independently versioned official period history
+        run: npm run build:period-history
+      - name: Build period-specific forecasts and source-tracked combo diagnostics
+        run: npm run build:period-combo-models
+      - name: Report NHL combo/period five-stage release evidence
+        run: node scripts/report-nhl-combo-period-release.cjs
+      - name: Archive official period outcomes in GitHub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/period-stats/history.json
+          git add -f outputs/projections/nhl-period-shadow-latest.json
+          git add -f outputs/backtests/nhl-period-walkforward-latest.json
+          git add -f outputs/backtests/nhl-combo-structured-offer-audit-latest.json
+          git add -f outputs/backtests/nhl-period-offer-readiness-latest.json
+          git add -f outputs/backtests/nhl-combo-period-release-gates-latest.json
+          if compgen -G "outputs/period-stats/dates/*.json" > /dev/null; then
+            git add -f outputs/period-stats/dates/*.json
+          fi
+          if git diff --cached --quiet; then
+            echo "No new period history"
+          else
+            git commit -m "data: archive official NHL period events and shift time"
+            pushed=0
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              git rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((2 * attempt))
+            done
+            if [ "$pushed" -ne 1 ]; then
+              echo "::error::Official NHL period archive could not update main"
+              exit 1
+            fi
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-official-period-events
+          path: |
+            outputs/period-stats/dates/*.json
+            outputs/period-stats/history.json
+            outputs/projections/nhl-period-shadow-latest.json
+            outputs/backtests/nhl-period-walkforward-latest.json
+            outputs/backtests/nhl-combo-structured-offer-audit-latest.json
+            outputs/backtests/nhl-period-offer-readiness-latest.json
+            outputs/backtests/nhl-combo-period-release-gates-latest.json
+          if-no-files-found: warn
+          retention-days: 30

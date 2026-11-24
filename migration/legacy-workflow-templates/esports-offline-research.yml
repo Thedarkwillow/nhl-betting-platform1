@@ -1,0 +1,27 @@
+name: Esports isolated offline research checks
+on:
+  pull_request:
+    paths:
+      - 'src/esports-research-v1.cjs'
+      - 'scripts/run-esports-research-v1.cjs'
+      - 'test/esports-research-v1.test.cjs'
+      - 'config/esports/**'
+      - '.github/workflows/esports-offline-research.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/esports-research-v1.test.cjs
+      - run: node --check scripts/run-esports-research-v1.cjs
+      - name: Validate source lock
+        run: node -e 'const a=require("./config/esports/sources-v1.json");if(a.defaultNetworkEnabled||a.paidCallsAllowed||a.providers.some(x=>x.automatedNetworkEnabled||x.paidCallsAllowed))process.exit(1)'

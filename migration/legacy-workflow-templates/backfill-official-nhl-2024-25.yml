@@ -1,0 +1,47 @@
+name: Extend Official NHL Player History to 2024-25
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/backfill-official-nhl-2024-25.yml']
+permissions:
+  contents: write
+concurrency:
+  group: nhl-2024-25-official-game-logs
+  cancel-in-progress: false
+jobs:
+  backfill:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test verified player identifiers and historical stat conversion
+        run: |
+          node --check scripts/backfill-official-nhl-2024-25.cjs
+          node --test test/official-nhl-2024-25.test.cjs
+      - name: Backfill 2024-25 game logs using official NHL endpoints (no API key)
+        run: node scripts/backfill-official-nhl-2024-25.cjs
+      - name: Preserve verified records even when source temporarily fails
+        if: always()
+        run: |
+          if [ -f outputs/official-nhl/2024-25/referenced-players-latest.json ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -f outputs/official-nhl/2024-25/referenced-players-latest.json
+            if ! git diff --cached --quiet; then
+              git commit -m "data: preserve 2024-25 verified NHL player history"
+              git pull --rebase -X theirs origin main
+              git push origin HEAD:main
+            fi
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: official-nhl-2024-25-history
+          path: outputs/official-nhl/2024-25/referenced-players-latest.json
+          if-no-files-found: ignore

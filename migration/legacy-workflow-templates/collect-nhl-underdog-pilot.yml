@@ -1,0 +1,61 @@
+name: Bounded NHL Underdog DFS Source Pilot (The Odds API)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/nhl-oddsapi-underdog.cjs'
+      - 'scripts/collect-underdog-oddsapi-nhl-sample.cjs'
+      - 'test/nhl-oddsapi-underdog.test.cjs'
+      - 'test/nhl-underdog-oddsapi-collector.test.cjs'
+      - '.github/workflows/collect-nhl-underdog-pilot.yml'
+concurrency:
+  group: bounded-nhl-underdog-pilot
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  pilot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+      UNDERDOG_DERIVED_PUBLIC_DISPLAY_AUTHORIZED: ${{ secrets.UNDERDOG_DERIVED_PUBLIC_DISPLAY_AUTHORIZED }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify fail-closed quota and game mapping unit tests
+        run: |
+          node --test test/nhl-oddsapi-underdog.test.cjs test/nhl-underdog-oddsapi-collector.test.cjs test/nhl-platform-line-shop.test.cjs
+          node --check scripts/collect-underdog-oddsapi-nhl-sample.cjs
+      - name: Collect at most one matched NHL event and two DFS markets
+        # Source-code push validates offline; only an explicit owner dispatch
+        # may enter the bounded metered provider path.
+        if: github.event_name == 'workflow_dispatch' && env.ODDS_API_KEY != ''
+        run: node scripts/collect-underdog-oddsapi-nhl-sample.cjs
+      - name: Build platform comparison and honest no-source status
+        run: node scripts/build-nhl-platform-line-shop.cjs
+      - name: Save private source evidence and sanitized comparison
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/comparisons/nhl-platform-line-shop-latest.json
+          if test -f outputs/underdog/nhl/latest.json; then
+            git add -f outputs/underdog/nhl/latest.json outputs/underdog/nhl/snapshots/*.json
+          fi
+          if ! git diff --cached --quiet; then
+            git commit -m "data: bounded source-labelled Underdog NHL DFS pilot"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-underdog-one-event-pilot
+          path: |
+            outputs/comparisons/nhl-platform-line-shop-latest.json
+            outputs/underdog/nhl/latest.json
+          if-no-files-found: warn

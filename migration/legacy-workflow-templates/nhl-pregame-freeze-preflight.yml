@@ -1,0 +1,33 @@
+name: NHL Pregame Freeze No-Credit Readiness
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/nhl-pregame-freeze-preflight.yml'
+      - 'src/nhl-prospective-freeze-readiness.cjs'
+      - 'scripts/preflight-nhl-future-capture.cjs'
+      - 'test/nhl-prospective-freeze-readiness.test.cjs'
+  schedule:
+    # 09:10 Pacific standard time on the three guarded capture dates.
+    # Check prerequisites before the separate 09:25 quota-guarded trial.
+    - cron: '10 17 4,5,6 11 *'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify deterministic pregame readiness checks
+        run: node --test test/nhl-prospective-freeze-readiness.test.cjs
+      - name: Check official cached history, model and game schedule without provider calls
+        run: |
+          node scripts/preflight-nhl-future-capture.cjs
+          echo "No paid source requests made. Capturing an original board and Git-frozen pick remains separate and quota-gated." >> "$GITHUB_STEP_SUMMARY"

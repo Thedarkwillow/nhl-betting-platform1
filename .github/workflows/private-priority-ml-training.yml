@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: ['.github/workflows/private-priority-ml-training.yml']
   schedule:
-    - cron: '15 5 * * *'
+    - cron: '15 5,8,12 * * *'
       timezone: America/Los_Angeles
 permissions:
   contents: read

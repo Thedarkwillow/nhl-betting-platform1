@@ -1,0 +1,33 @@
+name: Archive NBA historical pregame injury reports
+on:
+  push:
+    branches: [nba-injury-history-audit-20261124]
+    paths: ['.github/workflows/nba-injury-history-audit.yml']
+permissions:
+  contents: read
+jobs:
+  archive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: nba-injury-history-audit-20261124
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Archive and verify pregame injury report coverage
+        run: |
+          set -euo pipefail
+          python -m pip install 'pandas>=2.2,<3' 'pyarrow>=18,<24'
+          umask 077
+          python scripts/archive-nba-injury-history-audit.py
+      - name: Save only to isolated private branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nba/isolated-bulk-history/injury-reports-2023-26
+          git commit -qm 'research: archive historical injury report snapshots with pre-tip cutoff'
+          git push origin HEAD:nba-injury-history-audit-20261124

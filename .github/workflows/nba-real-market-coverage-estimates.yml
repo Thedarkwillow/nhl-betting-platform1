@@ -1,0 +1,40 @@
+name: Estimate broader historical NBA sportsbook coverage
+on:
+  push:
+    branches: [nba-real-market-coverage-estimates-20261124]
+    paths: ['.github/workflows/nba-real-market-coverage-estimates.yml']
+permissions:
+  contents: read
+jobs:
+  estimates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verified estimate-only requests
+        env:
+          DUNK_KEY: ${{ secrets.NBA_DUNKAPI_API_KEY }}
+        run: |
+          node <<'NODE'
+          (async()=>{
+            const key=process.env.DUNK_KEY;
+            if(!key)throw Error('missing credential');
+            const qs=[
+              ['get_prop_history',{player_id:'3112335',market:'player_points',from_date:'2026-01-05',to_date:'2026-02-15',limit:25,league:'nba'}],
+              ['get_prop_history',{player_id:'3112335',market:'player_points_rebounds_assists',from_date:'2026-01-05',to_date:'2026-02-15',limit:25,league:'nba'}],
+              ['get_prop_history',{player_id:'3112335',market:'player_points',from_date:'2025-12-08',to_date:'2026-04-12',limit:200,league:'nba'}],
+              ['get_player_props',{game_id:'401809237',snapshot_type:'closing',league:'nba'}]
+            ];
+            const results=[];
+            for(const [tool,q] of qs){
+              const r=await fetch('https://mcp.dunkapi.com/v1/'+tool,{method:'POST',headers:{'x-api-key':key,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({...q,estimate_only:true}),redirect:'error',signal:AbortSignal.timeout(20000)});
+              if(!r.ok){results.push({tool,query:q,httpStatus:r.status});continue;}
+              const d=(await r.json()).data;
+              if(d?.estimate_only!==true||d.tool!==tool||!Number.isInteger(d.credits)||d.credits<0||Array.isArray(d.games)||Array.isArray(d.props))throw Error('unverified estimate only');
+              results.push({tool,query:q,estimatedCredits:d.credits,withinDailyCap:d.credits<=10});
+            }
+            console.log(JSON.stringify({kind:'nba_real_market_estimate_audit',paidRequests:0,results}));
+          })().catch(e=>{console.error(e.message);process.exitCode=1});
+          NODE

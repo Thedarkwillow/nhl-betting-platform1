@@ -1,0 +1,45 @@
+name: NBA historical pregame injury model ablation
+on:
+  push:
+    branches: [nba-injury-model-ablation-20261124]
+    paths: ['.github/workflows/nba-injury-model-ablation.yml']
+permissions:
+  contents: read
+jobs:
+  ablation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: nba-injury-model-ablation-20261124
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Import pinned private pre-tip archive
+        run: |
+          set -euo pipefail
+          git fetch -q origin 05ae5ca6975e8c011d780b9648a5771729b42648
+          mkdir -p outputs/nba/isolated-bulk-history/injury-report-audit-v1
+          git show FETCH_HEAD:outputs/nba/isolated-bulk-history/injury-report-audit-v1/selected-t90-listings.parquet > outputs/nba/isolated-bulk-history/injury-report-audit-v1/selected-t90-listings.parquet
+      - run: python -m pip install 'pyarrow>=18,<24' 'pandas>=2.2,<3' 'numpy>=1.26,<3' 'scikit-learn>=1.5,<2' 'lightgbm>=4.5,<5' 'xgboost>=2.1,<4'
+      - name: Train identical baseline and injury-aware models on separated dates
+        env:
+          OMP_NUM_THREADS: '2'
+          OPENBLAS_NUM_THREADS: '2'
+        run: |
+          set -euo pipefail
+          umask 077
+          python -m py_compile scripts/run-nba-eight-phase-offline-study.py
+          python scripts/run-nba-eight-phase-offline-study.py
+      - name: Archive private aggregate metrics
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nba/isolated-bulk-history/eight-phase-injury-ablation-v1
+          git commit -qm 'research: compare models with and without timestamped pregame injury features'
+          git push -q origin HEAD:nba-injury-model-ablation-20261124

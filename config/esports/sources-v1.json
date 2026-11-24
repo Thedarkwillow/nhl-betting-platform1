@@ -437,6 +437,31 @@
       "automatedNetworkEnabled": false,
       "paidCallsAllowed": false,
       "publicationRightsVerified": false
+    },
+    {
+      "id": "cito_multisport",
+      "url": "https://citoapi.com/docs/",
+      "titles": [
+        "CS2",
+        "VALORANT",
+        "LOL",
+        "DOTA2",
+        "COD"
+      ],
+      "access": "owner_reports_key_added_entitlements_unverified",
+      "capabilities": [
+        "recent_match_results",
+        "player_statistics",
+        "map_statistics_where_available",
+        "rosters",
+        "schedule",
+        "cs2_lol_underdog_reference_props_pro_only"
+      ],
+      "mode": "credential_health_and_public_schema_preview",
+      "notes": "Authenticated GET /api/v1/health is documented as zero quota. No metered endpoints, automatic upgrades, or full CSV exports without separate approval. Underdog and Sleeper CS2/LoL reference props only, no PrizePicks. Raw data and account-specific app availability not verified.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
     }
   ],
   "titles": {

@@ -1,0 +1,43 @@
+name: Cito zero-credit esports access verification
+on:
+  pull_request:
+    paths:
+      - 'scripts/cito-zero-credit-readiness.cjs'
+      - 'test/cito-zero-credit-readiness.test.cjs'
+      - '.github/workflows/cito-zero-credit-readiness.yml'
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cito-zero-credit-readiness.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/cito-zero-credit-readiness.test.cjs
+  readiness:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify key and preview documented free schemas
+        env:
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
+          CITO_KEY: ${{ secrets.CITO_KEY }}
+          CITO: ${{ secrets.CITO }}
+        run: node scripts/cito-zero-credit-readiness.cjs

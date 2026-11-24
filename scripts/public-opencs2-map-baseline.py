@@ -43,7 +43,7 @@ def map_rows(m):
     for pid in roster:
         values=player_total(by[pid],n)
         if values is None:return []
-        batch.append({"event":str(mid)+"|"+str(mp),"player":pid,"date":day,**dict(zip(METRICS,values))})
+        batch.append({"event":str(mid)+"|"+str(mp),"player":pid,"date":day,"map":m.get("map_name") or x.get("map_name") or x.get("map"),**dict(zip(METRICS,values))})
     return batch
 def evaluate(rows):
     # chronological prior-date-only holdout; all maps on a day withheld together
@@ -87,7 +87,7 @@ def main():
         sha=hashlib.sha256(raw).hexdigest()
         if len(raw)!=e["size"] or (e.get("lfs",{}).get("oid") and e["lfs"]["oid"]!=sha):raise ValueError("asset integrity")
         import io
-        t=pq.read_table(io.BytesIO(raw),columns=["match_id","map_index","match_date","rounds_played","match","teams","players"])
+        t=pq.read_table(io.BytesIO(raw),columns=["match_id","map_index","match_date","rounds_played","match","teams","players"]+ (["map_name"] if "map_name" in pq.ParquetFile(io.BytesIO(raw)).schema_arrow.names else []))
         files.append({"bytes":len(raw),"sha256":sha,"maps":t.num_rows})
         for m in t.to_pylist():
             try:r=map_rows(m)
@@ -97,7 +97,8 @@ def main():
             if k in maps:bad.add(k)
             else:maps[k]=r
     rows=[r for k,a in maps.items() if k not in bad for r in a]
-    print(json.dumps({"kind":"opencs2_modern_map_baseline_v1","source":REPO,"revision":REV,"license":"CC BY 4.0; original rights not independently verified","assets":files,"completeMaps":len(rows)//10,"excludedMaps":reject,"duplicateMapsExcluded":len(bad),"baseline":evaluate(rows),"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
+    from esports_context_models import evaluate as context_eval
+    print(json.dumps({"kind":"opencs2_modern_map_baseline_v1","source":REPO,"revision":REV,"license":"CC BY 4.0; original rights not independently verified","assetsVerified":len(files),"metadataMapRows":sum(x["maps"] for x in files),"context":context_eval(rows,METRICS,["map"]),"completeMaps":len(rows)//10,"excludedMaps":reject,"duplicateMapsExcluded":len(bad),"baseline":evaluate(rows),"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
 if __name__=="__main__":
     try:main()
     except Exception as e:print(json.dumps({"kind":"opencs2_modern_map_baseline_v1","status":"unavailable","reason":free.safe_error(e),"detail":str(e)[:160] if isinstance(e,ValueError) else None,"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))

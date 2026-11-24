@@ -88,11 +88,12 @@ def lol():
                     if not r[player] or not r["game_id"]:continue
                     vals={m:int(r[m]) for m in ("kills","assists","deaths")}
                     if min(vals.values())<0:continue
-                    rows.append(dict(event=r["game_id"],player=r[player],date=d,**vals));valid+=1
+                    rows.append(dict(event=r["game_id"],player=r[player],date=d,champion=r.get("champion") or r.get("champion_name"),position=r.get("position") or r.get("role"),**vals));valid+=1
                 except (TypeError,ValueError,KeyError):continue
             sources.append({"season":season,"status":"read","rows":valid,"sha256":hashlib.sha256(raw).hexdigest()})
         except Exception as e:sources.append({"season":season,"status":"unavailable","reason":safe_error(e)})
-    return {"title":"LOL","source":"ChainCC, League of Legends esports match dataset, https://chaincc.lol/free/data/, CC BY 4.0","sources":sources,"baseline":baseline(rows),"sourceClaimsIndependentlyVerified":False}
+    from esports_context_models import evaluate as context_eval
+    return {"context":context_eval(rows,("kills","deaths","assists"),["champion","position"]),"title":"LOL","source":"ChainCC, League of Legends esports match dataset, https://chaincc.lol/free/data/, CC BY 4.0","sources":sources,"baseline":baseline(rows),"sourceClaimsIndependentlyVerified":False}
 def dota():
     rows=[];requests=0;matches=0
     try:

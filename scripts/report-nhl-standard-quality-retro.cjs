@@ -3,7 +3,7 @@
 const fs=require("node:fs"),path=require("node:path");
 const {originalFrames}=require("./report-nhl-standard-triple-challengers.cjs");
 const {replay}=require("../src/nhl-standard-quality-retro-replay.cjs");
-const root=path.resolve(__dirname,"..");
+const root=process.env.RESEARCH_ARCHIVE_ROOT?fs.realpathSync(process.env.RESEARCH_ARCHIVE_ROOT):path.resolve(__dirname,"..");
 function run(){
  const history=JSON.parse(fs.readFileSync(path.join(root,"outputs/history/players.json"),"utf8"));
  const report=replay(originalFrames(),history);

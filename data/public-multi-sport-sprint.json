@@ -19,13 +19,14 @@
     },
     {
       "sport": "NBA",
-      "description": "Original 57-game cohort reproduced; 85 of 135 unresolved injury rows have prior-season dual-namespace identity candidates, 50 unresolved. No freeze approval.",
+      "description": "85 candidate identities recovered; broader prior-season roster and report-ID fallback implemented. Exact row reconciliation and untouched validation not approved.",
       "historicalRows": 2093,
       "unresolvedInjuryRows": 50
     },
     {
       "sport": "CS2",
-      "description": "2024 aggregate role dataset; no dated map baseline or original lines verified."
+      "description": "OpenCS2: 834 complete professional maps, 29 dates, 342 held-out player-map observations per market. No original prop lines.",
+      "historicalRows": 8340
     },
     {
       "sport": "Valorant",
@@ -44,12 +45,18 @@
     },
     {
       "sport": "Call of Duty",
-      "description": "2019 historical statistical baseline only; modern-edition transfer unverified.",
+      "description": "2019 historical baseline; bounded modern CDL public scoreboards research implemented; modern sample not yet verified.",
       "historicalRows": 6030
     },
     {
       "sport": "MLB",
       "description": "Existing separate MLB project preserved."
     }
-  ]
+  ],
+  "esportsResearch": {
+    "providerPolicy": "Non-Cito sources only",
+    "authenticatedOffersVerified": 0,
+    "modelsApproved": 0,
+    "contextStatus": "Conditional historical model tests; not pregame map or draft confirmation"
+  }
 }

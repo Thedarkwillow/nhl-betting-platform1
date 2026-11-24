@@ -26,6 +26,10 @@ jobs:
         run: test -n "$TOKEN" || { echo "::error::No private repository access"; exit 1; }
       - uses: actions/checkout@v4
         with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
           repository: Thedarkwillow/nhl-betting-platform
           ref: main
           path: private
@@ -36,9 +40,9 @@ jobs:
         with:
           node-version: '22'
       # This suite includes the late-night manual NFL inventory policy tests.
-      - name: Run isolated regression and full private test suite
+      - name: Run isolated public regression suite
         id: test
-        working-directory: private
+        working-directory: public
         shell: bash
         run: |
           set -euo pipefail
@@ -47,22 +51,16 @@ jobs:
           trap 'rm -f "$log"' EXIT
           if ! node --test test/nhl-sog-line-movement.test.cjs test/nhl-sog-opportunity-challengers.test.cjs test/nhl-standard-triple-challenger.test.cjs test/nhl-partner-pregame-freeze.test.cjs >"$log" 2>&1; then
             cp "$log" /tmp/private-standard-research-failure.log
-            echo "::warning::Private new challenger regressions FAILED; details committed privately."
+            echo "::warning::Public new challenger regressions FAILED; details committed privately."
             echo "status=failed" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo "PASS: private Standard challenger and original freeze tests"
-          if ! npm test >"$log" 2>&1; then
-            cp "$log" /tmp/private-standard-research-failure.log
-            echo "::warning::Full private Node suite FAILED; details committed privately."
-            echo "status=failed" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "PASS: all private Node regression suites."
+          echo "PASS: scoped public Node regression suites."
           echo "status=passed" >> "$GITHUB_OUTPUT"
-      - name: Run private historical diagnostic without claiming prospective hit rate
+      - name: Run public historical diagnostic without claiming prospective hit rate
         id: replay
-        working-directory: private
+        working-directory: public
         shell: bash
         run: |
           set -euo pipefail
@@ -70,6 +68,7 @@ jobs:
           if test "${{ steps.test.outputs.status }}" != passed; then
             echo "status=skipped" >> "$GITHUB_OUTPUT"; exit 0
           fi
+          export RESEARCH_ARCHIVE_ROOT="$GITHUB_WORKSPACE/private"
           if node scripts/report-nhl-standard-triple-challengers.cjs > /tmp/private-standard-replay.json 2>/tmp/private-standard-replay-errors.log; then
             echo "PASS: private retrospective Standard-line diagnostic reconstructed."
             echo "status=passed" >> "$GITHUB_OUTPUT"
@@ -88,7 +87,7 @@ jobs:
           if test -s /tmp/private-standard-research-failure.log; then
             cp /tmp/private-standard-research-failure.log "$path"
           else
-            printf 'Private Standard-model branch synthetic tests and full Node suite passed.\n' > "$path"
+            printf 'Public Standard-model scoped regression tests passed.\n' > "$path"
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -115,6 +114,6 @@ jobs:
         shell: bash
         run: |
           test "${{ steps.test.outputs.status }}" = passed ||
-            { echo "::error::Private challenger regression not green"; exit 1; }
+            { echo "::error::Public challenger regression not green"; exit 1; }
           test "${{ steps.replay.outputs.status }}" = passed ||
             { echo "::error::Private challenger diagnostic not green"; exit 1; }

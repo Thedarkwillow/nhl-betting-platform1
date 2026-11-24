@@ -65,7 +65,7 @@ jobs:
             echo "refreshed=false" >> "$GITHUB_OUTPUT"
             echo "::warning::Fresh nflverse results unavailable or incomplete; immutable previous archive retained. Grader runs pending-safe."
             # Restore any in-memory partial files if history refresh failed.
-            git restore -- outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/history/manifest.json
+            git restore -- outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/history/2026/weekly_rosters.json.gz outputs/nfl/history/2026/snap_counts.json.gz outputs/nfl/history/2026/team_weekly.json.gz outputs/nfl/history/2026/kicking_pbp.json.gz outputs/nfl/history/2026/pbp_specialty_events.json.gz outputs/nfl/history/manifest.json
           fi
       - name: Grade only first-Git-original numeric and explicit directional NFL research
         working-directory: private
@@ -79,7 +79,7 @@ jobs:
           fi
           # Only first-Git original and future-abstention evidence, never
           # backdated directional preferences or player-level public output.
-          for report in scripts/report-nfl-frozen-direction-diagnostic.cjs scripts/report-nfl-shadow-postgame.cjs scripts/report-nfl-matchup-shadow.cjs scripts/report-nfl-independent-forward.cjs scripts/report-nfl-directional-v2-forward.cjs scripts/report-nfl-directional-first-threshold-review.cjs; do
+          for report in scripts/report-nfl-frozen-direction-diagnostic.cjs scripts/report-nfl-shadow-postgame.cjs scripts/report-nfl-matchup-shadow.cjs scripts/report-nfl-independent-forward.cjs scripts/report-nfl-directional-v2-forward.cjs scripts/report-nfl-directional-first-threshold-review.cjs scripts/report-cross-sport-position-h2h-replay.cjs; do
             if ! node "$report" >"$log" 2>&1; then
               echo "::error::NFL first-Git-safe postgame report failed at: $report"
               # Never print raw private player quotes or private tracebacks into public runner logs.
@@ -129,7 +129,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f outputs/nfl/history/manifest.json outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/history/2026/weekly_rosters.json.gz outputs/nfl/history/2026/snap_counts.json.gz outputs/nfl/backtests/pregame-forecast-proof-latest.json outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json outputs/nfl/backtests/frozen-shadow-prospective-grading-latest.json outputs/nfl/backtests/matchup-context-forward-grade-latest.json outputs/nfl/backtests/independent-source-forward-latest.json outputs/nfl/backtests/directional-v2-future-only-latest.json outputs/nfl/backtests/directional-first-threshold-review-latest.json
+          git add -f outputs/nfl/history/manifest.json outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/history/2026/weekly_rosters.json.gz outputs/nfl/history/2026/snap_counts.json.gz outputs/nfl/history/2026/team_weekly.json.gz outputs/nfl/history/2026/kicking_pbp.json.gz outputs/nfl/history/2026/pbp_specialty_events.json.gz outputs/health/cross-sport-position-h2h-replay-latest.json outputs/nfl/backtests/pregame-forecast-proof-latest.json outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json outputs/nfl/backtests/frozen-shadow-prospective-grading-latest.json outputs/nfl/backtests/matchup-context-forward-grade-latest.json outputs/nfl/backtests/independent-source-forward-latest.json outputs/nfl/backtests/directional-v2-future-only-latest.json outputs/nfl/backtests/directional-first-threshold-review-latest.json
           if test -n "${SUNDAY_AUDIT_DATE:-}"; then
             git add -f "outputs/nfl/backtests/unresolved-appearance-$SUNDAY_AUDIT_DATE.json" "outputs/nfl/backtests/unresolved-identity-review-$SUNDAY_AUDIT_DATE.json"
           fi

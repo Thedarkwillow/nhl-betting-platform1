@@ -39,6 +39,11 @@
   if(progress?.kind==="public_research_progress_counts_v1"&&progress.proprietaryRowsPublished===0&&progress.calibrationApproved===false&&progress.modelPromoted===false&&age(progress.sourceReportAt,now)!==null){
    const a=age(progress.sourceReportAt,now),p=progress.periodHistory;
    if(p&&count(p.accountedDays)&&count(p.calendarDays)&&p.calendarDays>0&&p.accountedDays<=p.calendarDays)rows.push({label:"NHL historical periods",value:p.accountedDays+" / "+p.calendarDays+" dates accounted; "+(p.calendarDays-p.accountedDays)+" pending",ageMinutes:a});
+   const matchup=progress.matchupEvidence;
+   if(matchup?.kind==="public_matchup_evidence_counts_v1"&&matchup.historicalOnly===true&&matchup.modelPromoted===false&&matchup.approvedPicks===0&&age(matchup.sourceReportAt,now)!==null&&[matchup.rankingTables,matchup.completeRankingTables,matchup.punterAppearances,matchup.kickerAppearances,matchup.teamGames].every(count)&&matchup.completeRankingTables<=matchup.rankingTables){
+    rows.push({label:"NFL positional matchup coverage",value:matchup.completeRankingTables+" / "+matchup.rankingTables+" fully reconciled tables; incomplete league ranks withheld",ageMinutes:age(matchup.sourceReportAt,now)});
+    rows.push({label:"NFL kicking and punting matchup evidence",value:matchup.kickerAppearances+" kicker / "+matchup.punterAppearances+" punter historical appearances; no validated pick probabilities",ageMinutes:age(matchup.sourceReportAt,now)});
+   }
    const opponent=progress.nhlOpponentEvidence;
    if(opponent?.kind==="public_nhl_official_opponent_coverage_counts_v1"&&
       opponent.sourceOnly===true&&opponent.originalPlatformOffersVerified===false&&

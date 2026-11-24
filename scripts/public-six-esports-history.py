@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""Bounded historical stats-only research; no raw public writes or prop claims."""
+import csv, hashlib, importlib.util, json, pathlib, tempfile, time, urllib.parse, urllib.error
+from collections import defaultdict, Counter
+from datetime import datetime, timezone
+ROOT=pathlib.Path(__file__).resolve().parents[1]
+spec=importlib.util.spec_from_file_location("free",ROOT/"scripts/public-eight-free-history.py")
+free=importlib.util.module_from_spec(spec);spec.loader.exec_module(free)
+def col(cols,names):
+    for n in names:
+        if n in cols:return n
+    raise ValueError("missing documented field")
+def vct():
+    import duckdb
+    raw=free.download("https://vct-reference.com/dataset/vct.duckdb",32_000_000)
+    with tempfile.TemporaryDirectory() as d:
+        p=pathlib.Path(d)/"vct.duckdb";p.write_bytes(raw)
+        db=duckdb.connect(str(p),read_only=True,config={"enable_external_access":"false"})
+        cols={t:{r[0] for r in db.execute("describe "+t).fetchall()} for t in ("matches","maps","player_map")}
+        stamp=col(cols["matches"],["match_datetime_utc","match_date_utc","match_start_utc","start_time_utc","match_timestamp","timestamp_utc","start_at","match_datetime","match_date","datetime_utc","date_utc","start_time","date","match_time"])
+        needed={"match_id","game_id","player_id","kills_all","deaths_all","assists_all"}
+        if not needed<=cols["player_map"]:raise ValueError("player-map schema")
+        q=f"""select cast(m."{stamp}" as varchar),cast(pm.match_id as varchar),cast(pm.game_id as varchar),cast(pm.player_id as varchar),
+                    pm.kills_all,pm.deaths_all,pm.assists_all
+              from player_map pm join matches m using(match_id)
+              join maps mp using(match_id,game_id)
+              where m.listing_status='Completed' and m.is_showmatch=false
+              and pm.kills_all is not null and pm.deaths_all is not null and pm.assists_all is not null
+              order by 1,2,3,4"""
+        rows=[];maps=defaultdict(list)
+        for dt,mid,gid,pid,k,d,a in db.execute(q).fetchall():
+            try:
+                day=str(dt)[:10];datetime.strptime(day,"%Y-%m-%d")
+                if not all(x is not None and float(x).is_integer() and x>=0 for x in (k,d,a)):continue
+                maps[(mid,gid)].append(dict(event=mid+"|"+gid,player=pid,date=day,kills=int(k),deaths=int(d),assists=int(a)))
+            except (TypeError,ValueError):continue
+        for batch in maps.values():
+            if len(batch)==10 and len({x["player"] for x in batch})==10:rows.extend(batch)
+        db.close()
+    return {"title":"VALORANT","source":"VCT Reference; user reports specific research permission; redistribution unverified","sha256":hashlib.sha256(raw).hexdigest(),"completeMaps":len(rows)//10,"baseline":free.baseline(rows),"paidRequests":0}
+def dota():
+    # The documented Explorer endpoint provides player-match rows in one bounded read.
+    sql="""SELECT m.match_id,m.start_time,pm.account_id,pm.kills,pm.deaths,pm.assists
+    FROM matches m JOIN player_matches pm ON m.match_id=pm.match_id
+    WHERE m.leagueid>0 AND m.radiant_team_id>0 AND m.dire_team_id>0
+    AND m.start_time>=1735689600 AND pm.account_id>0
+    ORDER BY m.match_id DESC LIMIT 20000"""
+    try:
+        obj=json.loads(free.download("https://api.opendota.com/api/explorer?"+urllib.parse.urlencode({"sql":sql}),16_000_000))
+        groups=defaultdict(list)
+        for r in obj["rows"]:
+            if not all(type(r.get(k)) is int and r[k]>=0 for k in ("kills","deaths","assists")):continue
+            day=datetime.fromtimestamp(int(r["start_time"]),timezone.utc).date().isoformat()
+            groups[str(r["match_id"])].append(dict(event=str(r["match_id"]),player=str(r["account_id"]),date=day,**{k:r[k] for k in ("kills","deaths","assists")}))
+        rows=[r for g in groups.values() if len(g)==10 and len({x["player"] for x in g})==10 for r in g]
+        if not rows:raise ValueError("no complete matches")
+        return {"title":"DOTA2","source":"OpenDota Explorer professional league matches","completeMatches":len(rows)//10,"baseline":free.baseline(rows),"seriesMapScopeVerified":False,"freeRequests":1}
+    except Exception as e:
+        return {"title":"DOTA2","status":"explorer_unavailable","reason":free.safe_error(e),"fallback":free.dota()}
+def main():
+    results=[]
+    for title,fn in [("VALORANT",vct),("DOTA2",dota)]:
+        try:results.append(fn())
+        except Exception as e:results.append({"title":title,"status":"unavailable","reason":free.safe_error(e)})
+    print(json.dumps({"kind":"public_esports_history_sprint_v2","results":results,"paidRequests":0,"rawRowsPublished":0,"propValidation":False,"modelPromoted":False}))
+if __name__=="__main__":main()

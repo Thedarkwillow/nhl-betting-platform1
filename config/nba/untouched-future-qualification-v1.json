@@ -1,0 +1,24 @@
+{
+  "kind": "nba_untouched_future_qualification_plan_v1",
+  "registeredOn": "2026-11-24",
+  "evaluationEarliest": "2026-11-25T00:00:00Z",
+  "excludedPreviouslyEvaluated": [
+    "2026-10-24 through 2026-10-31 Pinnacle cohort",
+    "all historical development and previously examined holdouts"
+  ],
+  "candidatePolicy": "src/nba-fixed-holdout-gate-v1.cjs",
+  "minimumPerMarket": {
+    "decidedRows": 100,
+    "distinctGames": 30,
+    "distinctDates": 10,
+    "matchedCoverage": 0.8
+  },
+  "requirements": [
+    "first Git immutable pregame model outputs after policy registration",
+    "genuine dated original platform lines, verified player/game identity and final official results",
+    "lock candidate on development only; compare baseline and market on identical records",
+    "no approval until Brier and log loss beat both benchmarks and independent review"
+  ],
+  "qualified": false,
+  "paidCallsAllowed": false
+}

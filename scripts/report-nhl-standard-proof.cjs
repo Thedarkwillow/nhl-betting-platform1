@@ -2,13 +2,14 @@
 const fs=require("node:fs"),path=require("node:path"),{execFileSync}=require("node:child_process");
 const {freeze,grade,key,candidate}=require("../src/nhl-standard-prospective-proof.cjs");
 const {mergeHistory}=require("../src/nhl-specialist-history-recovery.cjs");
-const root=path.resolve(__dirname,".."),dt=Date.parse,read=p=>JSON.parse(fs.readFileSync(path.join(root,p),"utf8")),git=a=>execFileSync("git",a,{cwd:root,encoding:"utf8",timeout:20000,maxBuffer:80*1024*1024}).trim();
+const codeRoot=path.resolve(__dirname,".."),root=process.env.RESEARCH_ARCHIVE_ROOT?fs.realpathSync(process.env.RESEARCH_ARCHIVE_ROOT):codeRoot,dt=Date.parse,read=p=>JSON.parse(fs.readFileSync(path.join(root,p),"utf8")),git=a=>execFileSync("git",a,{cwd:root,encoding:"utf8",timeout:20000,maxBuffer:80*1024*1024}).trim();
 const list=(d,re)=>fs.existsSync(path.join(root,d))?fs.readdirSync(path.join(root,d)).filter(n=>re.test(n)).sort():[];
 function original(p){try{const cs=git(["log","--format=%H","--",p]).split("\n").filter(Boolean);if(cs.length!==1)return null;const s=JSON.parse(git(["show",cs[0]+":"+p])),at=git(["show","-s","--format=%cI",cs[0]]);
  if(!Number.isFinite(dt(s.generatedAt))||dt(at)<Math.floor(dt(s.generatedAt)/1000)*1000||dt(at)-dt(s.generatedAt)>=900000)return null;
  return {p,s,at,commit:cs[0]};}catch{return null;}}
 function save(p,x,immutable=false){const d=path.join(root,p);fs.mkdirSync(path.dirname(d),{recursive:true});fs.writeFileSync(d,JSON.stringify(x,null,2)+"\n",immutable?{flag:"wx"}:{});}
 function main(){
+ if(root!==codeRoot){const p="src/nhl-standard-prospective-proof.cjs",old=execFileSync("git",["show","HEAD:"+p],{cwd:root,maxBuffer:8*1024*1024});if(!old.equals(fs.readFileSync(path.join(codeRoot,p))))throw Error("Original NHL policy source hash differs; no old chronology reuse");}
  const now=new Date().toISOString(),day=Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:"America/Los_Angeles",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(now)).map(x=>[x.type,x.value])),cutoff=day.year+"-"+day.month+"-"+day.day;
  const src="outputs/research/snapshots",dest="outputs/research/standard-proof-v1",hist=read("outputs/history/players.json"),prior=list("outputs/period-stats/training-source",/^\d{4}-\d{2}-\d{2}\.json$/).map(n=>read("outputs/period-stats/training-source/"+n)),h=mergeHistory(hist,prior).history;
  const s=read("outputs/official-nhl/season-schedules/2026-27.json"),source=list(src,/^\d{8}T\d{6}Z\.json$/).slice(-1).map(n=>original(src+"/"+n))[0];

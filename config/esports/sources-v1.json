@@ -373,12 +373,29 @@
       "titles": [
         "VALORANT"
       ],
-      "access": "excluded_explicit_betting_restriction",
+      "access": "owner_reports_specific_provider_permission",
       "capabilities": [
         "historical_map_stats"
       ],
-      "mode": "blocked",
-      "notes": "Terms at https://vct-reference.com/terms explicitly prohibit betting/fantasy use; do not acquire for this project.",
+      "mode": "bounded_research_download",
+      "notes": "Owner reports specific permission on 2026-11-24 despite standard terms. No independently verified exception or redistribution rights; historical statistical research only. Do not publish raw database.",
+      "automatedNetworkEnabled": true,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false,
+      "downloadUrl": "https://vct-reference.com/dataset/vct.duckdb"
+    },
+    {
+      "id": "csgopred",
+      "url": "https://github.com/Aokua/csgopred",
+      "titles": [
+        "CS2"
+      ],
+      "access": "third_party_rights_review_required",
+      "capabilities": [
+        "player_map_stats"
+      ],
+      "mode": "authorized_export",
+      "notes": "Snapshot CC BY 4.0 only to extent author holds rights; underlying HLTV/Kaggle terms remain applicable. No automated download pending source rights.",
       "automatedNetworkEnabled": false,
       "paidCallsAllowed": false,
       "publicationRightsVerified": false

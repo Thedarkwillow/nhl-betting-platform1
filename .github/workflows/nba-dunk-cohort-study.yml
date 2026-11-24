@@ -1,8 +1,11 @@
 name: Validate NBA historical cohort and optional bounded collection
 on:
   push:
-    branches: [nba-dunk-cohort-research-20261124]
+    branches: [main, nba-dunk-cohort-research-20261124]
     paths: ['.github/workflows/nba-dunk-cohort-study.yml']
+  schedule:
+    # One user-approved collection, exact 2026 date also enforced in backend.
+    - cron: '15 5 25 11 *'
   workflow_dispatch:
     inputs:
       collect_one:
@@ -36,7 +39,7 @@ jobs:
           node scripts/run-nba-dunk-cohort-study.cjs
   collection:
     needs: validation
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.collect_one
+    if: github.ref == 'refs/heads/main' && ((github.event_name == 'workflow_dispatch' && inputs.collect_one) || github.event_name == 'schedule')
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
@@ -52,6 +55,7 @@ jobs:
       - name: Collect one eligible source request only
         env:
           NBA_DUNK_COHORT_MANUAL: '1'
+          NBA_DUNK_COHORT_EXPECTED_TASK: ${{ github.event_name == 'schedule' && 'jokic_log_20261125' || '' }}
           NBA_DUNKAPI_API_KEY: ${{ secrets.NBA_DUNKAPI_API_KEY }}
         run: |
           set -euo pipefail

@@ -27,6 +27,7 @@ on:
       - 'data/accuracy-platform-evidence.json'
       - 'data/source-line-movement.json'
       - 'data/nfl-independent-coverage.json'
+      - 'data/public-multi-sport-sprint.json'
       - 'nhl-games.json'
       - '.github/workflows/publish.yml'
 permissions:
@@ -53,5 +54,8 @@ jobs:
       - uses: actions/upload-pages-artifact@v4
         with:
           path: .
+          name: github-pages
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages

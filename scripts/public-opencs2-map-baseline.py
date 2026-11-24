@@ -7,7 +7,7 @@ ROOT=pathlib.Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location("free",ROOT/"scripts/public-eight-free-history.py")
 free=importlib.util.module_from_spec(spec);spec.loader.exec_module(free)
 REPO="blanchon/opencs2_dataset_demo"
-REV="682ced5a5ff64e41ce507f5d7324c9146c02cad7"
+REV="912a363098feec3f220e41d68634d2f71676c28b"
 METRICS=("kills","deaths","assists","headshots")
 def counts(p):
     vals=tuple(p.get(k) for k in METRICS)
@@ -62,9 +62,25 @@ def evaluate(rows):
     return {"validRows":len(rows),"dates":len(dates),"dateMin":dates[0] if dates else None,"dateMax":dates[-1] if dates else None,"holdoutStart":start,"markets":{m:{"n":z[0],"last5MAE":z[1]/z[0],"last20MAE":z[2]/z[0]} for m,z in out.items() if z[0]},"actualPropLines":0,"prospectiveApproval":False}
 def main():
     import pyarrow.parquet as pq
-    entries=json.loads(free.download(f"https://huggingface.co/api/datasets/{REPO}/tree/{REV}/data",2_000_000))
+    import urllib.request
+    entries=[];url=f"https://huggingface.co/api/datasets/{REPO}/tree/{REV}/data?limit=100"
+    visited=set()
+    for _ in range(10):
+        if url in visited or not url.startswith(f"https://huggingface.co/api/datasets/{REPO}/tree/{REV}/data"):raise ValueError("manifest pagination")
+        visited.add(url)
+        req=urllib.request.Request(url,headers={"User-Agent":"CS2ResearchDataAudit/1.0"})
+        with urllib.request.urlopen(req,timeout=35) as resp:
+            body=resp.read(2_000_001)
+            if len(body)>2_000_000:raise ValueError("manifest size")
+            entries.extend(json.loads(body))
+            link=resp.headers.get("Link","")
+        nexts=re.findall(r'<([^>]+)>;\s*rel="next"',link)
+        if not nexts:break
+        url=nexts[0]
+    else:raise ValueError("manifest pagination limit")
     assets=[e for e in entries if e.get("type")=="file" and re.fullmatch(r"data/metadata-[A-Za-z0-9_-]+\.parquet",e.get("path",""))]
-    if not assets or len(assets)>80 or sum(e["size"] for e in assets)>200_000_000:raise ValueError("metadata bound")
+    print(json.dumps({"stage":"manifest","metadataAssets":len(assets),"metadataBytes":sum(e["size"] for e in assets)}),flush=True)
+    if not assets or len(assets)>400 or sum(e["size"] for e in assets)>80_000_000:raise ValueError("metadata bound")
     maps={};bad=set();reject=0;files=[]
     for e in assets:
         raw=free.download(f"https://huggingface.co/datasets/{REPO}/resolve/{REV}/{e['path']}",e["size"])
@@ -84,4 +100,4 @@ def main():
     print(json.dumps({"kind":"opencs2_modern_map_baseline_v1","source":REPO,"revision":REV,"license":"CC BY 4.0; original rights not independently verified","assets":files,"completeMaps":len(rows)//10,"excludedMaps":reject,"duplicateMapsExcluded":len(bad),"baseline":evaluate(rows),"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
 if __name__=="__main__":
     try:main()
-    except Exception as e:print(json.dumps({"kind":"opencs2_modern_map_baseline_v1","status":"unavailable","reason":free.safe_error(e),"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
+    except Exception as e:print(json.dumps({"kind":"opencs2_modern_map_baseline_v1","status":"unavailable","reason":free.safe_error(e),"detail":str(e)[:160] if isinstance(e,ValueError) else None,"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))

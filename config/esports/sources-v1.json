@@ -416,6 +416,27 @@
       "automatedNetworkEnabled": false,
       "paidCallsAllowed": false,
       "publicationRightsVerified": false
+    },
+    {
+      "id": "cito_cs2_history",
+      "url": "https://citoapi.com/cs2-historical-data-api/",
+      "titles": [
+        "CS2"
+      ],
+      "access": "authorized_bulk_export_required",
+      "capabilities": [
+        "player_map_stats",
+        "headshots",
+        "map_veto",
+        "dated_rankings",
+        "roster_history",
+        "historical_prop_reference"
+      ],
+      "mode": "offline_authorized_export",
+      "notes": "Preferred broad-coverage candidate; provider reported 723,564 player-map lines across 67,149 maps on Nov 9 2026. Deep historical REST and bulk subscriptions are metered/paid. No calls or subscriptions approved. Accept separately authorized export; public samples schema-only.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
     }
   ],
   "titles": {

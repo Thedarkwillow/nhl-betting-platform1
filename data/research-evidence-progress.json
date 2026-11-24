@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-24T21:16:30.539Z",
+  "generatedAt": "2026-11-24T23:07:48.989Z",
   "sourceReportAt": "2026-11-24T21:10:10.245Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -91,7 +91,7 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-24T18:25:24.146Z",
+    "nhlReportAt": "2026-11-24T23:05:22.071Z",
     "nflReportAt": "2026-11-24T15:17:01.561Z",
     "nhl": {
       "registered": 397,
@@ -115,11 +115,11 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-24T18:25:24.743Z",
+    "sourceReportAt": "2026-11-24T23:05:22.728Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
       "completeOfficialGames": 1656,
-      "zeroShotAppearancesRetained": 16208,
+      "zeroShotAppearancesRetained": 16209,
       "missingShotRows": 0,
       "fullRosterAuditPass": false,
       "syntheticShotsPredicted": 8453,
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-24T20:45:44.929Z",
+    "sourceReportAt": "2026-11-24T23:06:44.025Z",
     "nhl": {
       "sourceEligible": false,
       "examined": 0,
@@ -295,7 +295,18 @@
       "gameSchedule": null,
       "conditionalGSIS": null,
       "positiveGameStatements": null,
-      "officialInjuryStatuses": null,
+      "officialInjuryStatuses": {
+        "kind": "public_nfl_explicit_official_injury_status_counts_v1",
+        "reportCapturedAt": "2026-11-24T23:05:54.511583+00:00",
+        "explicitStatuses": 11,
+        "ruledOut": 3,
+        "questionable": 8,
+        "doubtful": 0,
+        "duplicateStatuses": 0,
+        "medicalClearanceVerified": false,
+        "gameDayActiveVerified": false,
+        "bettingEligible": 0
+      },
       "identityInjuryOverlap": null,
       "gamedayOriginal": null,
       "originalGoblinOffersAudited": 1263,

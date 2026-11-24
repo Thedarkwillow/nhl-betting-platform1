@@ -1,0 +1,32 @@
+name: Validate bounded NHL coverage offline
+on:
+  push:
+    branches: [nhl-bounded-coverage-expansion-20261124]
+    paths: ['.github/workflows/validate-bounded-nhl-coverage.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: efa6b723890b42a3f9f32161fd93d1f5a9deb0d1
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test bounded provider and matching contracts
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --check scripts/collect-independent-nhl-sportsbook-fallback.cjs
+          if ! node --test test/nhl-independent-sportsbook-fallback.test.cjs test/sportsgameodds-nhl.test.cjs test/nhl-compact-private-export.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" || true
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail)' "$log"
+          echo 'No provider requests; daily quota unchanged.'

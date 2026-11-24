@@ -1,0 +1,63 @@
+name: Grade expanded ML first-Git research privately
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-expanded-ml-forward-grade.yml']
+  workflow_run:
+    workflows:
+      - 'Private NHL prospective grading and baseline audit via public runner'
+      - 'NFL archived pregame forecast and finals grading via public free runner'
+      - 'Freeze actual-time NHL and NFL pregame Higher Lower research'
+      - 'Freeze standalone NFL Standard research from genuine private morning board'
+      - 'Private pregame NHL freeze on public free runner'
+    types: [completed]
+  schedule:
+    - cron: '50 5,10,16 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-expanded-ml-forward-grade
+  cancel-in-progress: false
+jobs:
+  grade:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regrade immutable original snapshots on exact final evidence
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --test test/priority-common-ml-shadow-v1.test.cjs test/expanded-common-ml-grade.test.cjs >"$log" 2>&1 || { echo "::error::Private research regression failed"; exit 1; }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git reset --hard -q origin/main
+            node scripts/report-expanded-common-ml-forward.cjs >"$log" 2>&1 || { echo "::error::Private grading failed; prior report preserved"; exit 1; }
+            node - <<'NODE'
+          const d=require("./outputs/health/expanded-common-ml-forward-latest.json");
+          if(d.kind!=="expanded_common_ml_first_git_grade_v1"||d.researchOnly!==true||d.calibrated!==false||d.modelPromoted!==false||d.platformSettlementVerified!==false||Object.values(d.markets).some(x=>x.decided+x.pending!==x.registered||x.correct>x.decided))throw Error("Invalid forward evidence");
+          NODE
+            git add -f outputs/health/expanded-common-ml-forward-latest.json
+            git diff --cached --quiet && exit 0
+            git commit -qm 'research: refresh original expanded ML first-Git grading'
+            if git push -q origin HEAD:main; then echo "PASS: private original-only grades archived"; exit 0; fi
+            sleep "$attempt"
+          done
+          exit 1

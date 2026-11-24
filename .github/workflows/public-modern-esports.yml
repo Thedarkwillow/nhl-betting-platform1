@@ -1,0 +1,91 @@
+name: Public modern CS2 and authorized esports export readiness
+on:
+  pull_request:
+    paths:
+      - 'scripts/public-opencs2-map-baseline.py'
+      - 'scripts/collect-authorized-esports-export.cjs'
+      - 'test/test_opencs2_map_baseline.py'
+      - 'test/esports-authenticated-export.test.cjs'
+      - '.github/workflows/public-modern-esports.yml'
+  push:
+    branches: [main]
+    paths: ['.github/workflows/public-modern-esports.yml','scripts/public-opencs2-map-baseline.py']
+  workflow_dispatch:
+  schedule:
+    - cron: '25 6,9 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: public-modern-esports
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python3 -m unittest discover -s test -p test_opencs2_map_baseline.py
+      - run: node --test test/esports-authenticated-export.test.cjs test/public-eight-evidence.test.cjs
+  cs2:
+    needs: test
+    if: github.event_name != 'pull_request' && github.event_name != 'schedule' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyarrow==19.0.1
+      - run: python scripts/public-opencs2-map-baseline.py
+  esports-intake:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check configured source credentials without printing them or calling metered providers
+        env:
+          PP_ESPORTS_EXPORT_URL: ${{ secrets.PP_ESPORTS_EXPORT_URL }}
+          PP_ESPORTS_EXPORT_TOKEN: ${{ secrets.PP_ESPORTS_EXPORT_TOKEN }}
+          UD_ESPORTS_EXPORT_URL: ${{ secrets.UD_ESPORTS_EXPORT_URL }}
+          UD_ESPORTS_EXPORT_TOKEN: ${{ secrets.UD_ESPORTS_EXPORT_TOKEN }}
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+          UNDERDOG_API_KEY: ${{ secrets.UNDERDOG_API_KEY }}
+          ESPORTS_NO_METERED_EXPORT_APPROVED: ${{ vars.ESPORTS_NO_METERED_EXPORT_APPROVED }}
+        run: node public/scripts/collect-authorized-esports-export.cjs archive
+      - name: Persist only eligible original exports in restricted archive
+        working-directory: archive
+        run: |
+          set -euo pipefail
+          test -d outputs/esports/authorized-original-offers || exit 0
+          git add -f outputs/esports/authorized-original-offers
+          git diff --cached --quiet && exit 0
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'data: authorized esports original export capture'
+          git push origin HEAD:main
+      - name: Check immutable original offer intake
+        run: node public/scripts/public-eight-evidence.cjs esports archive

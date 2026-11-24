@@ -399,6 +399,23 @@
       "automatedNetworkEnabled": false,
       "paidCallsAllowed": false,
       "publicationRightsVerified": false
+    },
+    {
+      "id": "opencs2_demo",
+      "url": "https://huggingface.co/datasets/blanchon/opencs2_dataset_demo",
+      "titles": [
+        "CS2"
+      ],
+      "access": "published_cc_by_4_0_user_reports_cs2_access",
+      "capabilities": [
+        "historical_player_map_stats",
+        "headshot_counts"
+      ],
+      "mode": "bounded_parquet_metadata_download",
+      "notes": "CC BY 4.0 dataset attributed to blanchon; original demo rights not independently verified. Download metadata only; never demos or video. Narrow April 2026 cohort. No raw redistribution.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
     }
   ],
   "titles": {

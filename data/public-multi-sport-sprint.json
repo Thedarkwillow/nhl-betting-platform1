@@ -7,7 +7,7 @@
   "items": [
     {
       "sport": "NHL",
-      "description": "Public historical replay completed; prospective result not qualified.",
+      "description": "Public historical and prospective replay completed; 10 additional official games archived, 9 scoring reconciliations. Prospective challenger not qualified.",
       "historicalRows": 1054,
       "prospectiveRows": 247,
       "prospectiveWins": 116
@@ -19,8 +19,8 @@
     },
     {
       "sport": "NBA",
-      "description": "Historical real-line study requires injury identity and untouched holdout validation.",
-      "historicalRows": 2276,
+      "description": "Nine pinned Parquet assets verified; 2,093 historical real-line observations evaluated across 57 games, previously evaluated cohort. Injury reconciliation and untouched holdout remain unapproved.",
+      "historicalRows": 2093,
       "unresolvedInjuryRows": 135
     },
     {
@@ -33,11 +33,13 @@
     },
     {
       "sport": "League of Legends",
-      "description": "CC BY 4.0 historical download recovery initiated; no verified current prop lines."
+      "description": "ChainCC CC BY 4.0 historical statistical baseline: 36,022 holdout observations per market; no original prop lines.",
+      "historicalRows": 200040
     },
     {
       "sport": "Dota 2",
-      "description": "Free match-history acquisition; series and map scope still require validation."
+      "description": "110 player-match observations recovered from 11 professional matches; only one date, insufficient chronological holdout.",
+      "historicalRows": 110
     },
     {
       "sport": "Call of Duty",

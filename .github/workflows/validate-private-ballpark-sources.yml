@@ -1,0 +1,55 @@
+name: Validate private Ballpark-style source registry
+on:
+  pull_request:
+    paths: ['.github/workflows/validate-private-ballpark-sources.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: b718bb6f375382d2724a9dd3b865fa3a4dcb3824
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source registry and CSV integrity tests
+        working-directory: private
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s test -p test_playerwon_shift_import.py
+          node --check src/playerwon-shift-reconciliation-v1.cjs
+          node - <<'NODE'
+          const r=require('./config/ballpark-style-source-registry-v1.json');
+          if(r.sources.length!==12||new Set(r.sources.map(x=>x.id)).size!==12||r.sources.some(x=>x.automatedCollectionEnabled||x.modelEligible||x.publicRedistributionApproved))throw Error('Source approval gates failed');
+          console.log(JSON.stringify({registeredSources:r.sources.length,automaticCollectorsEnabled:0,modelPromoted:false}));
+          NODE
+      - name: Trial documented single-game shift download
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python scripts/import-playerwon-shifts.py --download --game-id 2026020384
+          node - <<'NODE'
+          const fs=require('node:fs'),reconcile=require('./src/playerwon-shift-reconciliation-v1.cjs').reconcile;
+          (async()=>{
+            const dir='outputs/nhl/research/playerwon-shifts',file=fs.readdirSync(dir).find(x=>x.startsWith('2026020384-')&&x.endsWith('.json'));
+            const d=JSON.parse(fs.readFileSync(dir+'/'+file,'utf8'));
+            const base='https://api-web.nhle.com/v1/gamecenter/2026020384/';
+            const get=async suffix=>{const r=await fetch(base+suffix,{redirect:'error',signal:AbortSignal.timeout(20000)});if(!r.ok)throw Error('official final unavailable');return r.json()};
+            const [pbp,box]=await Promise.all([get('play-by-play'),get('boxscore')]);const v=reconcile(d,pbp,box);
+            console.log(JSON.stringify({candidateIntervals:d.rows.length,officialReconciled:!!v,sharedPairs:v?.shared?.length||0,modelPromoted:false}));
+          })().catch(()=>{console.error('Official reconciliation trial unavailable');process.exitCode=1});
+          NODE

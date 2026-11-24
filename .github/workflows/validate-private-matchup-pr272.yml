@@ -1,0 +1,169 @@
+name: Validate private NHL NFL matchup research PR 272
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-private-matchup-pr272.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 7ba5a720feeacc741698c884a7e0f3d5d3709267
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Full offline regression
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            echo "::error::Private regression failed; private logs withheld"
+            grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log"
+          python -m unittest discover -s test -p 'test_nfl_2026_refresh.py'
+      - name: Real archived chronological paired replay
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! node scripts/report-cross-sport-position-h2h-replay.cjs >"$log" 2>&1; then
+            echo "::error::Private archive replay failed; details withheld"
+            exit 1
+          fi
+          node - <<'NODE'
+          const r=require('./outputs/health/cross-sport-position-h2h-replay-latest.json');
+          if(r.modelPromoted!==false || r.prospectiveAccuracyVerified!==false || r.nfl.exactOriginalLines!==false || !r.nhl.syntheticThresholdsOnly) throw Error('invalid research flags');
+          const n=Object.values(r.nhl.byMarketPosition),f=Object.values(r.nfl.byMarketPosition);
+          if(!n.length||!f.length||!n.some(x=>x.headToHeadPairedMAE?.appearances>0)||!f.some(x=>x.combinedPaired>0)) throw Error('empty paired cohort');
+          console.log('PASS: both sports have nonempty matched historical H2H cohorts; no model promotion.');
+          const rank=r.nflPositionalRankings,sp=r.nflSpecialistCoverage;
+          if(rank?.kind!=='nfl_reconciled_position_rankings_v1'||!sp||!Object.values(rank.tables).every(t=>t.complete||t.rows.every(x=>x.rankMostAllowed===null))) throw Error('Invalid new coverage report');
+          console.log(JSON.stringify({rankTables:Object.keys(rank.tables).length,completeRankTables:Object.values(rank.tables).filter(t=>t.complete).length,specialistCoverage:sp,rankingDiagnostics:rank.diagnostics}));
+          const safe=x=>({train:x.trainingAppearances,holdout:x.holdoutAppearances,baselineMAE:x.baselineMAE,fixedMAE:x.fixedMAE,learnedMAE:x.learnedMAE,thresholds:x.thresholds,baseWins:x.baseWins,learnedWins:x.learnedWins,alwaysHigher:x.alwaysHigher,alwaysLower:x.alwaysLower});
+          const collect=o=>Object.fromEntries(Object.entries(o).filter(([k,v])=>v.learnedMatchupHoldout?.holdoutAppearances>0).map(([k,v])=>[k,safe(v.learnedMatchupHoldout)]));
+          console.log(JSON.stringify({learnedNHL:collect(r.nhl.byMarketPosition),learnedNFL:collect(r.nfl.byMarketPosition),learnedSpecialist:collect(r.nflSpecialistReplay.byMarket)}));
+          const broad=o=>Object.fromEntries(Object.entries(o).filter(([k,v])=>v.independentFactorHoldout&&(!k.includes('|')||['passing_yards|QB','rushing_yards|RB','receiving_yards|WR','receiving_yards|TE','receptions|WR'].includes(k))).map(([k,v])=>[k,Object.fromEntries(Object.entries(v.independentFactorHoldout).map(([name,x])=>[name,{train:x.trainingAppearances,holdout:x.holdoutAppearances,baselineMAE:x.baselineMAE,learnedMAE:x.learnedMAE,rawMAE:x.rawMAE,thresholds:x.thresholds,baseWins:x.baseWins,learnedWins:x.learnedWins,alwaysHigher:x.alwaysHigher,alwaysLower:x.alwaysLower}]))]));
+          console.log(JSON.stringify({broadNHL:broad(r.nhl.byMarketPosition),broadNFL:broad(r.nfl.byMarketPosition)}));
+          if(!r.qbAttemptDirectional?.selected?.holdout?.thresholds)throw Error('No held-out QB attempt evidence');
+          console.log(JSON.stringify({qbAttemptDirectional:r.qbAttemptDirectional}));
+          console.log(JSON.stringify({countDistributionNHL:Object.fromEntries(Object.entries(r.nhl.byMarketPosition).filter(([k,v])=>!k.includes('|')&&v.countDistributionHoldout).map(([k,v])=>[k,v.countDistributionHoldout])),targetShareNFL:Object.fromEntries(Object.entries(r.nfl.byMarketPosition).filter(([k,v])=>v.independentFactorHoldout?.targetShare).map(([k,v])=>[k,{...v.independentFactorHoldout.targetShare,weight:undefined}]))}));
+          console.log(JSON.stringify({receivingDepthNFL:Object.fromEntries(Object.entries(r.nfl.byMarketPosition).filter(([k,v])=>v.independentFactorHoldout?.receivingDepth).map(([k,v])=>[k,{...v.independentFactorHoldout.receivingDepth,weight:undefined}]))}));
+          NODE
+  refresh-trial:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 7ba5a720feeacc741698c884a7e0f3d5d3709267
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install public historical source client
+        run: python -m pip install 'nflreadpy>=0.1,<2' 'lightgbm>=4.5,<5' 'scikit-learn>=1.5,<2' --quiet
+      - name: Try actual source refresh in disposable private checkout only
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! python scripts/refresh-nfl-2026-final-history.py >"$log" 2>&1; then
+            echo "::error::Live source refresh did not pass integrity gates; private archive untouched"
+            exit 1
+          fi
+          node - <<'NODE'
+          const m=require('./outputs/nfl/history/manifest.json');
+          const refreshed=m.last2026OptionalRefreshedDatasets||[];
+          console.log(JSON.stringify({refreshed, warnings:m.last2026OptionalWarnings||[]}));
+          if(!['team_weekly','kicking_pbp','pbp_specialty_events'].every(x=>refreshed.includes(x)))throw Error('Incomplete new source refresh');
+          const {dataset}=require('./scripts/build-nfl-partner-board-research.cjs');
+          const {rankings}=require('./src/nfl-position-rankings-v1.cjs');
+          const s=dataset(2026,'schedule'),w=Math.max(...s.filter(g=>g.game_type==='REG'&&Number.isFinite(g.home_score)&&Number.isFinite(g.away_score)).map(g=>Number(g.week)))+1;
+          const r=rankings(dataset(2026,'player_weekly'),s,dataset(2026,'team_weekly'),2026,w);
+          console.log(JSON.stringify({afterRefresh:true,week:w,completeTables:Object.values(r.tables).filter(t=>t.complete).length,totalTables:Object.keys(r.tables).length,diagnostics:r.diagnostics}));
+          NODE
+      - name: Historical drive metadata backfill in disposable checkout
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! python scripts/backfill-nfl-specialist-drive-metadata.py >"$log" 2>&1; then
+            echo "::error::Historical drive backfill failed identity or source gates"
+            exit 1
+          fi
+          if ! python scripts/collect-nfl-full-drive-boundaries.py >"$log" 2>&1; then
+            echo "::error::Full-play boundary source unavailable or integrity checks failed"
+            exit 1
+          fi
+          node scripts/audit-nfl-weather-venue-coverage.cjs
+          if ! node scripts/report-cross-sport-position-h2h-replay.cjs >"$log" 2>&1; then
+            echo "::error::Refreshed archive replay unavailable"
+            exit 1
+          fi
+          node - <<'NODE'
+          const r=require('./outputs/health/cross-sport-position-h2h-replay-latest.json');
+          console.log(JSON.stringify({afterHistoricalBackfill:true,specialistCoverage:r.nflSpecialistCoverage,fullBoundaryExceptionCounts:r.nflFullBoundaryExceptionCounts,modelPromoted:false}));
+          console.log(JSON.stringify({qbPaceRefresh:r.qbAttemptDirectional?.paceCoverage,qbPaceFactors:r.qbAttemptDirectional?.paceFactorHoldout}));
+          if(!r.qbAttemptDirectional?.paceCoverage?.reconciledTeamGames)throw Error('No reconciled pace data from refreshed full-play archive');
+          const ex=require('./outputs/nfl/research/drive-exceptions-private-latest.json');const reasons={};for(const x of ex.exceptions)for(const d of x.full.drives||[])reasons[d.reason]=(reasons[d.reason]||0)+1;console.log(JSON.stringify({fullDriveReasons:reasons,exceptions:ex.exceptions.length}));
+          NODE
+      - name: Private component and learned distribution research
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          node scripts/collect-nhl-goal-credit-shifts.cjs
+          if ! python scripts/collect-nfl-receiving-expected-targets.py >"$log" 2>&1; then
+            echo "::warning::Expected receiving source unavailable; missing features stay missing."
+          else
+            cat "$log"
+          fi
+          if ! node scripts/export-priority-component-features.cjs >"$log" 2>&1; then
+            echo "::error::Private feature export failed"
+            exit 1
+          fi
+          cat "$log"
+          if ! python scripts/study-priority-component-distributions.py >"$log" 2>&1; then
+            echo "::error::Distribution research failed"
+            exit 1
+          fi
+          cat "$log"

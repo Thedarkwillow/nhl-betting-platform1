@@ -1,0 +1,37 @@
+name: Validate private prospective ML qualification
+on:
+  pull_request:
+    paths: ['.github/workflows/validate-private-common-ml-qualification.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validation:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 56fd20f96caebeaea5f3764aeb2dee718e5559b9
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify original-line scorecard and qualification gates
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          node --test test/priority-common-ml-qualification-v1.test.cjs
+          node scripts/report-priority-common-ml-qualification.cjs
+          node - <<'NODE'
+          const d=require('./outputs/health/priority-common-ml-qualification-latest.json');
+          if(d.registered.NHL<3||d.modelPromoted!==false||d.calibrationApproved!==false)throw Error('Original ML evidence or release gate invalid');
+          console.log(JSON.stringify({registered:d.registered,pending:d.pending,modelPromoted:false,calibrationApproved:false}));
+          NODE

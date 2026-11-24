@@ -1,0 +1,46 @@
+name: Validate private receiver participation research
+on:
+  pull_request:
+    paths: ['.github/workflows/validate-private-receiver-participation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validation:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 7ea2319c2858ee8ca3de5a686bd17cec8bdb2844
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'nflreadpy>=0.1,<2' --quiet
+      - name: Verify historical source and matched holdout
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          node --test test/nfl-receiver-dropback-participation-v1.test.cjs
+          if ! python scripts/collect-nfl-receiver-dropback-participation.py >"$log" 2>&1; then
+            echo "::error::Participation source failed integrity or coverage checks"
+            exit 1
+          fi
+          cat "$log"
+          if ! node scripts/report-nfl-receiver-participation-holdout.cjs >"$log" 2>&1; then
+            echo "::error::Matched historical holdout failed"
+            exit 1
+          fi
+          cat "$log"

@@ -1,0 +1,34 @@
+name: Validate separate NBA real-line calibration cohort
+on:
+  push:
+    branches: [nba-real-line-calibration-cohort-20261124]
+    paths: ['.github/workflows/nba-real-line-calibration-test.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 1541cb5492d3c8755acbb1a52baaa8ca21e1d26e
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate existing collection protection and new cohort config
+        run: |
+          set -euo pipefail
+          node --test test/nba-context-calibration-v2.test.cjs test/nba-dunk-cohort-study.test.cjs test/nba-alternate-providers.test.cjs test/nba-authorized-provider-access.test.cjs
+          node - <<'NODE'
+          const assert=require('node:assert/strict');
+          const p=require('./config/nba/real-line-calibration-cohort-v1.json');
+          const counts={};for(const m of Object.values(p.players))counts[m]=(counts[m]||0)+1;
+          assert.equal(Object.keys(counts).length,5);assert.ok(Object.values(counts).every(n=>n===2));
+          assert.equal(p.totalStudyMaximum+p.priorPilotEstimatedCredits+p.independentReserve,499);
+          assert.ok(p.to<'2026-01-05');assert.ok(!p.accountBalanceVerified);
+          NODE
+          node scripts/run-nba-dunk-cohort-study.cjs

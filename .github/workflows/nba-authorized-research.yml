@@ -1,0 +1,107 @@
+name: NBA isolated provider readiness and guarded research
+on:
+  push:
+    branches: [main, nba-authorized-provider-deployment-20261124]
+    paths: ['.github/workflows/nba-authorized-research.yml']
+  workflow_dispatch:
+    inputs:
+      probe_accounts:
+        description: 'Run configured account-only probes and noncharging estimates'
+        type: boolean
+        default: false
+  schedule:
+    - cron: '35 6,9 * * *'
+      timezone: America/Los_Angeles
+    - cron: '15 15,16,18,19 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: nba-authorized-research-only
+  cancel-in-progress: false
+jobs:
+  validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ${{ github.ref == 'refs/heads/main' && 'main' || 'c4bf2be62162c226b6d5d3da3421cc23ade733df' }}
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Offline NBA source and prospective grading contracts
+        run: |
+          set -euo pipefail
+          node --test test/nba-research-pipeline-v1.test.cjs test/nba-frozen-research-grade-v1.test.cjs test/nba-authorized-provider-access.test.cjs
+          node scripts/run-nba-private-research-v1.cjs
+          node scripts/grade-nba-frozen-research-v1.cjs
+      - name: Report isolated NBA credential readiness
+        env:
+          NBA_SPORTSGAMEODDS_API_KEY: ${{ secrets.NBA_SPORTSGAMEODDS_API_KEY }}
+          NBA_BALLDONTLIE_API_KEY: ${{ secrets.NBA_BALLDONTLIE_API_KEY }}
+          NBA_DUNKAPI_API_KEY: ${{ secrets.NBA_DUNKAPI_API_KEY }}
+          NBA_ODDS_SEPARATE_ACCOUNT_CONFIRMED: ${{ vars.NBA_ODDS_SEPARATE_ACCOUNT_CONFIRMED }}
+          NBA_PROVIDER_PREFLIGHT_APPROVED: ${{ github.event_name == 'workflow_dispatch' && inputs.probe_accounts && '1' || '0' }}
+        run: node scripts/check-nba-authorized-provider-access.cjs
+  research:
+    needs: validation
+    if: github.ref == 'refs/heads/main' && vars.NBA_DIRECT_SOURCE_AUTHORIZED == '1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install bounded source dependencies
+        run: |
+          python -m pip install 'pyarrow>=18,<24'
+          command -v pdftotext || { sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils; }
+      - name: Authorized NBA-only source capture and prospective grading
+        env:
+          NBA_DIRECT_SOURCE_AUTHORIZED: '1'
+          NBA_HISTORICAL_MIRROR_RESEARCH: ${{ vars.NBA_MIRROR_SOURCE_AUTHORIZED == '1' && '1' || '0' }}
+          NBA_ODDS_ENABLE: ${{ vars.NBA_ODDS_SEPARATE_ACCOUNT_CONFIRMED == '1' && vars.NBA_ODDS_ENABLE == '1' && '1' || '0' }}
+          NBA_ODDS_SEPARATE_ACCOUNT_CONFIRMED: ${{ vars.NBA_ODDS_SEPARATE_ACCOUNT_CONFIRMED }}
+          NBA_SPORTSGAMEODDS_API_KEY: ${{ secrets.NBA_SPORTSGAMEODDS_API_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node scripts/grade-nba-frozen-research-v1.cjs >"$log" 2>&1 || { echo "::warning::NBA grading unavailable; outcomes not inferred."; }
+          node scripts/run-nba-private-research-v1.cjs >"$log" 2>&1 || { echo "::error::NBA collection failed closed."; exit 1; }
+          node - "$log" <<'NODE'
+          const fs=require('fs'),r=JSON.parse(fs.readFileSync(process.argv[2],'utf8').trim().split('\n').at(-1));
+          if(r.kind!=='nba_isolated_research_readiness_v1'||r.sharedPaidProviderRequests!==0||r.actualWagersPlaced!==0||r.highConfidenceApproved!==0)throw Error('NBA research contract');
+          console.log(JSON.stringify({status:r.status,boardRows:r.boardRows,rankedRows:r.rankedRows,officialScheduleGames:r.officialScheduleGames,highConfidenceApproved:r.highConfidenceApproved}));
+          NODE
+      - name: Preserve private NBA outputs only
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          test -d outputs/nba || exit 0
+          git add -f outputs/nba
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: authorized private NBA observations and final-only grading'
+          for attempt in 1 2 3 4 5 6; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$((attempt*2))"
+          done
+          exit 1

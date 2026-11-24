@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-24T01:51:59.204Z",
-  "sourceReportAt": "2026-11-24T01:28:41.972Z",
+  "generatedAt": "2026-11-24T02:56:18.842Z",
+  "sourceReportAt": "2026-11-24T02:08:30.352Z",
   "periodHistory": {
     "accountedDays": 261,
     "calendarDays": 261,
@@ -74,7 +74,7 @@
     "verifiedROI": null
   },
   "validationSample": {
-    "sourceReportAt": "2026-11-24T01:26:28.970Z",
+    "sourceReportAt": "2026-11-24T02:05:03.158Z",
     "nhlStandardFrozenDecisions": 1193,
     "nhlStandardFrozenGames": 96,
     "nhlStandardFrozenPacificSlates": 14,
@@ -390,31 +390,31 @@
   },
   "nhlOpponentEvidence": {
     "kind": "public_nhl_official_opponent_coverage_counts_v1",
-    "sourceReportAt": "2026-11-23T08:17:29.081Z",
-    "verifiedHistoricalConcessionGames": 87,
-    "verifiedHistoricalAttemptGames": 99,
+    "sourceReportAt": "2026-11-24T02:36:44.534Z",
+    "verifiedHistoricalConcessionGames": 98,
+    "verifiedHistoricalAttemptGames": 114,
     "byMarket": {
       "shotsOnGoal": {
-        "teamsVerified": 12,
-        "teamsWithFourOrMore": 17,
+        "teamsVerified": 17,
+        "teamsWithFourOrMore": 18,
         "teamsEvaluated": 32,
         "minimumPriorGames": 8
       },
       "blockedShots": {
-        "teamsVerified": 21,
-        "teamsWithFourOrMore": 31,
+        "teamsVerified": 25,
+        "teamsWithFourOrMore": 32,
         "teamsEvaluated": 32,
         "minimumPriorGames": 8
       },
       "points": {
-        "teamsVerified": 10,
-        "teamsWithFourOrMore": 16,
+        "teamsVerified": 13,
+        "teamsWithFourOrMore": 18,
         "teamsEvaluated": 32,
         "minimumPriorGames": 8
       },
       "assists": {
-        "teamsVerified": 10,
-        "teamsWithFourOrMore": 16,
+        "teamsVerified": 13,
+        "teamsWithFourOrMore": 18,
         "teamsEvaluated": 32,
         "minimumPriorGames": 8
       }

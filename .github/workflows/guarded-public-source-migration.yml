@@ -1,0 +1,98 @@
+name: Guarded public research source migration
+on:
+  pull_request:
+    paths:
+      - 'scripts/stage-public-research-migration.py'
+      - 'migration/private-source-plan.json'
+      - '.github/workflows/guarded-public-source-migration.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/stage-public-research-migration.py'
+      - 'migration/private-source-plan.json'
+      - '.github/workflows/guarded-public-source-migration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: guarded-public-source-migration
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 scripts/stage-public-research-migration.py self-test
+  stage:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'Thedarkwillow/nhl-betting-platform1'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          fetch-depth: 1
+      - name: Checkout pinned legacy source for one-way code-only review
+        uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 1be8cb99cc7fa0d3ec748fcc14cc9f0738f103aa
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Install pinned Gitleaks scanner and verify release checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          version=8.24.3
+          asset="gitleaks_${version}_linux_x64.tar.gz"
+          curl -fsSLO "https://github.com/gitleaks/gitleaks/releases/download/v${version}/$asset"
+          curl -fsSLo checksums.txt "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_checksums.txt"
+          expected="$(awk -v f="$asset" '$2==f || $2=="*"f {print $1}' checksums.txt)"
+          test -n "$expected"
+          test "$(sha256sum "$asset" | cut -d' ' -f1)" = "$expected"
+          tar -xzf "$asset" gitleaks
+          chmod 700 gitleaks
+      - name: Stage only approved file classes; keep conflicts inactive
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 public/scripts/stage-public-research-migration.py stage \
+            --private private --public public --candidate "$RUNNER_TEMP/source-candidate" \
+            --plan public/migration/private-source-plan.json --manifest "$RUNNER_TEMP/source-manifest.json"
+      - name: Scan candidate files without logging secret values
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          code=0
+          "$RUNNER_TEMP/gitleaks" dir "$RUNNER_TEMP/source-candidate" --no-banner --redact=100 \
+            --log-level error --report-format json --report-path "$RUNNER_TEMP/leaks.json" --exit-code 7 || code=$?
+          test "$code" -eq 0 || test "$code" -eq 7
+          test -s "$RUNNER_TEMP/leaks.json"
+      - name: Publish only scanned source to a non-production review branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 public/scripts/stage-public-research-migration.py publish \
+            --public public --candidate "$RUNNER_TEMP/source-candidate" \
+            --manifest "$RUNNER_TEMP/source-manifest.json" --leaks "$RUNNER_TEMP/leaks.json" \
+            --paths "$RUNNER_TEMP/public-paths"
+          cd public
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "migration/bulk-legacy-$GITHUB_RUN_ID"
+          git add --pathspec-from-file="$RUNNER_TEMP/public-paths" --pathspec-file-nul
+          test -z "$(git diff --cached --name-only -- outputs/ data/ .github/workflows/)"
+          git commit -qm 'Stage scanned legacy research code and inactive workflow templates'
+          git push origin "HEAD:refs/heads/migration/bulk-legacy-$GITHUB_RUN_ID"

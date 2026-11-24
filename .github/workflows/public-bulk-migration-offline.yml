@@ -1,0 +1,32 @@
+name: Public bulk migration offline checks
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  syntax:
+    if: startsWith(github.head_ref, 'migration/bulk-legacy-') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax-check active source without executing collectors
+        shell: bash
+        run: |
+          set -euo pipefail
+          find src scripts test -type f \( -name '*.cjs' -o -name '*.js' -o -name '*.mjs' \) -print0 | xargs -0 -r -n 1 -P 4 node --check
+          python3 - <<'PY'
+          import ast, pathlib
+          for root in ('src','scripts','test'):
+              for p in pathlib.Path(root).rglob('*.py'):
+                  ast.parse(p.read_text(), filename=str(p))
+          PY
+      - name: Repeat established offline regression contracts
+        run: node --test test/esports-research-v1.test.cjs test/nba-final-validation-v3.test.cjs test/nba-frozen-research-grade-v1.test.cjs test/nhl-dual-real-line-hit-rates-v1.test.cjs test/nfl-qb-attempt-directional-v1.test.cjs test/nfl-qb-pace-proe-live-inputs.test.cjs test/nba-fixed-holdout-gate-v1.test.cjs test/nba-pinnacle-independent-replay-v1.test.cjs test/nba-sdv-context-replay-v1.test.cjs test/nba-rotation-position-v3.test.cjs test/nba-context-calibration-v2.test.cjs test/drive-exceptions-venue-audit.test.cjs

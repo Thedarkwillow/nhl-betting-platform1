@@ -39,30 +39,7 @@ jobs:
             grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
             exit 1
           fi
-          grep -E '^# (tests|pass|fail) [0-9]+ Real archived chronological paired replay
-        working-directory: private
-        shell: bash
-        run: |
-          set -euo pipefail
-          umask 077
-          log="$(mktemp)"
-          trap 'rm -f "$log"' EXIT
-          if ! node scripts/report-cross-sport-position-h2h-replay.cjs >"$log" 2>&1; then
-            echo "::error::Private archive replay failed; details withheld"
-            exit 1
-          fi
-          node - <<'NODE'
-          const r=require('./outputs/health/cross-sport-position-h2h-replay-latest.json');
-          if(r.modelPromoted!==false || r.prospectiveAccuracyVerified!==false || r.nfl.exactOriginalLines!==false || !r.nhl.syntheticThresholdsOnly) throw Error('invalid research flags');
-          const n=Object.values(r.nhl.byMarketPosition),f=Object.values(r.nfl.byMarketPosition);
-          if(!n.length||!f.length||!n.some(x=>x.headToHeadPairedMAE?.appearances>0)||!f.some(x=>x.combinedPaired>0)) throw Error('empty paired cohort');
-          console.log('PASS: both sports have nonempty matched historical H2H cohorts; no model promotion.');
-          const rank=r.nflPositionalRankings,sp=r.nflSpecialistCoverage;
-          if(rank?.kind!=='nfl_reconciled_position_rankings_v1'||!sp||!Object.values(rank.tables).every(t=>t.complete||t.rows.every(x=>x.rankMostAllowed===null))) throw Error('Invalid new coverage report');
-          console.log(JSON.stringify({rankTables:Object.keys(rank.tables).length,completeRankTables:Object.values(rank.tables).filter(t=>t.complete).length,specialistCoverage:sp,rankingDiagnostics:rank.diagnostics}));
-          console.log(JSON.stringify({specialistReplay:r.nflSpecialistReplay.byMarket,nhlDirection:Object.fromEntries(Object.entries(r.nhl.byMarketPosition).filter(([k,v])=>!k.includes("|")&&v.headToHeadPairedMAE).map(([k,v])=>[k,v.headToHeadPairedMAE])),nflDirection:Object.fromEntries(Object.entries(r.nfl.byMarketPosition).filter(([k,v])=>v.combinedPaired>0).map(([k,v])=>[k,{paired:v.combinedPaired,base:v.combinedBaselineMAE,position:v.combinedPositionMAE,combined:v.combinedMAE,direction:v.syntheticDirection}]))}));
-          NODE
- "$log"
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log"
           python -m unittest discover -s test -p 'test_nfl_2026_refresh.py'
       - name: Real archived chronological paired replay
         working-directory: private
@@ -84,5 +61,6 @@ jobs:
           console.log('PASS: both sports have nonempty matched historical H2H cohorts; no model promotion.');
           const rank=r.nflPositionalRankings,sp=r.nflSpecialistCoverage;
           if(rank?.kind!=='nfl_reconciled_position_rankings_v1'||!sp||!Object.values(rank.tables).every(t=>t.complete||t.rows.every(x=>x.rankMostAllowed===null))) throw Error('Invalid new coverage report');
-          console.log(JSON.stringify({rankTables:Object.keys(rank.tables).length,completeRankTables:Object.values(rank.tables).filter(t=>t.complete).length,specialistCoverage:sp}));
+          console.log(JSON.stringify({rankTables:Object.keys(rank.tables).length,completeRankTables:Object.values(rank.tables).filter(t=>t.complete).length,specialistCoverage:sp,rankingDiagnostics:rank.diagnostics}));
+          console.log(JSON.stringify({specialistReplay:r.nflSpecialistReplay.byMarket,nhlDirection:Object.fromEntries(Object.entries(r.nhl.byMarketPosition).filter(([k,v])=>!k.includes("|")&&v.headToHeadPairedMAE).map(([k,v])=>[k,v.headToHeadPairedMAE])),nflDirection:Object.fromEntries(Object.entries(r.nfl.byMarketPosition).filter(([k,v])=>v.combinedPaired>0).map(([k,v])=>[k,{paired:v.combinedPaired,base:v.combinedBaselineMAE,position:v.combinedPositionMAE,combined:v.combinedMAE,direction:v.syntheticDirection}]))}));
           NODE

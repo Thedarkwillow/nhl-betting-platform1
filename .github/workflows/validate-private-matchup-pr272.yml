@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: df0745417c14ede3bd69c482190ba50cf9bd5082
+          ref: e3eb17a7dbef9cea741fc4c9571452cbf67261b0
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: df0745417c14ede3bd69c482190ba50cf9bd5082
+          ref: e3eb17a7dbef9cea741fc4c9571452cbf67261b0
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
@@ -139,4 +139,6 @@ jobs:
           node - <<'NODE'
           const r=require('./outputs/health/cross-sport-position-h2h-replay-latest.json');
           console.log(JSON.stringify({afterHistoricalBackfill:true,specialistCoverage:r.nflSpecialistCoverage,fullBoundaryExceptionCounts:r.nflFullBoundaryExceptionCounts,modelPromoted:false}));
+          console.log(JSON.stringify({qbPaceRefresh:r.qbAttemptDirectional?.paceCoverage,qbPaceFactors:r.qbAttemptDirectional?.paceFactorHoldout}));
+          if(!r.qbAttemptDirectional?.paceCoverage?.reconciledTeamGames)throw Error('No reconciled pace data from refreshed full-play archive');
           NODE

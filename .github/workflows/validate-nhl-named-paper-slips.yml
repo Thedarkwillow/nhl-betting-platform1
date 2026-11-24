@@ -1,0 +1,34 @@
+name: Validate named NHL paper slip grade offline
+on:
+  push:
+    branches: [nhl-paper-slips-grade-20261124]
+    paths: ['.github/workflows/validate-nhl-named-paper-slips.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: d91215314d718f8b24dae1573bfbf9a2789355e5
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify paper-slip contract and actual original snapshot
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --check scripts/grade-nhl-named-paper-slips.cjs
+          if ! node --test test/nhl-named-paper-slips.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" || true
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail)' "$log"
+          node scripts/grade-nhl-named-paper-slips.cjs
+          echo 'No provider calls or wagers.'

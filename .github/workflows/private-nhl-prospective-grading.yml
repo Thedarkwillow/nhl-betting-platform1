@@ -156,6 +156,23 @@ jobs:
               echo "::warning::Optional NHL shared-ice collector incomplete; existing final grading continues."
             fi
           fi
+      - name: Optional bounded PlayerWON gap backfill and matchup audit
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if test -f scripts/backfill-playerwon-reconciled-shifts.cjs; then
+            if PLAYERWON_BATCH=3 timeout 150s node scripts/backfill-playerwon-reconciled-shifts.cjs >"$log" 2>&1; then
+              grep -E '^\{"playerwonAttempted":[0-9]+' "$log" || true
+            else
+              echo "::warning::Optional PlayerWON gap trial incomplete; final grading unaffected."
+            fi
+            if ! timeout 180s node scripts/report-nhl-position-multiseason-v3.cjs >"$log" 2>&1; then
+              echo "::warning::Optional matched NHL benchmark report unavailable."
+            fi
+          fi
       - name: Grade only officially final NHL games and analyze frozen baseline challengers
         working-directory: private
         shell: bash
@@ -237,6 +254,9 @@ jobs:
           (("${#files[@]}" > 0)) || { echo "::error::No NHL grading or baseline output"; exit 1; }
           git add -f -- "${files[@]}"
           for file in outputs/nhl/research/goal-credit-shifts/*.json; do
+            if test -f "$file"; then git add -f -- "$file"; fi
+          done
+          for file in outputs/nhl/research/playerwon-shifts/*.csv outputs/nhl/research/playerwon-shifts/*.json outputs/nhl/research/playerwon-reconciled/*.json outputs/health/nhl-position-multiseason-v3-latest.json; do
             if test -f "$file"; then git add -f -- "$file"; fi
           done
           if git diff --cached --quiet; then

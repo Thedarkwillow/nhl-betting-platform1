@@ -1,0 +1,21 @@
+name: Public source audit migration tests
+on:
+  pull_request:
+    paths:
+      - 'scripts/report-nhl-standard-triple-challengers.cjs'
+      - 'scripts/report-nhl-alternate-probability-coherence.cjs'
+      - '.github/workflows/private-source-reliability-audits.yml'
+      - '.github/workflows/public-source-audit-migration-test.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/partner-direction-tier-evidence.test.cjs test/nhl-alternate-probability-coherence.test.cjs
+      - run: node --check scripts/report-nhl-standard-triple-challengers.cjs && node --check scripts/report-nhl-alternate-probability-coherence.cjs

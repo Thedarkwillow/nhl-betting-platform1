@@ -390,12 +390,12 @@
       "titles": [
         "CS2"
       ],
-      "access": "third_party_rights_review_required",
+      "access": "owner_reports_cs2_map_level_access",
       "capabilities": [
         "player_map_stats"
       ],
-      "mode": "authorized_export",
-      "notes": "Snapshot CC BY 4.0 only to extent author holds rights; underlying HLTV/Kaggle terms remain applicable. No automated download pending source rights.",
+      "mode": "bounded_research_download",
+      "notes": "Owner reports CS2 map-level dataset access on 2026-11-24. Pinned LFS snapshot may include old CS:GO; verify date, map, player and explicit counts; underlying source rights and redistribution remain unverified. One-time research, no automatic default network.",
       "automatedNetworkEnabled": false,
       "paidCallsAllowed": false,
       "publicationRightsVerified": false

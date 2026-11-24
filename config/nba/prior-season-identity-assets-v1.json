@@ -40,6 +40,38 @@
       "gitBlob": "3763b15b034533855ddf8db5b25b28018b8ec0af",
       "bytes": 83293,
       "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-stats-data/d03b90a4cc0565542bf222047cbdd2b4347bccf4/nba_stats/game_rosters/parquet/game_rosters_2026.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-data",
+      "commit": "4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2",
+      "path": "nba/game_rosters/parquet/game_rosters_2024.parquet",
+      "gitBlob": "f109dadc4596fd061fa42d00366e4b3f2a9bcd9d",
+      "bytes": 360213,
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-data/4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2/nba/game_rosters/parquet/game_rosters_2024.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-data",
+      "commit": "4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2",
+      "path": "nba/game_rosters/parquet/game_rosters_2025.parquet",
+      "gitBlob": "f37a0ec0bb6ba8287a345ba90715190a7ced3127",
+      "bytes": 299211,
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-data/4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2/nba/game_rosters/parquet/game_rosters_2025.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-stats-data",
+      "commit": "d03b90a4cc0565542bf222047cbdd2b4347bccf4",
+      "path": "nba_stats/game_rosters/parquet/game_rosters_2024.parquet",
+      "gitBlob": "bc95c06b7a8e52997e938d2e5df58b552cff7329",
+      "bytes": 84204,
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-stats-data/d03b90a4cc0565542bf222047cbdd2b4347bccf4/nba_stats/game_rosters/parquet/game_rosters_2024.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-stats-data",
+      "commit": "d03b90a4cc0565542bf222047cbdd2b4347bccf4",
+      "path": "nba_stats/game_rosters/parquet/game_rosters_2025.parquet",
+      "gitBlob": "f1a87582d2d71d226cc4dc09b4fcb5c8a1663904",
+      "bytes": 82395,
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-stats-data/d03b90a4cc0565542bf222047cbdd2b4347bccf4/nba_stats/game_rosters/parquet/game_rosters_2025.parquet"
     }
   ]
 }

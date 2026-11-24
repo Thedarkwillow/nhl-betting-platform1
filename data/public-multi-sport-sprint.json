@@ -94,6 +94,26 @@
         "baselineMAE": 9.7769,
         "contextMAE": 7.2905
       }
-    ]
+    ],
+    "independentCoverage": {
+      "observedAt": "2026-11-24T23:29:02.474Z",
+      "kind": "authenticated_independent_coverage_counts_not_lines",
+      "PrizePicks": {
+        "CS2": 207,
+        "VALORANT": 0,
+        "LOL": 0,
+        "DOTA2": 0,
+        "COD": 0
+      },
+      "Underdog": {
+        "CS2": 152,
+        "VALORANT": 69,
+        "LOL": 0,
+        "DOTA2": 18,
+        "COD": null
+      },
+      "originalOffersVerified": 0
+    },
+    "coverageNote": "Provider metadata only, historical snapshot, not current app availability or authenticated individual lines."
   }
 }

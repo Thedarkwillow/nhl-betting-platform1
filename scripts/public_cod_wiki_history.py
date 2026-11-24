@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Bounded public Cargo API research, stop on refusal; no scraping bypass."""
-import json, urllib.parse, urllib.request, time, re
+import json, urllib.parse, urllib.request, time, re, sys
 from datetime import date
 from collections import defaultdict, Counter
 from esports_context_models import evaluate
@@ -34,17 +34,20 @@ def parse(rows):
     return clean,excluded,len(groups)
 def main():
     rows=[];pages=0;status="bounded_sample"
+    year=sys.argv[1] if len(sys.argv)>1 else "2025"
+    if year not in ("2025","2026"):raise ValueError("invalid year")
+    start=year+"-01-01";end="2026-01-01" if year=="2025" else "2026-11-25"
     fields="Date,SeriesId,GameNumber,PlayerLink,Team,TeamVs,GameTitle,Gamemode,Win,Kills,Deaths,TournamentPage,UniqueLine"
     try:
         # Bounded contiguous chronological sample; not a full modern archive.
-        for i in range(6):
-            if i:time.sleep(20)
-            obj=query({"action":"cargoquery","tables":"PlayerStats","fields":fields,"where":"Date >= '2025-01-01' AND Date < '2026-11-25' AND TournamentPage LIKE 'Call of Duty League%'","order_by":"Date,UniqueLine","limit":"500","offset":str(i*500)})
+        for i in range(3):
+            if i:time.sleep(60)
+            obj=query({"action":"cargoquery","tables":"PlayerStats","fields":fields,"where":f"Date >= '{start}' AND Date < '{end}' AND TournamentPage LIKE 'Call of Duty League%'","order_by":"Date,UniqueLine","limit":"500","offset":str(i*500)})
             page=obj.get("cargoquery")
             if not isinstance(page,list) or len(page)>500:raise ValueError("schema")
             rows.extend(x["title"] for x in page);pages+=1
             if len(page)<500:status="source_exhausted";break
     except Exception as e:status="source_unavailable_or_partial_"+type(e).__name__
     clean,excluded,groups=parse(rows)
-    print(json.dumps({"kind":"modern_cod_wiki_baseline_v1","source":"Call of Duty Esports Wiki, CC BY-SA 3.0; https://cod-esports.fandom.com/wiki/Stats_Hub","status":status,"pages":pages,"rawRowsRead":len(rows),"completeMaps":len(clean)//8,"invalidRows":excluded,"candidateMaps":groups,"context":evaluate(clean,("kills","deaths"),["mode"],["edition"]),"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
+    print(json.dumps({"kind":"modern_cod_wiki_baseline_v1","source":"Call of Duty Esports Wiki, CC BY-SA 3.0; https://cod-esports.fandom.com/wiki/Stats_Hub","status":status,"year":year,"pages":pages,"rawRowsRead":len(rows),"completeMaps":len(clean)//8,"invalidRows":excluded,"candidateMaps":groups,"context":evaluate(clean,("kills","deaths"),["mode"],["edition"]),"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
 if __name__=="__main__":main()

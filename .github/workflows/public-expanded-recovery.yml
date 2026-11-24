@@ -1,0 +1,66 @@
+name: Public non-Cito expanded recovery and paired validation
+on:
+  pull_request:
+    paths:
+      - 'scripts/public-nhl-original-paired-audit.cjs'
+      - 'scripts/public-opencs2-map-baseline.py'
+      - 'scripts/public_cod_wiki_history.py'
+      - 'test/test_opencs2_map_baseline.py'
+      - '.github/workflows/public-expanded-recovery.yml'
+  push:
+    branches: [main]
+    paths: ['.github/workflows/public-expanded-recovery.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '25 10 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python3 -m unittest discover -s test -p test_opencs2_map_baseline.py
+      - run: python3 -m unittest discover -s test -p test_esports_context_models.py
+      - run: python3 -m unittest discover -s test -p test_nba_dated_injury_cohort.py
+      - run: node --test test/nhl-standard-forward-scoreboard.test.cjs test/esports-zero-credit-coverage.test.cjs
+      - run: node --check scripts/public-nhl-original-paired-audit.cjs && node --check assets/public-multi-sport-sprint.js
+  cod-2026:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.event_name != 'schedule' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 scripts/public_cod_wiki_history.py 2026
+  paired-nhl:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Score original frozen exact-line forecasts with paired game clusters
+        run: RESEARCH_ARCHIVE_ROOT="$GITHUB_WORKSPACE/archive" node public/scripts/public-nhl-original-paired-audit.cjs

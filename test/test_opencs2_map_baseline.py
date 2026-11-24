@@ -11,3 +11,12 @@ class Test(unittest.TestCase):
  def test_incomplete_map_rejected(self):
   self.assertEqual(m.map_rows({"rounds_played":5}),[])
   self.assertFalse(m.evaluate([])["prospectiveApproval"])
+
+ def test_regulation_side_switch_score(self):
+  # Team starting CT wins 10 in first half, 3 after switching.
+  sides=["ct"]*10+["t"]*2+["t"]*3
+  rounds=[dict(round_num=i+1,winner=s,start=i*100,official_end=i*100+90) for i,s in enumerate(sides)]
+  x=dict(rounds_played=15,match=dict(rounds_played=15,score_ct=10,score_t=5),rounds=rounds)
+  self.assertEqual(m.regulation_team_score(x),(13,2))
+  self.assertIsNone(m.regulation_team_score({**x,"match":{**x["match"],"score_ct":13,"score_t":2}}))
+  self.assertIsNone(m.regulation_team_score({**x,"rounds":rounds[:-1]}))

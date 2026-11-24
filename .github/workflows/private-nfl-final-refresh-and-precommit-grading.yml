@@ -159,3 +159,5 @@ jobs:
 # 2026-11-20 owner-requested grading for November 19 Pacific games: official finals only; first-Git pregame frozen player markets; no paid PrizePicksAPI collection or wagers.
 
 # 2026-11-23 owner-requested immediate NFL Sunday Nov 22 source refresh and first-Git pregame grading. Publication must distinguish decided from pending and never assume missing weekly players are zeros.
+
+# Owner-requested 2026-11-23: rerun private ranking reconciliation after tested PR 273 merge; no paid quote requests or pick promotion.

@@ -1,0 +1,22 @@
+name: Validate individual research explanations and weather archive
+on:
+  pull_request:
+    paths:
+      - 'assets/nfl-independent-coverage.js'
+      - '.github/workflows/public-private-nhl-nfl-0900.yml'
+      - '.github/workflows/validate-matchup-weather-cards.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check assets/nfl-independent-coverage.js
+          node scripts/validate-dashboard.cjs
+          node --test scripts/test-publish-safe-nfl-research-cards.cjs scripts/test-public-capture-schedule.cjs scripts/test-fresh-ranking-schedule.cjs scripts/test-pacific-morning-capture-gate.cjs scripts/test-nfl-matchup-evidence-archival.cjs

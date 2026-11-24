@@ -1,0 +1,174 @@
+{
+  "nhl_shotsOnGoal": {
+    "fields": [
+      "recent5",
+      "recent20",
+      "ice"
+    ],
+    "lines": [
+      1.5,
+      2.5,
+      3.5
+    ]
+  },
+  "nhl_assists": {
+    "fields": [
+      "recent5",
+      "recent20",
+      "ice"
+    ],
+    "lines": [
+      0.5,
+      1.5
+    ]
+  },
+  "nhl_blockedShots": {
+    "fields": [
+      "recent5",
+      "recent20",
+      "ice"
+    ],
+    "lines": [
+      0.5,
+      1.5,
+      2.5
+    ]
+  },
+  "nhl_saves": {
+    "fields": [
+      "recent5",
+      "recent20",
+      "ice"
+    ],
+    "lines": [
+      22.5,
+      27.5,
+      32.5
+    ]
+  },
+  "nfl_passing_yards": {
+    "fields": [
+      "base",
+      "recent5",
+      "opportunity"
+    ],
+    "lines": [
+      174.5,
+      199.5,
+      224.5,
+      249.5
+    ]
+  },
+  "nfl_passing_completions": {
+    "fields": [
+      "base",
+      "recent5",
+      "opportunity"
+    ],
+    "lines": [
+      14.5,
+      19.5,
+      24.5
+    ]
+  },
+  "nfl_rushing_yards": {
+    "fields": [
+      "base",
+      "recent5",
+      "opportunity"
+    ],
+    "lines": [
+      24.5,
+      49.5,
+      74.5
+    ]
+  },
+  "nfl_rushing_attempts": {
+    "fields": [
+      "base",
+      "recent5",
+      "opportunity"
+    ],
+    "lines": [
+      9.5,
+      14.5,
+      19.5
+    ]
+  },
+  "nfl_receptions": {
+    "fields": [
+      "base",
+      "recent5",
+      "opportunity"
+    ],
+    "lines": [
+      2.5,
+      3.5,
+      4.5,
+      5.5
+    ]
+  },
+  "nfl_receiving_targets": {
+    "fields": [
+      "base",
+      "recent5",
+      "opportunity"
+    ],
+    "lines": [
+      3.5,
+      5.5,
+      7.5
+    ]
+  },
+  "nfl_fg_made": {
+    "fields": [
+      "base",
+      "recent5",
+      "opportunity"
+    ],
+    "lines": [
+      0.5,
+      1.5,
+      2.5
+    ]
+  },
+  "nfl_fg_attempts": {
+    "fields": [
+      "base",
+      "recent5",
+      "opportunity"
+    ],
+    "lines": [
+      0.5,
+      1.5,
+      2.5,
+      3.5
+    ]
+  },
+  "nfl_pat_made": {
+    "fields": [
+      "base",
+      "recent5",
+      "opportunity"
+    ],
+    "lines": [
+      0.5,
+      1.5,
+      2.5,
+      3.5
+    ]
+  },
+  "nfl_kicking_points": {
+    "fields": [
+      "base",
+      "recent5",
+      "opportunity"
+    ],
+    "lines": [
+      3.5,
+      5.5,
+      7.5,
+      9.5
+    ]
+  }
+}

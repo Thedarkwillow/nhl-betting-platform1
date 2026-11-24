@@ -23,6 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          path: archive
           repository: Thedarkwillow/nhl-betting-platform
           ref: main
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
@@ -30,32 +35,27 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Test fixed pregame policy and zero-network contracts
+      - name: Test and execute public-native Standard proof
         run: |
           set -euo pipefail
           umask 077
-          pin=c048d7f32d7fce74fb9112e95401e54c6397bf40
-          if ! test -f scripts/report-nhl-standard-proof.cjs; then
-            git fetch -q origin "$pin"
-            work="$(mktemp -d)"
-            git worktree add --detach "$work" "$pin"
-            trap 'git worktree remove --force "$work" >/dev/null 2>&1 || true' EXIT
-            (cd "$work"; node --check scripts/report-nhl-standard-proof.cjs; node --test test/nhl-specialist-standard-proof.test.cjs)
-            mkdir -p outputs/health
-            PIN="$pin" node -e 'require("fs").writeFileSync("outputs/health/nhl-standard-proof-test-latest.json",JSON.stringify({testedCommit:process.env.PIN,generatedAt:new Date().toISOString(),passed:true,providerRequests:0})+"\n")'
-          else
-            node --check scripts/report-nhl-standard-proof.cjs
-            node --test test/nhl-specialist-standard-proof.test.cjs
-            mkdir -p outputs/health
-            PIN="$(git rev-parse HEAD)" node -e 'require("fs").writeFileSync("outputs/health/nhl-standard-proof-test-latest.json",JSON.stringify({testedCommit:process.env.PIN,generatedAt:new Date().toISOString(),passed:true,providerRequests:0})+"\n")'
-            node scripts/report-nhl-standard-proof.cjs
-          fi
+          node --test public/test/nhl-specialist-standard-proof.test.cjs public/test/nhl-standard-market-residual-v1.test.cjs
+          export RESEARCH_ARCHIVE_ROOT="$GITHUB_WORKSPACE/archive"
+          log="$RUNNER_TEMP/standard-proof"
+          node public/scripts/report-nhl-standard-proof.cjs >"$log" 2>&1 || { echo "::error::Public Standard proof failed closed"; exit 1; }
+          node - "$log" <<'NODE'
+          const r=JSON.parse(require("fs").readFileSync(process.argv[2],"utf8"));console.log(JSON.stringify({accepted:r.accepted,newRows:r.newRows,newSelected:r.newSelected,modelPromoted:false}));
+          NODE
+          node -e 'const fs=require("fs"),r=require("./archive/outputs/health/nhl-standard-market-residual-latest.json");console.log(JSON.stringify(r))'
+          mkdir -p archive/outputs/health
+          PIN="$(git -C public rev-parse HEAD)" node -e 'require("fs").writeFileSync("archive/outputs/health/nhl-standard-proof-test-latest.json",JSON.stringify({testedCommit:process.env.PIN,generatedAt:new Date().toISOString(),passed:true,providerRequests:0})+"\n")'
       - name: Archive test evidence and prospective research privately
+        working-directory: archive
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f outputs/health/nhl-standard-proof-test-latest.json
+          git add -f outputs/health/nhl-standard-proof-test-latest.json outputs/health/nhl-standard-market-residual-latest.json
           if test -f outputs/health/nhl-standard-proof-latest.json; then git add -f outputs/health/nhl-standard-proof-latest.json; fi
           if test -d outputs/research/standard-proof-v1; then git add -f outputs/research/standard-proof-v1/*.json; fi
           git diff --cached --quiet && exit 0

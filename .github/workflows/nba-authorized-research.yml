@@ -77,6 +77,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          path: archive
           repository: Thedarkwillow/nhl-betting-platform
           ref: main
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
@@ -96,21 +101,21 @@ jobs:
         env:
           NBA_DIRECT_SOURCE_AUTHORIZED: '1'
           NBA_HISTORICAL_MIRROR_RESEARCH: ${{ vars.NBA_MIRROR_SOURCE_AUTHORIZED == '1' && '1' || '0' }}
-          NBA_ODDS_ENABLE: ${{ vars.NBA_ODDS_SEPARATE_ACCOUNT_CONFIRMED == '1' && vars.NBA_ODDS_ENABLE == '1' && '1' || '0' }}
-          NBA_ODDS_SEPARATE_ACCOUNT_CONFIRMED: ${{ vars.NBA_ODDS_SEPARATE_ACCOUNT_CONFIRMED }}
-          NBA_SPORTSGAMEODDS_API_KEY: ${{ secrets.NBA_SPORTSGAMEODDS_API_KEY }}
+          NBA_ODDS_ENABLE: '0'
         run: |
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          node scripts/grade-nba-frozen-research-v1.cjs >"$log" 2>&1 || { echo "::warning::NBA grading unavailable; outcomes not inferred."; }
-          node scripts/run-nba-private-research-v1.cjs >"$log" 2>&1 || { echo "::error::NBA collection failed closed."; exit 1; }
+          export RESEARCH_ARCHIVE_ROOT="$GITHUB_WORKSPACE/archive"
+          node public/scripts/grade-nba-frozen-research-v1.cjs >"$log" 2>&1 || { echo "::warning::NBA grading unavailable; outcomes not inferred."; }
+          node public/scripts/run-nba-private-research-v1.cjs >"$log" 2>&1 || { echo "::error::NBA collection failed closed."; exit 1; }
           node - "$log" <<'NODE'
           const fs=require('fs'),r=JSON.parse(fs.readFileSync(process.argv[2],'utf8').trim().split('\n').at(-1));
           if(r.kind!=='nba_isolated_research_readiness_v1'||r.sharedPaidProviderRequests!==0||r.actualWagersPlaced!==0||r.highConfidenceApproved!==0)throw Error('NBA research contract');
           console.log(JSON.stringify({status:r.status,boardRows:r.boardRows,rankedRows:r.rankedRows,officialScheduleGames:r.officialScheduleGames,highConfidenceApproved:r.highConfidenceApproved}));
           NODE
       - name: Preserve private NBA outputs only
+        working-directory: archive
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'

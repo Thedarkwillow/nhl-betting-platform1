@@ -33,6 +33,7 @@ function main(){
   const at=new Date().toISOString();newRows=newRows.filter(r=>dt(r.gameStartAt)>dt(at)+900000&&dt(at)-dt(source.s.generatedAt)<=1800000);
   if(newRows.length)save(dest+"/"+at.replace(/[-:.]/g,"")+".json",{kind:"standard_proof_v1",generatedAt:at,cutoff,sourceSnapshot:source.p,sourceCommit:source.commit,rows:newRows,modelPromoted:false,calibrationApproved:false},true);
  }
+ const residual=require("../src/nhl-standard-market-residual-v1.cjs").evaluate(accepted,h);save("outputs/health/nhl-standard-market-residual-latest.json",residual);
  const report={kind:"private_nhl_standard_proof_v1",generatedAt:new Date().toISOString(),policyAt,existingSidecars:files.length,accepted:accepted.length,newRows:newRows.length,newSelected:newRows.filter(r=>r.selected).length,scorecard:grade(accepted,h),rejected,comparison:"same frozen exact half-point Standard lines; all baselines hypothetical if alternate offered side unverified",requirement:"200 decided, 60 distinct games, 20 distinct dates, paired game-cluster superiority vs simple baselines and improved Brier; independent review only",confidenceApproved:false,lineupsApproved:false,modelPromoted:false,paidProviderRequests:0};save("outputs/health/nhl-standard-proof-latest.json",report);console.log(JSON.stringify({policyAt,accepted:accepted.length,newRows:newRows.length,newSelected:report.newSelected,modelPromoted:false}));
 }
 if(require.main===module)main();

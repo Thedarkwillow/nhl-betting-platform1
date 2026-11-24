@@ -3,7 +3,7 @@
 Not a source of official final timestamps or independently authenticated results.
 The original dataset documents missing 2024-25 games and DNP exclusion.
 """
-import argparse, hashlib, json, math, re, tempfile
+import argparse, hashlib, json, math, re, tempfile, os
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,7 +11,7 @@ from urllib.request import Request, urlopen
 import pyarrow.parquet as pq
 REPO="cbratkovics/nba-game-logs"
 API="https://huggingface.co/api/datasets/"+REPO
-ROOT=Path(__file__).resolve().parents[1]
+ROOT=Path(os.environ["RESEARCH_ARCHIVE_ROOT"]).resolve() if os.environ.get("RESEARCH_ARCHIVE_ROOT") else Path(__file__).resolve().parents[1]
 SEASONS=("2023-24","2024-25","2025-26","2026-27")
 EXPECTED={"2023-24":1230,"2024-25":1230,"2025-26":1230}
 TEAM_ALIASES={"BRK":"BKN","GS":"GSW","NO":"NOP","NY":"NYK","SA":"SAS","SAN":"SAS","PHO":"PHX","UTAH":"UTA","WSH":"WAS"}

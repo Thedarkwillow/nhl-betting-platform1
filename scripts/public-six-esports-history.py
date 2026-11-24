@@ -17,7 +17,13 @@ def vct():
         p=pathlib.Path(d)/"vct.duckdb";p.write_bytes(raw)
         db=duckdb.connect(str(p),read_only=True,config={"enable_external_access":"false"})
         cols={t:{r[0] for r in db.execute("describe "+t).fetchall()} for t in ("matches","maps","player_map")}
-        stamp=col(cols["matches"],["match_datetime_utc","match_date_utc","match_start_utc","start_time_utc","match_timestamp","timestamp_utc","start_at","match_datetime","match_date","datetime_utc","date_utc","start_time","date","match_time"])
+        print(json.dumps({"stage":"vct_schema","bytes":len(raw),"columns":{k:sorted(x) for k,x in cols.items()}}),flush=True)
+        candidates=["match_datetime_utc","match_date_utc","match_start_utc","start_time_utc","match_timestamp","timestamp_utc","start_at","match_datetime","match_date","datetime_utc","date_utc","start_time","date","match_time","timestamp","start_ts","start_ts_utc","match_ts","match_ts_utc","date_time_utc","start_utc","match_time_utc","date_time","datetime"]
+        try:stamp=col(cols["matches"],candidates)
+        except ValueError:
+            typed=[x[0] for x in db.execute("describe matches").fetchall() if ("TIMESTAMP" in x[1].upper() or x[1].upper()=="DATE") and any(k in x[0].lower() for k in ("date","start","match","time")) and not any(k in x[0].lower() for k in ("update","created","scrape","end"))]
+            if len(typed)!=1:raise ValueError("ambiguous match clock")
+            stamp=typed[0]
         needed={"match_id","game_id","player_id","kills_all","deaths_all","assists_all"}
         if not needed<=cols["player_map"]:raise ValueError("player-map schema")
         q=f"""select cast(m."{stamp}" as varchar),cast(pm.match_id as varchar),cast(pm.game_id as varchar),cast(pm.player_id as varchar),
@@ -30,12 +36,13 @@ def vct():
         rows=[];maps=defaultdict(list)
         for dt,mid,gid,pid,k,d,a in db.execute(q).fetchall():
             try:
-                day=str(dt)[:10];datetime.strptime(day,"%Y-%m-%d")
+                day=(datetime.fromtimestamp(float(dt)/(1000 if float(dt)>1e12 else 1),timezone.utc).date().isoformat() if str(dt).replace(".","",1).isdigit() else str(dt)[:10]);datetime.strptime(day,"%Y-%m-%d")
                 if not all(x is not None and float(x).is_integer() and x>=0 for x in (k,d,a)):continue
                 maps[(mid,gid)].append(dict(event=mid+"|"+gid,player=pid,date=day,kills=int(k),deaths=int(d),assists=int(a)))
             except (TypeError,ValueError):continue
         for batch in maps.values():
             if len(batch)==10 and len({x["player"] for x in batch})==10:rows.extend(batch)
+        if not rows:raise ValueError("no complete map rows")
         db.close()
     return {"title":"VALORANT","source":"VCT Reference; user reports specific research permission; redistribution unverified","sha256":hashlib.sha256(raw).hexdigest(),"completeMaps":len(rows)//10,"baseline":free.baseline(rows),"paidRequests":0}
 def dota():

@@ -2,7 +2,7 @@
 // Original archived NBA research only. No inferred DNP, payout or app settlement.
 const fs=require("node:fs"),path=require("node:path"),{execFileSync}=require("node:child_process");
 const {gradePaper,teams,fantasy}=require("../src/nba-research-pipeline-v1.cjs");
-const ROOT=path.resolve(__dirname,".."),dir="outputs/nba/rankings",dt=Date.parse;
+const ROOT=process.env.RESEARCH_ARCHIVE_ROOT?fs.realpathSync(process.env.RESEARCH_ARCHIVE_ROOT):path.resolve(__dirname,".."),dir="outputs/nba/rankings",dt=Date.parse;
 const git=args=>execFileSync("git",args,{cwd:ROOT,encoding:"utf8",timeout:30000,maxBuffer:128*1024*1024,stdio:["ignore","pipe","pipe"]}).trim();
 function official(doc,gameId,startAt,observedAt){
  const g=doc?.game;

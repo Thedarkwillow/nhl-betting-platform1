@@ -98,6 +98,27 @@ jobs:
             done
             test "$saved" = true
           fi
+      - name: Refresh official game context before new source observation
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node scripts/collect-nhl-official-roster-crosswalk.cjs >"$log" 2>&1 || echo "::warning::Official roster refresh unavailable."
+          python scripts/collect-nhl-official-preview-status.py >"$log" 2>&1 || echo "::warning::Official preview unavailable; no clearance inferred."
+          node scripts/collect-nhl-pregame-intel.cjs >"$log" 2>&1 || echo "::warning::External goalie context unavailable; no starter inferred."
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for p in outputs/pregame-availability/official-roster-crosswalk-latest.json outputs/pregame-availability/roster-snapshots outputs/pregame-availability/official-preview-latest.json outputs/pregame-availability/official-preview-snapshots outputs/pregame-availability/latest.json outputs/pregame-availability/snapshots; do
+            if test -e "$p"; then git add -f "$p"; fi
+          done
+          if ! git diff --cached --quiet; then
+            git commit -qm 'data: current official roster and reported pregame context'
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            git push -q origin HEAD:main
+          fi
       - name: Capture NEW actual-time complete NHL and NFL source in private checkout
         id: capture
         working-directory: private
@@ -156,6 +177,24 @@ jobs:
           done
           echo "::error::Source capture was not durably archived privately"
           exit 1
+      - name: Collect bounded sportsbook evidence after fresh board and before model freeze
+        working-directory: private
+        shell: bash
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --test test/sportsbook-event-quota.test.cjs test/sportsbook-matched-model-research.test.cjs >"$log" 2>&1 || { echo "::error::Odds quota regression failed; no requests."; exit 1; }
+          node scripts/collect-bounded-sportsbook-quotes.cjs >"$log" 2>&1 || echo "::warning::Bounded quote capture unavailable; no live consensus inferred."
+          git add -f outputs/sportsbooks/bounded-live/*.json
+          if ! git diff --cached --quiet; then
+            git commit -qm 'data: bounded sportsbook observations before NHL research freeze'
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            git push -q origin HEAD:main
+          fi
       # Standard shadows are frozen with the same original private Git snapshot.
       # Manual late-night board checks accept fully paginated small NFL inventories.
       # Never replace champion model picks with unfitted challenger directions.

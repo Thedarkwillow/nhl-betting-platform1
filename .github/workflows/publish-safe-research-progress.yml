@@ -20,6 +20,7 @@ on:
     workflows:
       - 'Refresh private source readiness after collection and grading'
       - 'Private NHL Goblin future-only opportunity research'
+      - 'Grade expanded ML first-Git research privately'
     types: [completed]
   # Backup refresh if GitHub limits chained workflow_run notifications.
   schedule:

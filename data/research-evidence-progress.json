@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-24T17:00:15.090Z",
+  "generatedAt": "2026-11-24T17:01:43.823Z",
   "sourceReportAt": "2026-11-24T16:56:10.858Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -430,7 +430,8 @@
   },
   "expandedML": {
     "kind": "public_expanded_ml_research_counts_v1",
-    "sourceReportAt": "2026-11-24T16:39:25.435241+00:00",
+    "sourceReportAt": "2026-11-24T16:52:59.817419+00:00",
+    "marketEvidence": null,
     "candidateMarkets": 17,
     "trainedMarkets": 17,
     "testedThresholds": 55,

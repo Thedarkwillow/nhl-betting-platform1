@@ -1,0 +1,26 @@
+name: Validate NBA point-in-time features and calibration
+on:
+  push:
+    branches: [nba-context-calibration-v2-20261124]
+    paths: ['.github/workflows/nba-context-calibration-v2-test.yml']
+permissions:
+  contents: read
+jobs:
+  validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 2a285fb34c6154d8bd35fc82e7688d912d45e595
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Offline test and private archive coverage audit
+        run: |
+          set -euo pipefail
+          node --test test/nba-context-calibration-v2.test.cjs test/nba-dunk-cohort-study.test.cjs test/nba-alternate-providers.test.cjs test/nba-authorized-provider-access.test.cjs
+          node scripts/run-nba-dunk-cohort-study.cjs

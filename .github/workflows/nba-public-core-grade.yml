@@ -1,0 +1,21 @@
+name: Public NBA core offline grading
+on:
+  pull_request:
+    paths:
+      - 'src/nba-*.cjs'
+      - 'scripts/grade-nba-frozen-research-v1.cjs'
+      - 'test/nba-frozen-research-grade-v1.test.cjs'
+      - '.github/workflows/nba-public-core-grade.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/nba-frozen-research-grade-v1.test.cjs

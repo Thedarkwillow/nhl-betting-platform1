@@ -141,6 +141,21 @@ jobs:
           NODE
           node scripts/build-player-history.cjs >/tmp/nhl-official-history.log 2>&1 ||
             { echo "::error::Cannot rebuild NHL player history with yesterday official finals"; exit 1; }
+      - name: Bounded official NHL goal-credit and shared-ice research collection
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          # Nonblocking historical research; never interfere with final grading.
+          if test -f scripts/collect-nhl-goal-credit-shifts.cjs; then
+            log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+            if NHL_COMPONENT_BATCH=12 timeout 150s node scripts/collect-nhl-goal-credit-shifts.cjs >"$log" 2>&1; then
+              grep -E '^\{"attempted":[0-9]+' "$log" || true
+            else
+              echo "::warning::Optional NHL shared-ice collector incomplete; existing final grading continues."
+            fi
+          fi
       - name: Grade only officially final NHL games and analyze frozen baseline challengers
         working-directory: private
         shell: bash
@@ -221,6 +236,9 @@ jobs:
             "outputs/health/nhl-${OFFICIAL_FINAL_DATE}-all-games-graded.json")
           (("${#files[@]}" > 0)) || { echo "::error::No NHL grading or baseline output"; exit 1; }
           git add -f -- "${files[@]}"
+          for file in outputs/nhl/research/goal-credit-shifts/*.json; do
+            if test -f "$file"; then git add -f -- "$file"; fi
+          done
           if git diff --cached --quiet; then
             echo "No changed official grading results."
             exit 0

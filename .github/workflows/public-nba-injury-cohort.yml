@@ -9,6 +9,8 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/public-nba-injury-cohort.yml'
+      - 'config/nba/prior-season-identity-assets-v1.json'
+      - 'scripts/reconcile-nba-dated-injury-cohort.py'
   workflow_dispatch:
 permissions:
   contents: read

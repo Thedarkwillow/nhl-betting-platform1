@@ -423,7 +423,7 @@
       "titles": [
         "CS2"
       ],
-      "access": "authorized_bulk_export_required",
+      "access": "disabled_owner_requested_non_cito",
       "capabilities": [
         "player_map_stats",
         "headshots",
@@ -432,8 +432,8 @@
         "roster_history",
         "historical_prop_reference"
       ],
-      "mode": "offline_authorized_export",
-      "notes": "Preferred broad-coverage candidate; provider reported 723,564 player-map lines across 67,149 maps on Nov 9 2026. Deep historical REST and bulk subscriptions are metered/paid. No calls or subscriptions approved. Accept separately authorized export; public samples schema-only.",
+      "mode": "disabled",
+      "notes": "User requested non-Cito research on 2026-11-24. Preserve documentation only; no calls.",
       "automatedNetworkEnabled": false,
       "paidCallsAllowed": false,
       "publicationRightsVerified": false
@@ -448,7 +448,7 @@
         "DOTA2",
         "COD"
       ],
-      "access": "owner_reports_key_added_entitlements_unverified",
+      "access": "disabled_owner_requested_non_cito",
       "capabilities": [
         "recent_match_results",
         "player_statistics",
@@ -457,8 +457,26 @@
         "schedule",
         "cs2_lol_underdog_reference_props_pro_only"
       ],
-      "mode": "credential_health_and_public_schema_preview",
-      "notes": "Authenticated GET /api/v1/health is documented as zero quota. No metered endpoints, automatic upgrades, or full CSV exports without separate approval. Underdog and Sleeper CS2/LoL reference props only, no PrizePicks. Raw data and account-specific app availability not verified.",
+      "mode": "disabled",
+      "notes": "User requested non-Cito research on 2026-11-24. Preserve documentation only; no calls.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "cod_wiki_cargo",
+      "url": "https://cod-esports.fandom.com/wiki/Stats_Hub",
+      "titles": [
+        "COD"
+      ],
+      "access": "public_cc_by_sa_3_0_research",
+      "capabilities": [
+        "dated_player_map_kills_deaths",
+        "game_edition",
+        "mode"
+      ],
+      "mode": "bounded_public_api_sample",
+      "notes": "Public Cargo API, 20-second intervals, stop at refusal. Attribution; no raw redistribution. Bounded 2025–26 sample, no inferred assists.",
       "automatedNetworkEnabled": false,
       "paidCallsAllowed": false,
       "publicationRightsVerified": false

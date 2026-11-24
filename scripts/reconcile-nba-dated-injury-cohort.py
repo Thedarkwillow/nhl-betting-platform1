@@ -74,14 +74,19 @@ def historical_index(cross,er,nr):
     for x in nr:
         for name in names(str(x.get("first_name",""))+" "+str(x.get("last_name",""))):
             if ident(x.get("player_id")):nn[name].add(ident(x["player_id"]))
-    pairs=defaultdict(set);ni=defaultdict(set);ei=defaultdict(set)
+    pairs=defaultdict(set);ni=defaultdict(set);ei=defaultdict(set);corroboration=defaultdict(int)
     for x in cross:
         n,e=ident(x.get("nba_player_id")),ident(x.get("espn_athlete_id"))
         if not n or not e:continue
         ni[n].add(e);ei[e].add(n)
         for nm in names(x.get("nba_player_name"))&names(x.get("espn_full_name")):
             if en[nm]=={e} and nn[nm]=={n}:pairs[nm].add((n,e))
-    return {nm:{(n,e) for n,e in vals if ni[n]=={e} and ei[e]=={n}} for nm,vals in pairs.items()}
+            if en[nm]=={e} or nn[nm]=={n}:corroboration[nm,n,e]+=1
+    strong={nm:{(n,e) for n,e in vals if ni[n]=={e} and ei[e]=={n}} for nm,vals in pairs.items()}
+    # Report-ID-bound fallback requires corroborated name and two historical crosswalk rows.
+    for (nm,n,e),num in corroboration.items():
+        if num>=2 and ni[n]=={e} and ei[e]=={n}:strong.setdefault("reportid:"+nm,set()).add((n,e))
+    return strong
 
 def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,historical=None):
     historical=historical or {}
@@ -199,6 +204,11 @@ def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,hist
                     else:
                         historical_pairs=set().union(*(historical.get(x,set()) for x in nm))
                         good={(nid,eid) for nid,eid in historical_pairs if (not report_id or report_id==nid) and (not ids[nid] or ids[nid]=={eid}) and (not reverse[eid] or reverse[eid]=={nid})}
+                        if not good and report_id:
+                            extra=set().union(*(historical.get("reportid:"+x,set()) for x in nm))
+                            if len(extra)==1:
+                                good={(nid,eid) for nid,eid in extra if nid==report_id and (not ids[nid] or ids[nid]=={eid}) and (not reverse[eid] or reverse[eid]=={nid})}
+                                historical_pairs=extra
                         if len(good)==1 and len(historical_pairs)==1:
                             methods["priorSeasonDualNamespaceIdentityCandidate"]+=1
                         else:

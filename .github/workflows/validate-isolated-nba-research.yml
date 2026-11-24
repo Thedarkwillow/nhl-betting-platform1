@@ -1,0 +1,49 @@
+name: Validate isolated NBA research and source preflight
+on:
+  push:
+    branches: [nba-isolated-research-v1-20261124]
+    paths: ['.github/workflows/validate-isolated-nba-research.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: fbe626cdfa1f7072ecf1cf725d1b209790bf2cdb
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate separate NBA contracts
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --check scripts/run-nba-private-research-v1.cjs
+          if ! node --test test/nba-research-pipeline-v1.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" || true
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail)' "$log"
+      - name: Read-only live source preflight with no metered odds key
+        env:
+          NBA_ODDS_ENABLE: '0'
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node scripts/run-nba-private-research-v1.cjs >"$log" 2>&1; then
+            echo 'NBA source preflight failed closed; private data not published.'
+            exit 1
+          fi
+          node - "$log" <<'NODE'
+          const fs=require('fs'),s=fs.readFileSync(process.argv[2],'utf8').trim().split('\n').at(-1),r=JSON.parse(s);
+          if(r.kind!=='nba_isolated_research_readiness_v1'||r.sharedPaidProviderRequests!==0||r.actualWagersPlaced!==0||r.highConfidenceApproved!==0)throw Error('NBA safety contract');
+          console.log(JSON.stringify(r));
+          NODE
+          echo 'No raw private rows or provider credentials published.'

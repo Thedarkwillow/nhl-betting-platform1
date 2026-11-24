@@ -1,0 +1,479 @@
+{
+  "kind": "esports_source_registry_v1",
+  "games": [
+    "CS2",
+    "VALORANT",
+    "LOL",
+    "DOTA2",
+    "COD"
+  ],
+  "defaultNetworkEnabled": false,
+  "paidCallsAllowed": false,
+  "providers": [
+    {
+      "id": "grid",
+      "url": "https://grid.gg/open-access/",
+      "titles": [
+        "CS2",
+        "DOTA2"
+      ],
+      "access": "approval_required_noncommercial",
+      "capabilities": [
+        "fixtures",
+        "official_match_data"
+      ],
+      "mode": "authorized_export",
+      "notes": "Confirm permitted research purpose, coverage and derivative storage before use.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "riot_grid",
+      "url": "https://grid.gg/riot-open-access/",
+      "titles": [
+        "LOL",
+        "VALORANT"
+      ],
+      "access": "approval_required_noncommercial",
+      "capabilities": [
+        "fixtures",
+        "official_match_data"
+      ],
+      "mode": "authorized_export",
+      "notes": "Official game data; do not reuse for commercial betting products without rights.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "hltv",
+      "url": "https://www.hltv.org/stats/",
+      "titles": [
+        "CS2"
+      ],
+      "access": "public_reference_only",
+      "capabilities": [
+        "map_stats",
+        "player_stats"
+      ],
+      "mode": "manual_reference",
+      "notes": "No automated scraping without permission.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "vlr",
+      "url": "https://www.vlr.gg/stats",
+      "titles": [
+        "VALORANT"
+      ],
+      "access": "public_reference_only",
+      "capabilities": [
+        "map_stats",
+        "player_stats",
+        "agent_stats"
+      ],
+      "mode": "manual_reference",
+      "notes": "Headshot percentage is not headshot kill count.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "pandascore",
+      "url": "https://developers.pandascore.co/docs/plan-reference",
+      "titles": [
+        "CS2",
+        "VALORANT",
+        "LOL",
+        "DOTA2",
+        "COD"
+      ],
+      "access": "free_fixtures_account_required",
+      "capabilities": [
+        "fixtures",
+        "results"
+      ],
+      "mode": "authorized_export",
+      "notes": "Detailed historical stats require separate entitlement; legacy csgo path can include CS2, check version.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "pickfinder",
+      "url": "https://www.pickfinder.app/",
+      "titles": [
+        "CS2",
+        "VALORANT",
+        "LOL",
+        "DOTA2",
+        "COD"
+      ],
+      "access": "public_reference_only",
+      "capabilities": [
+        "indicative_props"
+      ],
+      "mode": "manual_reference",
+      "notes": "Not proof of original app offer or settlement.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "prizepicks",
+      "url": "https://www.prizepicks.com/help-center",
+      "titles": [
+        "CS2",
+        "VALORANT",
+        "LOL",
+        "DOTA2",
+        "COD"
+      ],
+      "access": "existing_authorized_collection_only",
+      "capabilities": [
+        "props",
+        "rules"
+      ],
+      "mode": "authorized_export",
+      "notes": "Do not call vendor paid API or assume account board availability.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "underdog",
+      "url": "https://help.underdogsports.com/en/articles/10905524-pick-em-scoring-esports",
+      "titles": [
+        "CS2",
+        "VALORANT",
+        "LOL",
+        "DOTA2",
+        "COD"
+      ],
+      "access": "existing_authorized_collection_only",
+      "capabilities": [
+        "props",
+        "rules"
+      ],
+      "mode": "authorized_export",
+      "notes": "Verify actual offered map scope and grading rules.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "opendota",
+      "url": "https://opendota.apidocumentation.com/",
+      "titles": [
+        "DOTA2"
+      ],
+      "access": "free_public_api_subject_to_terms",
+      "capabilities": [
+        "match_details",
+        "player_stats",
+        "professional_match_index"
+      ],
+      "mode": "authorized_export",
+      "notes": "No automatic calls in this branch. Match IDs are map/game IDs, not series ordinals.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "oracles_elixir",
+      "url": "https://lol.timsevenhuysen.com/matchdata/",
+      "titles": [
+        "LOL"
+      ],
+      "access": "download_with_rights_review",
+      "capabilities": [
+        "game_stats",
+        "player_stats",
+        "patch",
+        "position"
+      ],
+      "mode": "authorized_export",
+      "notes": "Confirm data/derivative rights independently.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "awpy",
+      "url": "https://awpy.readthedocs.io/en/latest/datasets.html",
+      "titles": [
+        "CS2"
+      ],
+      "access": "open_source_parser",
+      "capabilities": [
+        "demo_parser",
+        "round_stats"
+      ],
+      "mode": "authorized_export",
+      "notes": "Parser license does not license demo data.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "pureskill",
+      "url": "https://docs.pureskill.gg/",
+      "titles": [
+        "CS2"
+      ],
+      "access": "noncommercial_sharealike",
+      "capabilities": [
+        "telemetry"
+      ],
+      "mode": "authorized_export",
+      "notes": "Not representative of pro players by default; access may have infrastructure costs.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "breakingpoint",
+      "url": "https://www.breakingpoint.gg/stats",
+      "titles": [
+        "COD"
+      ],
+      "access": "public_reference_only",
+      "capabilities": [
+        "map_stats",
+        "mode_stats"
+      ],
+      "mode": "manual_reference",
+      "notes": "No automated access assumed.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "cdl",
+      "url": "https://www.callofdutyleague.com/",
+      "titles": [
+        "COD"
+      ],
+      "access": "public_reference_only",
+      "capabilities": [
+        "fixtures",
+        "results"
+      ],
+      "mode": "manual_reference",
+      "notes": "Verify game edition and competition mode.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "leaguepedia",
+      "url": "https://lol.fandom.com/wiki/League_of_Legends_Esports_Wiki",
+      "titles": [
+        "LOL"
+      ],
+      "access": "public_reference_license_review",
+      "capabilities": [
+        "rosters",
+        "fixtures",
+        "results"
+      ],
+      "mode": "manual_reference",
+      "notes": "Check content licenses and API terms.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "liquipedia",
+      "url": "https://liquipedia.net/",
+      "titles": [
+        "CS2",
+        "VALORANT",
+        "LOL",
+        "DOTA2",
+        "COD"
+      ],
+      "access": "public_reference_api_terms_review",
+      "capabilities": [
+        "rosters",
+        "fixtures",
+        "results"
+      ],
+      "mode": "manual_reference",
+      "notes": "Check API access and attribution rules.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "riot_esports_data",
+      "url": "https://riotesportsdata.com/en-us/",
+      "titles": [
+        "LOL",
+        "VALORANT"
+      ],
+      "access": "official_access_required",
+      "capabilities": [
+        "fixtures",
+        "official_match_data"
+      ],
+      "mode": "authorized_export",
+      "notes": "Commercial feed not enabled.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "chaincc",
+      "url": "https://chaincc.lol/free/data/",
+      "titles": [
+        "LOL"
+      ],
+      "access": "published_cc_by_4_0",
+      "capabilities": [
+        "player_game_stats",
+        "team_game_stats",
+        "patch",
+        "position",
+        "draft"
+      ],
+      "mode": "public_download",
+      "notes": "Explicit commercial use permitted with attribution; binary download not accessible from current session; original provider terms and downstream rights should still be reviewed.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false,
+      "declaredLicense": "CC BY 4.0"
+    },
+    {
+      "id": "cs2_playstyle_roles_2024",
+      "url": "https://github.com/Jamie-Packer/cs2-playstyle-dataset-2024",
+      "titles": [
+        "CS2"
+      ],
+      "access": "published_cc_by_4_0",
+      "capabilities": [
+        "aggregate_player_roles",
+        "opening_duel_rate",
+        "trading",
+        "positioning"
+      ],
+      "mode": "pinned_public_export",
+      "notes": "2024 aggregate snapshot, not dated per-map history; do not use before period ends or infer present role. Credit Jamie Packer, awpy, and Harry Richards' Positions Database.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false,
+      "declaredLicense": "CC BY 4.0"
+    }
+  ],
+  "titles": {
+    "CS2": {
+      "unit": "rounds",
+      "markets": [
+        "kills",
+        "headshotKills",
+        "assists",
+        "deaths",
+        "killsPlusAssists"
+      ],
+      "context": [
+        "mapName",
+        "patch",
+        "role",
+        "lan",
+        "opponentTier",
+        "rosterId",
+        "vetoKnownAt",
+        "expectedRounds"
+      ]
+    },
+    "VALORANT": {
+      "unit": "rounds",
+      "markets": [
+        "kills",
+        "headshotKills",
+        "assists",
+        "deaths",
+        "killsPlusAssists"
+      ],
+      "context": [
+        "mapName",
+        "patch",
+        "role",
+        "agent",
+        "opponentTier",
+        "rosterId",
+        "expectedRounds"
+      ]
+    },
+    "LOL": {
+      "unit": "minutes",
+      "markets": [
+        "kills",
+        "assists",
+        "deaths",
+        "killsPlusAssists",
+        "creepScore"
+      ],
+      "context": [
+        "patch",
+        "role",
+        "champion",
+        "opponentTier",
+        "rosterId",
+        "expectedMinutes"
+      ]
+    },
+    "DOTA2": {
+      "unit": "minutes",
+      "markets": [
+        "kills",
+        "assists",
+        "deaths",
+        "killsPlusAssists",
+        "lastHits"
+      ],
+      "context": [
+        "patch",
+        "role",
+        "hero",
+        "opponentTier",
+        "rosterId",
+        "expectedMinutes"
+      ]
+    },
+    "COD": {
+      "unit": "minutes",
+      "markets": [
+        "kills",
+        "assists",
+        "deaths",
+        "killsPlusAssists"
+      ],
+      "context": [
+        "edition",
+        "mode",
+        "mapName",
+        "role",
+        "opponentTier",
+        "rosterId",
+        "expectedMinutes"
+      ]
+    }
+  },
+  "release": {
+    "researchOnly": true,
+    "realLineValidation": false,
+    "calibrationApproved": false,
+    "optimizedLineupsApproved": false
+  },
+  "userPermissionAssertion": {
+    "reportedOn": "2026-11-24",
+    "scope": "User reports permission to use esports sources; specific providers, access methods, and any exceptions to published terms not documented.",
+    "independentProviderPermissionVerified": false,
+    "automatedAccessRequiresProviderScope": true,
+    "paidCallsAllowed": false
+  }
+}

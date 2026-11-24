@@ -1,0 +1,27 @@
+{
+  "kind": "nba_real_line_calibration_cohort_v1",
+  "from": "2025-02-01",
+  "to": "2025-03-15",
+  "season": 2025,
+  "players": {
+    "nikolajokic": "player_points_rebounds_assists",
+    "shaigilgeousalexander": "player_points",
+    "lukadoncic": "player_points",
+    "giannisantetokounmpo": "player_rebounds",
+    "jalenbrunson": "player_assists",
+    "stephencurry": "player_threes",
+    "anthonyedwards": "player_threes",
+    "victorwembanyama": "player_points_rebounds_assists",
+    "domantassabonis": "player_assists",
+    "bamadebayo": "player_rebounds"
+  },
+  "estimatedMaximumCredits": 100,
+  "existingCohortMaximum": 289,
+  "totalStudyMaximum": 389,
+  "independentReserve": 100,
+  "priorPilotEstimatedCredits": 10,
+  "unallocatedUnder500Assumption": 1,
+  "accountBalanceVerified": false,
+  "purpose": "Independent 2024-25 actual-line calibration; keep Jan-Feb 2026 cohort for holdout. No automatic model promotion.",
+  "replacesUnmergedSparseBoxPilot": true
+}

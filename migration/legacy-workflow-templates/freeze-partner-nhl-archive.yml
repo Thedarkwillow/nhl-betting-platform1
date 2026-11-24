@@ -1,0 +1,62 @@
+name: Freeze Fresh Private Partner NHL Board for Prospective Research
+on:
+  workflow_dispatch:
+    inputs:
+      archive_dir:
+        description: "Already saved private outputs/manual-board-captures/YYYY-MM-DD/TIMESTAMP directory"
+        type: string
+        required: true
+permissions:
+  contents: write
+concurrency:
+  group: nhl-private-partner-pregame-freeze
+  cancel-in-progress: false
+jobs:
+  freeze:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify strict provenance and pregame identity
+        run: |
+          node --check scripts/freeze-partner-nhl-pregame.cjs
+          node --test test/nhl-partner-pregame-freeze.test.cjs test/partner-prizepicks-board.test.cjs test/partner-prizepicks-model-bridge.test.cjs
+      - name: Offline pregame candidate (no new provider requests)
+        env:
+          ARCHIVE_DIR: ${{ inputs.archive_dir }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/freeze-partner-nhl-pregame.cjs "$ARCHIVE_DIR" | tee /tmp/nhl-frozen-candidate.json
+          node -e "const p=require('/tmp/nhl-frozen-candidate.json');require('node:fs').appendFileSync(process.env.GITHUB_ENV,'FREEZE_SNAPSHOT='+p.snapshotPath+'\n')"
+      - name: First Git commit and push must precede EVERY selected puck drop
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f "$FREEZE_SNAPSHOT"
+          git commit -m "data: Git-freeze actual-time private partner NHL research selections"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase -X theirs origin/main
+            node - <<'NODE'
+          const fs=require('node:fs'),{execFileSync}=require('node:child_process');
+          const s=JSON.parse(fs.readFileSync(process.env.FREEZE_SNAPSHOT,'utf8'));
+          const commit=Date.parse(execFileSync('git',['log','-1','--format=%cI'],{encoding:'utf8'}).trim());
+          if(!Number.isFinite(commit)||!s.individualPropSelections?.length||
+             s.individualPropSelections.some(p=>!Number.isFinite(Date.parse(p.gameStartAt))||
+              commit>=Date.parse(p.gameStartAt)))
+            throw Error('Original first Git commit is not before every puck drop: do not push');
+          NODE
+            if git push origin HEAD:main; then exit 0; fi
+            sleep "$attempt"
+          done
+          echo "::error::Private original pick archive was not pushed before puck drop"
+          exit 1

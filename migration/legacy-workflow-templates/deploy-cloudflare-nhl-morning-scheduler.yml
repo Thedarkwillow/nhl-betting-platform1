@@ -1,0 +1,61 @@
+name: Deploy Cloudflare NHL Morning Scheduler
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-nhl-morning-scheduler-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate required credentials
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GH_DISPATCH_TOKEN: ${{ secrets.NHL_BETTING_AUTOMATION_TOKEN }}
+        run: |
+          for name in CF_API_TOKEN CF_ACCOUNT_ID GH_DISPATCH_TOKEN; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Required secret for $name is missing"
+              exit 1
+            fi
+          done
+
+      - name: Locate existing Cloudflare scheduler configuration
+        id: config
+        shell: bash
+        run: |
+          mapfile -d '' configs < <(find . -type f \( -name 'wrangler.toml' -o -name 'wrangler.json' -o -name 'wrangler.jsonc' \) -not -path './node_modules/*' -print0)
+          if [ "${#configs[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one existing Wrangler configuration; found ${#configs[@]}. Refusing to deploy an ambiguous or missing worker."
+            exit 1
+          fi
+          config="${configs[0]#./}"
+          echo "config=$config" >> "$GITHUB_OUTPUT"
+          echo "Found existing worker config: $config"
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Deploy existing Cloudflare worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@3 deploy --config "${{ steps.config.outputs.config }}"
+
+      - name: Deployment reminder
+        run: |
+          echo "::notice::Worker deployed. Verify required worker runtime secrets, Cloudflare cron triggers, and a successful GitHub workflow_dispatch before treating morning captures as operational."

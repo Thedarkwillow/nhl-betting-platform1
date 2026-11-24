@@ -1,0 +1,79 @@
+name: Capture Approved MoneyPuck and Daily Faceoff NHL Research (manual-only private fallback)
+on:
+  workflow_dispatch:
+# Automatic schedule and push triggers migrated to public nhl-betting-platform1/private-nhl-approved-source-research.yml.
+# Keep private data/private model here; avoid exhausted private hosted Actions minutes.
+permissions:
+  contents: write
+concurrency:
+  group: approved-nhl-source-research
+  cancel-in-progress: false
+jobs:
+  research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate provider contracts and source-time protections
+        run: |
+          node --check scripts/collect-approved-nhl-sources.cjs
+          node --check scripts/build-approved-nhl-shadow.cjs
+          node --test test/nhl-approved-source-adapters.test.cjs test/nhl-approved-source-shadow.test.cjs test/nhl-dfo-role-goalie-shadow.test.cjs test/collect-approved-nhl-sources.test.cjs
+          node --check scripts/build-nhl-dfo-role-goalie-shadow.cjs
+      - name: Save MoneyPuck expected-shot and Daily Faceoff lineup research snapshots
+        run: node scripts/collect-approved-nhl-sources.cjs
+      - name: Freeze model challenger only when original offered lines are still fresh
+        run: |
+          if node scripts/build-approved-nhl-shadow.cjs; then
+            echo "Fresh exact-line research shadow archived."
+          else
+            echo "No current frozen research shadow; private provider data still collected; no stale synthetic replay."
+          fi
+      - name: Freeze separate DFO projected role and conditional goalie shadow if fresh
+        run: |
+          if node scripts/build-nhl-dfo-role-goalie-shadow.cjs; then
+            echo "Frozen private DFO EV/PP and goalie conditional candidates."
+          else
+            echo "No fresh source-aligned role/goaltending candidates; original model untouched."
+          fi
+      - name: Commit provider features to PRIVATE research repo only
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/approved-nhl-sources/latest.json outputs/approved-nhl-sources/snapshots/*.json
+          if test -f outputs/projections/approved-source-shadow-latest.json; then
+            git add -f outputs/projections/approved-source-shadow-latest.json outputs/projections/approved-source-snapshots/*.json
+          fi
+          if test -f outputs/projections/dfo-role-goalie-shadow-latest.json; then
+            git add -f outputs/projections/dfo-role-goalie-shadow-latest.json outputs/projections/dfo-role-goalie-snapshots/*.json
+          fi
+          if ! git diff --cached --quiet; then
+            git commit -m "data: capture MoneyPuck and Daily Faceoff model shadow research"
+            pushed=0
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              git rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((attempt * 2))
+            done
+            if test "$pushed" -ne 1; then
+              echo "::error::Source model snapshot push failed after bounded concurrency retries"
+              exit 1
+            fi
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-approved-provider-research-shadows
+          path: |
+            outputs/approved-nhl-sources/latest.json
+            outputs/projections/approved-source-shadow-latest.json
+            outputs/projections/dfo-role-goalie-shadow-latest.json
+          if-no-files-found: warn

@@ -1,0 +1,45 @@
+name: Expand Two-Season Historical PrizePicks NHL Archive
+# Manual only while OddsPapi historical fixtures returns repeated HTTP 500; protect the free API quota.
+# Skip empty NHL Olympic-break fixture windows; retain successful calendar samples.
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: oddspapi-two-season-expansion
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test PrizePicks historical parser
+        run: |
+          node --check scripts/expand-oddspapi-nhl-history.cjs
+          node --test test/oddspapi-prizepicks-history.test.cjs
+      - name: Expand archived actual PrizePicks NHL lines across six more date windows
+        env:
+          ODDSPAPI_API_KEY: ${{ secrets.ODDSPAPI_API_KEY }}
+        run: node scripts/expand-oddspapi-nhl-history.cjs
+      - name: Commit isolated historical archive
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/oddspapi/nhl/archive-expanded-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: expand two NHL seasons of historical PrizePicks lines"
+            git pull --rebase -X theirs origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: expanded-prizepicks-nhl-archive
+          path: outputs/oddspapi/nhl/archive-expanded-latest.json
+          if-no-files-found: ignore

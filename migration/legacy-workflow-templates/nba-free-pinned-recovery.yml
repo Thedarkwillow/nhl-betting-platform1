@@ -1,0 +1,26 @@
+name: NBA free pinned source recovery audit
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'config/nba/free-pinned-recovery-v1.json'
+      - 'scripts/recover-nba-pinned-parquet.py'
+      - '.github/workflows/nba-free-pinned-recovery.yml'
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyarrow==19.0.1
+      - run: python scripts/recover-nba-pinned-parquet.py --private-research --output "$RUNNER_TEMP/nba-recovery"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nba-free-recovery-schema-audit
+          path: ${{ runner.temp }}/nba-recovery/schema-audit.json
+          retention-days: 7

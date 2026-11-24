@@ -1,0 +1,25 @@
+{
+  "name": "nhl-betting-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NHL prop research platform",
+  "type": "commonjs",
+  "scripts": {
+    "collect:schedule": "node scripts/collect-schedule.cjs",
+    "test": "node --test test/*.cjs",
+    "collect:players": "node scripts/collect-player-stats.cjs",
+    "collect:periods": "node scripts/collect-nhl-official-period-events.cjs",
+    "build:period-history": "node scripts/build-nhl-period-history.cjs",
+    "build:period-combo-models": "node scripts/build-nhl-period-combo-models.cjs",
+    "backfill:period-prior": "node scripts/backfill-nhl-prior-season-periods.cjs",
+    "build:history": "node scripts/build-player-history.cjs",
+    "build:projections": "node scripts/build-projections.cjs",
+    "backfill": "node scripts/backfill-player-stats.cjs",
+    "compare:lines": "node scripts/compare-lines.cjs",
+    "collect:prizepicks": "node scripts/collect-prizepicks-nhl.cjs",
+    "probe:pickfinder": "node scripts/probe-pickfinder-nhl.cjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

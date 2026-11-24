@@ -1,0 +1,41 @@
+name: Validate NFL PrizePicks and Underdog Market Registry
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'feature/**', 'feat/**', 'fix/**']
+    paths:
+      - 'src/nfl-market-registry.cjs'
+      - 'src/nfl-user-screen-prop-catalog.cjs'
+      - 'test/nfl-user-screen-prop-catalog.test.cjs'
+      - 'docs/NFL_APP_RECORDING_ALL_MARKETS_2026-11-08.md'
+      - 'scripts/audit-nfl-archived-board.cjs'
+      - 'src/nfl-prizepicks-fantasy-scoring.cjs'
+      - 'test/nfl-market-registry.test.cjs'
+      - 'docs/NFL_PRIZEPICKS_UNDERDOG_PROP_CATALOG_2026-11-08.md'
+      - '.github/workflows/test-nfl-market-inventory.yml'
+permissions:
+  contents: read
+jobs:
+  market-inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify source-qualified NFL labels, period handling, quarantine and kicker scoring
+        run: |
+          node --check src/nfl-market-registry.cjs
+          node --check scripts/audit-nfl-archived-board.cjs
+          node --check src/nfl-prizepicks-fantasy-scoring.cjs
+          node --test test/nfl-market-registry.test.cjs test/nfl-user-screen-prop-catalog.test.cjs
+      - name: Ensure NFL registry cannot silently enable unverified picks
+        run: |
+          node - <<'NODE'
+          const {MARKET_REGISTRY}=require('./src/nfl-market-registry.cjs');
+          if(!MARKET_REGISTRY.length||MARKET_REGISTRY.some(x=>x.autoPickEligible!==false||
+             x.confirmedPlatformSettlementRule!==false))process.exit(1);
+          console.log('NFL markets:',MARKET_REGISTRY.length,
+            '— all research-only until independently validated');
+          NODE

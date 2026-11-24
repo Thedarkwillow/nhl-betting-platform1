@@ -1,0 +1,156 @@
+name: Collect NHL Market Batch
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Authorized manual PrizePicks research source (PickFinder retired)
+        required: true
+        type: choice
+        options:
+          - prizepicks
+      start_index:
+        description: First category index (0 based)
+        required: true
+        default: '0'
+      count:
+        description: Number of categories (1 to 4)
+        required: true
+        default: '3'
+concurrency:
+  group: nhl-category-board-${{ inputs.source || 'prizepicks' }}
+  cancel-in-progress: false
+jobs:
+  reject_retired_source:
+    if: inputs.source != 'prizepicks'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - run: |
+          echo "::error::Unsupported or retired NHL research source; no provider credits consumed."
+          exit 1
+  collect:
+    if: inputs.source == 'prizepicks'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      TINYFISH_API_KEY: ${{ secrets.TINYFISH_API_KEY }}
+      TINYFISH_PROFILE_ID: ${{ secrets.TINYFISH_PROFILE_ID }}
+      NHL_BOARD_SOURCE: ${{ inputs.source || 'prizepicks' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate collector
+        run: |
+          node --check scripts/collect-nhl-category.cjs
+          node --check scripts/merge-nhl-category-boards.cjs
+          npm test
+      - name: Collect selected categories separately
+        env:
+          START_INDEX: ${{ inputs.start_index }}
+          COUNT: ${{ inputs.count }}
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            # Refresh two categories every 30 minutes; one full rotation
+            # takes about four hours for a 16-category inventory.
+            # Read inventory dynamically so category discoveries don't
+            # cause out-of-range scheduled collection attempts.
+            total=$(node -e 'const fs=require("fs");const p="outputs/discovery/"+process.env.NHL_BOARD_SOURCE+"-nhl-categories-latest.json";console.log(JSON.parse(fs.readFileSync(p,"utf8")).categories.length)')
+            if [ "$total" -lt 1 ]; then echo "Empty category inventory"; exit 1; fi
+            slot=$(( ($(date -u +%s) / 1800) % (( (total+1)/2 )) ))
+            START_INDEX=$((slot * 2))
+            COUNT=$((total - START_INDEX))
+            if [ "$COUNT" -gt 2 ]; then COUNT=2; fi
+          fi
+          node -e 'const s=Number(process.env.START_INDEX),n=Number(process.env.COUNT);if(!Number.isInteger(s)||s<0||!Number.isInteger(n)||n<1||n>4)process.exit(1)'
+          failed=0
+          for ((i=START_INDEX; i<START_INDEX+COUNT; i++)); do
+            echo "Collecting category index $i"
+            status=0
+            NHL_CATEGORY_INDEX="$i" node scripts/collect-nhl-category.cjs || status=$?
+            if [ "$status" -eq 42 ]; then
+              echo "::error::TinyFish wallet has insufficient credits; stopping collection without repeated billing requests."
+              exit 42
+            fi
+            if [ "$status" -ne 0 ]; then
+              echo "Category $i failed; retrying once after a short delay"
+              sleep 20
+              status=0
+              NHL_CATEGORY_INDEX="$i" node scripts/collect-nhl-category.cjs || status=$?
+              if [ "$status" -eq 42 ]; then
+                echo "::error::TinyFish wallet has insufficient credits; stopping collection without repeated billing requests."
+                exit 42
+              fi
+              if [ "$status" -ne 0 ]; then failed=$((failed+1)); fi
+            fi
+          done
+          echo "Failed category jobs: $failed"
+          echo "$failed" > category-failures.txt
+      - name: Merge and audit coverage
+        run: node scripts/merge-nhl-category-boards.cjs
+      - name: Archive raw merged board snapshot
+        run: |
+          mkdir -p "outputs/board-snapshots/${NHL_BOARD_SOURCE}"
+          stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          cp "outputs/board-merged/${NHL_BOARD_SOURCE}-nhl-latest.json" "outputs/board-snapshots/${NHL_BOARD_SOURCE}/${stamp}.json"
+      - name: Detect archived PrizePicks line changes
+        if: env.NHL_BOARD_SOURCE == 'prizepicks'
+        run: node scripts/track-nhl-line-movement.cjs
+      - name: Build research predictions from fresh market data
+        run: |
+          node --check scripts/build-nhl-research.cjs
+          node scripts/build-nhl-research.cjs
+      - name: Attach verified game identities
+        run: |
+          if ! node scripts/enrich-nhl-game-identity.cjs; then
+            echo '::warning::NHL schedule identity unavailable; unverified predictions remain ungraded'
+          fi
+      - name: Save dated prediction snapshot
+        run: |
+          mkdir -p outputs/research/snapshots
+          stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          cp outputs/research/nhl-latest.json "outputs/research/snapshots/${stamp}.json"
+      - name: Save category snapshots
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f -- "outputs/board-categories/${NHL_BOARD_SOURCE}/"*.json "outputs/board-merged/${NHL_BOARD_SOURCE}-nhl-latest.json" outputs/research/nhl-latest.json outputs/research/snapshots/*.json "outputs/board-snapshots/${NHL_BOARD_SOURCE}/"*.json
+          # The first board archive has no previous snapshot; no movement file exists yet.
+          if [ -f outputs/line-movement/nhl-latest.json ]; then
+            git add -f -- outputs/line-movement/nhl-latest.json
+          fi
+          # A run may have been dispatched before another workflow pushed newer data.
+          # Never replace a newer board with an older locally generated board.
+          git fetch origin main
+          remote_at=$(git show origin/main:outputs/research/nhl-latest.json | node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>{try{const v=Date.parse(JSON.parse(s).generatedAt);console.log(Number.isFinite(v)?v:0)}catch{console.log(0)}})')
+          local_at=$(node -p 'const v=Date.parse(require("./outputs/research/nhl-latest.json").generatedAt);Number.isFinite(v)?v:0')
+          if [ "$remote_at" -gt "$local_at" ]; then
+            echo "::warning::A newer board is already on main. Keeping this run in artifacts instead of replacing newer research."
+            exit 0
+          fi
+          if ! git diff --cached --quiet; then
+            git commit -m "Update ${NHL_BOARD_SOURCE} NHL market batch"
+            git pull --rebase -X theirs origin main
+            git push
+          fi
+      - name: Mark partial batch as incomplete
+        run: |
+          failed=$(cat category-failures.txt)
+          if [ "$failed" -gt 0 ]; then echo "$failed category collection(s) failed"; exit 1; fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-market-batch-${{ github.run_id }}
+          path: |
+            outputs/board-categories/**/*.json
+            outputs/board-merged/*.json
+            outputs/board-snapshots/**/*.json
+            outputs/research/nhl-latest.json
+            outputs/research/snapshots/*.json
+            outputs/line-movement/nhl-latest.json
+          if-no-files-found: warn

@@ -1,0 +1,46 @@
+name: Audit PrizePicks NHL Tier Evidence Overnight
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/audit-prizepicks-nhl-tier-evidence.yml']
+  schedule:
+    - cron: '11 15 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: audit-prizepicks-nhl-tier-evidence
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate tier-evidence only source checks
+        run: |
+          node --check scripts/audit-prizepicks-tier-evidence.cjs
+          node --test test/audit-prizepicks-tier-evidence.test.cjs
+      - name: Audit archived original reported tier fields
+        run: node scripts/audit-prizepicks-tier-evidence.cjs
+      - name: Save evidence summary
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/research/prizepicks-tier-evidence-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: audit observed historical PrizePicks tiers and source gaps"
+            git pull --rebase -X theirs origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: prizepicks-nhl-tiers-evidence
+          path: outputs/research/prizepicks-tier-evidence-latest.json
+          if-no-files-found: ignore

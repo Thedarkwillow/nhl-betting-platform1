@@ -1,0 +1,43 @@
+name: Validate Shared NHL Historical API Budget
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/oddsapi-shared-historical-budget.cjs'
+      - 'scripts/backfill-2025-26-fall-prizepicks-odds-api.cjs'
+      - 'scripts/collect-2025-26-all-prizepicks-nhl-markets.cjs'
+      - 'test/oddsapi-shared-historical-budget.test.cjs'
+      - '.github/workflows/backfill-2025-26-fall-prizepicks-odds-api.yml'
+      - '.github/workflows/collect-2025-26-all-nhl-prizepicks-markets.yml'
+      - '.github/workflows/validate-oddsapi-shared-history-budget.yml'
+  pull_request:
+    paths:
+      - 'scripts/oddsapi-shared-historical-budget.cjs'
+      - 'scripts/backfill-2025-26-fall-prizepicks-odds-api.cjs'
+      - 'scripts/collect-2025-26-all-prizepicks-nhl-markets.cjs'
+      - 'test/oddsapi-shared-historical-budget.test.cjs'
+      - '.github/workflows/validate-oddsapi-shared-history-budget.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Static check all shared-budget consumers
+        run: |
+          node --check scripts/oddsapi-shared-historical-budget.cjs
+          node --check scripts/backfill-2025-26-fall-prizepicks-odds-api.cjs
+          node --check scripts/collect-2025-26-all-prizepicks-nhl-markets.cjs
+      - name: Unit tests (zero paid Odds API requests)
+        run: |
+          node --test test/oddsapi-shared-historical-budget.test.cjs
+          node --test test/backfill-2025-26-fall-prizepicks-odds-api.test.cjs
+          node --test test/collect-2025-26-all-prizepicks-nhl-markets.test.cjs
+      - name: Shared credit status from committed historical progress
+        run: node scripts/oddsapi-shared-historical-budget.cjs

@@ -1,0 +1,73 @@
+name: Grade MoneyPuck and DFO NHL Shadow Against Official Finals
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, feature/moneypuck-dfo-prospective-grading]
+    paths:
+      - 'src/nhl-approved-shadow-grader.cjs'
+      - 'src/nhl-dfo-goalie-starter-audit.cjs'
+      - 'scripts/audit-dfo-goalie-starters.cjs'
+      - 'test/nhl-dfo-goalie-starter-audit.test.cjs'
+      - 'scripts/grade-approved-nhl-source-shadow.cjs'
+      - 'test/nhl-approved-shadow-grader.test.cjs'
+      - '.github/workflows/grade-approved-nhl-source-shadow.yml'
+  schedule:
+    # Twice daily for newly OFF/FINAL games, no paid odds requests.
+    - cron: '21 6,16 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: nhl-approved-source-shadow-grading
+  cancel-in-progress: false
+jobs:
+  grade:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate source-time, official NHL results and no-lookahead grading
+        run: |
+          node --check src/nhl-approved-shadow-grader.cjs
+          node --check scripts/grade-approved-nhl-source-shadow.cjs
+          node --test test/nhl-approved-shadow-grader.test.cjs test/nhl-approved-source-shadow.test.cjs test/nhl-dfo-goalie-starter-audit.test.cjs
+          node --check scripts/audit-dfo-goalie-starters.cjs
+      - name: Grade only original archived source-observed forecasts after official FINAL
+        run: node scripts/grade-approved-nhl-source-shadow.cjs
+      - name: Reconcile DFO goalie reports only with explicit official FINAL starters
+        run: node scripts/audit-dfo-goalie-starters.cjs
+      - name: Commit private scorecard without changing frozen predictions
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/backtests/nhl-approved-source-prospective-latest.json outputs/backtests/nhl-dfo-goalie-starter-audit-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: grade frozen NHL MoneyPuck/DFO challenger versus official finals"
+            # Different independent NHL jobs can publish to main simultaneously.
+            # Retry non-force pushes only; never rewrite frozen predictions.
+            pushed=0
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              git rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((attempt * 2))
+            done
+            if test "$pushed" -ne 1; then
+              echo "::error::NHL scorecard push could not acquire an updated main head"
+              exit 1
+            fi
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: money-puck-dfo-official-prospective-grades
+          path: |
+            outputs/backtests/nhl-approved-source-prospective-latest.json
+            outputs/backtests/nhl-dfo-goalie-starter-audit-latest.json
+          if-no-files-found: warn

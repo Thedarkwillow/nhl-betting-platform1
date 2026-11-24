@@ -1,0 +1,48 @@
+name: Sample Two-Season NHL Sportsbook History
+# One-time bounded 2025-26 and 2026-27 verification run.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sample-puckapi-nhl-history.yml'
+permissions:
+  contents: write
+concurrency:
+  group: puckapi-nhl-history-sample
+  cancel-in-progress: false
+jobs:
+  sample:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test historical bookmaker adapter
+        run: |
+          node --check scripts/sample-puckapi-nhl-history.cjs
+          node --test test/puckapi-historical-backtest.test.cjs
+      - name: Collect limited 2025-26 and 2026-27 sportsbook samples
+        env:
+          PUCKAPI_API_KEY: ${{ secrets.PUCKAPI_API_KEY }}
+        run: node scripts/sample-puckapi-nhl-history.cjs
+      - name: Archive separately from PrizePicks predictions
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/puckapi/nhl/backtest-latest.json outputs/puckapi/nhl/history-snapshots/*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: archive sampled two-season NHL sportsbook backtest"
+            git pull --rebase -X theirs origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: puckapi-nhl-history-sample
+          path: outputs/puckapi/nhl/**/*.json
+          if-no-files-found: ignore

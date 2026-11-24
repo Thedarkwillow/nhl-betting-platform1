@@ -1,0 +1,21 @@
+name: Probe NHL Pregame Availability Sources
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/nhl-espn-pregame-sources-risk]
+    paths:
+      - 'scripts/probe-nhl-availability-sources.cjs'
+      - '.github/workflows/probe-nhl-availability.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Probe source response shapes without storing player information
+        run: node scripts/probe-nhl-availability-sources.cjs

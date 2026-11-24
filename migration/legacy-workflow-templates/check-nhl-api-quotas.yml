@@ -1,0 +1,50 @@
+name: Verify NHL Provider API Quotas
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/check-nhl-api-quotas.yml']
+permissions:
+  contents: write
+concurrency:
+  group: verify-nhl-provider-api-quotas
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate no-secret account usage report
+        run: |
+          node --check scripts/check-provider-api-quotas.cjs
+          node --test test/provider-api-quotas.test.cjs
+      - name: Read account limits (SGO free usage endpoint, one PP coverage request)
+        env:
+          SPORTSGAMEODDS_API_KEY: ${{ secrets.SPORTSGAMEODDS_API_KEY }}
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+        run: node scripts/check-provider-api-quotas.cjs
+      - name: Save sanitized quota diagnostic
+        if: always()
+        run: |
+          if [ -f outputs/provider-quota/usage-latest.json ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -f outputs/provider-quota/usage-latest.json
+            if ! git diff --cached --quiet; then
+              git commit -m "data: record sanitized API usage limits and remaining quota"
+              git pull --rebase -X theirs origin main
+              git push origin HEAD:main
+            fi
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-provider-usage-sanitized
+          path: outputs/provider-quota/usage-latest.json
+          if-no-files-found: ignore

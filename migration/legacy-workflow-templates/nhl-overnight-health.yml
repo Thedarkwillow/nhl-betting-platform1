@@ -1,0 +1,64 @@
+name: NHL Overnight Read-Only Model and Grading Audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/report-nhl-overnight-health.cjs'
+      - 'src/nhl-operational-alerts.cjs'
+      - 'scripts/report-nhl-operator-alerts.cjs'
+      - 'outputs/research/registry/nhl-precommitted-ledger-latest.json'
+      - 'outputs/health/nhl-source-coverage-latest.json'
+      - 'outputs/research/correlation/nhl-count-stat-dependence-latest.json'
+      - 'outputs/grading/nhl-latest.json'
+      - 'test/nhl-roadmap-next-sprint.test.cjs'
+      - 'src/nhl-actions-health.cjs'
+      - 'scripts/report-nhl-workflow-health.cjs'
+      - 'test/nhl-actions-health.test.cjs'
+      - 'src/nhl-provider-quality-manifest.cjs'
+      - 'scripts/report-nhl-provider-quality.cjs'
+      - 'test/nhl-provider-quality-manifest.test.cjs'
+      - 'test/nhl-overnight-health.test.cjs'
+      - '.github/workflows/nhl-overnight-health.yml'
+  schedule:
+    # 09:15 UTC = 01:15 PST / 02:15 PDT.
+    # Follows the existing 06:47 UTC final-boxscore collection and
+    # prospective grading workflows. GitHub may delay scheduled runs.
+    - cron: '15 9 * * *'
+concurrency:
+  group: nhl-overnight-free-health
+  cancel-in-progress: false
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Guard operational summaries against mixed cohorts
+        run: node --test test/nhl-overnight-health.test.cjs test/nhl-actions-health.test.cjs test/nhl-provider-quality-manifest.test.cjs
+      - name: Audit archived official NHL finals, frozen individuals and experimental shadow
+        run: node scripts/report-nhl-overnight-health.cjs
+      - name: Audit both archived PrizePicks-labelled provider scopes and official-result quality
+        run: node scripts/report-nhl-provider-quality.cjs
+      - name: Verify scheduled job failures and lateness via GitHub metadata only
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/report-nhl-workflow-health.cjs
+      - name: Produce daily operational warnings from archived evidence (no provider requests)
+        run: node scripts/report-nhl-operator-alerts.cjs
+      - uses: actions/upload-artifact@v6
+        with:
+          name: nhl-overnight-free-health
+          path: |
+            outputs/health/nhl-overnight-status.json
+            outputs/health/nhl-actions-status.json
+            outputs/health/nhl-provider-quality-latest.json
+            outputs/health/nhl-operator-alerts-latest.json
+          if-no-files-found: error
+          retention-days: 30

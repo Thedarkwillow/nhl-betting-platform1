@@ -1,0 +1,28 @@
+name: Backtest NHL Probabilities
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/backtest.cjs'
+      - 'scripts/backtest-nhl-probabilities.cjs'
+      - 'test/backtest.test.cjs'
+      - '.github/workflows/backtest-nhl-probabilities.yml'
+  schedule:
+    - cron: '43 16 * * *'
+jobs:
+  backtest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - run: npm test
+      - run: node scripts/backtest-nhl-probabilities.cjs
+      - uses: actions/upload-artifact@v6
+        with:
+          name: nhl-probability-backtest
+          path: outputs/backtests/nhl-probabilities-latest.json

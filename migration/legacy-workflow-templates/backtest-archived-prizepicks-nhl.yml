@@ -1,0 +1,46 @@
+name: Backtest Archived PrizePicks NHL Lines
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/backtest-archived-prizepicks-nhl.yml']
+permissions:
+  contents: write
+concurrency:
+  group: archived-prizepicks-nhl-backtest
+  cancel-in-progress: false
+jobs:
+  backtest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify retrospective methodology and tests
+        run: |
+          node --check scripts/backtest-nhl-prizepicks-history.cjs
+          node --test test/nhl-retrospective-backtest.test.cjs
+      - name: Reconstruct recorded October NHL PrizePicks lines
+        env:
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+        run: node scripts/backtest-nhl-prizepicks-history.cjs
+      - name: Save separate retrospective results and source boards
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/historical-prizepicks/nhl/backtest-latest.json outputs/historical-prizepicks/nhl/boards/*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: add retrospective PrizePicks NHL historical line replay"
+            git pull --rebase -X theirs origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: historical-nhl-prizepicks-replay
+          path: outputs/historical-prizepicks/nhl/**/*.json
+          if-no-files-found: ignore

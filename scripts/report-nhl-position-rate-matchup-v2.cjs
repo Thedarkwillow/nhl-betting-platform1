@@ -1,0 +1,13 @@
+"use strict";
+const fs=require("node:fs"),path=require("node:path"),{execFileSync}=require("node:child_process"),model=require("../src/nhl-position-rate-matchup-v2.cjs"),{adapt,opponentPositionTable}=require("../src/nhl-player-context-evidence.cjs"),{pacificDay}=require("../src/nhl-standard-forward-diagnostics.cjs"),{originalFrames}=require("./report-nhl-standard-triple-challengers.cjs");
+const root=path.resolve(__dirname,".."),read=p=>JSON.parse(fs.readFileSync(path.join(root,p),"utf8"));
+function main(){const now=new Date().toISOString(),cutoff=pacificDay(now),history=read("outputs/history/players.json"),schedule=read("outputs/official-nhl/season-schedules/2026-27.json"),{rows,leagueTeams}=adapt(history,schedule,cutoff);
+ const {report}=model.prepare(history,schedule,cutoff),policyAt=execFileSync("git",["log","--diff-filter=A","-1","--format=%cI","--","src/nhl-position-rate-matchup-v2.cjs"],{cwd:root,encoding:"utf8"}).trim();
+ const tables={};if(leagueTeams.length===32)for(const market of model.MARKETS)for(const position of model.POS){const a=rows.filter(r=>r.market===market);tables[market+"|"+position]=opponentPositionTable(a,{sport:"NHL",market,period:"full_game",beforeDate:cutoff,season:schedule.season,position,leagueTeams});}
+ const output={kind:"private_nhl_position_matchup_report_v2",generatedAt:now,cutoff,policyAt,historical:report,forward:model.score(originalFrames(),history,policyAt),tables,fullLeagueTeamCoverage:leagueTeams.length===32,calibrated:false,modelPromoted:false,providerRequests:0};
+ fs.writeFileSync(path.join(root,"outputs/health/nhl-position-rate-matchup-v2-latest.json"),JSON.stringify(output,null,2)+"\n");
+ const example=tables["assists|C"]?.teams?.VAN??null;
+ const compact={kind:"nhl_position_rate_matchup_summary_v2",generatedAt:now,cutoff,historical:report,forward:output.forward,exampleVancouverCentersAssists:example,windowDefinition:"Most recent qualifying source-complete games; not necessarily every scheduled team game",coverage:Object.fromEntries(Object.entries(tables).map(([k,t])=>[k,Object.fromEntries(["season","last20","last10","last5"].map(w=>[w,{rankedTeams:Object.values(t.teams).filter(x=>x[w].rank!==null).length,per60RankedTeams:Object.values(t.teams).filter(x=>x[w].per60Rank!==null).length}]))])),calibrated:false,modelPromoted:false};
+ fs.writeFileSync(path.join(root,"outputs/health/nhl-position-rate-matchup-summary-latest.json"),JSON.stringify(compact,null,2)+"\n");
+ console.log(JSON.stringify({tables:Object.keys(tables).length,matchedHistoricalMarkets:Object.keys(report.byMarketPosition).length,forwardRegistered:output.forward.registered,modelPromoted:false}));}
+if(require.main===module)main();

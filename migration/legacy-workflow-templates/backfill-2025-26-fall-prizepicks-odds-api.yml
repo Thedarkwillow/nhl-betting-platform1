@@ -1,0 +1,52 @@
+name: Incremental 2025-26 Fall PrizePicks NHL Historical Backfill
+on:
+  workflow_dispatch:
+  # Source-only changes do not trigger extra paid historical requests.
+  # Only the scheduled or manually dispatched job is allowed.
+  schedule:
+    # 02:37 Pacific standard time (10:37 UTC): small, bounded nightly batch.
+    - cron: '37 10 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: shared-nhl-2025-26-oddsapi-paid-history
+  cancel-in-progress: false
+jobs:
+  backfill:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test credit limits and historical source provenance
+        run: |
+          node --check scripts/backfill-2025-26-fall-prizepicks-odds-api.cjs
+          node --test test/backfill-2025-26-fall-prizepicks-odds-api.test.cjs
+      - name: Capture limited October-December 2025 historical PrizePicks-labelled NHL lines
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: node scripts/backfill-2025-26-fall-prizepicks-odds-api.cjs
+      - name: Commit append-only historical dates and progress report
+        if: always()
+        run: |
+          if [ -f outputs/the-odds-api/nhl/2025-26-fall-backfill/progress.json ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -f outputs/the-odds-api/nhl/2025-26-fall-backfill
+            if ! git diff --cached --quiet; then
+              git commit -m "data: bounded 2025-26 NHL fall PrizePicks historical source snapshots"
+              git pull --rebase -X theirs origin main
+              git push origin HEAD:main
+            fi
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-prizepicks-2025-26-fall-progress
+          path: outputs/the-odds-api/nhl/2025-26-fall-backfill/progress.json
+          if-no-files-found: ignore

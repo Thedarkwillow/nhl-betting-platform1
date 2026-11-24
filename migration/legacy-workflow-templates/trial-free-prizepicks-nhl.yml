@@ -1,0 +1,168 @@
+name: Trial Free PrizePicks NHL API
+on:
+  workflow_call:
+    inputs:
+      legacy_daily_only:
+        description: "Deprecated provider selector; retained for historical callers"
+        required: false
+        type: boolean
+        default: false
+      capture_slot:
+        description: "Optional intended Pacific run slot; actual capture time is always recorded separately"
+        required: false
+        type: string
+        default: ""
+  workflow_dispatch:
+  # Never spend an unplanned provider request just because code was merged.
+  # Scheduled capture or an explicitly invoked manual run only.
+  schedule:
+    # Once monthly until the actual workspace billing unit and remaining
+    # credits are verified. A full 1000-row page costs 10 credits on new
+    # plans, so the old twice-daily schedule was unsafe for a free account.
+    # One additional capture is available only by explicit manual dispatch.
+    - cron: '15 16 1 * *'
+permissions:
+  contents: write
+concurrency:
+  group: nhl-free-api-trial
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test free API adapter
+        run: |
+          node --check scripts/collect-prizepicks-asof-nhl.cjs
+          node --test test/prizepicksapi-asof-board.test.cjs test/prizepicksapi-normalize.test.cjs test/prizepicksapi-nhl-request.test.cjs test/nhl-coverage-stability.test.cjs
+          node --check src/prizepicksapi-nhl-coverage-stability.cjs
+          node --check src/prizepicksapi-nhl-request.cjs
+      - name: Refresh cached official NHL projections, no sportsbook credits
+        run: |
+          node scripts/build-projections.cjs
+          node --check scripts/preflight-nhl-future-capture.cjs
+          node --test test/nhl-prospective-freeze-readiness.test.cjs
+          node scripts/preflight-nhl-future-capture.cjs
+      - name: Collect complete NHL board from fixed-time independent source (quota guarded)
+        env:
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+          NHL_CAPTURE_SLOT: ${{ inputs.capture_slot || '' }}
+        run: node scripts/collect-prizepicks-asof-nhl.cjs
+      - name: Track archived line changes without claiming verified removals
+        run: |
+          node scripts/track-free-nhl-line-movement.cjs
+      - name: Commit original complete pregame source board before downstream research
+        run: |
+          # A valid independent provider board is valuable even when schedule
+          # identity, an injury check or the later freeze stage fails. Save it
+          # once, without claiming it contains selected model picks.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Fresh champion and fixed research challengers are rebuilt from
+          # already official NHL game history BEFORE metered source capture.
+          # Commit them with source to leave the runner clean for safe rebase.
+          git add -f outputs/free-source/nhl/latest.json outputs/free-source/nhl/snapshots/*.json outputs/free-source/nhl/raw-snapshots/*.json outputs/free-source/nhl/movement-latest.json outputs/free-source/nhl/movement-snapshots/*.json
+          git add -f outputs/projections/players.json outputs/projections/stable-shrink-v2-latest.json outputs/projections/prior-mean-v2-latest.json outputs/projections/shadow-snapshots/*.json
+          # First-write market-trained research challenger, isolated from live picks.
+          if test -f outputs/projections/nhl-market-trained-v3-latest.json; then
+            git add -f outputs/projections/nhl-market-trained-v3-latest.json outputs/backtests/nhl-trained-market-v3-holdout-latest.json
+          fi
+          if ! git diff --cached --quiet; then
+            git commit -m "data: independently archive complete NHL quote board before model freeze"
+            pushed=0
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              # Generated projection/preview outputs may leave tracked changes outside this commit.
+              # Stash only for rebase, then restore; never drop a complete board because
+              # git rebase refuses a dirty working tree.
+              git -c rebase.autoStash=true rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((attempt * 2))
+            done
+            if test "$pushed" -ne 1; then
+              echo "::error::Original independent NHL quote board not durably archived"
+              exit 1
+            fi
+          fi
+      - name: Build fresh research-only preview from independently archived source
+        run: |
+          node --check scripts/build-nhl-source-preview.cjs
+          node --test test/nhl-source-preview.test.cjs test/nhl-lineup-optimizer.test.cjs
+          node scripts/build-nhl-source-preview.cjs
+      - name: Durably archive preview separately from Git-frozen graded picks
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/free-source/nhl/research-preview-latest.json outputs/free-source/nhl/research-preview-snapshots/*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: preview fresh independent NHL model rows without precommitting selections"
+            pushed=0
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              # Generated projection/preview outputs may leave tracked changes outside this commit.
+              # Stash only for rebase, then restore; never drop a complete board because
+              # git rebase refuses a dirty working tree.
+              git -c rebase.autoStash=true rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((attempt * 2))
+            done
+            if test "$pushed" -ne 1; then
+              echo "::error::NHL research-only preview could not be archived"
+              exit 1
+            fi
+          fi
+      - id: prospective
+        name: Build NHL model rankings and 2-6 research lineups
+        run: |
+          node --check scripts/build-free-nhl-research.cjs
+          node --test test/free-nhl-research.test.cjs test/nhl-distribution-snapshot.test.cjs test/nhl-count-distribution-shadow.test.cjs
+          node scripts/build-free-nhl-research.cjs
+      - name: Archive isolated trial snapshot
+        if: steps.prospective.outputs.frozen == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/free-source/nhl/latest.json outputs/free-source/nhl/snapshots/*.json outputs/free-source/nhl/raw-snapshots/*.json outputs/free-source/nhl/research-latest.json outputs/free-source/nhl/research-snapshots/*.json outputs/free-source/nhl/movement-latest.json outputs/free-source/nhl/movement-snapshots/*.json outputs/research/snapshots/*.json outputs/backtests/nhl-context-latest.json outputs/projections/distribution-shadow-latest.json outputs/projections/distribution-snapshots/*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: archive independent NHL props"
+            # Nightly official-stat and goalie collectors also publish to
+            # main. Rebase and retry non-force pushes without refetching API.
+            pushed=0
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              # Generated projection/preview outputs may leave tracked changes outside this commit.
+              # Stash only for rebase, then restore; never drop a complete board because
+              # git rebase refuses a dirty working tree.
+              git -c rebase.autoStash=true rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((attempt * 2))
+            done
+            if test "$pushed" -ne 1; then
+              echo "::error::Frozen NHL individual prop snapshot could not be saved"
+              exit 1
+            fi
+          fi
+      - name: Prove original individual selection persisted in one pregame Git commit
+        if: steps.prospective.outputs.frozen == 'true'
+        run: |
+          node --check scripts/verify-nhl-frozen-pregame-commit.cjs
+          node --test test/nhl-frozen-commit-verifier.test.cjs
+          node scripts/verify-nhl-frozen-pregame-commit.cjs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-free-api-trial
+          # Private artifact only. Never commit partial provider rows or a
+          # failed-paging status as a complete public/prospective board.
+          path: |
+            outputs/free-source/nhl/**/*.json
+            outputs/health/nhl-paid-capture-failure.json
+          if-no-files-found: ignore

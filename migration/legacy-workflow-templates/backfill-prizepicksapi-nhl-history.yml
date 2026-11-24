@@ -1,0 +1,55 @@
+name: Backfill NHL PrizePicks Retrospective Boards
+on:
+  workflow_dispatch:
+    inputs:
+      dates:
+        description: "1-5 comma-separated dates from October 28, 2026 onward; blank uses Oct 28-Nov 1"
+        type: string
+        required: false
+  push:
+    branches: [main]
+    paths: ['.github/workflows/backfill-prizepicksapi-nhl-history.yml']
+permissions:
+  contents: write
+concurrency:
+  group: nhl-retrospective-board-backfill
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate historical board importer
+        run: |
+          node --check scripts/backfill-prizepicksapi-nhl-history.cjs
+          node --test test/prizepicksapi-historical-board.test.cjs
+      - name: Retrieve bounded paginated historical boards
+        env:
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+          BACKFILL_DATES: ${{ inputs.dates }}
+        run: node scripts/backfill-prizepicksapi-nhl-history.cjs
+      - name: Preserve completed snapshots even if subsequent date fails
+        if: always()
+        run: |
+          if [ -d outputs/historical-prizepicks-api/nhl ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -f outputs/historical-prizepicks-api/nhl/
+            if ! git diff --cached --quiet; then
+              git commit -m "data: archive reconstructed NHL PrizePicks boards"
+              git pull --rebase -X theirs origin main
+              git push origin HEAD:main
+            fi
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: historical-nhl-prizepicks-boards
+          path: outputs/historical-prizepicks-api/nhl/**/*.json
+          if-no-files-found: ignore

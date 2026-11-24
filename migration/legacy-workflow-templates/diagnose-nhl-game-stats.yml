@@ -1,0 +1,41 @@
+name: Diagnose Official NHL Per-Game Stats Reports
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/diagnose-nhl-game-stats.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Inspect two public NHL stats report field names
+        run: |
+          node - <<'NODE'
+          (async()=>{
+            for(const x of [
+              {id:8476467,entity:'skater',report:'realtime',season:'20252026'},
+              {id:8474593,entity:'goalie',report:'summary',season:'20252026'}
+            ]){
+              const u=new URL('https://api.nhle.com/stats/rest/en/'+x.entity+'/'+x.report);
+              u.searchParams.set('cayenneExp','playerId='+x.id+' and seasonId='+x.season+' and gameTypeId=2');
+              u.searchParams.set('isGame','true');
+              u.searchParams.set('start','0');
+              u.searchParams.set('limit','2');
+              const res=await fetch(u,{signal:AbortSignal.timeout(18000)});
+              const data=await res.json();
+              console.log(JSON.stringify({entity:x.entity,report:x.report,id:x.id,
+                http:res.status,total:data.total,
+                firstTwo:data.data?.slice(0,2).map(v=>Object.fromEntries(Object.entries(v)
+                .filter(([k])=>/game|date|block|save|shot|player|season|position|team/i.test(k)))),
+                keys:data.data?.[0]?Object.keys(data.data[0]):[],
+                errors:data.errors||data.message||null}));
+            }
+          })().catch(e=>{console.error(e.message);process.exitCode=1;});
+          NODE

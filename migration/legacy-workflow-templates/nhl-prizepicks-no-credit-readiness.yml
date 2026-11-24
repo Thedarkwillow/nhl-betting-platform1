@@ -1,0 +1,72 @@
+name: PrizePicks NHL Zero-Credit Capture Readiness
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/nhl-prizepicks-no-credit-readiness.yml'
+permissions:
+  contents: read
+concurrency:
+  group: nhl-prizepicks-zero-credit-readiness
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test compact and full NHL API contracts without credentials
+        run: |
+          node --test test/prizepicksapi-normalize.test.cjs test/prizepicksapi-board.test.cjs test/nhl-coverage-stability.test.cjs
+      - name: Read authenticated source coverage and quota using zero-credit endpoint only
+        env:
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+        run: |
+          node - <<'NODE'
+          const {providerUsage,USER_CONTEXT}=require('./src/prizepicksapi-nhl-request.cjs');
+          const {inspectNhlCoverage}=require('./src/prizepicksapi-nhl-coverage-stability.cjs');
+          const {MAX_CREDITS_PER_CAPTURE,MIN_CREDITS_RESERVE,MAX_PAGES}=
+            require('./scripts/collect-prizepicks-free-api.cjs');
+          async function main(){
+            const key=process.env.PRIZEPICKSAPI_KEY;
+            if(!key){console.log(JSON.stringify({status:'missing_secret',paidCalls:0}));return;}
+            // /coverage is documented to cost 0 credits. No projections call,
+            // and absolutely no automatic retry in this diagnostic.
+            const res=await fetch('https://prizepicksapi.com/api/v1/coverage',{
+              headers:{Authorization:'Bearer '+key,Accept:'application/json',
+                'X-User-Request':USER_CONTEXT},signal:AbortSignal.timeout(15000)});
+            if(!res.ok){console.log(JSON.stringify({status:'coverage_http_failure',
+              httpStatus:res.status,paidCalls:0}));return;}
+            const usage=providerUsage(res.headers);
+            if(usage.unit==='credits'&&usage.creditsCost!==0)
+              throw Error('Coverage endpoint unexpectedly reported a charge; future captures prohibited');
+            const inspection=inspectNhlCoverage(await res.json(),new Date().toISOString());
+            const quotaSufficient=usage.unit==='credits'?
+              Number.isInteger(usage.creditsRemaining)&&
+              usage.creditsRemaining>=MAX_CREDITS_PER_CAPTURE+MIN_CREDITS_RESERVE:
+              usage.unit==='requests'&&Number.isInteger(usage.requestsRemaining)&&
+              usage.requestsRemaining>=MAX_PAGES+2;
+            const result={status:inspection.eligible&&quotaSufficient&&
+              inspection.reportedProjectionCount<=MAX_PAGES*1000?
+              'safe_budget_and_fresh_nhl_scope':'full_capture_not_authorized',
+              observedAt:inspection.observedAt,
+              sourceFresh:inspection.eligible,scopeReasons:inspection.reasons,
+              reportedNhlProjections:inspection.reportedProjectionCount,
+              quotaUnit:usage.unit,creditsRemaining:usage.creditsRemaining,
+              legacyRequestsRemaining:usage.requestsRemaining,
+              requiredCredits:MAX_CREDITS_PER_CAPTURE+MIN_CREDITS_RESERVE,
+              providerPaidCalls:0,automaticPaidRetry:false,
+              freshLiveOffersCapturedByThisJob:0,
+              prospectivelyFrozenModelPicksByThisJob:0};
+            console.log(JSON.stringify(result));
+            if(process.env.GITHUB_STEP_SUMMARY)
+              require('node:fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+                'NHL independent-provider zero-credit readiness: '+result.status+
+                '; paid projections: 0; normalized props: 0; actual freeze: 0.\n');
+          }
+          main().catch(e=>{console.error(e.message);process.exitCode=1;});
+          NODE

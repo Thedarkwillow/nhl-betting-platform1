@@ -1,0 +1,15 @@
+name: Retired NHL Compact One-Time Repair (No Requests)
+# Prior historical workflow code remains available in Git history.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  retired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Report retired source
+        run: |
+          echo "::notice::Legacy test expired. No vendor requests, paid actions, Discord alerts, archive changes or wagers."
+          echo "Use current scheduled 06:00/09:00 workflows for complete independent NHL board capture."

@@ -1,0 +1,49 @@
+name: Probe SportsGameOdds NHL Free Plan
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-sportsgameodds-nhl.yml'
+permissions:
+  contents: write
+concurrency:
+  group: probe-sportsgameodds-nhl
+  cancel-in-progress: false
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate adapter and market mapping
+        run: |
+          node --check scripts/collect-sportsgameodds-nhl.cjs
+          node --test test/sportsgameodds-nhl.test.cjs
+      - name: One limited request to free-tier NHL sportsbooks
+        env:
+          SPORTSGAMEODDS_API_KEY: ${{ secrets.SPORTSGAMEODDS_API_KEY }}
+        run: |
+          test -n "$SPORTSGAMEODDS_API_KEY" || { echo "::error::Missing SPORTSGAMEODDS_API_KEY secret"; exit 1; }
+          node scripts/collect-sportsgameodds-nhl.cjs
+      - name: Save only sanitized sportsbook quote data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/sportsgameodds/nhl/live-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: record limited SportsGameOdds NHL sportsbook probe"
+            git pull --rebase -X theirs origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: sportsgameodds-nhl-sanitized-probe
+          path: outputs/sportsgameodds/nhl/live-latest.json
+          if-no-files-found: ignore

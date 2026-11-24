@@ -1,0 +1,183 @@
+name: NHL PrizePicks Backup via The Odds API (Bounded)
+on:
+  workflow_dispatch:
+  schedule:
+    # Two bounded fallback trials, Nov 5-6, 09:40 Pacific.
+    # Primary's 09:25 guarded run gets first chance to freeze a cohort.
+    # No perpetual paid polling; reassess account credit usage and quality.
+    - cron: '40 17 5,6 11 *'
+permissions:
+  contents: write
+concurrency:
+  group: nhl-prizepicks-independent-backup
+  cancel-in-progress: false
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    outputs:
+      collect: ${{ steps.check.outputs.collect }}
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - id: check
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ] &&
+             ! [[ "$(date -u +%F)" =~ ^2026-11-(05|06)$ ]]; then
+            echo "collect=false" >> "$GITHUB_OUTPUT"
+            echo "One-off backup dates expired; zero vendor calls." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # GitHub cron may run hours late. Never launch the paid fallback
+          # while the PRIMARY one-shot collector is still queued or running,
+          # or when no same-day primary scheduled attempt is evidenced.
+          set +e
+          node scripts/nhl-backup-primary-run-gate.cjs
+          primary_status=$?
+          set -e
+          if [ "$primary_status" -eq 1 ]; then
+            echo "collect=false" >> "$GITHUB_OUTPUT"
+            echo "No confirmed same-day failed primary: no alternative API credits spent." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          elif [ "$primary_status" -ne 0 ]; then
+            echo "::error::Could not confirm primary GitHub run state. Paid fallback prohibited."
+            exit 1
+          fi
+          set +e
+          node scripts/nhl-oddsapi-backup-commit-gate.cjs guard
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "collect=false" >> "$GITHUB_OUTPUT"
+            echo "Existing original pregame Git-frozen directions verified. Skip redundant paid fallback." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$status" -eq 1 ]; then
+            echo "collect=true" >> "$GITHUB_OUTPUT"
+            echo "No qualifying original Git-frozen pregame cohort: allow independently budgeted backup trial." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::Cannot prove whether a prospective cohort exists. Fail closed."
+            exit 1
+          fi
+  collect:
+    needs: gate
+    if: needs.gate.outputs.collect == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate The Odds API backup without spending credits
+        run: |
+          node --check src/nhl-oddsapi-prizepicks-backup.cjs
+          node --check scripts/collect-nhl-prizepicks-oddsapi-backup.cjs
+          node --check scripts/build-nhl-prizepicks-backup-research.cjs
+          node --check src/nhl-cross-source-prizepicks-audit.cjs
+          node --check scripts/audit-nhl-prizepicks-backup-sources.cjs
+          node --check scripts/nhl-oddsapi-backup-commit-gate.cjs
+          node --check src/nhl-backup-primary-run-gate.cjs
+          node --check scripts/nhl-backup-primary-run-gate.cjs
+          node --test test/nhl-oddsapi-prizepicks-backup.test.cjs test/nhl-prizepicks-backup-end-to-end.test.cjs test/nhl-cross-source-prizepicks-audit.test.cjs test/nhl-backup-primary-run-gate.test.cjs test/free-nhl-research.test.cjs test/nhl-prospective-freeze-readiness.test.cjs test/nhl-frozen-commit-verifier.test.cjs
+      - name: Refresh official cached player projections and confirm future games without provider costs
+        run: |
+          node scripts/build-projections.cjs
+          node scripts/preflight-nhl-future-capture.cjs
+      - name: Collect at most two official NHL games from independent PrizePicks-labelled fallback
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: node scripts/collect-nhl-prizepicks-oddsapi-backup.cjs
+      - name: Record whether a NEW limited-event source sample exists
+        id: data
+        shell: bash
+        run: |
+          node - <<'NODE' >> "$GITHUB_OUTPUT"
+          const fs=require('node:fs');
+          const p='outputs/prizepicks-backup/nhl/latest.json';
+          let valid=false;
+          if(fs.existsSync(p)){
+            const o=JSON.parse(fs.readFileSync(p,'utf8'));
+            const age=Date.now()-Date.parse(o.generatedAt);
+            valid=o.kind==='provider_labelled_prizepicks_nhl_event_subset' &&
+              o.sourceScope==='verified_selected_events' &&
+              o.completePagination===true &&
+              o.fullNhlBoardCoverageVerified===false &&
+              o.rows.length>0 && age>=0 && age<5*60000;
+          }
+          console.log('has_new_data='+String(valid));
+          NODE
+      - name: Offline independent-provider cross-check; do not trust differing standard lines
+        if: steps.data.outputs.has_new_data == 'true'
+        run: node scripts/audit-nhl-prizepicks-backup-sources.cjs
+      - name: Persist original backup provider rows and refreshed official projections
+        if: steps.data.outputs.has_new_data == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/prizepicks-backup/nhl/latest.json outputs/prizepicks-backup/nhl/snapshots/*.json outputs/prizepicks-backup/nhl/cross-source-audit-latest.json
+          git add -f outputs/projections/players.json outputs/projections/stable-shrink-v2-latest.json outputs/projections/prior-mean-v2-latest.json outputs/projections/shadow-snapshots/*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: preserve source-labelled NHL PrizePicks backup event quotes before model build"
+            pushed=0
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              git rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((attempt * 2))
+            done
+            if [ "$pushed" -ne 1 ]; then
+              echo "::error::Original provider event subset could not be archived"
+              exit 1
+            fi
+          fi
+      - name: Freeze explicit model Higher or Lower selections from limited original pregame event scope
+        if: steps.data.outputs.has_new_data == 'true'
+        run: node scripts/build-nhl-prizepicks-backup-research.cjs
+      - name: Commit original immutable selected directions before NHL puck drop
+        if: steps.data.outputs.has_new_data == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/prizepicks-backup/nhl/research-latest.json outputs/research/snapshots/*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data(P03-03): immutable The Odds API sourced NHL individual pregame selections, limited coverage"
+            pushed=0
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              git rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((attempt * 2))
+            done
+            if [ "$pushed" -ne 1 ]; then
+              echo "::error::Backup pregame selected directions failed Git archive"
+              exit 1
+            fi
+          fi
+      - name: Verify original pregame Git commit, game identity and unmodified direction
+        if: steps.data.outputs.has_new_data == 'true'
+        run: node scripts/nhl-oddsapi-backup-commit-gate.cjs verify
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-prizepicks-oddsapi-bounded-backup
+          path: |
+            outputs/prizepicks-backup/nhl/latest.json
+            outputs/prizepicks-backup/nhl/research-latest.json
+          if-no-files-found: warn
+          retention-days: 14

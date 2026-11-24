@@ -1,0 +1,20 @@
+"use strict";
+// Independent selected-side calibration: same original game/player/market/
+// period/line/tier only once, no confusion of pushes with decided losses.
+// No-vig sportsbook comparison uses the same exact archived half-line cohort.
+const {calibrate}=require("./nhl-tier-calibration-lineup-risk-v2.cjs"),{rowValid}=require("./nhl-frozen-baseline-challenge.cjs"),{provenance}=require("./nhl-standard-triple-challenger-grader.cjs"),{bootstrapGameBrierDifference}=require("./nhl-period-count-model.cjs");
+const dt=Date.parse,num=Number.isFinite,key=(...a)=>JSON.stringify(a),id=r=>key(r.gameId,r.playerId,r.market,r.period||"full_game",r.line,r.tier),propid=r=>key(r.gameId,r.playerId,r.market,r.line,r.tier),clip=x=>Math.max(1e-6,Math.min(1-1e-6,x)),loss=(p,y)=>-(y?Math.log(clip(p)):Math.log(1-clip(p)));
+function study(ledger,state,frames,policyAt){
+ const earlier=new Map(),byId=new Map(),quarantine=new Set(state?.quarantined||[]);for(const r of (ledger?.records||[]).filter(rowValid).sort((a,b)=>dt(a.firstGitCommittedAt)-dt(b.firstGitCommittedAt))){if(!earlier.has(id(r)))earlier.set(id(r),r);byId.set(r.id,r);}
+ const rows=[];for(const r of state?.firstObserved||[]){const v=byId.get(r.id);if(!v||earlier.get(id(v))!==v||quarantine.has(r.id)||v.line%1!==.5||!["correct","incorrect"].includes(v.selectionStatus)||!num(r.p)||r.p<=0||r.p>=1||r.y!==Number(v.selectionStatus==="correct")||!(dt(r.frozenAt)<dt(r.startAt)&&dt(r.startAt)<dt(r.observedFinalAt)))continue;rows.push({...r,line:v.line});}
+ const buckets={},marketBuckets={},seen=new Set(),vBy=new Map([...earlier.values()].filter(r=>(r.period||"full_game")==="full_game").map(r=>[propid(r),r]));
+ function score(b,p,q,y,g){b.n++;b.raw+=(p-y)**2;b.challenger+=(q-y)**2;b.rawLoss+=loss(p,y);b.challengerLoss+=loss(q,y);const x=b.diff.get(g)||{n:0,diff:0};x.n++;x.diff+=(q-y)**2-(p-y)**2;b.diff.set(g,x);}
+ const blank=()=>({observed:0,n:0,raw:0,challenger:0,rawLoss:0,challengerLoss:0,diff:new Map()});
+ for(const r of rows){const k=r.tier+"|"+r.market+"|"+r.side,a=buckets[k]??=blank();a.observed++;const f=calibrate(r,rows);if(f)score(a,r.p,f.p,r.y,r.gameId);}
+ if(num(dt(policyAt)))for(const f of [...(frames||[])].sort((a,b)=>dt(a.firstCommittedAt)-dt(b.firstCommittedAt))){const s=f.snapshot;if(!provenance(s,f.firstCommittedAt,f.gitHistoryCount)||dt(s.generatedAt)<=dt(policyAt)||s.matchupContextReviewV1?.generatedAt!==s.generatedAt)continue;
+ for(const x of s.matchupContextReviewV1.rows||[]){const k=propid(x),v=vBy.get(k),book=x.context?.benchmark,q=book?.higher;if(seen.has(k)||!v||v.selectedSide!==x.side||x.capturedAt!==v.firstCaptureAt||dt(v.firstGitCommittedAt)!==dt(f.firstCommittedAt)||!["correct","incorrect"].includes(v.selectionStatus)||v.line%1!==.5||!num(x.originalHigher)||x.originalHigher<0||x.originalHigher>1||!num(q)||q<0||q>1||!book.conditionalNameTeamGameLine||!(dt(book.observedAt)<=dt(s.generatedAt)&&dt(s.generatedAt)-dt(book.observedAt)<=1800000))continue;seen.add(k);const b=marketBuckets[x.tier+"|"+x.market]??=blank();b.observed++;const y=Number(v.officialStat>v.line);score(b,x.originalHigher,q,y,v.gameId);}
+ }
+ const finish=b=>Object.fromEntries(Object.entries(b).map(([k,a])=>[k,{observed:a.observed,matched:a.n,games:a.diff.size,rawBrier:a.n?a.raw/a.n:null,comparisonBrier:a.n?a.challenger/a.n:null,rawLogLoss:a.n?a.rawLoss/a.n:null,comparisonLogLoss:a.n?a.challengerLoss/a.n:null,pairedGameCI:bootstrapGameBrierDifference([...a.diff.values()]),approved:false}]));
+ return {kind:"distinct_original_halfline_tier_calibration_and_benchmark_v1",distinctDecidedRows:rows.length,byTierMarket:finish(buckets),conditionalSportsbookMatches:seen.size,sportsbookByTierMarket:finish(marketBuckets),originalSharedBookIdentityVerified:false,actualSettlementVerified:false,calibrationApproved:false,modelPromoted:false};
+}
+module.exports={study};

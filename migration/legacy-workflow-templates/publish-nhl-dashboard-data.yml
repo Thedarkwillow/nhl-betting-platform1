@@ -1,0 +1,82 @@
+name: Publish Sanitized NHL Dashboard Data
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/export-public-nhl-data.cjs'
+      - 'scripts/build-nhl-source-preview.cjs'
+      - 'src/nhl-lineup-optimizer.cjs'
+      - 'outputs/free-source/nhl/research-preview-latest.json'
+      - 'test/nhl-source-preview.test.cjs'
+      - 'src/nhl-paired-market-model-audit.cjs'
+      - 'src/nhl-public-prospective-cohort.cjs'
+      - 'test/nhl-cohort-correlation-coverage.test.cjs'
+      - 'outputs/research/registry/nhl-precommitted-ledger-latest.json'
+      - 'outputs/health/nhl-source-coverage-latest.json'
+      - 'src/nhl-public-dashboard-payload.cjs'
+      - 'src/nhl-prospective-validation.cjs'
+      - 'outputs/health/nhl-prospective-validation-latest.json'
+      - 'src/nhl-six-priority-evidence-brief.cjs'
+      - 'outputs/health/nhl-frozen-simple-challengers-latest.json'
+      - 'src/nhl-frozen-simple-challenger-grader.cjs'
+      - 'src/nhl-frozen-baseline-challenge.cjs'
+      - 'outputs/health/nhl-frozen-baseline-challenge-latest.json'
+      - 'test/nhl-frozen-baseline-challenge.test.cjs'
+      - 'src/nhl-free-line-movement.cjs'
+      - 'src/nhl-public-research-extensions.cjs'
+      - 'test/nhl-six-priority-evidence-brief.test.cjs'
+      - 'src/nhl-priority-market-walkforward.cjs'
+      - 'scripts/report-nhl-priority-market-walkforward.cjs'
+      - 'outputs/backtests/nhl-priority-market-walkforward-latest.json'
+      - 'test/nhl-free-line-movement-tier.test.cjs'
+      - 'src/nhl-seven-roadmap-readiness.cjs'
+      - 'src/nhl-lineup-source-revalidation.cjs'
+      - 'test/nhl-lineup-source-revalidation.test.cjs'
+      - 'test/nhl-seven-roadmap-readiness.test.cjs'
+      - 'scripts/report-nhl-seven-roadmap-readiness.cjs'
+      - 'test/nhl-public-dashboard-payload.test.cjs'
+      - 'scripts/publish-public-nhl-data.cjs'
+      - 'scripts/build-nhl-platform-line-shop.cjs'
+      - 'src/nhl-platform-line-shop.cjs'
+      - 'test/nhl-platform-line-shop.test.cjs'
+      - 'test/backfill-2025-26-fall-prizepicks-odds-api.test.cjs'
+      - '.github/workflows/publish-nhl-dashboard-data.yml'
+  workflow_run:
+    workflows: ['Collect NHL player stats', 'NHL 9 AM Pacific Fresh Board and Changes', 'Trial Free PrizePicks NHL API', 'One-Time NHL Compact Schema Repair Prospective Freeze', 'Bounded Daily NHL Pregame Freeze (Legacy Requests)', 'Collect NHL Sportsbook Odds', 'Grade Archived NHL Predictions', 'Expand Two-Season Historical PrizePicks NHL Archive', 'Audit Historical PrizePicks NHL Outcomes', 'Walk-forward Historical PrizePicks NHL Model', 'Audit and Backfill All NHL Historical Game Dates', 'Archive NHL Goalie and Ice Time Context', 'Capture NHL Pregame Injury and Goalie Reports', 'NHL Distribution Shadow Git Archive Proof', 'NHL Distribution Shadow Model and Real-Line Audit', 'Capture Approved MoneyPuck and Daily Faceoff NHL Research', 'Grade MoneyPuck and DFO NHL Shadow Against Official Finals', 'Bounded NHL Underdog DFS Source Pilot (The Odds API)']
+    types: [completed]
+  schedule:
+    - cron: '22 * * * *'
+permissions:
+  contents: read
+concurrency:
+  group: nhl-public-data-publisher
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      DASHBOARD_PUBLISH_TOKEN: ${{ secrets.DASHBOARD_PUBLISH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate and export sanitized data
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: |
+          node --check scripts/export-public-nhl-data.cjs
+          node --check scripts/build-nhl-platform-line-shop.cjs
+          node scripts/build-nhl-platform-line-shop.cjs
+          node --check scripts/publish-public-nhl-data.cjs
+          node scripts/export-public-nhl-data.cjs
+          npm test
+      - name: Publish to public dashboard
+        if: env.DASHBOARD_PUBLISH_TOKEN != ''
+        run: node scripts/publish-public-nhl-data.cjs
+      - name: Warn if publishing token missing
+        if: env.DASHBOARD_PUBLISH_TOKEN == ''
+        run: echo "::warning::Add a fine-grained DASHBOARD_PUBLISH_TOKEN secret scoped only to nhl-betting-platform1 with Contents read/write to enable automatic updates."

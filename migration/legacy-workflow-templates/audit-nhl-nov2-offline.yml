@@ -1,0 +1,63 @@
+name: Retrospective NHL November 2-3 Offline Model Diagnostic
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/nhl-nov2-retrospective.cjs'
+      - 'scripts/audit-nhl-nov2-offline.cjs'
+      - 'test/nhl-nov2-retrospective.test.cjs'
+      - '.github/workflows/audit-nhl-nov2-offline.yml'
+permissions:
+  contents: write
+concurrency:
+  group: nhl-offline-nov2-retrospective
+  cancel-in-progress: false
+jobs:
+  evaluate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify past-only replay and no prospective claims
+        run: |
+          node --check src/nhl-nov2-retrospective.cjs
+          node --check scripts/audit-nhl-nov2-offline.cjs
+          node --test test/nhl-nov2-retrospective.test.cjs test/nhl-temporal-model-comparison.test.cjs test/nhl-frozen-individual-props.test.cjs
+      - name: Evaluate original Nov 2 and Nov 3 offers and official NHL outcomes
+        run: node scripts/audit-nhl-nov2-offline.cjs
+      - name: Save private retrospective diagnostic with no sports API requests
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/backtests/nhl-2026-11-02-original-line-diagnostic.json outputs/backtests/nhl-2026-11-03-original-line-diagnostic.json outputs/backtests/nhl-nov2-nov3-retrospective-summary.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: offline NHL Nov 2-3 model diagnostics, retrospective only"
+            pushed=0
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              git rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((attempt*2))
+            done
+            if test "$pushed" -ne 1; then
+              echo "::error::Private offline Nov 2 diagnostic could not be saved"
+              exit 1
+            fi
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-nov2-nov3-offline-retrospective
+          path: |
+            outputs/backtests/nhl-2026-11-02-original-line-diagnostic.json
+            outputs/backtests/nhl-2026-11-03-original-line-diagnostic.json
+            outputs/backtests/nhl-nov2-nov3-retrospective-summary.json
+          retention-days: 30
+          if-no-files-found: warn

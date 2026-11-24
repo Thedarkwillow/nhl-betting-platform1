@@ -1,0 +1,59 @@
+name: NFL Specialty Events, Correlation and Settlement Research
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'feat/**']
+    paths:
+      - 'scripts/collect-nfl-history.py'
+      - 'scripts/build-nfl-correlation-research.cjs'
+      - 'scripts/audit-nfl-specialty-readiness.cjs'
+      - 'src/nfl-context-source-matrix.cjs'
+      - 'src/nfl-market-settlement-gates.cjs'
+      - 'test/nfl-specialty-research.test.cjs'
+      - 'test/nfl-specialty-readiness.test.cjs'
+      - 'test/test_nfl_history.py'
+      - '.github/workflows/test-nfl-specialty-research.yml'
+  pull_request:
+    paths:
+      - 'scripts/collect-nfl-history.py'
+      - 'scripts/build-nfl-correlation-research.cjs'
+      - 'scripts/audit-nfl-specialty-readiness.cjs'
+      - 'src/nfl-context-source-matrix.cjs'
+      - 'src/nfl-market-settlement-gates.cjs'
+      - 'test/nfl-specialty-research.test.cjs'
+      - 'test/nfl-specialty-readiness.test.cjs'
+      - 'test/test_nfl_history.py'
+      - '.github/workflows/test-nfl-specialty-research.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: No live provider calls; verify all research gates
+        run: |
+          node --check scripts/audit-nfl-specialty-readiness.cjs
+          node --check scripts/build-nfl-correlation-research.cjs
+          node --check src/nfl-market-settlement-gates.cjs
+          node --test test/nfl-specialty-research.test.cjs test/nfl-specialty-readiness.test.cjs test/nfl-context-source-matrix.test.cjs
+          python -m unittest discover -s test -p 'test_nfl_*.py'
+      - name: Reproduce private archived 2024/2025/2026 correlation diagnostics
+        run: node scripts/build-nfl-correlation-research.cjs
+      - name: Verify uncollected specialist events cannot be silently promoted
+        run: node scripts/audit-nfl-specialty-readiness.cjs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nfl-private-specialist-market-research
+          path: |
+            outputs/nfl/research/correlation-dependence-latest.json
+            outputs/nfl/research/specialty-readiness-latest.json
+          if-no-files-found: ignore

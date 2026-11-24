@@ -1,0 +1,25 @@
+name: Probe Approved NHL Source Contracts
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/moneypuck-dailyfaceoff-approved-research]
+    paths:
+      - 'scripts/probe-moneypuck-faceoff.cjs'
+      - 'src/nhl-approved-source-adapters.cjs'
+      - 'test/nhl-approved-source-adapters.test.cjs'
+      - '.github/workflows/probe-approved-nhl-sources.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test approved source adapters
+        run: node --test test/nhl-approved-source-adapters.test.cjs
+      - name: Probe MoneyPuck and Daily Faceoff headers
+        run: node scripts/probe-moneypuck-faceoff.cjs

@@ -1,0 +1,2 @@
+"use strict";const test=require("node:test"),assert=require("node:assert/strict"),{predict}=require("../scripts/backtest-nfl-yardage-volume-efficiency.cjs");
+test("usage and efficiency separated, no missing opportunities used as zero",()=>{const make=(n,y,u)=>Array.from({length:n},()=>({passing_yards:y,attempts:u}));const v=predict(make(12,200,25),make(6,250,25),make(40,200,25),"passing_yards");assert.equal(v.base,200);assert.ok(v.defense>v.blend);assert.equal(predict(make(12,200,null),make(6,250,25),make(40,200,25),"passing_yards"),null);});

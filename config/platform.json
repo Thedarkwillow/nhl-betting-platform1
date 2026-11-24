@@ -1,0 +1,26 @@
+{
+  "season": "20262027",
+  "timezone": "America/Los_Angeles",
+  "researchOnly": true,
+  "markets": [
+    "shots_on_goal",
+    "goals",
+    "assists",
+    "points",
+    "goalie_saves",
+    "blocked_shots"
+  ],
+  "slipSizes": [
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "bankroll": {
+    "startingDollars": null,
+    "unitDollars": null,
+    "officialBets": [],
+    "configured": false
+  }
+}

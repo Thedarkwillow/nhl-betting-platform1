@@ -1,0 +1,43 @@
+name: NHL Standard paired accuracy validation
+on:
+  pull_request:
+    paths:
+      - 'src/nhl-standard-forward-scoreboard.cjs'
+      - 'src/nhl-tier-prospective-audit.cjs'
+      - 'test/nhl-tier-prospective-audit.test.cjs'
+      - 'scripts/report-nhl-prospective-validation.cjs'
+      - 'src/nhl-standard-forward-diagnostics.cjs'
+      - 'test/nhl-standard-forward-improvement.test.cjs'
+      - '.github/workflows/nhl-standard-accuracy-validation.yml'
+  push:
+    branches: [main, 'research/**']
+    paths:
+      - 'src/nhl-standard-forward-scoreboard.cjs'
+      - 'src/nhl-tier-prospective-audit.cjs'
+      - 'test/nhl-tier-prospective-audit.test.cjs'
+      - 'scripts/report-nhl-prospective-validation.cjs'
+      - 'test/nhl-standard-forward-improvement.test.cjs'
+      - '.github/workflows/nhl-standard-accuracy-validation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nhl-standard-accuracy-validation-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  paired-accuracy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax-check Standard diagnostics
+        run: node --check src/nhl-standard-forward-diagnostics.cjs
+      - name: Syntax-check paired scoreboard
+        run: node --check src/nhl-standard-forward-scoreboard.cjs
+      - name: Test frozen provenance, identical-line scoring, and game-cluster inference
+        run: node --test test/nhl-standard-forward-improvement.test.cjs test/nhl-standard-triple-challenger.test.cjs test/nhl-frozen-baseline-challenge.test.cjs test/nhl-prospective-validation.test.cjs test/nhl-tier-prospective-audit.test.cjs

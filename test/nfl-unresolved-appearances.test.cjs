@@ -1,0 +1,4 @@
+"use strict";
+const test=require("node:test"),assert=require("node:assert/strict"),{diagnose}=require("../scripts/audit-nfl-unresolved-appearances.cjs");
+const p={season:2026,week:10,team:"LAC",historicalPlayerId:"p1"},g={game_id:"g",home_score:3,away_score:7,result:-4},roster=[{season:2026,week:10,team:"LAC",gsis_id:"p1",pfr_id:"pfr"}];
+test("positive snaps verify appearance but never supply missing stats",()=>{const s={game_id:"g",team:"LAC",pfr_player_id:"pfr",offense_snaps:4};assert.equal(diagnose(p,g,[],roster,[s]),"positive_snaps_weekly_stats_missing");assert.equal(diagnose(p,g,[],roster,[]),"snap_record_missing_not_dnp_proof");assert.equal(diagnose(p,g,[],roster,[{...s,offense_snaps:0,defense_snaps:0,st_snaps:0}]),"zero_recorded_snaps_not_platform_void_proof");assert.equal(diagnose(p,g,[],[...roster,{...roster[0],gsis_id:"p2"}],[s]),"roster_crosswalk_ambiguous_or_missing");});

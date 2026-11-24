@@ -1,0 +1,74 @@
+name: Grade Archived NHL Predictions (manual-only private fallback)
+on:
+  workflow_dispatch:
+# Automatic schedule and push triggers migrated to public nhl-betting-platform1/private-nhl-prospective-grading.yml.
+# Keep private data/private model here; avoid exhausted private hosted Actions minutes.
+permissions:
+  contents: write
+concurrency:
+  group: nhl-prediction-grading
+  cancel-in-progress: false
+jobs:
+  grade:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate exact pregame schedule identity before grading
+        run: |
+          node --check src/nhl-archived-game-identity.cjs
+          node --check src/nhl-prospective-quality.cjs
+          node --check scripts/grade-nhl-predictions.cjs
+          node --check scripts/report-nhl-prospective-validation.cjs
+          node --test test/nhl-prospective-validation.test.cjs test/nhl-prospective-calibrator.test.cjs test/nhl-recommendation-readiness.test.cjs test/nhl-partner-pregame-freeze.test.cjs
+          node --check src/nhl-frozen-individual-props.cjs
+          node --test test/nhl-outcome-evidence.test.cjs test/nhl-archived-game-identity.test.cjs test/nhl-game-identity.test.cjs test/grade-nhl-predictions.test.cjs test/nhl-prospective-quality.test.cjs test/nhl-frozen-individual-props.test.cjs test/nhl-frozen-selected-lineup-grader.test.cjs
+          node --check scripts/report-nhl-frozen-baseline-challenge.cjs
+          node --test test/nhl-frozen-baseline-challenge.test.cjs
+          node --test test/nhl-simple-pregame-challengers.test.cjs
+          node --check scripts/report-nhl-frozen-simple-challengers.cjs
+          node --check scripts/grade-nhl-forward-market-v3.cjs
+          node --test test/nhl-forward-market-v3-grader.test.cjs test/nhl-distribution-snapshot.test.cjs
+      - name: Grade eligible archived predictions
+        run: |
+          node scripts/grade-nhl-predictions.cjs
+          node scripts/report-nhl-prospective-model-release.cjs
+          node scripts/build-nhl-private-ledger-and-labs.cjs
+          node scripts/report-nhl-prospective-validation.cjs
+          # Private same-threshold baselines, prospective only for future
+          # snapshots committed after this audit policy first enters Git.
+          node scripts/report-nhl-frozen-baseline-challenge.cjs
+          node scripts/report-nhl-frozen-simple-challengers.cjs
+          # First-Git-commit proof; common Higher-event scoring of an independent
+          # research challenger, not retrospectively fabricated official picks.
+          node scripts/grade-nhl-forward-market-v3.cjs
+      - name: Save verified grading output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/health/nhl-prospective-validation-latest.json
+          git add -f outputs/grading/nhl-latest.json outputs/health/nhl-prospective-model-release-latest.json outputs/research/registry/nhl-precommitted-ledger-latest.json outputs/health/nhl-roadmap-readiness-latest.json outputs/health/nhl-source-coverage-latest.json outputs/research/correlation/nhl-count-stat-dependence-latest.json
+          git add -f outputs/backtests/nhl-forward-market-v3-latest.json
+          git add -f outputs/health/nhl-frozen-baseline-challenge-latest.json
+          git add -f outputs/health/nhl-frozen-simple-challengers-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: update prospective NHL grading"
+            pushed=0
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              git rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((2 * attempt))
+            done
+            if test "$pushed" -ne 1; then
+              echo "::error::NHL official grading save blocked by concurrent main updates"
+              exit 1
+            fi
+          fi

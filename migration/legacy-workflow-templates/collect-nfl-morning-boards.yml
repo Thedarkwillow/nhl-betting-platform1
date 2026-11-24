@@ -1,0 +1,106 @@
+name: NFL PrizePicks 6 AM and 9 AM Pacific Immutable Boards
+on:
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "Actual Pacific capture window (06:00 or 09:00)"
+        required: true
+        type: choice
+        options: ['06:00', '09:00']
+  schedule:
+    - cron: '0 6 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '17 6 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '37 6 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '0 9 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '17 9 * * *'
+      timezone: 'America/Los_Angeles'
+    - cron: '37 9 * * *'
+      timezone: 'America/Los_Angeles'
+permissions:
+  contents: write
+concurrency:
+  group: nfl-private-board-credit-serialized
+  cancel-in-progress: false
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Offline validation before any metered provider request
+        run: |
+          node --check scripts/collect-nfl-board.cjs
+          node --check scripts/diff-nfl-morning-boards.cjs
+          node --test test/nfl-research-history-board.test.cjs test/nfl-market-registry.test.cjs
+      - name: Assign slot from dispatch or actual Pacific clock
+        id: slot
+        env:
+          REQUESTED_SLOT: ${{ inputs.slot }}
+        run: |
+          slot="$REQUESTED_SLOT"
+          if test -z "$slot"; then
+            hour="$(TZ=America/Los_Angeles date +%H)"
+            case "$hour" in 06) slot='06:00';; 09) slot='09:00';;
+              *) echo "::error::GitHub cron ran outside authentic capture windows"; exit 1;;
+            esac
+          fi
+          echo "slot=$slot" >> "$GITHUB_OUTPUT"
+      - name: Pull a NEW full NFL board from independent provider (quota guarded)
+        env:
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+          NFL_CAPTURE_SLOT: ${{ steps.slot.outputs.slot }}
+        run: node scripts/collect-nfl-board.cjs
+      - name: Compute 9 AM versus fresh 6 AM board if both archived locally
+        if: steps.slot.outputs.slot == '09:00'
+        run: |
+          date="$(TZ=America/Los_Angeles date +%F)"
+          if test -f "outputs/nfl/boards/$date/0600.json" &&
+             test -f "outputs/nfl/boards/$date/0900.json"; then
+            node scripts/diff-nfl-morning-boards.cjs
+          else
+            echo "::warning::9 AM captured, but missing same-day 6 AM board; do not invent delta"
+          fi
+      - name: Archive immutable private NFL source evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          date="$(TZ=America/Los_Angeles date +%F)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "outputs/nfl/boards/$date/"*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data(nfl): archived independent morning board $date"
+            pushed=0
+            for attempt in 1 2 3 4; do
+              git fetch origin main
+              git -c rebase.autoStash=true rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((attempt*3))
+            done
+            test "$pushed" -eq 1
+          fi
+      - name: Confirm distinct same-day source collection for 9 AM
+        if: steps.slot.outputs.slot == '09:00'
+        run: |
+          date="$(TZ=America/Los_Angeles date +%F)"
+          test -s "outputs/nfl/boards/$date/delta.json" || {
+            echo "::error::Missing complete same-day 06:00/09:00 NFL comparison"
+            exit 1
+          }
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nfl-morning-source-board
+          path: outputs/nfl/boards/
+          if-no-files-found: warn
+          retention-days: 7

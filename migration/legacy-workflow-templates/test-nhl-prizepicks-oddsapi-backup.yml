@@ -1,0 +1,49 @@
+name: Test NHL PrizePicks Independent Backup
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/test-nhl-prizepicks-oddsapi-backup.yml'
+      - '.github/workflows/nhl-prizepicks-oddsapi-backup.yml'
+      - 'src/nhl-oddsapi-prizepicks-backup.cjs'
+      - 'scripts/collect-nhl-prizepicks-oddsapi-backup.cjs'
+      - 'scripts/build-nhl-prizepicks-backup-research.cjs'
+      - 'scripts/nhl-oddsapi-backup-commit-gate.cjs'
+      - 'test/nhl-oddsapi-prizepicks-backup.test.cjs'
+      - 'test/nhl-prizepicks-backup-end-to-end.test.cjs'
+      - 'src/nhl-cross-source-prizepicks-audit.cjs'
+      - 'scripts/audit-nhl-prizepicks-backup-sources.cjs'
+      - 'test/nhl-cross-source-prizepicks-audit.test.cjs'
+      - 'src/nhl-backup-primary-run-gate.cjs'
+      - 'scripts/nhl-backup-primary-run-gate.cjs'
+      - 'test/nhl-backup-primary-run-gate.test.cjs'
+      - 'src/free-nhl-research.cjs'
+      - 'src/nhl-prospective-freeze-readiness.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Parse independent backup and its no-credit logic
+        run: |
+          node --check src/nhl-oddsapi-prizepicks-backup.cjs
+          node --check scripts/collect-nhl-prizepicks-oddsapi-backup.cjs
+          node --check scripts/build-nhl-prizepicks-backup-research.cjs
+          node --check src/nhl-cross-source-prizepicks-audit.cjs
+          node --check scripts/audit-nhl-prizepicks-backup-sources.cjs
+          node --check src/nhl-backup-primary-run-gate.cjs
+          node --check scripts/nhl-backup-primary-run-gate.cjs
+          node --check scripts/nhl-oddsapi-backup-commit-gate.cjs
+      - name: Validate tier uncertainty, NHL identity, bounded cost and freeze honesty
+        run: |
+          node --test test/nhl-oddsapi-prizepicks-backup.test.cjs test/nhl-prizepicks-backup-end-to-end.test.cjs test/nhl-cross-source-prizepicks-audit.test.cjs test/nhl-backup-primary-run-gate.test.cjs test/free-nhl-research.test.cjs test/nhl-prospective-freeze-readiness.test.cjs test/nhl-frozen-commit-verifier.test.cjs
+          echo "Offline adapter tests only: zero API requests, no wagers, no assertion that the original PrizePicks board was accessed." >> "$GITHUB_STEP_SUMMARY"

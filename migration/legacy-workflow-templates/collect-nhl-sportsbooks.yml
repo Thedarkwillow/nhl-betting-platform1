@@ -1,0 +1,49 @@
+name: Collect NHL Sportsbook Odds
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/collect-nhl-sportsbooks.yml']
+  schedule:
+    - cron: '13 18 * * *'
+concurrency:
+  group: nhl-sportsbook-odds
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+      ODDS_MAX_EVENTS: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate and test
+        run: |
+          node --check scripts/collect-nhl-sportsbook-odds.cjs
+          npm test
+      - name: Collect sportsbook quotes
+        if: env.ODDS_API_KEY != ''
+        run: node scripts/collect-nhl-sportsbook-odds.cjs
+      - name: Compare PrizePicks research with sportsbook odds
+        if: env.ODDS_API_KEY != ''
+        run: node scripts/compare-nhl-markets.cjs
+      - name: Save timestamped quotes
+        if: env.ODDS_API_KEY != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/sportsbooks/latest.json outputs/sportsbooks/snapshots/*.json outputs/comparisons/nhl-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: archive NHL sportsbook odds"
+            git pull --rebase
+            git push
+          fi
+      - name: Missing feed credentials
+        if: env.ODDS_API_KEY == ''
+        run: echo "::warning::ODDS_API_KEY secret missing; no sportsbook odds collected"

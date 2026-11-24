@@ -1,0 +1,41 @@
+name: Discover NHL Prop Categories
+on:
+  workflow_dispatch:
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        source: [prizepicks]
+    permissions:
+      contents: write
+    env:
+      TINYFISH_API_KEY: ${{ secrets.TINYFISH_API_KEY }}
+      TINYFISH_PROFILE_ID: ${{ secrets.TINYFISH_PROFILE_ID }}
+      NHL_BOARD_SOURCE: ${{ matrix.source }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Check configuration and script
+        run: |
+          test -n "$TINYFISH_API_KEY"
+          node --check scripts/discover-nhl-categories.cjs
+          npm test
+      - name: Discover available NHL categories
+        run: node scripts/discover-nhl-categories.cjs
+      - name: Commit category inventory
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f "outputs/discovery/${NHL_BOARD_SOURCE}-nhl-categories-latest.json"
+          git diff --cached --quiet || (git commit -m "Update ${NHL_BOARD_SOURCE} NHL category inventory" && git pull --rebase && git push)
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-categories-${{ matrix.source }}
+          path: outputs/discovery/*.json
+          if-no-files-found: warn

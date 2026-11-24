@@ -1,0 +1,159 @@
+name: Collect NHL player stats (manual-only fallback; public runner handles scheduled collection)
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Game date YYYY-MM-DD; blank = Pacific yesterday"
+        required: false
+        type: string
+# Scheduled work moved to public nhl-betting-platform1/private-nhl-official-stats.yml.
+# Do not re-enable private cron while private Actions minutes are exhausted.
+concurrency:
+  group: nhl-player-stats-collector
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Run tests
+        run: npm test
+      - name: Catch up missed daily archives and collect yesterday
+        env:
+          GAME_DATE: ${{ inputs.date }}
+        run: |
+          if [ -n "$GAME_DATE" ]; then
+            echo "Manually collecting $GAME_DATE"
+            npm run collect:players -- "$GAME_DATE"
+          else
+            # Missed/delayed scheduled jobs must not permanently lose official stats.
+            # Oldest first; only revisit a file if its prior collection was incomplete.
+            for DAYS_AGO in 7 6 5 4 3 2 1; do
+              DATE="$(TZ=America/Los_Angeles date -d "$DAYS_AGO days ago" +%F)"
+              FILE="outputs/player-stats/$DATE.json"
+              if [ -f "$FILE" ] && node -e 'const r=require("./"+process.argv[1]); if(r.requestedDate!==process.argv[2]||r.errors?.length||r.collectedGames!==r.completedGames||r.completedGames!==r.scheduledGames) process.exit(1)' "$FILE" "$DATE"; then
+                echo "Already archived $DATE; skipping duplicate request"
+              else
+                echo "Collecting missing or incomplete NHL stats for $DATE"
+                npm run collect:players -- "$DATE"
+              fi
+            done
+            # On evening runs (and code-triggered push audits), collect today's
+            # completed games now. If NHL reports any LIVE games, the archived
+            # record is explicitly incomplete and the 7-day catch-up retries it.
+            # Never mark "0 of 4" or "2 of 4" as a completed game-day archive.
+            HOUR_PACIFIC="$(TZ=America/Los_Angeles date +%H)"
+            if [ "$GITHUB_EVENT_NAME" = "push" ] || [ "$HOUR_PACIFIC" -ge 20 ]; then
+              TODAY="$(TZ=America/Los_Angeles date +%F)"
+              FILE="outputs/player-stats/$TODAY.json"
+              if [ -f "$FILE" ] && node -e 'const r=require("./"+process.argv[1]); if(r.requestedDate!==process.argv[2]||r.errors?.length||r.collectedGames!==r.completedGames||r.completedGames!==r.scheduledGames) process.exit(1)' "$FILE" "$TODAY"; then
+                echo "Already archived all official NHL FINAL games for $TODAY"
+              else
+                echo "Auditing same-evening official NHL FINAL games for $TODAY"
+                npm run collect:players -- "$TODAY"
+              fi
+            fi
+          fi
+      - name: Refresh recent legacy final-date archives for period model source fields
+        if: inputs.date == '' || inputs.date == null
+        run: |
+          # The period event archive needs exact original hits, goalie GA,
+          # faceoffs and full-game shift time for independent reconciliation.
+          # Keep this bounded to two already-complete recent dates per job.
+          refreshed=0
+          for DAYS_AGO in 0 1 2 3 4 5 6 7; do
+            DATE="$(TZ=America/Los_Angeles date -d "$DAYS_AGO days ago" +%F)"
+            FILE="outputs/player-stats/$DATE.json"
+            test -f "$FILE" || continue
+            if node -e 'const f=require("./"+process.argv[1]);process.exit(f.sourceSchemaVersion===5?0:1)' "$FILE"; then
+              continue
+            fi
+            echo "Refreshing current NHL official final source fields for $DATE"
+            npm run collect:players -- "$DATE"
+            refreshed=$((refreshed+1))
+            if [ "$refreshed" -ge 2 ]; then break; fi
+          done
+          echo "Recent official stat date archives upgraded: $refreshed"
+      - name: Backfill official final games for four priority markets (bounded, free NHL API)
+        if: inputs.date == '' || inputs.date == null
+        run: |
+          # Older complete files predate the richer hits/TOI/goalie fields.
+          # Process at most eight archived dates per job; repeated cron runs
+          # catch up incrementally without spending paid odds-provider credits.
+          count=0
+          for FILE in outputs/player-stats/????-??-??.json; do
+            test -f "$FILE" || continue
+            if node -e 'const f=require("./"+process.argv[1]);process.exit(f.sourceSchemaVersion===5?0:1)' "$FILE"; then
+              continue
+            fi
+            DATE="$(basename "$FILE" .json)"
+            echo "Refreshing official NHL priority stat fields for $DATE"
+            npm run collect:players -- "$DATE"
+            count=$((count+1))
+            if [ "$count" -ge 8 ]; then break; fi
+          done
+          echo "Refreshed $count archived NHL game-date files for four research markets"
+      - name: Build player history
+        run: npm run build:history
+      - name: Build projections
+        run: npm run build:projections
+      - name: Evaluate priority NHL markets on chronological official-stat holdout without provider calls
+        run: |
+          node --check src/nhl-priority-market-walkforward.cjs
+          node --test test/nhl-priority-market-walkforward.test.cjs
+          node scripts/report-nhl-priority-market-walkforward.cjs
+      - name: Save history to repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/player-stats/*.json outputs/history/players.json outputs/projections/players.json outputs/projections/stable-shrink-v2-latest.json outputs/projections/prior-mean-v2-latest.json outputs/projections/shadow-snapshots/*.json
+          git add -f outputs/backtests/nhl-priority-market-walkforward-latest.json
+          # Private training-selected research only; never overwrite the champion.
+          if test -f outputs/projections/nhl-market-trained-v3-latest.json; then
+            git add -f outputs/projections/nhl-market-trained-v3-latest.json outputs/backtests/nhl-trained-market-v3-holdout-latest.json
+          fi
+          if test -f outputs/projections/nhl-four-priority-shadow-latest.json; then
+            git add -f outputs/projections/nhl-four-priority-shadow-latest.json
+          fi
+          if test -f outputs/projections/nhl-extra-market-shadow-latest.json; then
+            git add -f outputs/projections/nhl-extra-market-shadow-latest.json
+          fi
+          if git diff --cached --quiet; then
+            echo "No new stats to commit"
+          else
+            git commit -m "data: collect NHL player stats"
+            pushed=0
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              git rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((2 * attempt))
+            done
+            if test "$pushed" -ne 1; then
+              echo "::error::Official NHL stat archival could not update main after retries"
+              exit 1
+            fi
+          fi
+      - name: Upload collected output
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: nhl-player-stats
+          path: |
+            outputs/player-stats/*.json
+            outputs/history/players.json
+            outputs/backtests/nhl-priority-market-walkforward-latest.json
+            outputs/projections/stable-shrink-v2-latest.json
+            outputs/projections/prior-mean-v2-latest.json
+            outputs/projections/nhl-four-priority-shadow-latest.json
+            outputs/projections/nhl-extra-market-shadow-latest.json
+            outputs/projections/shadow-snapshots/*.json
+          if-no-files-found: warn
+          retention-days: 30

@@ -1,0 +1,368 @@
+{
+  "schemaVersion": 1,
+  "kind": "canonical_multi_sport_research_entity_contract_v1",
+  "scope": "logical data model only; storage implementation is separate P08-02",
+  "identityRules": [
+    "Official game/player/league IDs where available; never names alone",
+    "Canonical source IDs distinct from provider IDs",
+    "Full-game vs periods explicitly modeled",
+    "One offer side/tier/line per immutable snapshot and provider source offer ID"
+  ],
+  "timestampRules": [
+    "Store UTC ISO8601 for observedAt/capturedAt/storedAt separately",
+    "Never backdate capture to scheduled slots",
+    "Selection recordedAt must be earlier than official scheduled game start",
+    "Official stat revisions are append-only"
+  ],
+  "integrityRules": [
+    "Foreign keys enforced before derived research",
+    "Insert/merge on deterministic natural keys and content hashes",
+    "Unobserved independent-source offers do not mean confirmed removed from original app",
+    "DNP, Reboot and Push distinct from official stat directional grading",
+    "No authentic platform payout without dated exact-line primary source"
+  ],
+  "entities": {
+    "leagues": {
+      "primaryKey": "leagueId",
+      "requiredFields": [
+        "leagueId",
+        "code",
+        "name",
+        "sportId"
+      ],
+      "references": [
+        "sports"
+      ],
+      "appendOnly": false
+    },
+    "sports": {
+      "primaryKey": "sportId",
+      "requiredFields": [
+        "sportId",
+        "code",
+        "name"
+      ],
+      "references": [],
+      "appendOnly": false
+    },
+    "seasons": {
+      "primaryKey": "seasonId",
+      "requiredFields": [
+        "seasonId",
+        "leagueId",
+        "startsAt",
+        "endsAt"
+      ],
+      "references": [
+        "leagues"
+      ],
+      "appendOnly": false
+    },
+    "teams": {
+      "primaryKey": "teamId",
+      "requiredFields": [
+        "teamId",
+        "leagueId",
+        "officialCode",
+        "name"
+      ],
+      "references": [
+        "leagues"
+      ],
+      "appendOnly": false
+    },
+    "players": {
+      "primaryKey": "playerId",
+      "requiredFields": [
+        "playerId",
+        "leagueId",
+        "officialPlayerId",
+        "name",
+        "position"
+      ],
+      "references": [
+        "leagues"
+      ],
+      "appendOnly": false
+    },
+    "rosters": {
+      "primaryKey": "rosterEntryId",
+      "requiredFields": [
+        "rosterEntryId",
+        "playerId",
+        "teamId",
+        "validFrom",
+        "validTo",
+        "sourceId"
+      ],
+      "references": [
+        "players",
+        "teams"
+      ],
+      "appendOnly": false
+    },
+    "games": {
+      "primaryKey": "gameId",
+      "requiredFields": [
+        "gameId",
+        "seasonId",
+        "officialGameId",
+        "homeTeamId",
+        "awayTeamId",
+        "scheduledStartsAt",
+        "officialStatus",
+        "resultRevision"
+      ],
+      "references": [
+        "seasons",
+        "teams"
+      ],
+      "appendOnly": false
+    },
+    "marketDefinitions": {
+      "primaryKey": "marketId",
+      "requiredFields": [
+        "marketId",
+        "sportId",
+        "statKey",
+        "period",
+        "sideRules",
+        "pushRules",
+        "unit"
+      ],
+      "references": [
+        "sports"
+      ],
+      "appendOnly": false
+    },
+    "sources": {
+      "primaryKey": "sourceId",
+      "requiredFields": [
+        "sourceId",
+        "name",
+        "kind",
+        "licenseStatus",
+        "liveAvailabilityAuthenticated"
+      ],
+      "references": [],
+      "appendOnly": false
+    },
+    "sourceSnapshots": {
+      "primaryKey": "snapshotId",
+      "requiredFields": [
+        "snapshotId",
+        "sourceId",
+        "observedAt",
+        "capturedAt",
+        "storedAt",
+        "completePagination",
+        "contentHash",
+        "providerCursorManifest"
+      ],
+      "references": [
+        "sources"
+      ],
+      "appendOnly": true
+    },
+    "sourceOffers": {
+      "primaryKey": "offerId",
+      "requiredFields": [
+        "offerId",
+        "snapshotId",
+        "sourceOfferId",
+        "gameId",
+        "playerId",
+        "marketId",
+        "period",
+        "tier",
+        "side",
+        "line",
+        "observedAt",
+        "availabilityStatus",
+        "priceVerified"
+      ],
+      "references": [
+        "sourceSnapshots",
+        "games",
+        "players",
+        "marketDefinitions"
+      ],
+      "appendOnly": false
+    },
+    "offerEvents": {
+      "primaryKey": "offerEventId",
+      "requiredFields": [
+        "offerEventId",
+        "offerId",
+        "snapshotId",
+        "eventType",
+        "eventAt",
+        "priorOfferId",
+        "reliability"
+      ],
+      "references": [
+        "sourceOffers",
+        "sourceSnapshots"
+      ],
+      "appendOnly": true
+    },
+    "models": {
+      "primaryKey": "modelVersionId",
+      "requiredFields": [
+        "modelVersionId",
+        "sportId",
+        "version",
+        "trainedThrough",
+        "artifactHash",
+        "releaseStatus"
+      ],
+      "references": [
+        "sports"
+      ],
+      "appendOnly": false
+    },
+    "forecasts": {
+      "primaryKey": "forecastId",
+      "requiredFields": [
+        "forecastId",
+        "modelVersionId",
+        "gameId",
+        "playerId",
+        "marketId",
+        "line",
+        "side",
+        "estimatedProbability",
+        "createdAt",
+        "sourceSnapshotId"
+      ],
+      "references": [
+        "models",
+        "games",
+        "players",
+        "marketDefinitions",
+        "sourceSnapshots"
+      ],
+      "appendOnly": true
+    },
+    "frozenSelections": {
+      "primaryKey": "selectionId",
+      "requiredFields": [
+        "selectionId",
+        "forecastId",
+        "offerId",
+        "recordedAt",
+        "gitCommitId",
+        "selectionStatus",
+        "prospectiveEligible"
+      ],
+      "references": [
+        "forecasts",
+        "sourceOffers"
+      ],
+      "appendOnly": true
+    },
+    "officialOutcomes": {
+      "primaryKey": "officialResultId",
+      "requiredFields": [
+        "officialResultId",
+        "gameId",
+        "playerId",
+        "marketId",
+        "actualValue",
+        "revision",
+        "confirmedAt",
+        "sourceId"
+      ],
+      "references": [
+        "games",
+        "players",
+        "marketDefinitions",
+        "sources"
+      ],
+      "appendOnly": true
+    },
+    "platformSettlements": {
+      "primaryKey": "settlementId",
+      "requiredFields": [
+        "settlementId",
+        "selectionId",
+        "platformId",
+        "settlementType",
+        "authentic",
+        "observedAt",
+        "originalReceiptId"
+      ],
+      "references": [
+        "frozenSelections"
+      ],
+      "appendOnly": true
+    },
+    "payoutRules": {
+      "primaryKey": "ruleId",
+      "requiredFields": [
+        "ruleId",
+        "platformId",
+        "format",
+        "pickCount",
+        "tierConfiguration",
+        "multiplier",
+        "validFrom",
+        "authenticPrimaryEvidence"
+      ],
+      "references": [
+        "sources"
+      ],
+      "appendOnly": false
+    },
+    "backtests": {
+      "primaryKey": "backtestId",
+      "requiredFields": [
+        "backtestId",
+        "modelVersionId",
+        "datasetManifestHash",
+        "holdoutStart",
+        "holdoutEnd",
+        "runAt",
+        "selectionRuleHash",
+        "status"
+      ],
+      "references": [
+        "models"
+      ],
+      "appendOnly": true
+    },
+    "researchLineups": {
+      "primaryKey": "lineupId",
+      "requiredFields": [
+        "lineupId",
+        "createdAt",
+        "sourceSnapshotId",
+        "selectionIds",
+        "pickCount",
+        "riskStatus",
+        "jointProbabilityVerified",
+        "payoutVerified"
+      ],
+      "references": [
+        "sourceSnapshots",
+        "frozenSelections"
+      ],
+      "appendOnly": false
+    },
+    "researchLineupEvents": {
+      "primaryKey": "lineupEventId",
+      "requiredFields": [
+        "lineupEventId",
+        "lineupId",
+        "eventAt",
+        "eventType",
+        "currentSourceSnapshotId"
+      ],
+      "references": [
+        "researchLineups",
+        "sourceSnapshots"
+      ],
+      "appendOnly": true
+    }
+  }
+}

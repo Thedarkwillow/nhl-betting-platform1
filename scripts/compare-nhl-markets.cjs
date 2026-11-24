@@ -1,0 +1,17 @@
+"use strict";
+const fs=require("node:fs"),path=require("node:path");
+const root=path.resolve(__dirname,"..");
+const read=p=>JSON.parse(fs.readFileSync(path.join(root,p),"utf8"));
+const now=new Date().toISOString();
+const old=read("outputs/research/nhl-latest.json"),free=(()=>{try{return read("outputs/free-source/nhl/research-latest.json")}catch{return null}})();
+const research=free&&Date.parse(free.generatedAt)>Date.parse(old.generatedAt)?free:old,sports=read("outputs/sportsbooks/latest.json");
+const {compare}=require("../src/nhl-market-comparison.cjs");
+const age=t=>(Date.parse(now)-Date.parse(t))/3600000;
+const researchFresh=age(research.generatedAt)>=0&&age(research.generatedAt)<=8;
+const sportsbookFresh=age(sports.generatedAt)>=0&&age(sports.generatedAt)<=4;
+const result=researchFresh&&sportsbookFresh?compare(research.rankedProps||[],sports.rows||[],now):{counts:{matched:0,unmatched:0,ambiguous:0,stale:0},comparisons:[]};
+const ranked=result.comparisons.map(x=>({...x,modelMarketGapHigher:x.modelHigher===null?null:Number((x.modelHigher-x.sportsbookHigher).toFixed(5)),modelMarketGapLower:x.modelLower===null?null:Number((x.modelLower-x.sportsbookLower).toFixed(5)),absoluteModelMarketGap:x.modelHigher===null?null:Number(Math.abs(x.modelHigher-x.sportsbookHigher).toFixed(5)),disagreementDirection:x.modelHigher===null?null:x.modelHigher>x.sportsbookHigher?"Model favors Higher":x.modelHigher<x.sportsbookHigher?"Model favors Lower":"Equal",confidence:"unvalidated"})).sort((a,b)=>(b.absoluteModelMarketGap??-1)-(a.absoluteModelMarketGap??-1));
+const out={generatedAt:now,researchGeneratedAt:research.generatedAt,sportsbookGeneratedAt:sports.generatedAt,researchFresh,sportsbookFresh,source:(research.source||"Archived PrizePicks research")+" + The Odds API",method:"exact line, matching player, both NHL teams, pregame quotes; equal-weight no-vig consensus",warning:"Research only. Unverified PrizePicks lines, uncalibrated model probabilities, and no payout-adjusted EV. Unmatched props are not proof of sportsbook disagreement.",...result,comparisons:ranked,rankingMethod:"absolute model-vs-no-vig-market probability gap; NOT expected value or a recommended wager"};
+fs.mkdirSync(path.join(root,"outputs/comparisons"),{recursive:true});
+fs.writeFileSync(path.join(root,"outputs/comparisons/nhl-latest.json"),JSON.stringify(out,null,2)+"\n");
+console.log(JSON.stringify({researchFresh,sportsbookFresh,...result.counts}));

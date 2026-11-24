@@ -1,0 +1,73 @@
+name: NFL Historical Stats-Only Chronological Backtest
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/backtest-nfl-historical-stats.cjs'
+      - 'scripts/select-nfl-models-on-2025.cjs'
+      - 'test/nfl-development-model-selection.test.cjs'
+      - 'test/nfl-historical-stats-backtest.test.cjs'
+      - '.github/workflows/backtest-nfl-historical-stats.yml'
+  push:
+    branches: [main, 'feat/**']
+    paths:
+      - 'scripts/backtest-nfl-historical-stats.cjs'
+      - 'scripts/select-nfl-models-on-2025.cjs'
+      - 'test/nfl-development-model-selection.test.cjs'
+      - 'test/nfl-historical-stats-backtest.test.cjs'
+      - '.github/workflows/backtest-nfl-historical-stats.yml'
+  schedule:
+    # Recompute from archived stats; no paid feeds or site publication.
+    - cron: '35 6 * * 3'
+      timezone: 'America/Los_Angeles'
+permissions:
+  contents: write
+concurrency:
+  group: nfl-statistical-offline-backtest
+  cancel-in-progress: false
+jobs:
+  backtest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify leak-free weekly tests
+        run: |
+          node --check scripts/backtest-nfl-historical-stats.cjs
+          node --test test/nfl-historical-stats-backtest.test.cjs test/nfl-development-model-selection.test.cjs test/nfl-market-registry.test.cjs
+      - name: Replay 2024 history into 2025 dev and 2026 retrospective test
+        run: node scripts/backtest-nfl-historical-stats.cjs
+      - name: Choose retrospective model baselines using 2025 MAE only
+        run: node scripts/select-nfl-models-on-2025.cjs
+      - name: Persist aggregate research results only after successful run
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nfl/backtests/stats-only-latest.json outputs/nfl/backtests/2025-dev-model-selection-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data(nfl): refresh retrospective stats-only MAE evaluation'
+            pushed=0
+            for attempt in 1 2 3 4; do
+              git fetch origin main
+              git -c rebase.autoStash=true rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((attempt*3))
+            done
+            test "$pushed" -eq 1
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nfl-private-retrospective-stat-model-audit
+          path: |
+            outputs/nfl/backtests/stats-only-latest.json
+            outputs/nfl/backtests/2025-dev-model-selection-latest.json
+          if-no-files-found: warn
+          retention-days: 30

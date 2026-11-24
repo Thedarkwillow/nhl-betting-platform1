@@ -1,0 +1,41 @@
+name: Audit six NFL drive exceptions
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/audit-nfl-six-drive-exceptions.yml'
+      - 'scripts/audit-nfl-remaining-drive-exceptions.cjs'
+      - 'src/nfl-fixed-drive-reconciliation-v2.cjs'
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run diagnostic and tests with durable private report
+        shell: bash
+        run: |
+          mkdir -p outputs/nfl/research
+          report=outputs/nfl/research/drive-six-ci-status.txt
+          set +e
+          node scripts/audit-nfl-remaining-drive-exceptions.cjs > "$report" 2>&1
+          audit_status=$?
+          node --test test/nfl-fixed-drive-reconciliation-v2.test.cjs >> "$report" 2>&1
+          test_status=$?
+          printf '\naudit_exit=%s\ntest_exit=%s\n' "$audit_status" "$test_status" >> "$report"
+          cat "$report"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$report"
+          if test -f outputs/nfl/research/drive-six-exception-audit-private.json; then
+            git add outputs/nfl/research/drive-six-exception-audit-private.json
+          fi
+          git diff --cached --quiet || git commit -m 'audit: persist private NFL drive diagnostic and test results'
+          git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" || exit 1
+          test "$audit_status" -eq 0 && test "$test_status" -eq 0

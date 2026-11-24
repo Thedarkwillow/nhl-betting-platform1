@@ -1,0 +1,54 @@
+name: Collect Sleeper NHL Props via SportsGameOdds
+on:
+  # Deferred by project choice: keep collector available but do not spend calls automatically.
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: sleeper-nhl-sportsgameodds-collector
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test Sleeper market identity, pregame checks and history pagination
+        run: |
+          node --check scripts/collect-sportsgameodds-sleeper-nhl.cjs
+          node --test test/sportsgameodds-sleeper-nhl.test.cjs
+      - name: Collect current NHL Sleeper Picks lines
+        env:
+          SPORTSGAMEODDS_API_KEY: ${{ secrets.SPORTSGAMEODDS_API_KEY }}
+        run: node scripts/collect-sportsgameodds-sleeper-nhl.cjs live
+      - name: Backfill bounded completed NHL windows including older seasons
+        if: github.event_name != 'schedule'
+        env:
+          SPORTSGAMEODDS_API_KEY: ${{ secrets.SPORTSGAMEODDS_API_KEY }}
+        run: node scripts/collect-sportsgameodds-sleeper-nhl.cjs history
+      - name: Preserve completed windows and current snapshots
+        if: always()
+        run: |
+          if [ -d outputs/sportsgameodds/nhl/sleeper ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -f outputs/sportsgameodds/nhl/sleeper/
+            if ! git diff --cached --quiet; then
+              git commit -m "data: capture Sleeper NHL prop lines and historical closes"
+              git pull --rebase -X theirs origin main
+              git push origin HEAD:main
+            fi
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: sleeper-nhl-lines
+          path: |
+            outputs/sportsgameodds/nhl/sleeper/live-latest.json
+            outputs/sportsgameodds/nhl/sleeper/historical-coverage-latest.json
+          if-no-files-found: ignore

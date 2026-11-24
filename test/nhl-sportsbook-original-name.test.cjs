@@ -1,0 +1,4 @@
+"use strict";
+const test=require("node:test"),assert=require("node:assert/strict"),{exactSourceName}=require("../src/archived-prop-market-benchmark.cjs");
+test("only retained original full provider name expands a compatible model initial",()=>{const p={player:"W. Karlsson",sourcePlayerName:"William Karlsson",providerPlayerId:"source-player",projectionId:"source-offer"};assert.equal(exactSourceName(p),"william karlsson");assert.equal(exactSourceName({...p,providerPlayerId:null}),"w karlsson");assert.equal(exactSourceName({...p,sourcePlayerName:"Erik Karlsson"}),"w karlsson");assert.equal(exactSourceName({...p,sourcePlayerName:"William Carrier"}),"w karlsson");});
+test("no guessing or retroactive name expansion for older forecasts",()=>{assert.equal(exactSourceName({player:"W. Karlsson"}),"w karlsson");assert.equal(exactSourceName({player:"William Karlsson"}),"william karlsson");});

@@ -1,0 +1,83 @@
+name: NFL Historical Player Stats and Kicking Context
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/collect-nfl-history.yml'
+  workflow_dispatch:
+    inputs:
+      seasons:
+        description: "Space-separated historical seasons, e.g. 2024 2025 2026"
+        required: false
+        default: "2024 2025 2026"
+        type: string
+  schedule:
+    # Weekly updates of in-season stats, specialist PBP and prior-season baselines.
+    - cron: '15 5 * * 1'
+      timezone: 'America/Los_Angeles'
+permissions:
+  contents: write
+concurrency:
+  group: nfl-history-private
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify NFL Ballpark-Pal-style market research requirements
+        run: |
+          node --test test/nfl-context-source-matrix.test.cjs test/nfl-specialty-research.test.cjs test/nfl-specialty-readiness.test.cjs
+          node --check scripts/audit-nfl-context-sources.cjs
+      - name: Offline collector regression before fetching any data
+        run: python -m unittest discover -s test -p 'test_nfl_*.py'
+      - name: Install documented nflverse Python package
+        run: python -m pip install 'nflreadpy>=0.1,<2'
+      - name: Collect regular-season 2024–2026 NFL history, kicker attempts and specialist plays
+        env:
+          REQUESTED_SEASONS: ${{ inputs.seasons || '2024 2025 2026' }}
+        run: |
+          python scripts/collect-nfl-history.py --seasons $REQUESTED_SEASONS
+      - name: Audit every NFL prop source against actually archived context datasets
+        run: |
+          node scripts/audit-nfl-context-sources.cjs
+          node scripts/audit-nfl-specialty-readiness.cjs
+      - name: Compare 2024/2025 empirical NFL prop dependence with 2026 retrospective observations
+        run: node scripts/build-nfl-correlation-research.cjs
+      - name: Commit dated NFL research caches without touching NHL/MLB
+        if: success()
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nfl/history outputs/nfl/research/source-readiness-latest.json outputs/nfl/research/specialty-readiness-latest.json outputs/nfl/research/correlation-dependence-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data(nfl): refresh archived player, kicker and matchup history'
+            pushed=0
+            for attempt in 1 2 3 4; do
+              git fetch origin main
+              git -c rebase.autoStash=true rebase -X theirs origin/main
+              if git push origin HEAD:main; then pushed=1; break; fi
+              sleep $((attempt*3))
+            done
+            test "$pushed" -eq 1
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nfl-private-history-collection
+          path: |
+            outputs/nfl/history/manifest.json
+            outputs/nfl/research/source-readiness-latest.json
+          if-no-files-found: warn
+          retention-days: 30

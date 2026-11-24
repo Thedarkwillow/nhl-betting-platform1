@@ -1,0 +1,49 @@
+name: Probe SportsGameOdds Pro NHL History
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/probe-sportsgameodds-historical-nhl.yml', 'scripts/probe-sportsgameodds-historical-nhl.cjs']
+permissions:
+  contents: write
+concurrency:
+  group: sportsgameodds-nhl-history-probe
+  cancel-in-progress: false
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Test Pro historical NHL extraction
+        run: |
+          node --check scripts/probe-sportsgameodds-historical-nhl.cjs
+          node --test test/sportsgameodds-historical-nhl.test.cjs
+      - name: Make only five bounded Pro historical NHL queries
+        env:
+          SPORTSGAMEODDS_API_KEY: ${{ secrets.SPORTSGAMEODDS_API_KEY }}
+        run: node scripts/probe-sportsgameodds-historical-nhl.cjs
+      - name: Preserve isolated history probe even if some windows fail
+        if: always()
+        run: |
+          if [ -f outputs/sportsgameodds/nhl/historical-pro-probe-latest.json ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -f outputs/sportsgameodds/nhl/historical-pro-probe-latest.json
+            if ! git diff --cached --quiet; then
+              git commit -m "data: audit bounded SportsGameOdds historical NHL access"
+              git pull --rebase -X theirs origin main
+              git push origin HEAD:main
+            fi
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: sportsgameodds-nhl-pro-history-probe
+          path: outputs/sportsgameodds/nhl/historical-pro-probe-latest.json
+          if-no-files-found: ignore

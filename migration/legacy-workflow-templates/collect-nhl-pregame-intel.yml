@@ -1,0 +1,45 @@
+name: Capture NHL Pregame Injury and Goalie Reports (manual-only fallback)
+on:
+  workflow_dispatch:
+# Scheduled work moved to public nhl-betting-platform1/private-nhl-pregame-intel.yml.
+# Private repo remains the only destination for injury and goalie source records.
+permissions:
+  contents: write
+concurrency:
+  group: nhl-pregame-intel
+  cancel-in-progress: false
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate NHL game and roster match safety
+        run: |
+          node --check src/nhl-pregame-intel.cjs
+          node --check scripts/collect-nhl-pregame-intel.cjs
+          node --test test/nhl-pregame-intel.test.cjs
+      - name: Capture source-reported pregame context (experimental, no betting claims)
+        run: node scripts/collect-nhl-pregame-intel.cjs
+      - name: Commit timestamped research-only report
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/pregame-availability/latest.json outputs/pregame-availability/snapshots/*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: archive NHL source-reported injuries and goalies"
+            git pull --rebase -X theirs origin main
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-pregame-availability
+          path: outputs/pregame-availability/**/*.json
+          if-no-files-found: warn

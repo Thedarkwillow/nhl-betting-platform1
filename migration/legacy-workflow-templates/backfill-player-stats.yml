@@ -1,0 +1,53 @@
+name: Backfill NHL historical stats
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "First date (YYYY-MM-DD), inclusive"
+        required: true
+        type: string
+      end_date:
+        description: "Last date (YYYY-MM-DD), inclusive; maximum 14 days"
+        required: true
+        type: string
+concurrency:
+  group: nhl-player-stats-collector
+  cancel-in-progress: false
+jobs:
+  backfill:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Run tests
+        run: npm test
+      - name: Collect historical games and rebuild
+        env:
+          START_DATE: ${{ inputs.start_date }}
+          END_DATE: ${{ inputs.end_date }}
+        run: npm run backfill -- "$START_DATE" "$END_DATE"
+      - name: Commit history and projections
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f outputs/player-stats/*.json outputs/history/players.json outputs/projections/players.json
+          if git diff --cached --quiet; then
+            echo "No data changes"
+          else
+            git commit -m "data: backfill NHL history and projections"
+            git push
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: nhl-backfill
+          path: |
+            outputs/player-stats/*.json
+            outputs/history/players.json
+            outputs/projections/players.json
+          if-no-files-found: warn
+          retention-days: 30

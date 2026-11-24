@@ -1,0 +1,45 @@
+name: Validate private shared ice and game dependence research
+on:
+  pull_request:
+    paths: ['.github/workflows/validate-private-shared-ice-copula.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validation:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 5cba1b15480f232a598f16a28db4e098b8501104
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Offline regression and existing frozen evidence
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          node --test test/nhl-shared-ice-joint-research-v1.test.cjs
+          if ! npm test >"$log" 2>&1; then
+            grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log"
+          node - <<'NODE'
+          const fs=require('fs'),lab=require('./src/same-game-frozen-copula-research-v1.cjs');
+          for(const [sport,file] of [['NHL','outputs/health/nhl-standard-forward-improvement-latest.json'],['NFL','outputs/nfl/backtests/independent-source-forward-latest.json']]){
+            const d=JSON.parse(fs.readFileSync(file,'utf8'));
+            console.log(JSON.stringify({sport,...lab.study(d.firstObservedCalibrationState)}));
+          }
+          NODE

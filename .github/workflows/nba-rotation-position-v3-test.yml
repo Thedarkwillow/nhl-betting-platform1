@@ -1,0 +1,26 @@
+name: Validate NBA rotation and position defense
+on:
+  push:
+    branches: [nba-rotation-position-v3-20261124]
+    paths: ['.github/workflows/nba-rotation-position-v3-test.yml']
+permissions:
+  contents: read
+jobs:
+  validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 9c856b6b6eaebd8f4c6445d3d3c3399772a1628b
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Offline test and private archive coverage
+        run: |
+          set -euo pipefail
+          node --test test/nba-rotation-position-v3.test.cjs test/nba-context-calibration-v2.test.cjs test/nba-dunk-cohort-study.test.cjs test/nba-alternate-providers.test.cjs test/nba-authorized-provider-access.test.cjs
+          node scripts/run-nba-dunk-cohort-study.cjs

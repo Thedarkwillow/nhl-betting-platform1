@@ -32,9 +32,9 @@ async function collect(platform,url,key,archive,client=fetch){
  const out=validate(doc,platform,now);
  if(!out.accepted.length)return {platform,status:"no_eligible_rows",excluded:out.excluded,accepted:0};
  const dir=path.join(archive,"outputs/esports/authorized-original-offers");fs.mkdirSync(dir,{recursive:true,mode:0o700});
- // The source document and hash are retained, not just a rewritten claim.
+ // Retain the eligible source rows plus hash of the response; raw response body is not stored.
  const name=now.replace(/[-:.]/g,"")+".json";
- fs.writeFileSync(path.join(dir,name),JSON.stringify({...doc,rows:out.accepted,sourceResponseSha256:createHash("sha256").update(bytes).digest("hex"),authenticatedExportTransport:true,originalAppAvailabilityIndependentlyVerified:false,receivedAt:now})+"\n",{flag:"wx",mode:0o600});
+ fs.writeFileSync(path.join(dir,name),JSON.stringify({kind:doc.kind,platform:doc.platform,isDemo:doc.isDemo,exportId:doc.exportId,sourceUrl:doc.sourceUrl,capturedAt:doc.capturedAt,rows:out.accepted,sourceResponseSha256:createHash("sha256").update(bytes).digest("hex"),authenticatedExportTransport:true,originalAppAvailabilityIndependentlyVerified:false,receivedAt:now})+"\n",{flag:"wx",mode:0o600});
  return {platform,status:"captured_authenticated_export_transport",accepted:out.accepted.length,excluded:out.excluded,originalAppAvailabilityIndependentlyVerified:false};
 }
 async function main(){

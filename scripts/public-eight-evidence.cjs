@@ -8,8 +8,8 @@ function intake(rows,firstGitAt){
  const seen=new Set();let excluded=0;
  for(const o of rows){
   const host=(()=>{try{return new URL(o.sourceUrl).hostname}catch{return ""}})();
-  const domain=o.platform==="PrizePicks"?"prizepicks.com":"underdogfantasy.com";
-  const officialHost=host===domain||host.endsWith("."+domain);
+  const domains=o.platform==="PrizePicks"?["prizepicks.com"]:o.platform==="Underdog"?["underdogfantasy.com","underdogsports.com"]:[];
+  const officialHost=domains.some(domain=>host===domain||host.endsWith("."+domain));
   const id=JSON.stringify([o.platform,o.offerId,o.capturedAt]);
   if(!validOffer(o)||!officialHost||o.originalPlatformOfferVerified!==true||o.authorizedExportVerified!==true||
    !Number.isFinite(dt(firstGitAt))||dt(o.capturedAt)>dt(firstGitAt)+999||dt(firstGitAt)>=dt(o.seriesStartAt)||

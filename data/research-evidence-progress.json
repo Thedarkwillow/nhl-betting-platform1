@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-24T17:10:25.379Z",
+  "generatedAt": "2026-11-24T17:17:31.540Z",
   "sourceReportAt": "2026-11-24T16:56:10.858Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -91,13 +91,13 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-24T16:05:52.192Z",
+    "nhlReportAt": "2026-11-24T17:16:33.815Z",
     "nflReportAt": "2026-11-24T15:17:01.561Z",
     "nhl": {
-      "registered": 395,
-      "eligible": 99,
-      "abstained": 296,
-      "pending": 7,
+      "registered": 397,
+      "eligible": 100,
+      "abstained": 297,
+      "pending": 8,
       "decided": 92
     },
     "nfl": {
@@ -115,7 +115,7 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-24T16:05:52.770Z",
+    "sourceReportAt": "2026-11-24T17:16:34.400Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
       "completeOfficialGames": 1656,
@@ -147,27 +147,27 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-24T16:06:39.037Z",
+    "sourceReportAt": "2026-11-24T17:11:14.676Z",
     "nhl": {
       "sourceEligible": true,
       "examined": 2,
-      "newCandidates": 1,
-      "newAbstentions": 1,
-      "archivedFirstGit": 1127,
+      "newCandidates": 2,
+      "newAbstentions": 0,
+      "archivedFirstGit": 1129,
       "duplicatesQuarantined": 108,
       "selectivePolicyRequiresNewSource": false,
       "postPolicyScreening": {
         "kind": "public_goblin_post_policy_screening_counts_v1",
-        "screened": 892,
-        "selected": 456,
-        "abstained": 436,
+        "screened": 894,
+        "selected": 457,
+        "abstained": 437,
         "lateOrUnverified": 0,
         "unknownStatus": 0,
         "byMarket": {
           "shotsOnGoal": {
-            "screened": 587,
-            "selected": 351,
-            "abstained": 236
+            "screened": 589,
+            "selected": 352,
+            "abstained": 237
           },
           "blockedShots": {
             "screened": 92,
@@ -187,7 +187,7 @@
         },
         "abstentionReasons": {
           "insufficient_verified_prior_ice_time": 22,
-          "high_ice_time_or_recent_usage_uncertainty": 11,
+          "high_ice_time_or_recent_usage_uncertainty": 12,
           "recent_lineup_role_or_team_not_stable": 1,
           "opponent_defensive_volume_history_unverified": 0,
           "official_pregame_scratched_or_injured": 0,
@@ -202,15 +202,15 @@
       },
       "pendingOfficialTriage": {
         "kind": "public_nhl_goblin_prospective_pending_triage_v1",
-        "registered": 1127,
-        "abstained": 436,
+        "registered": 1129,
+        "abstained": 437,
         "decided": 663,
         "pushes": 0,
-        "notStarted": 19,
+        "notStarted": 20,
         "startedNoFinalWithinFourHours": 0,
         "fourHoursWithoutOfficialPlayerStat": 9,
         "conflictingOrInvalidFinal": 0,
-        "officialGradingNeeded": 28,
+        "officialGradingNeeded": 29,
         "verifiedWinRate": null,
         "approvedPicks": 0
       },
@@ -286,7 +286,7 @@
         "approvedPicks": 0
       },
       "futureDecided": 663,
-      "futureRegistered": 1127
+      "futureRegistered": 1129
     },
     "nfl": {
       "supportedOpportunityResearchImplemented": true,
@@ -307,8 +307,8 @@
       },
       "conditionalGSIS": {
         "kind": "public_nfl_conditional_gsis_research_counts_v1",
-        "priorRosterCandidates": 399,
-        "sourcePlayers": 454,
+        "priorRosterCandidates": 410,
+        "sourcePlayers": 465,
         "ambiguous": 0,
         "insufficientPriorWeeks": 3,
         "missingRoster": 52,
@@ -331,33 +331,33 @@
       "officialInjuryStatuses": null,
       "identityInjuryOverlap": {
         "kind": "public_nfl_conditional_gsis_official_injury_overlap_v1",
-        "provisionalPlayers": 399,
+        "provisionalPlayers": 410,
         "officialInjuryGSISCorroborations": 0,
         "outExcluded": 0,
         "questionableHeld": 0,
         "doubtfulHeld": 0,
-        "unknownStatus": 399,
+        "unknownStatus": 410,
         "identityConflicts": 0,
         "verifiedPrizePicksGSIS": 0,
         "gameDayActiveConfirmed": 0,
         "approvedPicks": 0
       },
       "gamedayOriginal": null,
-      "originalGoblinOffersAudited": 1126,
+      "originalGoblinOffersAudited": 1256,
       "exactIdentityReadyForModel": 0,
       "verifiedActiveRoster": false,
       "officialGameBridgeMissing": null,
       "prerequisiteGaps": {
         "kind": "public_nfl_goblin_missing_prerequisites_v1",
-        "originalOffersAudited": 1126,
+        "originalOffersAudited": 1256,
         "officialGame": 0,
-        "providerToGSIS": 1126,
-        "positiveActiveRoster": 1126,
+        "providerToGSIS": 1256,
+        "positiveActiveRoster": 1256,
         "rowsMayHaveMultipleBlockers": true,
         "verifiedActive": false,
         "eligiblePicks": 0
       },
-      "providerGSiSBridgeMissing": 1126,
+      "providerGSiSBridgeMissing": 1256,
       "positiveActiveStatusMissing": null,
       "firstGitEligible": 0
     },
@@ -432,7 +432,7 @@
     "kind": "public_expanded_ml_research_counts_v1",
     "sourceReportAt": "2026-11-24T16:52:59.817419+00:00",
     "marketEvidence": {
-      "sourceReportAt": "2026-11-24T17:09:30.899Z",
+      "sourceReportAt": "2026-11-24T17:16:25.762Z",
       "acceptedArchives": 9,
       "trackedSeries": 2231,
       "repeatedSeries": 0,
@@ -447,8 +447,8 @@
     "testedThresholds": 55,
     "thresholdsBeatingAllBaselines": 16,
     "prospective": {
-      "sourceReportAt": "2026-11-24T17:09:30.899Z",
-      "registered": 25,
+      "sourceReportAt": "2026-11-24T17:16:25.762Z",
+      "registered": 29,
       "decided": 0,
       "correct": 0
     },

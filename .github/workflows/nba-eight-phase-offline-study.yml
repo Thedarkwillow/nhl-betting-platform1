@@ -42,3 +42,5 @@ jobs:
           git add -f outputs/nba/isolated-bulk-history/eight-phase-study-v1
           git commit -qm 'research: record eight-phase NBA offline study and untouched-season metrics'
           git push -q origin HEAD:nba-eight-phase-offline-study-20261124
+
+# Re-run corrected probability metric implementation.

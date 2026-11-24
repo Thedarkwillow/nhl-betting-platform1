@@ -19,9 +19,9 @@
     },
     {
       "sport": "NBA",
-      "description": "Nine pinned Parquet assets verified; 2,093 historical real-line observations evaluated across 57 games, previously evaluated cohort. Injury reconciliation and untouched holdout remain unapproved.",
+      "description": "Original 57-game cohort reproduced; 85 of 135 unresolved injury rows have prior-season dual-namespace identity candidates, 50 unresolved. No freeze approval.",
       "historicalRows": 2093,
-      "unresolvedInjuryRows": 135
+      "unresolvedInjuryRows": 50
     },
     {
       "sport": "CS2",
@@ -29,7 +29,8 @@
     },
     {
       "sport": "Valorant",
-      "description": "Betting-use rights and real historical map dataset still required."
+      "description": "7,395 complete maps over 796 dates; 14,969 historical holdout observations per market; owner reports research permission. No verified original prop lines.",
+      "historicalRows": 73950
     },
     {
       "sport": "League of Legends",
@@ -38,8 +39,8 @@
     },
     {
       "sport": "Dota 2",
-      "description": "110 player-match observations recovered from 11 professional matches; only one date, insufficient chronological holdout.",
-      "historicalRows": 110
+      "description": "2,000 professional match records with ten players per match; 108 dates; 3,772 holdout observations per market. Series-map scope and original lines remain unverified.",
+      "historicalRows": 20000
     },
     {
       "sport": "Call of Duty",

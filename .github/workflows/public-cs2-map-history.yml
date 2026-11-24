@@ -1,0 +1,33 @@
+name: Public CS2 historical map baseline
+on:
+  pull_request:
+    paths:
+      - 'scripts/public-cs2-map-history.py'
+      - '.github/workflows/public-cs2-map-history.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/public-cs2-map-history.py'
+      - '.github/workflows/public-cs2-map-history.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m py_compile scripts/public-cs2-map-history.py
+  history:
+    needs: validate
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 scripts/public-cs2-map-history.py

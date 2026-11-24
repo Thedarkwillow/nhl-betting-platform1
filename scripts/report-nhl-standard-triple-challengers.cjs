@@ -7,7 +7,7 @@
 const fs=require("node:fs"),path=require("node:path");
 const {execFileSync}=require("node:child_process");
 const {compare}=require("../src/nhl-standard-triple-challenger-grader.cjs");
-const ROOT=path.resolve(__dirname,"..");
+const ROOT=process.env.RESEARCH_ARCHIVE_ROOT?fs.realpathSync(process.env.RESEARCH_ARCHIVE_ROOT):path.resolve(__dirname,"..");
 const load=p=>JSON.parse(fs.readFileSync(path.join(ROOT,p),"utf8"));
 function originalFrames(){
  const dir="outputs/research/snapshots",abs=path.join(ROOT,dir);

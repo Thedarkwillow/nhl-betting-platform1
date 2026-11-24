@@ -46,3 +46,11 @@ test("newly reported availability risk suppresses a previously frozen card witho
  assert.equal(r.cards.length,1);assert.equal(r.cards[0].player,"Player 1");
  assert.equal(preview.rows.length,2);
 });
+
+test("matchup details require separate explicit authorization and never release raw rows",()=>{
+ const {safeMatchup}=require("./publish-safe-nfl-research-cards.cjs");
+ const p={opponent:"B",matchupResearch:{position:"WR",calibrated:false,derivedDisplayApproved:true,reconciledPositionRanking:{complete:true,qualifiedTeams:32,rankDirection:"1_most_allowed",opponent:{team:"B",rankMostAllowed:4,games:10,expectedGames:10}},headToHead:{all:{games:3,higher:2,lower:1,push:0,values:[42,12,51],playerId:"private"}}}};
+ assert.equal(safeMatchup(p,{}),null);
+ const v=safeMatchup(p,{matchupDerivedDisplayApproved:true});assert.equal(v.rank.rank,4);assert.equal(v.headToHead.higher,2);assert.equal(JSON.stringify(v).includes("private"),false);assert.equal(v.headToHead.values,undefined);
+ p.matchupResearch.reconciledPositionRanking.complete=false;assert.equal(safeMatchup(p,{matchupDerivedDisplayApproved:true}).rank,null);
+});

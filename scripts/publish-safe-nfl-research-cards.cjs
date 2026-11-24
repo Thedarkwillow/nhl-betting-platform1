@@ -6,6 +6,17 @@ const fs=require("node:fs"),path=require("node:path");
 const dt=x=>typeof x==="string"?Date.parse(x):NaN;
 const EMPTY=now=>({kind:"public_nfl_derived_research_cards_v1",builtAt:now,asOf:null,scope:"Standard-filtered full-game research only",status:"no_fresh_approved_research",cards:[],calibrated:false,conditionalOnPlaying:true,firstPartyOfferVerified:false,platformSettlementVerified:false,expectedValue:null});
 const good=x=>typeof x==="string"&&x.trim()&&x.length<=100;
+// Only explicit separate derived-stat display authorization can enable this.
+// Never copy arrays of individual game results, source IDs, or raw private data.
+function safeMatchup(p,preview){
+ const m=p.matchupResearch;
+ if(preview?.matchupDerivedDisplayApproved!==true||m?.derivedDisplayApproved!==true||m?.calibrated!==false)return null;
+ const rank=m.reconciledPositionRanking,o=rank?.opponent,h=m.headToHead?.all;
+ const pos=["QB","RB","FB","WR","TE"].includes(m.position)?m.position:null;
+ const exactRank=pos&&rank?.complete===true&&rank.qualifiedTeams===32&&rank.rankDirection==="1_most_allowed"&&o?.team===p.opponent&&Number.isInteger(o.rankMostAllowed)&&o.rankMostAllowed>=1&&o.rankMostAllowed<=32&&Number.isInteger(o.games)&&o.games>=5&&o.games===o.expectedGames?{rank:o.rankMostAllowed,position:pos,games:o.games}:null;
+ const h2h=h&&[h.games,h.higher,h.lower,h.push].every(x=>Number.isInteger(x)&&x>=0)&&h.games>=3&&h.higher+h.lower+h.push===h.games?{games:h.games,higher:h.higher,lower:h.lower,push:h.push}:null;
+ return exactRank||h2h?{rank:exactRank,headToHead:h2h,scope:"historical_research_only",calibrated:false}:null;
+}
 function sanitize(board,preview,now=new Date().toISOString(),requestedTier="standard",currentRisk=()=>false){
  const t=dt(now),cap=dt(board?.generatedAt),pin=dt(board?.boardAsOfAt),created=dt(preview?.generatedAt),empty=EMPTY(now);
  if(!["standard","goblin","demon"].includes(requestedTier))return empty;
@@ -42,7 +53,7 @@ function sanitize(board,preview,now=new Date().toISOString(),requestedTier="stan
  for(const p of valid){
   const k=JSON.stringify([p.gameId,p.historicalPlayerId,p.market]);if(seen.has(k))continue;seen.add(k);
   cards.push({tier,player:p.player,team:p.team,opponent:p.opponent,market:p.market,side:p.side,line:p.line,modelProjection:Number(p.projection.toFixed(2)),
-   conditionalModelProbability:Number(p.probability.toFixed(4)),priorGames:p.priorGames,eventStartsAt:p.eventStartsAt});
+   conditionalModelProbability:Number(p.probability.toFixed(4)),priorGames:p.priorGames,eventStartsAt:p.eventStartsAt,...(safeMatchup(p,preview)?{matchupDetail:safeMatchup(p,preview)}:{})});
   if(cards.length===(requestedTier==="standard"?12:4))break;
  }
  return {...empty,asOf:board.generatedAt,status:cards.length?"fresh_derived_research_only":"no_eligible_research_cards",cards};
@@ -62,4 +73,4 @@ function main(){
  for(const tier of ["goblin","demon"]){const r=sanitize(read("alternates/"+tier+"/latest.json"),read("alternates/"+tier+"/research-preview-latest.json"),now,tier,risk);fs.writeFileSync(path.join(publicRoot,"data/nfl-"+tier+"-research-cards.json"),JSON.stringify(r)+"\n");console.log(JSON.stringify({tier,status:r.status,publishedDerivedCards:r.cards.length,rawFeedRowsPublished:0,calibrated:false}));}
 }
 if(require.main===module)main();
-module.exports={sanitize};
+module.exports={sanitize,safeMatchup};

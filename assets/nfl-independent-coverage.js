@@ -38,7 +38,13 @@
    const details=node("details","","minor");
    details.append(node("summary","Why this research direction?"),
     node("p","The historical model projects "+p.modelProjection+" against the "+p.line+" threshold ("+(p.modelProjection>p.line?"above":p.modelProjection<p.line?"below":"equal")+"). "+p.priorGames+" prior games contribute to the current research."),
-    node("p","Opponent: "+p.opponent+". Individual positional rank, exact head-to-head results, live workload and verified forecast are not included in this published card. Do not interpret missing context as favorable."));
+    node("p","Opponent: "+p.opponent+". Only separately authorized historical matchup details appear below. Missing information is not favorable evidence; live roles and calibrated probabilities are unverified."));
+   const m=p.matchupDetail;
+   if(m?.scope==="historical_research_only"&&m.calibrated===false){
+    const rank=m.rank,h=m.headToHead;
+    if(rank&&["QB","RB","FB","WR","TE"].includes(rank.position)&&Number.isInteger(rank.rank)&&rank.rank>=1&&rank.rank<=32&&Number.isInteger(rank.games)&&rank.games>=5)details.append(node("p","Opponent "+rank.position+" allowance rank: "+rank.rank+" of 32 (1 = most allowed), "+rank.games+" reconciled prior games."));
+    if(h&&[h.games,h.higher,h.lower,h.push].every(v=>Number.isInteger(v)&&v>=0)&&h.games>=3&&h.higher+h.lower+h.push===h.games)details.append(node("p","Same-team opponent history at this threshold: "+h.higher+" Higher, "+h.lower+" Lower, "+h.push+" push in "+h.games+" historical appearances; not a predicted hit rate."));
+   }
    card.append(details);
    list.append(card);
   }
@@ -67,7 +73,13 @@
    const details=node("details","","minor");
    details.append(node("summary","Why this research direction?"),
     node("p","The historical model projects "+p.modelProjection+" against the "+p.line+" threshold ("+(p.modelProjection>p.line?"above":p.modelProjection<p.line?"below":"equal")+"). "+p.priorGames+" prior games contribute to the current research."),
-    node("p","Opponent: "+p.opponent+". Individual positional rank, exact head-to-head results, live workload and verified forecast are not included in this published card. Do not interpret missing context as favorable."));
+    node("p","Opponent: "+p.opponent+". Only separately authorized historical matchup details appear below. Missing information is not favorable evidence; live roles and calibrated probabilities are unverified."));
+   const m=p.matchupDetail;
+   if(m?.scope==="historical_research_only"&&m.calibrated===false){
+    const rank=m.rank,h=m.headToHead;
+    if(rank&&["QB","RB","FB","WR","TE"].includes(rank.position)&&Number.isInteger(rank.rank)&&rank.rank>=1&&rank.rank<=32&&Number.isInteger(rank.games)&&rank.games>=5)details.append(node("p","Opponent "+rank.position+" allowance rank: "+rank.rank+" of 32 (1 = most allowed), "+rank.games+" reconciled prior games."));
+    if(h&&[h.games,h.higher,h.lower,h.push].every(v=>Number.isInteger(v)&&v>=0)&&h.games>=3&&h.higher+h.lower+h.push===h.games)details.append(node("p","Same-team opponent history at this threshold: "+h.higher+" Higher, "+h.lower+" Lower, "+h.push+" push in "+h.games+" historical appearances; not a predicted hit rate."));
+   }
    card.append(details);
     list.append(card);
    }

@@ -39,6 +39,11 @@
   if(progress?.kind==="public_research_progress_counts_v1"&&progress.proprietaryRowsPublished===0&&progress.calibrationApproved===false&&progress.modelPromoted===false&&age(progress.sourceReportAt,now)!==null){
    const a=age(progress.sourceReportAt,now),p=progress.periodHistory;
    if(p&&count(p.accountedDays)&&count(p.calendarDays)&&p.calendarDays>0&&p.accountedDays<=p.calendarDays)rows.push({label:"NHL historical periods",value:p.accountedDays+" / "+p.calendarDays+" dates accounted; "+(p.calendarDays-p.accountedDays)+" pending",ageMinutes:a});
+   const ml=progress.expandedML;
+   if(ml?.kind==="public_expanded_ml_research_counts_v1"&&ml.historicalSyntheticOnly===true&&ml.calibrationApproved===false&&ml.modelPromoted===false&&ml.privateRowsPublished===0&&age(ml.sourceReportAt,now)!==null&&[ml.candidateMarkets,ml.trainedMarkets,ml.testedThresholds,ml.thresholdsBeatingAllBaselines].every(count)&&ml.trainedMarkets<=ml.candidateMarkets&&ml.thresholdsBeatingAllBaselines<=ml.testedThresholds){
+    rows.push({label:"Expanded NHL / NFL ML research",value:ml.trainedMarkets+" / "+ml.candidateMarkets+" markets trained; "+ml.thresholdsBeatingAllBaselines+" / "+ml.testedThresholds+" synthetic thresholds beat all baselines; not validated betting accuracy",ageMinutes:age(ml.sourceReportAt,now)});
+    const p=ml.prospective;if(p&&[p.registered,p.decided,p.correct].every(count)&&p.correct<=p.decided&&p.decided<=p.registered&&age(p.sourceReportAt,now)!==null)rows.push({label:"Expanded ML frozen research",value:p.decided+" graded / "+p.registered+" first-Git registered; no calibrated edge",ageMinutes:age(p.sourceReportAt,now)});
+   }
    const matchup=progress.matchupEvidence;
    if(matchup?.kind==="public_matchup_evidence_counts_v1"&&matchup.historicalOnly===true&&matchup.modelPromoted===false&&matchup.approvedPicks===0&&age(matchup.sourceReportAt,now)!==null&&[matchup.rankingTables,matchup.completeRankingTables,matchup.punterAppearances,matchup.kickerAppearances,matchup.teamGames].every(count)&&matchup.completeRankingTables<=matchup.rankingTables){
     rows.push({label:"NFL positional matchup coverage",value:matchup.completeRankingTables+" / "+matchup.rankingTables+" fully reconciled tables; incomplete league ranks withheld",ageMinutes:age(matchup.sourceReportAt,now)});

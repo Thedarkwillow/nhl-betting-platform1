@@ -224,3 +224,5 @@ test("matchup evidence publisher exposes counts only and rejects rank leakage",(
  const safe=safeMatchupCoverage(raw,now);assert.equal(safe.completeRankingTables,0);assert.equal(safe.punterAppearances,5);assert.equal(JSON.stringify(safe).includes("hidden"),false);
  raw.nflPositionalRankings.tables.a.rows[0].rankMostAllowed=1;assert.equal(safeMatchupCoverage(raw,now),null);
 });
+
+require("node:test")("expanded ML public export is count-only and rejects promoted model",()=>{const assert=require("node:assert/strict"),{safeExpandedML}=require("./publish-safe-research-progress.cjs"),now="2026-11-25T00:00:00Z",d={kind:"priority_common_features_logistic_v1",researchOnly:true,modelPromoted:false,generatedAt:now,models:{nhl_points:{".5":{secret:"private"}}},historicalSyntheticHoldout:{nhl_points:{".5":{n:100,hitRate:.7,brier:.2,baselineHitRate:.6,alwaysHigher:.5,alwaysLower:.5}}}};const x=safeExpandedML(d,null,null,now);assert.equal(x.trainedMarkets,1);assert.equal(x.thresholdsBeatingAllBaselines,1);assert.equal(JSON.stringify(x).includes("private\""),false);assert.equal(safeExpandedML({...d,modelPromoted:true},null,null,now),null);});

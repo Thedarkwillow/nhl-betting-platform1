@@ -464,7 +464,20 @@ function safeMatchupCoverage(r,now){
  if(keys.some(k=>count(sp?.[k])===null)||sp.reconciledPuntTeamGames>sp.teamGames||sp.reconciledKickTeamGames>sp.teamGames)return null;
  return {kind:"public_matchup_evidence_counts_v1",sourceReportAt:r.generatedAt,rankingTables:tables.length,completeRankingTables:tables.filter(t=>t.complete).length,...Object.fromEntries(keys.map(k=>[k,sp[k]])),historicalOnly:true,modelPromoted:false,approvedPicks:0};
 }
-function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelective=null,modelIdeas=null,goblin=null,nhlOpponentCoverage=null,matchupReplay=null}={}){
+function safeExpandedML(artifact,forward,goalie,now){
+ const valid=d=>d?.kind==="priority_common_features_logistic_v1"&&d.researchOnly===true&&d.modelPromoted===false&&Number.isFinite(dt(d.generatedAt))&&dt(d.generatedAt)<=dt(now);
+ if(!valid(artifact))return null;
+ const artifacts=[artifact,...(valid(goalie)&&Object.keys(goalie.models||{}).every(k=>k==="nhl_saves")?[goalie]:[])];
+ const models=Object.assign({},...artifacts.map(x=>x.models)),holdout=Object.assign({},...artifacts.map(x=>x.historicalSyntheticHoldout));
+ const tested=Object.values(holdout).flatMap(Object.values);
+ if(!tested.length||Object.keys(models).length>17||tested.some(x=>!Number.isInteger(x.n)||x.n<50||![x.hitRate,x.brier,x.baselineHitRate,x.alwaysHigher,x.alwaysLower].every(v=>Number.isFinite(v)&&v>=0&&v<=1)))return null;
+ let prospective=null;
+ if(forward?.kind==="expanded_common_ml_first_git_grade_v1"&&forward.researchOnly===true&&forward.modelPromoted===false&&forward.calibrated===false&&Number.isFinite(dt(forward.generatedAt))&&dt(forward.generatedAt)<=dt(now)){
+  const rows=Object.values(forward.markets||{});if(rows.every(x=>[x.registered,x.decided,x.correct,x.pending].every(v=>count(v)!==null)&&x.decided+x.pending===x.registered&&x.correct<=x.decided))prospective={sourceReportAt:forward.generatedAt,registered:rows.reduce((s,x)=>s+x.registered,0),decided:rows.reduce((s,x)=>s+x.decided,0),correct:rows.reduce((s,x)=>s+x.correct,0)};
+ }
+ return {kind:"public_expanded_ml_research_counts_v1",sourceReportAt:artifact.generatedAt,candidateMarkets:17,trainedMarkets:Object.values(models).filter(m=>Object.keys(m).length>0).length,testedThresholds:tested.length,thresholdsBeatingAllBaselines:tested.filter(x=>x.hitRate>Math.max(x.baselineHitRate,x.alwaysHigher,x.alwaysLower)).length,prospective,historicalSyntheticOnly:true,calibrationApproved:false,modelPromoted:false,privateRowsPublished:0};
+}
+function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelective=null,modelIdeas=null,goblin=null,nhlOpponentCoverage=null,matchupReplay=null,expandedArtifact=null,expandedForward=null,goalieArtifact=null}={}){
  if(source?.kind!=="private_source_completion_readiness_v1"||!Number.isFinite(dt(now))||!Number.isFinite(dt(source.generatedAt))||dt(source.generatedAt)>dt(now)||source.modelPromoted!==false||source.wagersPlaced!==0)return null;
  const d=source.periodCoverage,p=d&&count(d.calendarDays)>0&&count(d.accountedDays)!==null&&count(d.pendingDays)!==null&&d.accountedDays+d.pendingDays===d.calendarDays?{accountedDays:d.accountedDays,calendarDays:d.calendarDays,pendingDays:d.pendingDays}:null;
  const evidence=Object.fromEntries(["nhl","nfl"].map(s=>[s,{firstObserved:count(source.prospective?.[s]?.firstObserved),matchedCalibrationRows:count(source.prospective?.[s]?.matchedCalibrationRows)}]));
@@ -497,6 +510,7 @@ function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelecti
   goblinFuture:safeGoblin(goblin,now),
   nhlOpponentEvidence:safeNHLOpponentCoverage(nhlOpponentCoverage,now),
   matchupEvidence:safeMatchupCoverage(matchupReplay,now),
+  expandedML:safeExpandedML(expandedArtifact,expandedForward,goalieArtifact,now),
   proprietaryRowsPublished:0,calibrationApproved:false,modelPromoted:false};
 }
 function main([privateRoot,publicRoot]=process.argv.slice(2)){
@@ -508,11 +522,14 @@ function main([privateRoot,publicRoot]=process.argv.slice(2)){
   modelIdeas:(()=>{try{return read("outputs/health/open-model-ideas-latest.json")}catch{return null}})(),
   goblin:(()=>{try{return read("outputs/health/goblin-forward-latest.json")}catch{return null}})(),
   nhlOpponentCoverage:(()=>{try{return read("outputs/health/nhl-opponent-concession-coverage-latest.json")}catch{return null}})(),
-  matchupReplay:(()=>{try{return read("outputs/health/cross-sport-position-h2h-replay-latest.json")}catch{return null}})()
+  matchupReplay:(()=>{try{return read("outputs/health/cross-sport-position-h2h-replay-latest.json")}catch{return null}})(),
+  expandedArtifact:(()=>{try{return read("outputs/research/priority-expanded-ml-artifact.json")}catch{return null}})(),
+  goalieArtifact:(()=>{try{return read("outputs/research/priority-goalie-ml-artifact.json")}catch{return null}})(),
+  expandedForward:(()=>{try{return read("outputs/health/expanded-common-ml-forward-latest.json")}catch{return null}})()
  });
  if(!out||!out.selectiveAccuracy)throw Error("Missing verified private prospective selective reports; refuse publication");
  const f=path.join(publicRoot,"data/research-evidence-progress.json");fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,JSON.stringify(out,null,2)+"\n");
  console.log("PASS: allowlisted progress counts only.");
 }
 if(require.main===module)main();
-module.exports={build,safeMatchupCoverage};
+module.exports={build,safeMatchupCoverage,safeExpandedML};

@@ -217,3 +217,10 @@ test("private opponent team-level details never leak; only eight-game verified m
    r.label==="NHL verified opponent source coverage"),false);
  }
 });
+
+test("matchup evidence publisher exposes counts only and rejects rank leakage",()=>{
+ const {safeMatchupCoverage}=require("./publish-safe-research-progress.cjs");
+ const raw={kind:"cross_sport_position_h2h_paired_replay_v1",generatedAt:now,modelPromoted:false,prospectiveAccuracyVerified:false,nhl:{syntheticThresholdsOnly:true},nfl:{exactOriginalLines:false},nflPositionalRankings:{tables:{a:{complete:false,rows:[{team:"A",rankMostAllowed:null,playerId:"hidden"}]}}},nflSpecialistCoverage:{teamGames:10,reconciledPuntTeamGames:9,reconciledKickTeamGames:10,punterAppearances:5,kickerAppearances:7,playerName:"hidden"}};
+ const safe=safeMatchupCoverage(raw,now);assert.equal(safe.completeRankingTables,0);assert.equal(safe.punterAppearances,5);assert.equal(JSON.stringify(safe).includes("hidden"),false);
+ raw.nflPositionalRankings.tables.a.rows[0].rankMostAllowed=1;assert.equal(safeMatchupCoverage(raw,now),null);
+});

@@ -1,0 +1,44 @@
+name: Eight-phase NBA isolated historical research
+on:
+  push:
+    branches: [nba-eight-phase-offline-study-20261124]
+    paths: ['.github/workflows/nba-eight-phase-offline-study.yml']
+permissions:
+  contents: read
+concurrency:
+  group: nba-eight-phase-offline-study
+  cancel-in-progress: false
+jobs:
+  study:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: nba-eight-phase-offline-study-20261124
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install statistical research dependencies
+        run: |
+          python -m pip install 'pyarrow>=18,<24' 'pandas>=2.2,<3' 'numpy>=1.26,<3' 'scikit-learn>=1.5,<2' 'lightgbm>=4.5,<5' 'xgboost>=2.1,<4'
+      - name: Audit historical sources and run chronological model comparison
+        env:
+          OMP_NUM_THREADS: '2'
+          OPENBLAS_NUM_THREADS: '2'
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/run-nba-eight-phase-offline-study.py
+          umask 077
+          python scripts/run-nba-eight-phase-offline-study.py
+      - name: Preserve private offline research results
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nba/isolated-bulk-history/eight-phase-study-v1
+          git commit -qm 'research: record eight-phase NBA offline study and untouched-season metrics'
+          git push -q origin HEAD:nba-eight-phase-offline-study-20261124

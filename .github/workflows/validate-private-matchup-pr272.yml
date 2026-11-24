@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 5f1961beb6eb686d322ffce88e1592db4c7c7828
+          ref: 7ba5a720feeacc741698c884a7e0f3d5d3709267
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 5f1961beb6eb686d322ffce88e1592db4c7c7828
+          ref: 7ba5a720feeacc741698c884a7e0f3d5d3709267
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false

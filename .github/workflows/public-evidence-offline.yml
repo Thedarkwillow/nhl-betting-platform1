@@ -1,0 +1,53 @@
+name: Public research evidence and paper-lineup safeguards
+on:
+  pull_request:
+    paths:
+      - 'data/public-multi-sport-sprint.json'
+      - 'assets/public-multi-sport-sprint.js'
+      - 'assets/lineup-workspace.js'
+      - 'src/**'
+      - 'test/**'
+      - '.github/workflows/public-evidence-offline.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '15 11 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate website evidence without promoting models
+        run: |
+          node --check assets/public-multi-sport-sprint.js
+          node - <<'JS'
+          const a=require('node:assert/strict');
+          const x=require('./data/public-multi-sport-sprint.json');
+          a.equal(x.kind,'public_multi_sport_sprint_evidence_v1');
+          a.equal(x.rawRowsPublished,0);
+          a.equal(x.paidRequests,0);
+          a.equal(x.modelPromoted,false);
+          a.ok(Number.isFinite(Date.parse(x.asOf)));
+          a.equal(x.esportsResearch.modelsApproved,0);
+          a.equal(x.esportsResearch.authenticatedOffersVerified,0);
+          const c=x.esportsResearch.independentCoverage;
+          a.equal(c.kind,'authenticated_independent_coverage_counts_not_lines');
+          a.equal(c.originalOffersVerified,0);
+          for (const p of ['PrizePicks','Underdog']) {
+            for (const v of Object.values(c[p])) a.ok(v===null||Number.isSafeInteger(v)&&v>=0);
+          }
+          JS
+      - name: Exercise paper research safeguards and NBA holdout rejection
+        run: |
+          node --test test/nhl-lineup-evidence-release-v1.test.cjs test/lineup-reference-payout-bounds.test.cjs test/nhl-lineup-slate-resampling.test.cjs test/nba-fixed-holdout-gate-v1.test.cjs
+          node scripts/test-lineup-workspace.cjs
+      - name: Inventory private-dependent workflows without checking out private source
+        run: node scripts/public-workflow-migration-inventory.cjs

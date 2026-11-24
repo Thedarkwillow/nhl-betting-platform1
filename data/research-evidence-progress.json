@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-24T04:52:37.026Z",
-  "sourceReportAt": "2026-11-24T03:35:55.784Z",
+  "generatedAt": "2026-11-24T05:05:38.427Z",
+  "sourceReportAt": "2026-11-24T05:01:50.095Z",
   "periodHistory": {
     "accountedDays": 261,
     "calendarDays": 261,
@@ -74,7 +74,7 @@
     "verifiedROI": null
   },
   "validationSample": {
-    "sourceReportAt": "2026-11-24T03:35:27.549Z",
+    "sourceReportAt": "2026-11-24T04:55:33.845Z",
     "nhlStandardFrozenDecisions": 1193,
     "nhlStandardFrozenGames": 96,
     "nhlStandardFrozenPacificSlates": 14,

@@ -1,0 +1,39 @@
+name: Archive three seasons of NBA bulk research data
+on:
+  push:
+    branches: [nba-bulk-historical-audit-20261124]
+    paths: ['.github/workflows/nba-bulk-historical-audit.yml']
+permissions:
+  contents: read
+concurrency:
+  group: nba-bulk-historical-audit-once
+  cancel-in-progress: false
+jobs:
+  archive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: nba-bulk-historical-audit-20261124
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify immutable source and audit isolated archive
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = ba7006227f68cd0ff89f0cfb071dd763ef060f8a
+          python -m pip install 'pyarrow>=18,<24'
+          umask 077
+          python scripts/archive-nba-bulk-history-audit.py
+      - name: Archive original files and attribution only to private research branch
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nba/isolated-bulk-history/hoopR-2023-26
+          git commit -qm 'research: archive immutable hoopR three-season dataset and coverage audit'
+          git push -q origin HEAD:nba-bulk-historical-audit-20261124

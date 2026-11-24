@@ -1,0 +1,58 @@
+name: Private NFL drive diagnostics via public runner
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-six-drive-audit-public-runner.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-six-drive-audit
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute diagnostics and save evidence privately
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p outputs/nfl/research
+          report="outputs/nfl/research/drive-six-ci-status-${GITHUB_RUN_ID}.txt"
+          printf 'source_commit=%s\n' "$(git rev-parse HEAD)" > "$report"
+          audit_exit=0
+          test_exit=0
+          node scripts/audit-nfl-remaining-drive-exceptions.cjs >> "$report" 2>&1 || audit_exit=$?
+          node --test test/nfl-fixed-drive-reconciliation-v2.test.cjs >> "$report" 2>&1 || test_exit=$?
+          printf '\naudit_exit=%s\ntest_exit=%s\n' "$audit_exit" "$test_exit" >> "$report"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$report"
+          if [ "$audit_exit" -eq 0 ] && test -s outputs/nfl/research/drive-six-exception-audit-private.json; then
+            git add -f outputs/nfl/research/drive-six-exception-audit-private.json
+          fi
+          git commit -qm 'audit: persist six-drive diagnostic results in private repository'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git -c rebase.autoStash=true rebase -q origin/main
+            if git push -q origin HEAD:main; then
+              echo 'Private diagnostic saved.'
+              test "$audit_exit" -eq 0 && test "$test_exit" -eq 0
+              exit
+            fi
+            sleep "$attempt"
+          done
+          exit 1

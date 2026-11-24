@@ -1,0 +1,15 @@
+"use strict";
+const test=require("node:test"),a=require("node:assert/strict"),m=require("../src/esports-research-v1.cjs");
+const clock=(i,h)=>new Date(Date.UTC(2026,0,i,h)).toISOString();
+function fixture(title="CS2"){
+ const base={title,playerId:"p1",teamId:"t1",opponentId:"t2",ruleset:"v1",edition:"2026",mode:"hardpoint",professional:true,identityVerified:true,participationVerified:true,final:true,sourceId:"fixture",sourceUrl:"https://example.test/data",exposureUnit:m.TITLES[title].unit,exposure:20};
+ const maps=Array.from({length:13},(_,i)=>[1,2].map(index=>({...base,seriesId:"s"+(i+1),mapId:"s"+(i+1)+"m"+index,mapIndex:index,startAt:clock(i+1,index),endAt:clock(i+1,index+1),observedAt:clock(i+1,index+2),stats:{kills:10+i%3,assists:4,headshotKills:3}}))).flat();
+ const o={title,platform:"PrizePicks",offerId:"o",playerId:"p1",teamId:"t1",opponentId:"t2",seriesId:"s13",ruleset:"v1",ruleVersion:"test",sourceId:"fixture",sourceUrl:"https://example.test/offer",tier:"Standard",market:"kills",maps:[1,2],line:20.5,sides:["Higher","Lower"],capturedAt:clock(13,0),seriesStartAt:clock(13,1),identityVerified:true,scopeVerified:true,edition:"2026",mode:"hardpoint"};
+ return {maps,o};
+}
+test("all five titles accept exact-scope prior-only history",()=>{for(const title of Object.keys(m.TITLES)){const {maps,o}=fixture(title);const p=m.predict(o,m.uniqueMaps(maps).rows);a.equal(p.priorSeries,12);a.ok(!p.priorSeriesIds.includes("s13"));a.equal(m.grade(o,maps).actual,20);a.equal(m.evaluate([o],maps).records,1);}});
+test("missing map, ambiguous duplicate, and unverified identity abstain",()=>{const {maps,o}=fixture();a.equal(m.grade(o,maps.slice(0,-1)).status,"unresolved_missing_map_or_stat");a.equal(m.evaluate([o],[...maps,maps[0]]).records,0);a.equal(m.predict({...o,identityVerified:false},maps).status,"invalid_offer");});
+test("future observed rows and mode mismatch excluded",()=>{const {maps,o}=fixture("COD");maps[0]={...maps[0],observedAt:clock(14,1)};a.equal(m.predict(o,maps).status,"insufficient_prior_complete_series");a.equal(m.predict({...o,mode:"control"},maps).status,"insufficient_prior_complete_series");});
+test("headshot percentage is not count; missing stats never grade as zero",()=>{const {maps,o}=fixture("VALORANT");const x=maps.map(r=>({...r,stats:{kills:10,headshotPct:20}}));a.equal(m.grade({...o,market:"headshotKills"},x).status,"unresolved_missing_map_or_stat");a.equal(m.validMap({...maps[0],stats:{kills:2,headshotKills:3}}),false);});
+test("exposure known after cutoff is rejected and a known-at forecast is research only",()=>{const {maps,o}=fixture();const context={expectedExposure:42,exposureUnit:"rounds",sourceUrl:"https://example.test/forecast",knownAt:clock(14,1),independentPregameForecast:true};a.equal(m.predict({...o,context},maps).exposureChallenger,null);a.ok(m.predict({...o,context:{...context,knownAt:clock(12,20)}},maps).exposureChallenger);});
+test("push is not a loss; empty cohorts never fabricate performance",()=>{const {maps,o}=fixture();a.equal(m.grade({...o,line:20},maps).outcome,"Push");a.equal(m.evaluate([{...o,line:20}],maps).excluded.push,1);a.equal(m.evaluate([],[]).records,0);});

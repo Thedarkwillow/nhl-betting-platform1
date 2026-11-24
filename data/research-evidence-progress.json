@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-24T23:32:48.096Z",
+  "generatedAt": "2026-11-24T23:34:12.280Z",
   "sourceReportAt": "2026-11-24T23:09:35.743Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -91,7 +91,7 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-24T23:05:22.071Z",
+    "nhlReportAt": "2026-11-24T23:32:12.875Z",
     "nflReportAt": "2026-11-24T23:17:24.379Z",
     "nhl": {
       "registered": 397,
@@ -115,7 +115,7 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-24T23:05:22.728Z",
+    "sourceReportAt": "2026-11-24T23:32:13.378Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
       "completeOfficialGames": 1656,
@@ -147,15 +147,15 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-24T23:29:43.111Z",
+    "sourceReportAt": "2026-11-24T23:33:05.791Z",
     "nhl": {
-      "sourceEligible": false,
-      "examined": 0,
-      "newCandidates": 0,
-      "newAbstentions": 0,
+      "sourceEligible": true,
+      "examined": 242,
+      "newCandidates": 114,
+      "newAbstentions": 128,
       "archivedFirstGit": 1141,
       "duplicatesQuarantined": 108,
-      "selectivePolicyRequiresNewSource": true,
+      "selectivePolicyRequiresNewSource": false,
       "postPolicyScreening": {
         "kind": "public_goblin_post_policy_screening_counts_v1",
         "screened": 906,
@@ -291,10 +291,43 @@
     "nfl": {
       "supportedOpportunityResearchImplemented": true,
       "freshFullPlayerIdentityAndAvailabilityVerified": false,
-      "sourceFirstGitCurrent": false,
-      "gameSchedule": null,
-      "conditionalGSIS": null,
-      "positiveGameStatements": null,
+      "sourceFirstGitCurrent": true,
+      "gameSchedule": {
+        "kind": "public_nfl_goblin_independent_game_schedule_counts_v1",
+        "verifiedGames": 16,
+        "sourceGameKeys": 16,
+        "conflicting": 0,
+        "missing": 0,
+        "ambiguous": 0,
+        "playerGSISVerified": false,
+        "gameDayActiveVerified": false,
+        "sourceFirstParty": false,
+        "modelPromoted": false,
+        "approvedPicks": 0
+      },
+      "conditionalGSIS": {
+        "kind": "public_nfl_conditional_gsis_research_counts_v1",
+        "priorRosterCandidates": 424,
+        "sourcePlayers": 483,
+        "ambiguous": 0,
+        "insufficientPriorWeeks": 3,
+        "missingRoster": 56,
+        "conflictingSource": 0,
+        "verifiedSharedProviderIDs": 0,
+        "verifiedGamedayActive": 0,
+        "approvedSelections": 0,
+        "probabilityApproved": false
+      },
+      "positiveGameStatements": {
+        "kind": "public_nfl_official_explicit_active_mention_research_v1",
+        "officialArticles": 0,
+        "explicitMentions": 0,
+        "conditionalPlayersCorroborated": 0,
+        "sharedProviderIDsConfirmed": 0,
+        "fullOfficialActiveRosterVerified": false,
+        "approvedPicks": 0,
+        "playerIdentityAndGamedayBothVerified": false
+      },
       "officialInjuryStatuses": {
         "kind": "public_nfl_explicit_official_injury_status_counts_v1",
         "reportCapturedAt": "2026-11-24T23:05:54.511583+00:00",
@@ -307,14 +340,35 @@
         "gameDayActiveVerified": false,
         "bettingEligible": 0
       },
-      "identityInjuryOverlap": null,
+      "identityInjuryOverlap": {
+        "kind": "public_nfl_conditional_gsis_official_injury_overlap_v1",
+        "provisionalPlayers": 424,
+        "officialInjuryGSISCorroborations": 3,
+        "outExcluded": 0,
+        "questionableHeld": 3,
+        "doubtfulHeld": 0,
+        "unknownStatus": 421,
+        "identityConflicts": 0,
+        "verifiedPrizePicksGSIS": 0,
+        "gameDayActiveConfirmed": 0,
+        "approvedPicks": 0
+      },
       "gamedayOriginal": null,
-      "originalGoblinOffersAudited": 1263,
+      "originalGoblinOffersAudited": 1458,
       "exactIdentityReadyForModel": 0,
       "verifiedActiveRoster": false,
       "officialGameBridgeMissing": null,
-      "prerequisiteGaps": null,
-      "providerGSiSBridgeMissing": null,
+      "prerequisiteGaps": {
+        "kind": "public_nfl_goblin_missing_prerequisites_v1",
+        "originalOffersAudited": 1458,
+        "officialGame": 0,
+        "providerToGSIS": 1458,
+        "positiveActiveRoster": 1458,
+        "rowsMayHaveMultipleBlockers": true,
+        "verifiedActive": false,
+        "eligiblePicks": 0
+      },
+      "providerGSiSBridgeMissing": 1458,
       "positiveActiveStatusMissing": null,
       "firstGitEligible": 0
     },

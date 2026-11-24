@@ -64,3 +64,46 @@ jobs:
           console.log(JSON.stringify({rankTables:Object.keys(rank.tables).length,completeRankTables:Object.values(rank.tables).filter(t=>t.complete).length,specialistCoverage:sp,rankingDiagnostics:rank.diagnostics}));
           console.log(JSON.stringify({specialistReplay:r.nflSpecialistReplay.byMarket,nhlDirection:Object.fromEntries(Object.entries(r.nhl.byMarketPosition).filter(([k,v])=>!k.includes("|")&&v.headToHeadPairedMAE).map(([k,v])=>[k,v.headToHeadPairedMAE])),nflDirection:Object.fromEntries(Object.entries(r.nfl.byMarketPosition).filter(([k,v])=>v.combinedPaired>0).map(([k,v])=>[k,{paired:v.combinedPaired,base:v.combinedBaselineMAE,position:v.combinedPositionMAE,combined:v.combinedMAE,direction:v.syntheticDirection}]))}));
           NODE
+  refresh-trial:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 40c628674b2be57b92b9d3c9df105866cbf914f9
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install public historical source client
+        run: python -m pip install 'nflreadpy>=0.1,<2' --quiet
+      - name: Try actual source refresh in disposable private checkout only
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! python scripts/refresh-nfl-2026-final-history.py >"$log" 2>&1; then
+            echo "::error::Live source refresh did not pass integrity gates; private archive untouched"
+            exit 1
+          fi
+          node - <<'NODE'
+          const m=require('./outputs/nfl/history/manifest.json');
+          const refreshed=m.last2026OptionalRefreshedDatasets||[];
+          console.log(JSON.stringify({refreshed, warnings:m.last2026OptionalWarnings||[]}));
+          if(!['team_weekly','kicking_pbp','pbp_specialty_events'].every(x=>refreshed.includes(x)))throw Error('Incomplete new source refresh');
+          const {dataset}=require('./scripts/build-nfl-partner-board-research.cjs');
+          const {rankings}=require('./src/nfl-position-rankings-v1.cjs');
+          const s=dataset(2026,'schedule'),w=Math.max(...s.filter(g=>g.game_type==='REG'&&Number.isFinite(g.home_score)&&Number.isFinite(g.away_score)).map(g=>Number(g.week)))+1;
+          const r=rankings(dataset(2026,'player_weekly'),s,dataset(2026,'team_weekly'),2026,w);
+          console.log(JSON.stringify({afterRefresh:true,week:w,completeTables:Object.values(r.tables).filter(t=>t.complete).length,totalTables:Object.keys(r.tables).length,diagnostics:r.diagnostics}));
+          NODE

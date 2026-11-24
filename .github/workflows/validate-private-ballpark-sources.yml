@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: d0a4485aea093ae822fcb079da43b12ec2dee517
+          ref: b718bb6f375382d2724a9dd3b865fa3a4dcb3824
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
@@ -34,4 +34,22 @@ jobs:
           const r=require('./config/ballpark-style-source-registry-v1.json');
           if(r.sources.length!==12||new Set(r.sources.map(x=>x.id)).size!==12||r.sources.some(x=>x.automatedCollectionEnabled||x.modelEligible||x.publicRedistributionApproved))throw Error('Source approval gates failed');
           console.log(JSON.stringify({registeredSources:r.sources.length,automaticCollectorsEnabled:0,modelPromoted:false}));
+          NODE
+      - name: Trial documented single-game shift download
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python scripts/import-playerwon-shifts.py --download --game-id 2026020384
+          node - <<'NODE'
+          const fs=require('node:fs'),reconcile=require('./src/playerwon-shift-reconciliation-v1.cjs').reconcile;
+          (async()=>{
+            const dir='outputs/nhl/research/playerwon-shifts',file=fs.readdirSync(dir).find(x=>x.startsWith('2026020384-')&&x.endsWith('.json'));
+            const d=JSON.parse(fs.readFileSync(dir+'/'+file,'utf8'));
+            const base='https://api-web.nhle.com/v1/gamecenter/2026020384/';
+            const get=async suffix=>{const r=await fetch(base+suffix,{redirect:'error',signal:AbortSignal.timeout(20000)});if(!r.ok)throw Error('official final unavailable');return r.json()};
+            const [pbp,box]=await Promise.all([get('play-by-play'),get('boxscore')]);const v=reconcile(d,pbp,box);
+            console.log(JSON.stringify({candidateIntervals:d.rows.length,officialReconciled:!!v,sharedPairs:v?.shared?.length||0,modelPromoted:false}));
+          })().catch(()=>{console.error('Official reconciliation trial unavailable');process.exitCode=1});
           NODE

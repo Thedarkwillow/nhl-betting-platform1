@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-24T23:19:17.492Z",
+  "generatedAt": "2026-11-24T23:20:12.447Z",
   "sourceReportAt": "2026-11-24T23:09:35.743Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -389,7 +389,7 @@
     "kind": "public_expanded_ml_research_counts_v1",
     "sourceReportAt": "2026-11-24T16:52:59.817419+00:00",
     "marketEvidence": {
-      "sourceReportAt": "2026-11-24T20:45:44.377Z",
+      "sourceReportAt": "2026-11-24T23:19:29.806Z",
       "acceptedArchives": 9,
       "trackedSeries": 2231,
       "repeatedSeries": 0,
@@ -404,7 +404,7 @@
     "testedThresholds": 55,
     "thresholdsBeatingAllBaselines": 16,
     "prospective": {
-      "sourceReportAt": "2026-11-24T20:45:44.377Z",
+      "sourceReportAt": "2026-11-24T23:19:29.806Z",
       "registered": 29,
       "decided": 0,
       "correct": 0

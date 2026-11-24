@@ -7,7 +7,9 @@ on:
     branches: [main]
     paths: ['.github/workflows/freeze-private-nhl-nfl-pregame-now.yml']
   workflow_run:
-    workflows: ['Public Free Runners - Private NHL and NFL 6 and 9 AM Boards']
+    workflows:
+      - 'Public Free Runners - Private NHL and NFL 6 and 9 AM Boards'
+      - 'Bounded private NHL NFL sportsbook evidence refresh'
     types: [completed]
   schedule:
     - cron: '32 6 * * *'

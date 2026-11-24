@@ -6,7 +6,7 @@ const core=require("../src/nba-research-pipeline-v1.cjs");
 const {toRows}=require("./collect-live-partner-nhl-nfl.cjs");
 const {querySportsGameOdds}=require("./check-provider-api-quotas.cjs");
 const {accountAllows}=require("./collect-independent-nhl-sportsbook-fallback.cjs");
-const ROOT=path.resolve(__dirname,".."),OUT=path.join(ROOT,"outputs/nba");
+const CODE_ROOT=path.resolve(__dirname,".."),ROOT=process.env.RESEARCH_ARCHIVE_ROOT?fs.realpathSync(process.env.RESEARCH_ARCHIVE_ROOT):CODE_ROOT,OUT=path.join(ROOT,"outputs/nba");
 const stamp=t=>t.replace(/[-:.]/g,""),now=()=>new Date().toISOString();
 const pacific=t=>new Intl.DateTimeFormat("sv-SE",{timeZone:"America/Los_Angeles",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(t));
 const save=(p,d)=>{const f=path.join(OUT,p);fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,JSON.stringify(d)+"\n",{flag:"wx",mode:0o600});return f;};
@@ -159,7 +159,7 @@ async function collectOdds(){
  // Only a distinct NBA account key plus explicit enablement can enter this path.
  // The shared NHL/NFL key is never read or used. No provider request before
  // durable, unique NBA reservation. One event request, no retries.
- if(process.env.NBA_ODDS_ENABLE!=="1"||process.env.NBA_ODDS_SEPARATE_ACCOUNT_CONFIRMED!=="1"||!process.env.NBA_SPORTSGAMEODDS_API_KEY)return {status:"disabled_separate_budget_required",rows:[]};
+ if(ROOT!==CODE_ROOT||process.env.NBA_ODDS_ENABLE!=="1"||process.env.NBA_ODDS_SEPARATE_ACCOUNT_CONFIRMED!=="1"||!process.env.NBA_SPORTSGAMEODDS_API_KEY)return {status:"disabled_separate_budget_required",rows:[]};
  const t=now(),date=pacific(t),rel="outputs/nba/sportsbooks/reservations/"+date+".json",p=path.join(ROOT,rel);
  if(fs.existsSync(p))return {status:"already_reserved",rows:[]};
  save("sportsbooks/reservations/"+date+".json",{kind:"nba_separate_daily_odds_reservation_v1",createdAt:t,maxEvents:2,maxOddsRequests:1,sharedKeyUsed:false});
@@ -180,7 +180,7 @@ async function main(){
   if(!a||(season==="2026-27"&&Date.parse(started)-Date.parse(a.capturedAt)>20*3600000)){
    try{a=await collectHistory(season);status["history_"+season]="collected";}
    catch(e){status["history_"+season]="unavailable_"+(e?.name==="TimeoutError"?"timeout":"source_or_schema");
-    if(process.env.NBA_HISTORICAL_MIRROR_RESEARCH==="1"){try{execFileSync("python",["scripts/collect-nba-historical-mirror.py",season],{cwd:ROOT,timeout:90000,stdio:"ignore"});a=latest("history/"+season);status["history_"+season]="mirror_research_only";}catch{status["history_"+season]+="_mirror_unavailable";}}
+    if(process.env.NBA_HISTORICAL_MIRROR_RESEARCH==="1"){try{execFileSync("python",[path.join(CODE_ROOT,"scripts/collect-nba-historical-mirror.py"),season],{cwd:CODE_ROOT,timeout:90000,stdio:"ignore"});a=latest("history/"+season);status["history_"+season]="mirror_research_only";}catch{status["history_"+season]+="_mirror_unavailable";}}
    }
   }else status["history_"+season]="cached";
   if(a)logs.push(a);

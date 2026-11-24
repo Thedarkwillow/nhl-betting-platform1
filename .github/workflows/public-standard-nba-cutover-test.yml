@@ -1,0 +1,24 @@
+name: Public Standard residual and native NBA cutover checks
+on:
+  pull_request:
+    paths:
+      - 'src/nhl-standard-market-residual-v1.cjs'
+      - 'scripts/report-nhl-standard-proof.cjs'
+      - 'scripts/run-nba-private-research-v1.cjs'
+      - 'scripts/grade-nba-frozen-research-v1.cjs'
+      - '.github/workflows/public-standard-nba-cutover-test.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/nhl-standard-market-residual-v1.test.cjs test/nhl-specialist-standard-proof.test.cjs test/nba-frozen-research-grade-v1.test.cjs test/nba-research-pipeline-v1.test.cjs
+      - run: node --check scripts/report-nhl-standard-proof.cjs && node --check scripts/run-nba-private-research-v1.cjs && node --check scripts/grade-nba-frozen-research-v1.cjs
+      - run: python3 -m py_compile scripts/public-six-esports-history.py scripts/collect-nba-historical-mirror.py

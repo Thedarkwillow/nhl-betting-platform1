@@ -1,0 +1,21 @@
+name: Public NHL NFL offline regressions
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'scripts/backtest-nfl-historical-stats.cjs'
+      - '.github/workflows/public-nhl-nfl-offline-migration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/nhl-dual-real-line-hit-rates-v1.test.cjs test/nfl-qb-attempt-directional-v1.test.cjs test/nfl-qb-pace-proe-live-inputs.test.cjs

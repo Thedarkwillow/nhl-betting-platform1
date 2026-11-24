@@ -7,7 +7,7 @@
   "items": [
     {
       "sport": "NHL",
-      "description": "Public historical and prospective replay completed; 10 additional official games archived, 9 scoring reconciliations. Prospective challenger not qualified.",
+      "description": "Public Standard challenger lab completed: 1,243 decided original forecasts; 50.04% champion and 50.36% distribution challenger. Separate shot-attempt subset 191, not qualified. No model promotion.",
       "historicalRows": 1054,
       "prospectiveRows": 247,
       "prospectiveWins": 116
@@ -19,34 +19,34 @@
     },
     {
       "sport": "NBA",
-      "description": "85 candidate identities recovered; broader prior-season roster and report-ID fallback implemented. Exact row reconciliation and untouched validation not approved.",
+      "description": "89 candidate identities of 135 previously unresolved records; 46 remain unresolved. Original cohort counts reproduced; exact row-level equivalence and model qualification remain unapproved.",
       "historicalRows": 2093,
-      "unresolvedInjuryRows": 50
+      "unresolvedInjuryRows": 46
     },
     {
       "sport": "CS2",
-      "description": "OpenCS2: 834 complete professional maps, 29 dates, 342 held-out player-map observations per market. No original prop lines.",
+      "description": "834 complete maps, 29 dates. Map context tested on 102 matched observations per market; improved kills, deaths and headshots, worsened assists. Broader history needed.",
       "historicalRows": 8340
     },
     {
       "sport": "Valorant",
-      "description": "7,395 complete maps over 796 dates; 14,969 historical holdout observations per market; owner reports research permission. No verified original prop lines.",
+      "description": "73,950 player-map rows; map-conditioned test on 11,857 matched observations per market improved all three statistical errors.",
       "historicalRows": 73950
     },
     {
       "sport": "League of Legends",
-      "description": "ChainCC CC BY 4.0 historical statistical baseline: 36,022 holdout observations per market; no original prop lines.",
+      "description": "200,040 historical player-game records; champion-conditioned test on 24,992 matched observations per market improved kills, deaths and assists error.",
       "historicalRows": 200040
     },
     {
       "sport": "Dota 2",
-      "description": "2,000 professional match records with ten players per match; 108 dates; 3,772 holdout observations per market. Series-map scope and original lines remain unverified.",
-      "historicalRows": 20000
+      "description": "3,000 professional matches, 156 dates. Hero-conditioned historical error improved on 3,135 matched observations per market.",
+      "historicalRows": 30000
     },
     {
       "sport": "Call of Duty",
-      "description": "2019 historical baseline; bounded modern CDL public scoreboards research implemented; modern sample not yet verified.",
-      "historicalRows": 6030
+      "description": "Modern 2025 CDL sample: 125 complete maps, 9 dates; 1,000 player-map rows. 205 matched holdout observations per market; source refused further pages. Older 6,030-row 2019 baseline separate.",
+      "historicalRows": 1000
     },
     {
       "sport": "MLB",
@@ -57,6 +57,43 @@
     "providerPolicy": "Non-Cito sources only",
     "authenticatedOffersVerified": 0,
     "modelsApproved": 0,
-    "contextStatus": "Conditional historical model tests; not pregame map or draft confirmation"
+    "contextStatus": "Conditional historical model tests; not pregame map or draft confirmation",
+    "contextResults": [
+      {
+        "sport": "CS2",
+        "metric": "kills",
+        "n": 102,
+        "baselineMAE": 4.7873,
+        "contextMAE": 4.7291
+      },
+      {
+        "sport": "Valorant",
+        "metric": "kills",
+        "n": 11857,
+        "baselineMAE": 4.0916,
+        "contextMAE": 4.0873
+      },
+      {
+        "sport": "League of Legends",
+        "metric": "kills",
+        "n": 24992,
+        "baselineMAE": 2.0437,
+        "contextMAE": 2.0012
+      },
+      {
+        "sport": "Dota 2",
+        "metric": "kills",
+        "n": 3135,
+        "baselineMAE": 2.8281,
+        "contextMAE": 2.7499
+      },
+      {
+        "sport": "Call of Duty",
+        "metric": "kills",
+        "n": 205,
+        "baselineMAE": 9.7769,
+        "contextMAE": 7.2905
+      }
+    ]
   }
 }

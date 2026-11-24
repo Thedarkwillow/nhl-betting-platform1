@@ -1,0 +1,4 @@
+"use strict";
+const t=require("node:test"),a=require("node:assert/strict"),{summary,check}=require("../scripts/esports-zero-credit-coverage.cjs");
+t("exclude demo and unrelated league",()=>{a.throws(()=>summary({data:[],meta:{mode:"demo"}}));const r=summary({meta:{mode:"live"},data:[{league:"CS2",projection_count:12},{sport:"VAL",projection_count:0},{league:"NBA",projection_count:900},{league:"COD",is_demo:true}]});a.equal(r.length,2);a.equal(r[0].offers,12);a.equal(r[1].offers,0)});
+t("only coverage endpoint with key, no offers read",async()=>{const r=await check("PrizePicks","fixture",async(url,o)=>{a.equal(url,"https://prizepicksapi.com/api/v1/coverage");a.equal(o.headers.Authorization,"Bearer fixture");return new Response(JSON.stringify({data:[],meta:{mode:"live"}}),{headers:{"X-Credits-Cost":"0"}})});a.equal(r.status,"authenticated_independent_metadata");a.equal(r.chargedCredits,0);a.equal(r.originalAppAvailabilityVerified,false);});

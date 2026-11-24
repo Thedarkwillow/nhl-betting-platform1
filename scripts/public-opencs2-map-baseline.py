@@ -25,24 +25,27 @@ def player_total(rows,n):
         totals.add(tuple(sum(x[1][i] for x in sides.values()) for i in range(4)))
     if len(totals)!=1:return None
     return next(iter(totals))
-def map_rows(m):
+def map_rows(m,reason=None):
+    def reject(k):
+        if reason is not None:reason[k]+=1
+        return []
     n=m.get("rounds_played");x=m.get("match") or {}
-    if type(n)is not int or n<13 or x.get("rounds_played")!=n:return []
+    if type(n)is not int or n<13 or x.get("rounds_played")!=n:return reject("round_count")
     a,b=x.get("score_ct"),x.get("score_t")
-    if type(a)is not int or type(b)is not int or a+b!=n or a==b or max(a,b)<13:return []
+    if type(a)is not int or type(b)is not int or a+b!=n or a==b or max(a,b)<13:return reject("final_score")
     mid=m.get("match_id");mp=m.get("map_index");day=str(m.get("match_date"))[:10]
-    if not mid or type(mp)is not int or not 1<=mp<=7 or day<"2023-09-27":return []
+    if not mid or type(mp)is not int or not 1<=mp<=7 or day<"2023-09-27":return reject("match_map_date")
     datetime.strptime(day,"%Y-%m-%d")
     teams=m.get("teams") or []
-    if len(teams)!=2 or any(len(t.get("players") or [])!=5 for t in teams):return []
+    if len(teams)!=2 or any(len(t.get("players") or [])!=5 for t in teams):return reject("team_roster_shape")
     roster=[str(p.get("steamid") or "") for t in teams for p in t["players"]]
-    if len(set(roster))!=10 or any(not re.fullmatch(r"\d{17}",p) for p in roster):return []
+    if len(set(roster))!=10 or any(not re.fullmatch(r"\d{17}",p) for p in roster):return reject("player_ids")
     by=defaultdict(list)
     for p in m.get("players") or []:by[str(p.get("steamid") or "")].append(p)
     batch=[]
     for pid in roster:
         values=player_total(by[pid],n)
-        if values is None:return []
+        if values is None:return reject("player_total_conflict_or_missing")
         batch.append({"event":str(mid)+"|"+str(mp),"player":pid,"date":day,"map":m.get("map_name") or x.get("map_name") or x.get("map"),**dict(zip(METRICS,values))})
     return batch
 def evaluate(rows):
@@ -81,7 +84,7 @@ def main():
     assets=[e for e in entries if e.get("type")=="file" and re.fullmatch(r"data/metadata-[A-Za-z0-9_-]+\.parquet",e.get("path",""))]
     print(json.dumps({"stage":"manifest","metadataAssets":len(assets),"metadataBytes":sum(e["size"] for e in assets)}),flush=True)
     if not assets or len(assets)>400 or sum(e["size"] for e in assets)>80_000_000:raise ValueError("metadata bound")
-    maps={};bad=set();reject=0;files=[]
+    maps={};bad=set();reject=0;files=[];reasons=Counter()
     for e in assets:
         raw=free.download(f"https://huggingface.co/datasets/{REPO}/resolve/{REV}/{e['path']}",e["size"])
         sha=hashlib.sha256(raw).hexdigest()
@@ -90,15 +93,15 @@ def main():
         t=pq.read_table(io.BytesIO(raw),columns=["match_id","map_index","match_date","rounds_played","match","teams","players"]+ (["map_name"] if "map_name" in pq.ParquetFile(io.BytesIO(raw)).schema_arrow.names else []))
         files.append({"bytes":len(raw),"sha256":sha,"maps":t.num_rows})
         for m in t.to_pylist():
-            try:r=map_rows(m)
-            except (ValueError,TypeError,KeyError):r=[]
+            try:r=map_rows(m,reasons)
+            except (ValueError,TypeError,KeyError):r=[];reasons['malformed']+=1
             if not r:reject+=1;continue
             k=r[0]["event"]
             if k in maps:bad.add(k)
             else:maps[k]=r
     rows=[r for k,a in maps.items() if k not in bad for r in a]
     from esports_context_models import evaluate as context_eval
-    print(json.dumps({"kind":"opencs2_modern_map_baseline_v1","source":REPO,"revision":REV,"license":"CC BY 4.0; original rights not independently verified","assetsVerified":len(files),"metadataMapRows":sum(x["maps"] for x in files),"context":context_eval(rows,METRICS,["map"]),"completeMaps":len(rows)//10,"excludedMaps":reject,"duplicateMapsExcluded":len(bad),"baseline":evaluate(rows),"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
+    print(json.dumps({"kind":"opencs2_modern_map_baseline_v1","source":REPO,"revision":REV,"license":"CC BY 4.0; original rights not independently verified","assetsVerified":len(files),"metadataMapRows":sum(x["maps"] for x in files),"context":context_eval(rows,METRICS,["map"]),"completeMaps":len(rows)//10,"excludedMaps":reject,"exclusionReasons":dict(reasons),"duplicateMapsExcluded":len(bad),"baseline":evaluate(rows),"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
 if __name__=="__main__":
     try:main()
     except Exception as e:print(json.dumps({"kind":"opencs2_modern_map_baseline_v1","status":"unavailable","reason":free.safe_error(e),"detail":str(e)[:160] if isinstance(e,ValueError) else None,"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))

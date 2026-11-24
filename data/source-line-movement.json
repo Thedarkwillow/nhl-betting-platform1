@@ -1,38 +1,38 @@
 {
   "kind": "public_safe_nhl_nfl_board_line_movement_counts_v1",
   "schemaVersion": 1,
-  "generatedAt": "2026-11-24T14:46:54.680Z",
-  "earlierCaptureAt": "2026-11-23T17:05:43.966Z",
-  "laterCaptureAt": "2026-11-24T14:05:54.323Z",
-  "comparisonKind": "cross_day_previous_full_source",
+  "generatedAt": "2026-11-24T17:07:19.469Z",
+  "earlierCaptureAt": "2026-11-24T14:05:54.323Z",
+  "laterCaptureAt": "2026-11-24T17:05:59.383Z",
+  "comparisonKind": "genuine_same_day_six_to_nine",
   "sourceDays": {
-    "earlier": "2026-11-23",
+    "earlier": "2026-11-24",
     "later": "2026-11-24"
   },
-  "genuineSixToNineComparison": false,
-  "crossDayComparison": true,
+  "genuineSixToNineComparison": true,
+  "crossDayComparison": false,
   "sports": {
     "NHL": {
-      "firstObserved": 2160,
-      "secondObserved": 337,
-      "newSourceOfferIDs": 315,
-      "noLongerSeenSourceIDsUnverified": 2138,
-      "existingLineChanged": 3,
-      "existingTierChanged": 1,
-      "existingSideAvailabilityChanged": 4,
+      "firstObserved": 337,
+      "secondObserved": 364,
+      "newSourceOfferIDs": 35,
+      "noLongerSeenSourceIDsUnverified": 8,
+      "existingLineChanged": 1,
+      "existingTierChanged": 0,
+      "existingSideAvailabilityChanged": 6,
       "existingStartChanged": 0,
-      "unchanged": 18
+      "unchanged": 322
     },
     "NFL": {
-      "firstObserved": 2898,
-      "secondObserved": 5002,
-      "newSourceOfferIDs": 3039,
-      "noLongerSeenSourceIDsUnverified": 935,
-      "existingLineChanged": 294,
-      "existingTierChanged": 5,
-      "existingSideAvailabilityChanged": 62,
+      "firstObserved": 5002,
+      "secondObserved": 5546,
+      "newSourceOfferIDs": 708,
+      "noLongerSeenSourceIDsUnverified": 164,
+      "existingLineChanged": 249,
+      "existingTierChanged": 2,
+      "existingSideAvailabilityChanged": 47,
       "existingStartChanged": 0,
-      "unchanged": 1620
+      "unchanged": 4552
     }
   },
   "originalOffersFromPartnerSourceNotVerifiedPrizePicksApp": true,

@@ -1,0 +1,26 @@
+name: Public specialist offline regressions
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'scripts/**'
+      - '.github/workflows/public-specialist-regressions.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/nba-fixed-holdout-gate-v1.test.cjs test/nba-pinnacle-independent-replay-v1.test.cjs test/nba-sdv-context-replay-v1.test.cjs test/nba-rotation-position-v3.test.cjs test/nba-context-calibration-v2.test.cjs test/drive-exceptions-venue-audit.test.cjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install beautifulsoup4==4.13.4
+      - run: python -m unittest discover -s test -p test_keyfree_sports_tables.py

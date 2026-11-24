@@ -137,7 +137,7 @@ jobs:
             const forward=freeze(report,{weeklyRows,schedule,teamWeekly:years.flatMap(y=>dataset(y,'team_weekly')),snapCounts:years.flatMap(y=>dataset(y,'snap_counts'))});
             fs.mkdirSync('outputs/nfl/independent-source/forward-snapshots',{recursive:true});
             fs.writeFileSync('outputs/nfl/independent-source/forward-snapshots/'+stamp+'.json',JSON.stringify(forward)+'\n',{flag:'wx'});
-            console.log(JSON.stringify({forwardRegistered:forward.rows.length,contextRegistered:forward.rows.filter(x=>x.context!==null).length,powerScenarios:Object.keys(forward.formats.power).length,flexScenarios:Object.keys(forward.formats.flex).length,calibrated:false}));
+            console.log(JSON.stringify({forwardRegistered:forward.rows.length,contextRegistered:forward.rows.filter(x=>x.context!==null).length,commonMLRegistered:forward.rows.filter(x=>x.commonML?.researchOnly===true&&x.commonML.calibrated===false&&x.commonML.modelPromoted===false).length,powerScenarios:Object.keys(forward.formats.power).length,flexScenarios:Object.keys(forward.formats.flex).length,calibrated:false}));
             console.log(JSON.stringify({phase:'private_nfl_preview',scopedOffers:doc.offers.length,matchedRows:report.matchedRows,
               pages:board.pagesFetched,requests:calls,credits:0,fullBoard:false,publicRelease:false,calibrated:false}));
             console.log('BOUNDED_503_RESPONSES '+transient503);

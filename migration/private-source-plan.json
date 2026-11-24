@@ -1,0 +1,179 @@
+{
+  "baseline": "1be8cb99cc7fa0d3ec748fcc14cc9f0738f103aa",
+  "pull_requests": [
+    {
+      "number": 309,
+      "head": "a95d1dea144f6c4b16428531b9831476b4b5ff7f",
+      "paths": [
+        ".github/workflows/esports-offline-research.yml",
+        "config/esports/sources-v1.json",
+        "docs/ESPORTS_RESEARCH_V1.md",
+        "scripts/run-esports-research-v1.cjs",
+        "src/esports-research-v1.cjs",
+        "test/esports-research-v1.test.cjs"
+      ]
+    },
+    {
+      "number": 308,
+      "head": "b582d498e317b6f66e4bcd01f12c2f0c415a1fd4",
+      "paths": [
+        "src/nhl-dual-real-line-hit-rates-v1.cjs",
+        "src/nhl-eight-accuracy-forward-audit-v1.cjs",
+        "test/nhl-dual-real-line-hit-rates-v1.test.cjs"
+      ]
+    },
+    {
+      "number": 307,
+      "head": "8b52937cadfbab0ba2ad1e3d11c61360c916c53e",
+      "paths": [
+        ".github/workflows/nba-free-pinned-recovery.yml",
+        "config/nba/free-pinned-recovery-v1.json",
+        "docs/NBA_FINAL_VALIDATION_V3.md",
+        "scripts/recover-nba-pinned-parquet.py",
+        "scripts/run-nba-final-validation-v3.cjs",
+        "test/nba-final-validation-v3.test.cjs"
+      ]
+    },
+    {
+      "number": 306,
+      "head": "d02aa363ebbfbf5619411cf46a01efcd5ddc6299",
+      "paths": [
+        ".github/workflows/nba-private-context-validation.yml",
+        "config/nba/dunk-cohort-study-v1.json",
+        "config/nba/nba-context-study-v2.json",
+        "config/nba/real-line-calibration-cohort-v1.json",
+        "scripts/collect-nba-sdv-context.py",
+        "scripts/run-nba-dunk-cohort-study.cjs",
+        "scripts/run-nba-pinnacle-independent-replay.cjs",
+        "scripts/run-nba-sdv-real-line-audit.cjs",
+        "src/nba-context-calibration-v2.cjs",
+        "src/nba-fixed-holdout-gate-v1.cjs",
+        "src/nba-pinnacle-independent-replay-v1.cjs",
+        "src/nba-sdv-context-replay-v1.cjs",
+        "test/nba-context-calibration-v2.test.cjs",
+        "test/nba-fixed-holdout-gate-v1.test.cjs",
+        "test/nba-pinnacle-independent-replay-v1.test.cjs",
+        "test/nba-sdv-context-replay-v1.test.cjs"
+      ]
+    },
+    {
+      "number": 305,
+      "head": "8f4567519f5bf7d49644b8654315f46e1738eb69",
+      "paths": [
+        "scripts/run-nba-dunk-cohort-study.cjs",
+        "test/nba-real-line-priority.test.cjs"
+      ]
+    },
+    {
+      "number": 303,
+      "head": "956e14e6ea504d7d92db1f3b9bd9f5187f32ad82",
+      "paths": [
+        "scripts/collect-nba-bdl-historical-schedule.cjs",
+        "scripts/run-nba-dunk-cohort-study.cjs",
+        "src/nba-context-calibration-v2.cjs",
+        "src/nba-rotation-position-v3.cjs",
+        "test/nba-bdl-historical-schedule.test.cjs",
+        "test/nba-rotation-position-v3.test.cjs"
+      ]
+    },
+    {
+      "number": 299,
+      "head": "402d4fceb29a2ec2f3d3b09d06ede8ba2dd4ef9a",
+      "paths": [
+        "config/nba/official-injury-reviewed-2026-11-24.json",
+        "config/nba/official-schedule-reviewed-2026-11-24.json",
+        "scripts/collect-nba-historical-mirror.py",
+        "scripts/grade-nba-frozen-research-v1.cjs",
+        "scripts/run-nba-private-research-v1.cjs",
+        "src/nba-phase-zero-contract.cjs",
+        "src/nba-research-pipeline-v1.cjs",
+        "test/nba-frozen-research-grade-v1.test.cjs",
+        "test/nba-research-pipeline-v1.test.cjs"
+      ]
+    },
+    {
+      "number": 298,
+      "head": "d91215314d718f8b24dae1573bfbf9a2789355e5",
+      "paths": [
+        "scripts/grade-nhl-named-paper-slips.cjs",
+        "test/nhl-named-paper-slips.test.cjs"
+      ]
+    },
+    {
+      "number": 290,
+      "head": "56fd20f96caebeaea5f3764aeb2dee718e5559b9",
+      "paths": [
+        "scripts/report-priority-common-ml-qualification.cjs",
+        "src/priority-common-ml-qualification-v1.cjs",
+        "test/priority-common-ml-qualification-v1.test.cjs"
+      ]
+    },
+    {
+      "number": 280,
+      "head": "e3eb17a7dbef9cea741fc4c9571452cbf67261b0",
+      "paths": [
+        "scripts/collect-bounded-sportsbook-quotes.cjs",
+        "scripts/collect-nfl-full-drive-boundaries.py",
+        "scripts/report-cross-sport-position-h2h-replay.cjs",
+        "scripts/report-nfl-live-prop-readiness.cjs",
+        "scripts/report-nfl-qb-live-context.cjs",
+        "src/nfl-pregame-game-market-v1.cjs",
+        "src/nfl-qb-attempt-directional-v1.cjs",
+        "src/nfl-qb-live-context-v1.cjs",
+        "src/nfl-qb-pace-proe-v1.cjs",
+        "test/nfl-qb-attempt-directional-v1.test.cjs",
+        "test/nfl-qb-pace-proe-live-inputs.test.cjs"
+      ]
+    },
+    {
+      "number": 278,
+      "head": "c0cb2d4e15e7dfc0b34b6d8a98c5e72533f37e32",
+      "paths": [
+        "config/nfl-weather-venue-registry-v1.json",
+        "scripts/audit-nfl-weather-venue-coverage.cjs",
+        "scripts/report-cross-sport-position-h2h-replay.cjs",
+        "src/nfl-nws-pregame-weather-v1.cjs",
+        "src/nfl-special-teams-matchup-v1.cjs",
+        "test/drive-exceptions-venue-audit.test.cjs"
+      ]
+    },
+    {
+      "number": 153,
+      "head": "ba770c7cccbe015153ef2434d2ccc35a78ffbae9",
+      "paths": [
+        "scripts/collect-keyfree-sports-tables.py",
+        "scripts/report-keyfree-source-fallbacks.cjs",
+        "test/test_keyfree_sports_tables.py"
+      ]
+    },
+    {
+      "number": 146,
+      "head": "4832429fcce026783d378d6d01fb44dc72d664a4",
+      "paths": [
+        "scripts/report-nfl-independent-forward.cjs",
+        "scripts/report-source-completion-evidence.cjs",
+        "src/daily-context-readiness.cjs",
+        "src/nfl-position-matchup-ablation.cjs",
+        "src/nhl-public-dashboard-payload.cjs",
+        "src/nhl-public-research-extensions.cjs",
+        "test/daily-context-readiness.test.cjs",
+        "test/nhl-six-roadmap-upgrades.test.cjs"
+      ]
+    },
+    {
+      "number": 82,
+      "head": "22b30144244ab02561720c685dbaaec3554ec17f",
+      "paths": [
+        ".github/workflows/test-nfl-official-free-history.yml",
+        "docs/MASTER_BETTING_PLATFORM_ROADMAP.md",
+        "docs/NFL_FREE_QUOTE_AND_FINAL_GRADING_2026-11-08.md",
+        "scripts/audit-free-nfl-prizepicks-mirror.cjs",
+        "scripts/reconcile-nfl-espn-boxscore.cjs",
+        "scripts/reconcile-nfl-specialty-weekly.cjs",
+        "test/nfl-free-prizepicks-mirror-audit.test.cjs",
+        "test/nfl-independent-boxscore-reconcile.test.cjs",
+        "test/nfl-specialty-weekly-reconciliation.test.cjs"
+      ]
+    }
+  ]
+}

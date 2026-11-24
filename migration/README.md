@@ -1,0 +1,7 @@
+# Public migration protocol
+
+Public repository development is the owner-selected default. This one-time transfer is **source-only** and uses a pinned private baseline plus 14 pinned, previously open PR heads. No private git history is published. Existing public files win; conflicting source versions are retained only under migration/review for review. Unactivated workflow templates live outside .github/workflows. Do not automatically change a private-output workflow into a public-output workflow.
+
+No raw historical outputs, private provider board rows, personal bankroll settings, private deployment configs, credentials, or unreviewed documents are transferred. The historical inventory records counts only. Keep the original private first-Git chronology intact. The source file allowlist and independent Gitleaks scan are defense in depth, not a guarantee of rights or absence of embedded personal data. Review the staged code before merging. No metered sports data calls are made.
+
+The bulk workflow runs only after an approved merge to public main or trusted manual dispatch on main. It uses the existing scoped private contents token for a read-only checkout; never logs raw archives, uploads private artifacts, or runs private code. It pushes a review branch, not main. Open a PR using the normal connector so offline checks run. Existing public workflows that read private code/data remain enabled until each replacement has independently passed its acceptance tests.

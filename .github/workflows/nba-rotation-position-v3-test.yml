@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 9c856b6b6eaebd8f4c6445d3d3c3399772a1628b
+          ref: df6f775c77a92698da88c6b109d104bdbb87460a
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -22,5 +22,5 @@ jobs:
       - name: Offline test and private archive coverage
         run: |
           set -euo pipefail
-          node --test test/nba-rotation-position-v3.test.cjs test/nba-context-calibration-v2.test.cjs test/nba-dunk-cohort-study.test.cjs test/nba-alternate-providers.test.cjs test/nba-authorized-provider-access.test.cjs
+          node --test test/nba-bdl-historical-schedule.test.cjs test/nba-rotation-position-v3.test.cjs test/nba-context-calibration-v2.test.cjs test/nba-dunk-cohort-study.test.cjs test/nba-alternate-providers.test.cjs test/nba-authorized-provider-access.test.cjs
           node scripts/run-nba-dunk-cohort-study.cjs

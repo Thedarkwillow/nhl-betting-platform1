@@ -1,0 +1,56 @@
+name: Validate private matched sportsbook research PR 294
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-sportsbook-matched-pr294.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-matched-sportsbook-pr294
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/sportsbook-matched-evidence-20261124
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate archived evidence without making any paid requests
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(git rev-parse HEAD)" = "ddf9bc925b1e5b043d3c7c872f80d9b9cf789a3b"
+          report="outputs/health/ci-diagnostics/sportsbook-matched-pr294-${GITHUB_RUN_ID}.txt"
+          mkdir -p "$(dirname "$report")"
+          overall=0
+          stage() {
+            local name="$1"; shift
+            printf '\n=== %s ===\n' "$name" >> "$report"
+            if "$@" >> "$report" 2>&1; then printf '%s: PASS\n' "$name" >> "$report"; else printf '%s: FAIL\n' "$name" >> "$report"; overall=1; fi
+          }
+          stage regression node --test test/sportsbook-matched-model-research.test.cjs test/sportsbook-event-quota.test.cjs test/nhl-sportsbook-event-bridge.test.cjs test/nhl-sportsbook-original-name.test.cjs test/expanded-common-ml-grade.test.cjs
+          stage collector_syntax node --check scripts/collect-bounded-sportsbook-quotes.cjs
+          stage nhl_syntax node --check scripts/freeze-partner-nhl-pregame.cjs
+          stage nfl_syntax node --check scripts/freeze-nfl-partner-pregame.cjs
+          if [ "$overall" -eq 0 ]; then stage archive_grade node scripts/report-expanded-common-ml-forward.cjs; fi
+          if [ "$overall" -eq 0 ]; then stage summarize node -e 'const d=require("./outputs/health/expanded-common-ml-forward-latest.json"); const x=d.sportsbookObservedLineHistory;console.log(JSON.stringify({matched:d.sportsbookMatched,lines:{acceptedArchives:x.acceptedArchives,trackedSeries:x.trackedSeries,repeatedSeries:x.repeatedSeries,changedLines:x.changedLines},modelPromoted:d.modelPromoted}));'; fi
+          printf '\noverall_exit=%s\n' "$overall" >> "$report"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$report"
+          if [ "$overall" -eq 0 ]; then git add -f outputs/health/expanded-common-ml-forward-latest.json; fi
+          git commit -qm 'research: validate private sportsbook matched evidence without paid calls'
+          git push -q origin HEAD:research/sportsbook-matched-evidence-20261124
+          echo 'Private validation evidence archived; no paid calls or private artifacts published.'
+          exit "$overall"

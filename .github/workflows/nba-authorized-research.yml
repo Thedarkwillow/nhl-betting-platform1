@@ -69,6 +69,19 @@ jobs:
           NBA_ODDS_SEPARATE_ACCOUNT_CONFIRMED: ${{ vars.NBA_ODDS_SEPARATE_ACCOUNT_CONFIRMED }}
           NBA_PROVIDER_PREFLIGHT_APPROVED: ${{ github.event_name == 'workflow_dispatch' && inputs.probe_accounts && '1' || '0' }}
         run: node scripts/check-nba-authorized-provider-access.cjs
+      - name: Verify newly configured NBA providers without spending DunkAPI credits
+        if: github.ref == 'refs/heads/nba-authorized-provider-deployment-20261124'
+        env:
+          NBA_BDL_FREE_SOURCE_ENABLED: '1'
+          NBA_BALLDONTLIE_API_KEY: ${{ secrets.NBA_BALLDONTLIE_API_KEY }}
+          NBA_DUNKAPI_API_KEY: ${{ secrets.NBA_DUNKAPI_API_KEY }}
+          NBA_DUNK_ESTIMATE_ENABLED: '1'
+          NBA_DUNK_HISTORY_MANUAL_APPROVED: '0'
+          NBA_DUNK_PLAYER_ID: '3112335'
+          NBA_DUNK_MARKET: 'player_points'
+          NBA_DUNK_FROM_DATE: '2026-11-01'
+          NBA_DUNK_TO_DATE: '2026-11-23'
+        run: node scripts/collect-nba-alternate-providers.cjs
   research:
     needs: validation
     if: github.ref == 'refs/heads/main' && vars.NBA_DIRECT_SOURCE_AUTHORIZED == '1'

@@ -13,13 +13,13 @@ test("full NHL/NFL source capture runs EVERY DAY with non-peak Pacific cron and 
   "Avoid start-of-hour GitHub high-load delay");
  assert.match(y,/GITHUB_EVENT_SCHEDULE: \$\{\{ github\.event\.schedule \}\}/);
  assert.match(y,/pacific-morning-capture-gate\.cjs/);
- assert.match(y,/Capture full NEW NHL and NFL source responses inside private checkout/);
+ assert.match(y,/Execute public native capture into authorized archive/);
 });
 test("source preflight is before private checkout; late jobs never contact providers",()=>{
  const probeStart=y.indexOf("- name: Diagnostic count-only probe");
  const gateStart=y.indexOf("- name: Verify the ORIGINAL scheduled slot");
  const privateCheckout=y.indexOf("- name: Checkout private repository ONLY");
- const providerCall=y.indexOf("- name: Capture full NEW NHL and NFL");
+ const providerCall=y.indexOf("- name: Execute public native capture into authorized archive");
  assert.ok(probeStart>0&&probeStart<gateStart&&gateStart<privateCheckout&&
   privateCheckout<providerCall);
  assert.match(y,/if: steps\.gate\.outputs\.allowed == 'true'/);
@@ -37,7 +37,9 @@ test("counts-only probes cannot masquerade as complete private-source board capt
  assert.ok(!probe.includes("github.event_name == 'schedule'"));
  assert.match(y,/No actual source archival changes/);
  assert.match(y,/No durable private 9 AM archive/);
- assert.match(y,/Private runner processes|private checkout|private-only/i);
+ assert.match(y,/node scripts\/capture-public-native-morning\.cjs "\$GITHUB_WORKSPACE\/private"/);
+ assert.match(y,/Git-archive only private NHL\/NFL offers and audit; never public/);
+ assert.match(y,/name: Execute public native capture into authorized archive[\s\S]*?working-directory: public/);
 });
 test("slot-specific failure protection rejects a 6AM cron seen at 9AM",()=>{
  const d=decide({eventName:"schedule",schedule:"7 6 * * *",

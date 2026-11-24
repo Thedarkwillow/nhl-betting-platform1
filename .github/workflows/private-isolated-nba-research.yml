@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   research:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && vars.NBA_SOURCE_USE_AUTHORIZED == '1'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -27,6 +27,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      # NBA data use must be explicitly cleared for the intended research and betting-related purpose.
+      # Do not set the authorization variable based merely on public accessibility or a mirror license.
       - name: Validate isolated NBA contracts
         run: |
           set -euo pipefail

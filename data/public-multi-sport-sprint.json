@@ -1,13 +1,13 @@
 {
   "kind": "public_multi_sport_sprint_evidence_v1",
-  "asOf": "2026-11-24",
+  "asOf": "2026-11-24T23:38:36Z",
   "rawRowsPublished": 0,
   "paidRequests": 0,
   "modelPromoted": false,
   "items": [
     {
       "sport": "NHL",
-      "description": "Public Standard challenger lab completed: 1,243 decided original forecasts; 50.04% champion and 50.36% distribution challenger. Separate shot-attempt subset 191, not qualified. No model promotion.",
+      "description": "Exact-line paired audit: 1,243 decided rows, 99 games, 14 dates; champion 50.04%, distribution challenger 50.36%, always Lower 53.82%. Distribution Brier 0.271436 vs 0.272355; no qualified challenger.",
       "historicalRows": 1054,
       "prospectiveRows": 247,
       "prospectiveWins": 116
@@ -19,13 +19,13 @@
     },
     {
       "sport": "NBA",
-      "description": "89 candidate identities of 135 previously unresolved records; 46 remain unresolved. Original cohort counts reproduced; exact row-level equivalence and model qualification remain unapproved.",
+      "description": "57/57 games matched and original aggregate counts reproduced; 89 candidate mappings, 46 unresolved. Original audit lacks immutable row identities; retrospective roster evidence is not pregame proof. Freeze not approved.",
       "historicalRows": 2093,
       "unresolvedInjuryRows": 46
     },
     {
       "sport": "CS2",
-      "description": "834 complete maps, 29 dates. Map context tested on 102 matched observations per market; improved kills, deaths and headshots, worsened assists. Broader history needed.",
+      "description": "Original cohort: 834 complete maps, 8,340 player-map rows. Separate regulation reconstruction: 1,125 complete maps, 11,250 rows, including 454 maps absent from original cohort. Cohorts overlap; do not add them. No original prop lines.",
       "historicalRows": 8340
     },
     {
@@ -45,8 +45,8 @@
     },
     {
       "sport": "Call of Duty",
-      "description": "Modern 2025 CDL sample: 125 complete maps, 9 dates; 1,000 player-map rows. 205 matched holdout observations per market; source refused further pages. Older 6,030-row 2019 baseline separate.",
-      "historicalRows": 1000
+      "description": "Separate 2026 bounded sample: 187 complete maps, 1,496 valid player-map rows across 15 dates. Mode-conditioned kills MAE 5.56 vs last-20 8.93; deaths MAE 5.07 vs 8.64, 304 matched observations per market. 2025 cohort (125 maps) and 2019 baseline remain separate.",
+      "historicalRows": 1496
     },
     {
       "sport": "MLB",
@@ -93,10 +93,26 @@
         "n": 205,
         "baselineMAE": 9.7769,
         "contextMAE": 7.2905
+      },
+      {
+        "sport": "Call of Duty",
+        "cohort": "2026 bounded sample",
+        "metric": "kills",
+        "n": 304,
+        "baselineMAE": 8.926174812030071,
+        "contextMAE": 5.558443602313366
+      },
+      {
+        "sport": "Call of Duty",
+        "cohort": "2026 bounded sample",
+        "metric": "deaths",
+        "n": 304,
+        "baselineMAE": 8.635056390977443,
+        "contextMAE": 5.073867169721778
       }
     ],
     "independentCoverage": {
-      "observedAt": "2026-11-24T23:29:02.474Z",
+      "observedAt": "2026-11-24T23:36:37.048Z",
       "kind": "authenticated_independent_coverage_counts_not_lines",
       "PrizePicks": {
         "CS2": 207,
@@ -112,8 +128,36 @@
         "DOTA2": 18,
         "COD": null
       },
-      "originalOffersVerified": 0
+      "originalOffersVerified": 0,
+      "freshnessAtCheck": {
+        "PrizePicks": {
+          "CS2": false,
+          "VALORANT": false,
+          "LOL": false,
+          "DOTA2": false,
+          "COD": false
+        },
+        "Underdog": {
+          "CS2": true,
+          "VALORANT": true,
+          "LOL": false,
+          "DOTA2": true,
+          "COD": null
+        }
+      }
     },
-    "coverageNote": "Provider metadata only, historical snapshot, not current app availability or authenticated individual lines."
+    "coverageNote": "Provider metadata only, historical snapshot, not current app availability or authenticated individual lines. Underdog CS2, VALORANT and DOTA2 were one minute old at check; PrizePicks CS2 was 20 minutes old and failed freshness check. PrizePicks charged-credit header absent; Underdog reported zero. No documented metered endpoints called.",
+    "exportIntake": {
+      "accepted": 0,
+      "configuredOfficialExports": 0,
+      "independentKeysPresent": 2,
+      "meteredProviderCalls": 0
+    }
+  },
+  "validationRuns": {
+    "nba": 45511373860,
+    "cs2AndExport": 45511373328,
+    "codAndNhl": 45511373767,
+    "coverage": 45511373750
   }
 }

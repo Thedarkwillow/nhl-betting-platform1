@@ -27,7 +27,7 @@ concurrency:
 jobs:
   private-freeze:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Require private repository-scoped token
         env:
@@ -57,6 +57,46 @@ jobs:
           if ! node --test test/nhl-sog-line-movement.test.cjs test/nhl-sog-opportunity-challengers.test.cjs test/partner-prizepicks-board.test.cjs test/partner-compact-0903.test.cjs test/nhl-partner-pregame-freeze.test.cjs test/nhl-nfl-five-priorities.test.cjs test/nhl-pregame-live-context-v1.test.cjs test/nhl-multifactor-future-v1.test.cjs >"$log" 2>&1; then
             echo "::error::Private pregame gate tests failed; no new selection created."
             exit 1
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Train and durably archive initial portable ML research artifact before capture
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          artifact=outputs/research/priority-common-ml-artifact.json
+          if git cat-file -e "HEAD:$artifact" 2>/dev/null; then
+            echo "Existing committed fixed ML research artifact retained."
+          else
+            log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+            python -m pip install 'scikit-learn>=1.5,<2' --quiet
+            node --test test/priority-common-ml-shadow-v1.test.cjs
+            if ! node scripts/export-priority-component-features.cjs >"$log" 2>&1; then
+              echo "::error::Private ML feature export failed"; exit 1
+            fi
+            if ! python scripts/train-priority-common-ml-shadow.py >"$log" 2>&1; then
+              echo "::error::Prior-season ML fit failed"; exit 1
+            fi
+            node - <<'NODE'
+          const a=require('./outputs/research/priority-common-ml-artifact.json');
+          if(a.kind!=='priority_common_features_logistic_v1'||a.researchOnly!==true||a.modelPromoted!==false||Object.keys(a.models||{}).length!==3||Object.values(a.models).some(m=>Object.keys(m).length!==3))throw Error('Incomplete portable model artifact');
+          console.log(JSON.stringify({portableModels:Object.values(a.models).reduce((n,m)=>n+Object.keys(m).length,0),modelPromoted:false}));
+          NODE
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -f "$artifact"
+            git commit -m "data: initial fixed prior-season portable ML research coefficients" >/dev/null
+            saved=false
+            for attempt in 1 2 3; do
+              git fetch -q origin main
+              git rebase -q origin/main || { git rebase --abort; exit 1; }
+              if git push -q origin HEAD:main; then saved=true; break; fi
+              sleep "$attempt"
+            done
+            test "$saved" = true
           fi
       - name: Capture NEW actual-time complete NHL and NFL source in private checkout
         id: capture
@@ -182,6 +222,7 @@ jobs:
               echo "Private research candidate committed and pushed before earliest puck drop."
               node - <<'NODE'
           const s=require('./'+process.env.FREEZE_SNAPSHOT),f=s.privateFormatLineupResearch;
+          console.log(JSON.stringify({commonMLRegistered:(s.matchupContextReviewV1?.rows||[]).filter(x=>x.commonML?.researchOnly===true&&x.commonML.calibrated===false&&x.commonML.modelPromoted===false).length,originalFrozenOnly:true,modelPromoted:false}));
           console.log(JSON.stringify({powerScenarioCount:Object.values(f?.power||{}).filter(Boolean).length,flexScenarioCount:Object.values(f?.flex||{}).filter(Boolean).length,individualSpecialistResearchCount:s.specialistIndividualResearch?.rows?.length||0,specialistExclusionCounts:s.specialistIndividualResearch?.excluded||{},specialistStatus:s.specialistIndividualResearch?.kind||s.specialistIndividualResearch?.status||'missing',officialPlatformSettlementVerified:false}));
           NODE
               exit 0

@@ -1,0 +1,84 @@
+name: Validate private source backfill and model qualification research
+on:
+  pull_request:
+    paths: ['.github/workflows/validate-private-source-backfill-qualification.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  research:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: c2eb5c3de2fae5e7164d496e9bccad4981ab4959
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'nflreadpy>=0.1,<2' 'lightgbm>=4.5,<5' 'scikit-learn>=1.5,<2' --quiet
+      - name: Validate code and bounded source trial
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! npm test >"$log" 2>&1; then
+            grep -E '^# (tests|pass|fail) [0-9]+$' "$log" || true
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail) [0-9]+$' "$log"
+          python -m unittest discover -s test -p test_playerwon_shift_import.py
+          PLAYERWON_BATCH=3 node scripts/backfill-playerwon-reconciled-shifts.cjs
+          node scripts/audit-nfl-remaining-drive-exceptions.cjs
+          node - <<'NODE'
+          const fs=require('fs'),lab=require('./src/same-game-frozen-copula-research-v1.cjs');
+          for(const [sport,file] of [['NHL','outputs/health/nhl-standard-forward-improvement-latest.json'],['NFL','outputs/nfl/backtests/independent-source-forward-latest.json']]){
+            const d=JSON.parse(fs.readFileSync(file,'utf8'));
+            console.log(JSON.stringify({sport,...lab.study(d.firstObservedCalibrationState,{grouping:'market_side_pooled'})}));
+          }
+          NODE
+          if ! node scripts/report-nhl-position-multiseason-v3.cjs >"$log" 2>&1; then
+            echo "::error::Private NHL forward benchmark audit failed"
+            exit 1
+          fi
+          node - <<'NODE'
+          const r=require('./outputs/health/nhl-position-multiseason-v3-latest.json');
+          console.log(JSON.stringify({sharedIceGoalieForward:r.forward.sharedIceGoalieForward,externalBenchmarkForward:r.externalBenchmarkForward}));
+          NODE
+      - name: Matched chronological learned model trial
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          for script in scripts/collect-nfl-receiving-expected-targets.py scripts/collect-nfl-receiver-dropback-participation.py; do
+            if ! python "$script" >"$log" 2>&1; then
+              echo "::warning::Optional historical data source unavailable"
+            else
+              cat "$log"
+            fi
+          done
+          if ! node scripts/export-priority-component-features.cjs >"$log" 2>&1; then
+            echo "::error::Private feature export failed"
+            exit 1
+          fi
+          cat "$log"
+          if ! python scripts/study-priority-component-distributions.py >"$log" 2>&1; then
+            echo "::error::Private learned model trial failed"
+            exit 1
+          fi
+          cat "$log"

@@ -6,6 +6,7 @@ on:
   workflow_run:
     workflows:
       - 'Publish sanitized NHL NFL frozen model scorecards'
+      - 'Publish sanitized NHL NFL model and history research progress'
       - 'Publish honest NHL NFL six nine AM board health'
       - 'Verify both original NFL NHL freezes and publish safe status'
       - 'Record daily NHL NFL source line moves and publish counts'
@@ -22,6 +23,7 @@ on:
       - 'data/nhl-nfl-freeze-status.json'
       - 'data/collection-health.json'
       - 'data/model-scorecards.json'
+      - 'data/research-evidence-progress.json'
       - 'data/accuracy-platform-evidence.json'
       - 'data/source-line-movement.json'
       - 'data/nfl-independent-coverage.json'
@@ -36,13 +38,15 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: main
       - uses: actions/configure-pages@v5
         with:
           enablement: true

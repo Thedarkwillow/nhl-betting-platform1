@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-24T00:21:39.674Z",
+  "generatedAt": "2026-11-24T00:24:32.695Z",
   "sourceReportAt": "2026-11-23T22:37:25.293Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -92,7 +92,7 @@
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
     "nhlReportAt": "2026-11-23T18:48:50.412Z",
-    "nflReportAt": "2026-11-23T14:50:22.915Z",
+    "nflReportAt": "2026-11-24T00:22:44.281Z",
     "nhl": {
       "registered": 380,
       "eligible": 94,
@@ -360,7 +360,20 @@
     "approvedPicks": 0,
     "approvedLineups": 0
   },
-  "matchupEvidence": null,
+  "matchupEvidence": {
+    "kind": "public_matchup_evidence_counts_v1",
+    "sourceReportAt": "2026-11-24T00:23:27.387Z",
+    "rankingTables": 70,
+    "completeRankingTables": 0,
+    "teamGames": 1412,
+    "reconciledPuntTeamGames": 1412,
+    "reconciledKickTeamGames": 1412,
+    "punterAppearances": 1070,
+    "kickerAppearances": 1119,
+    "historicalOnly": true,
+    "modelPromoted": false,
+    "approvedPicks": 0
+  },
   "proprietaryRowsPublished": 0,
   "calibrationApproved": false,
   "modelPromoted": false

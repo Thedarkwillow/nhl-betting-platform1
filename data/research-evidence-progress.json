@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-24T16:36:15.061Z",
+  "generatedAt": "2026-11-24T16:43:41.430Z",
   "sourceReportAt": "2026-11-24T16:30:19.132Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -427,6 +427,19 @@
     "historicalOnly": true,
     "modelPromoted": false,
     "approvedPicks": 0
+  },
+  "expandedML": {
+    "kind": "public_expanded_ml_research_counts_v1",
+    "sourceReportAt": "2026-11-24T16:39:25.435241+00:00",
+    "candidateMarkets": 17,
+    "trainedMarkets": 16,
+    "testedThresholds": 52,
+    "thresholdsBeatingAllBaselines": 16,
+    "prospective": null,
+    "historicalSyntheticOnly": true,
+    "calibrationApproved": false,
+    "modelPromoted": false,
+    "privateRowsPublished": 0
   },
   "proprietaryRowsPublished": 0,
   "calibrationApproved": false,

@@ -1,0 +1,68 @@
+name: Validate private goalie history and expanded prospective grader
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-goalie-expanded-grade-pr292.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-goalie-expanded-grade
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/goalie-ml-and-expanded-freeze-20261124
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test and privately archive separate goalie research and forward grading
+        working-directory: private
+        shell: bash
+        env:
+          PRIORITY_EXPANDED_ML: '1'
+          PRIORITY_GOALIE_ONLY: '1'
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(git rev-parse HEAD)" = "d66fb45f6f47377dbffa202c49f6ace6f0889659"
+          report="outputs/health/ci-diagnostics/goalie-expanded-grade-${GITHUB_RUN_ID}.txt"
+          mkdir -p "$(dirname "$report")"
+          overall=0
+          stage() {
+            local name="$1"; shift
+            printf '\n=== %s ===\n' "$name" >> "$report"
+            if "$@" >> "$report" 2>&1; then printf '%s: PASS\n' "$name" >> "$report"; else printf '%s: FAIL\n' "$name" >> "$report"; overall=1; fi
+          }
+          stage regression node --test test/priority-common-ml-shadow-v1.test.cjs test/expanded-common-ml-grade.test.cjs
+          stage freeze_syntax node --check scripts/freeze-nfl-partner-pregame.cjs
+          stage nhl_syntax node --check scripts/freeze-partner-nhl-pregame.cjs
+          stage grading node scripts/report-expanded-common-ml-forward.cjs
+          stage dependencies python -m pip install 'numpy<3' 'scikit-learn<2' --quiet
+          if [ "$overall" -eq 0 ]; then stage export node scripts/export-priority-component-features.cjs; fi
+          if [ "$overall" -eq 0 ]; then stage goalie_training python scripts/train-priority-common-ml-shadow.py; fi
+          printf '\noverall_exit=%s\n' "$overall" >> "$report"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$report"
+          if [ "$overall" -eq 0 ]; then
+            git add -f outputs/health/expanded-common-ml-forward-latest.json
+            if node -e 'const d=require("./outputs/research/priority-goalie-ml-artifact.json");if(!Object.keys(d.models?.nhl_saves||{}).length||d.researchOnly!==true||d.modelPromoted!==false)process.exit(1)' ; then
+              git add -f outputs/research/priority-goalie-ml-artifact.json
+            fi
+          fi
+          git commit -qm 'research: private goalie and prospective grading diagnostics'
+          git push -q origin HEAD:research/goalie-ml-and-expanded-freeze-20261124
+          echo "Private evidence archived; no private rows published."
+          exit "$overall"

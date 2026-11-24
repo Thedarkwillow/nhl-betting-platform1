@@ -1,0 +1,44 @@
+name: Validate independent NHL fallback without provider calls
+on:
+  push:
+    branches: [nhl-independent-sportsbook-fallback-runner-20261124]
+    paths: ['.github/workflows/validate-independent-nhl-fallback.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 4801fd46dad42a68127c67b444f81520ae494189
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run offline private regression and report aggregate results only
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --check scripts/collect-independent-nhl-sportsbook-fallback.cjs
+          node --check scripts/freeze-partner-nhl-pregame.cjs
+          if ! node --test test/nhl-independent-sportsbook-fallback.test.cjs test/sportsgameodds-nhl.test.cjs test/sportsbook-matched-model-research.test.cjs test/nhl-partner-pregame-freeze.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" || true
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail)' "$log"
+          echo 'No sportsbook credentials or requests used in tests.'
+      - name: Check existing independent provider account (no odds collection)
+        env:
+          SPORTSGAMEODDS_API_KEY: ${{ secrets.SPORTSGAMEODDS_API_KEY }}
+        run: |
+          node - <<'NODE'
+          const {querySportsGameOdds}=require('./scripts/check-provider-api-quotas.cjs');
+          const {accountAllows}=require('./scripts/collect-independent-nhl-sportsbook-fallback.cjs');
+          (async()=>{const q=await querySportsGameOdds(process.env.SPORTSGAMEODDS_API_KEY,(url,opts)=>fetch(url,{...opts,redirect:'error'}));console.log(JSON.stringify({status:q.status,tier:q.tier||null,active:q.isActive===true,allowanceVerified:accountAllows(q)}));if(!accountAllows(q))process.exitCode=1;})().catch(()=>{console.error('Account usage check failed');process.exitCode=1;});
+          NODE

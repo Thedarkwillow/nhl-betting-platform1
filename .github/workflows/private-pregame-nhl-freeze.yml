@@ -195,6 +195,36 @@ jobs:
             git rebase -q origin/main || { git rebase --abort; exit 1; }
             git push -q origin HEAD:main
           fi
+      - name: Collect independent NHL fallback when primary quota is exhausted
+        working-directory: private
+        shell: bash
+        env:
+          SPORTSGAMEODDS_API_KEY: ${{ secrets.SPORTSGAMEODDS_API_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if ! test -f scripts/collect-independent-nhl-sportsbook-fallback.cjs; then
+            echo "::warning::Independent fallback not deployed; existing freeze retained."
+            exit 0
+          fi
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if ! node --test test/nhl-independent-sportsbook-fallback.test.cjs test/sportsgameodds-nhl.test.cjs test/sportsbook-matched-model-research.test.cjs >"$log" 2>&1; then
+            echo "::warning::Independent fallback tests failed; no provider request."
+            exit 0
+          fi
+          if ! node scripts/collect-independent-nhl-sportsbook-fallback.cjs >"$log" 2>&1; then
+            echo "::warning::Independent fallback unavailable; existing freeze retained."
+            exit 0
+          fi
+          if test -d outputs/sportsbooks/independent-nhl; then
+            git add -f outputs/sportsbooks/independent-nhl/*.json
+            if ! git diff --cached --quiet; then
+              git commit -qm 'data: private independent NHL sportsbook evidence'
+              git fetch -q origin main
+              git rebase -q origin/main || { git rebase --abort; exit 1; }
+              git push -q origin HEAD:main
+            fi
+          fi
       # Standard shadows are frozen with the same original private Git snapshot.
       # Manual late-night board checks accept fully paginated small NFL inventories.
       # Never replace champion model picks with unfitted challenger directions.

@@ -115,9 +115,14 @@ jobs:
           done
           if ! git diff --cached --quiet; then
             git commit -qm 'data: current official roster and reported pregame context'
-            git fetch -q origin main
-            git rebase -q origin/main || { git rebase --abort; exit 1; }
-            git push -q origin HEAD:main
+            saved=false
+            for attempt in 1 2 3 4 5 6; do
+              git fetch -q origin main
+              git rebase -q origin/main || { git rebase --abort; echo "::error::Conflicting concurrent changes; no overwrite attempted."; exit 1; }
+              if git push -q origin HEAD:main; then saved=true; break; fi
+              sleep "$((attempt*2))"
+            done
+            test "$saved" = true
           fi
       - name: Capture NEW actual-time complete NHL and NFL source in private checkout
         id: capture
@@ -168,7 +173,7 @@ jobs:
           git commit -m "data: new private live partner NHL NFL pregame source observation"
           for attempt in 1 2 3; do
             git fetch origin main
-            git -c rebase.autoStash=true rebase -X theirs origin/main
+            git -c rebase.autoStash=true rebase origin/main || { git rebase --abort; echo "::error::Conflicting concurrent changes; no overwrite attempted."; exit 1; }
             if git push origin HEAD:main; then
               echo "New source archived privately; no lines printed to public logs."
               exit 0
@@ -191,9 +196,14 @@ jobs:
           git add -f outputs/sportsbooks/bounded-live/*.json
           if ! git diff --cached --quiet; then
             git commit -qm 'data: bounded sportsbook observations before NHL research freeze'
-            git fetch -q origin main
-            git rebase -q origin/main || { git rebase --abort; exit 1; }
-            git push -q origin HEAD:main
+            saved=false
+            for attempt in 1 2 3 4 5 6; do
+              git fetch -q origin main
+              git rebase -q origin/main || { git rebase --abort; echo "::error::Conflicting concurrent changes; no overwrite attempted."; exit 1; }
+              if git push -q origin HEAD:main; then saved=true; break; fi
+              sleep "$((attempt*2))"
+            done
+            test "$saved" = true
           fi
       - name: Collect independent NHL fallback when primary quota is exhausted
         working-directory: private
@@ -220,9 +230,14 @@ jobs:
             git add -f outputs/sportsbooks/independent-nhl/*.json
             if ! git diff --cached --quiet; then
               git commit -qm 'data: private independent NHL sportsbook evidence'
-              git fetch -q origin main
-              git rebase -q origin/main || { git rebase --abort; exit 1; }
-              git push -q origin HEAD:main
+              saved=false
+              for attempt in 1 2 3 4 5 6; do
+                git fetch -q origin main
+                git rebase -q origin/main || { git rebase --abort; echo "::error::Conflicting concurrent changes; no overwrite attempted."; exit 1; }
+                if git push -q origin HEAD:main; then saved=true; break; fi
+                sleep "$((attempt*2))"
+              done
+              test "$saved" = true
             fi
           fi
       # Standard shadows are frozen with the same original private Git snapshot.
@@ -277,7 +292,7 @@ jobs:
           git commit -m "data: original private pregame NHL research selections"
           for attempt in 1 2 3; do
             git fetch origin main
-            git -c rebase.autoStash=true rebase -X theirs origin/main
+            git -c rebase.autoStash=true rebase origin/main || { git rebase --abort; echo "::error::Conflicting concurrent changes; no overwrite attempted."; exit 1; }
             check_time
             node - <<'NODE'
           const fs=require('node:fs'),{execFileSync}=require('node:child_process');

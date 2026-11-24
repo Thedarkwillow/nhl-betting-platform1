@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'scripts/reconcile-nba-dated-injury-cohort.py'
+      - 'config/nba/prior-season-identity-assets-v1.json'
       - '.github/workflows/public-nba-injury-cohort.yml'
   push:
     branches: [main]

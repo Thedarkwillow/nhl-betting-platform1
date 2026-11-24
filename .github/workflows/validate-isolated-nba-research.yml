@@ -13,10 +13,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 2cace99bbfdc3def9b10e93945e9dbf10d2a9c64
+          ref: 8bb05075e02ba69253aa49497b5f2a9e13a223b7
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
-          persist-credentials: false
-          fetch-depth: 1
+          persist-credentials: true
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -35,7 +35,9 @@ jobs:
           python-version: '3.12'
       - name: Install historical parquet reader
         run: python -m pip install 'pyarrow>=18,<24'
-      - name: Read-only live source preflight with no metered odds key
+      - name: Verify PDF extraction dependency
+        run: command -v pdftotext || { sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils; }
+      - name: Live source preflight with no metered odds key
         env:
           NBA_ODDS_ENABLE: '0'
           NBA_HISTORICAL_MIRROR_RESEARCH: '1'
@@ -53,3 +55,15 @@ jobs:
           console.log(JSON.stringify(r));
           NODE
           echo 'No raw private rows or provider credentials published.'
+
+      - name: Preserve actual NBA private observations on the isolated review branch
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 8bb05075e02ba69253aa49497b5f2a9e13a223b7
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nba
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: archive NBA source preflight and original research outputs privately'
+          git push -q origin HEAD:refs/heads/nba-isolated-research-v1-20261124
+          echo 'NBA observations archived privately; no production branch was modified.'

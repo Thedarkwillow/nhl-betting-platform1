@@ -1,0 +1,96 @@
+name: Private priority ML artifact training
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-priority-ml-training.yml']
+  schedule:
+    - cron: '15 5 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: private-priority-ml-training
+  cancel-in-progress: false
+jobs:
+  train:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: private
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify merged research code and existing artifact
+        id: ready
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! test -f scripts/train-priority-common-ml-shadow.py || ! test -f test/priority-common-ml-shadow-v1.test.cjs; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Awaiting validated private ML code merge; no artifact or predictions created."
+          elif test -s outputs/research/priority-common-ml-artifact.json; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Existing trained artifact retained; no outcome-driven retraining."
+          else
+            node --test test/priority-common-ml-shadow-v1.test.cjs
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Train only historical common-feature shadow
+        if: steps.ready.outputs.ready == 'true'
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python -m pip install 'scikit-learn>=1.5,<2' --quiet
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          if ! node scripts/export-priority-component-features.cjs >"$log" 2>&1; then
+            echo "::error::Private feature export failed; no artifact saved"
+            exit 1
+          fi
+          if ! python scripts/train-priority-common-ml-shadow.py >"$log" 2>&1; then
+            echo "::error::Private training failed; no artifact saved"
+            exit 1
+          fi
+          cat "$log"
+          node - <<'NODE'
+          const d=require('./outputs/research/priority-common-ml-artifact.json');
+          if(d.kind!=='priority_common_features_logistic_v1'||d.researchOnly!==true||d.modelPromoted!==false||Object.keys(d.models||{}).length!==3||Object.values(d.models).some(m=>Object.keys(m).length!==3))throw Error('Incomplete shadow artifact');
+          NODE
+      - name: Commit trained model before any future prediction
+        if: steps.ready.outputs.ready == 'true'
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/research/priority-common-ml-artifact.json
+          git commit -qm 'research: first-Git prior-season ML coefficients for prospective shadow'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            if git cat-file -e origin/main:outputs/research/priority-common-ml-artifact.json 2>/dev/null; then
+              echo "Another artifact already exists; preserve first committed version."
+              exit 0
+            fi
+            git -c rebase.autoStash=true rebase -q origin/main
+            if git push -q origin HEAD:main; then
+              echo "Private ML artifact durably committed; later fresh-board freeze can use it."
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          exit 1

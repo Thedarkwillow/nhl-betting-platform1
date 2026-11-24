@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 6202c0c2b8a7297d4bb2bfb3a1dfd8ab7bb28cbb
+          ref: 5f1961beb6eb686d322ffce88e1592db4c7c7828
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 6202c0c2b8a7297d4bb2bfb3a1dfd8ab7bb28cbb
+          ref: 5f1961beb6eb686d322ffce88e1592db4c7c7828
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
@@ -91,7 +91,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install public historical source client
-        run: python -m pip install 'nflreadpy>=0.1,<2' --quiet
+        run: python -m pip install 'nflreadpy>=0.1,<2' 'lightgbm>=4.5,<5' 'scikit-learn>=1.5,<2' --quiet
       - name: Try actual source refresh in disposable private checkout only
         working-directory: private
         shell: bash
@@ -143,3 +143,27 @@ jobs:
           if(!r.qbAttemptDirectional?.paceCoverage?.reconciledTeamGames)throw Error('No reconciled pace data from refreshed full-play archive');
           const ex=require('./outputs/nfl/research/drive-exceptions-private-latest.json');const reasons={};for(const x of ex.exceptions)for(const d of x.full.drives||[])reasons[d.reason]=(reasons[d.reason]||0)+1;console.log(JSON.stringify({fullDriveReasons:reasons,exceptions:ex.exceptions.length}));
           NODE
+      - name: Private component and learned distribution research
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          node scripts/collect-nhl-goal-credit-shifts.cjs
+          if ! python scripts/collect-nfl-receiving-expected-targets.py >"$log" 2>&1; then
+            echo "::warning::Expected receiving source unavailable; missing features stay missing."
+          else
+            cat "$log"
+          fi
+          if ! node scripts/export-priority-component-features.cjs >"$log" 2>&1; then
+            echo "::error::Private feature export failed"
+            exit 1
+          fi
+          cat "$log"
+          if ! python scripts/study-priority-component-distributions.py >"$log" 2>&1; then
+            echo "::error::Distribution research failed"
+            exit 1
+          fi
+          cat "$log"

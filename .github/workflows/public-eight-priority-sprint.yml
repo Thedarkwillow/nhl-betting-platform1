@@ -1,0 +1,164 @@
+name: Public eight-priority zero-credit research sprint
+on:
+  pull_request:
+    paths:
+      - 'scripts/public-eight-*'
+      - 'scripts/capture-public-native-morning.cjs'
+      - 'scripts/collect-nhl-opponent-concessions-history.cjs'
+      - 'scripts/collect-nhl-block-exposure-shards.cjs'
+      - 'test/public-eight-evidence.test.cjs'
+      - '.github/workflows/public-eight-priority-sprint.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/public-eight-priority-sprint.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '18 10 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: public-eight-priority-sprint
+  cancel-in-progress: false
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/public-eight-evidence.test.cjs test/nhl-nfl-partner-direct-collection.test.cjs test/daily-nhl-nfl-cross-day-line-movement.test.cjs test/esports-research-v1.test.cjs test/nba-final-validation-v3.test.cjs
+      - run: python3 -m py_compile scripts/public-eight-free-history.py
+      - run: node --check scripts/capture-public-native-morning.cjs && node --check assets/public-multi-sport-sprint.js
+  archive-audit:
+    needs: contracts
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify actual morning slot and original esports export evidence
+        run: |
+          set -euo pipefail
+          node public/scripts/public-eight-evidence.cjs morning archive "$(TZ=America/Los_Angeles date +%F)"
+          node public/scripts/public-eight-evidence.cjs esports archive
+  nba-recovery:
+    needs: contracts
+    if: github.event_name != 'pull_request' && github.event_name != 'schedule' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyarrow==19.0.1
+      - run: python scripts/public-eight-free-history.py nba
+  nba-replay:
+    needs: contracts
+    if: github.event_name != 'pull_request' && github.event_name != 'schedule' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: d02aa363ebbfbf5619411cf46a01efcd5ddc6299
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Re-run archived retrospective real-line study, not an untouched holdout
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          export NBA_REAL_LINE_ARCHIVE="$GITHUB_WORKSPACE/archive/outputs/nba/research/pinnacle-2026-10-24-to-31-nba.csv"
+          log="$RUNNER_TEMP/nba-replay.json"
+          node public/scripts/run-nba-pinnacle-independent-replay.cjs >"$log" 2>&1 || { echo "::error::NBA replay source unavailable"; exit 1; }
+          node - "$log" <<'NODE'
+          const x=JSON.parse(require("fs").readFileSync(process.argv[2],"utf8"));
+          if(x.kind!=="nba_independent_pinnacle_espn_replay_v1"||x.retrospectiveOnly!==true||x.freezeApproved!==false)throw Error("Unexpected replay");
+          console.log(JSON.stringify({kind:x.kind,rawRows:x.rawRows,matchedRows:x.matchedRows,evaluatedRows:x.evaluatedRows,evaluatedGames:x.evaluatedGames,evaluatedDates:x.evaluatedDates,markets:Object.keys(x.markets),previouslyEvaluatedCohort:true,freezeApproved:false,paidRequests:0}));
+          NODE
+  nhl-opponent-recovery:
+    needs: contracts
+    if: github.event_name != 'pull_request' && github.event_name != 'schedule' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute public collector and archive only historical official evidence in existing restricted store
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          export RESEARCH_ARCHIVE_ROOT="$GITHUB_WORKSPACE/archive"
+          log="$RUNNER_TEMP/nhl-recovery.json"
+          node public/scripts/collect-nhl-opponent-concessions-history.cjs >"$log" 2>&1 || { echo "::error::NHL collector failed closed"; exit 1; }
+          node - "$log" <<'NODE'
+          const x=JSON.parse(require("fs").readFileSync(process.argv[2],"utf8"));if(x.modelPromoted!==false||!Number.isInteger(x.verified))throw Error("Invalid summary");console.log(JSON.stringify(x));
+          NODE
+          cd archive
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/research/nhl-opponent-concessions-history outputs/health/nhl-opponent-concessions-recovery-latest.json outputs/health/nhl-opponent-concessions-retry-latest.json
+          if git diff --cached --quiet; then echo "No new restricted archive change"; exit 0; fi
+          git commit -qm 'data: public-native bounded NHL official opponent history'
+          git push origin HEAD:main
+          echo "Restricted historical evidence archived without changing private code."
+  esports-history:
+    needs: contracts
+    if: github.event_name != 'pull_request' && github.event_name != 'schedule' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/public-eight-free-history.py esports

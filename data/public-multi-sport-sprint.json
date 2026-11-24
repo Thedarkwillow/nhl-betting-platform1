@@ -1,0 +1,52 @@
+{
+  "kind": "public_multi_sport_sprint_evidence_v1",
+  "asOf": "2026-11-24",
+  "rawRowsPublished": 0,
+  "paidRequests": 0,
+  "modelPromoted": false,
+  "items": [
+    {
+      "sport": "NHL",
+      "description": "Public historical replay completed; prospective result not qualified.",
+      "historicalRows": 1054,
+      "prospectiveRows": 247,
+      "prospectiveWins": 116
+    },
+    {
+      "sport": "NFL",
+      "description": "Public chronological stats-only replay completed; no original-line hit rate.",
+      "historicalRows": 49367
+    },
+    {
+      "sport": "NBA",
+      "description": "Historical real-line study requires injury identity and untouched holdout validation.",
+      "historicalRows": 2276,
+      "unresolvedInjuryRows": 135
+    },
+    {
+      "sport": "CS2",
+      "description": "2024 aggregate role dataset; no dated map baseline or original lines verified."
+    },
+    {
+      "sport": "Valorant",
+      "description": "Betting-use rights and real historical map dataset still required."
+    },
+    {
+      "sport": "League of Legends",
+      "description": "CC BY 4.0 historical download recovery initiated; no verified current prop lines."
+    },
+    {
+      "sport": "Dota 2",
+      "description": "Free match-history acquisition; series and map scope still require validation."
+    },
+    {
+      "sport": "Call of Duty",
+      "description": "2019 historical statistical baseline only; modern-edition transfer unverified.",
+      "historicalRows": 6030
+    },
+    {
+      "sport": "MLB",
+      "description": "Existing separate MLB project preserved."
+    }
+  ]
+}

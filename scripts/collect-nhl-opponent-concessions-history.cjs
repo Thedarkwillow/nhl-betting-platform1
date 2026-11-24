@@ -16,7 +16,7 @@ const {officialTeamAttemptEvidence}=
 const {officialPbpUrl}=require("../src/nhl-official-period-events.cjs");
 const {getJSON}=require("./collect-nhl-official-period-events.cjs");
 const {gamesForDay}=require("./collect-nhl-block-exposure-shards.cjs");
-const root=path.resolve(__dirname,".."),at=p=>path.join(root,p);
+const root=process.env.RESEARCH_ARCHIVE_ROOT?fs.realpathSync(process.env.RESEARCH_ARCHIVE_ROOT):path.resolve(__dirname,".."),at=p=>path.join(root,p);
 const DIR="outputs/research/nhl-opponent-concessions-history";
 const REPORT="outputs/health/nhl-opponent-concessions-recovery-latest.json";
 const RETRY="outputs/health/nhl-opponent-concessions-retry-latest.json";

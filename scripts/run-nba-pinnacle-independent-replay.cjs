@@ -1,6 +1,6 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),{boxes,evaluate}=require("../src/nba-pinnacle-independent-replay-v1.cjs");
-const root=path.resolve(__dirname,".."),archive=path.join(root,"outputs/nba/research/pinnacle-2026-10-24-to-31-nba.csv");
+const root=path.resolve(__dirname,".."),archive=process.env.NBA_REAL_LINE_ARCHIVE||path.join(root,"outputs/nba/research/pinnacle-2026-10-24-to-31-nba.csv");
 async function load(season){
  const url="https://github.com/sportsdataverse/sportsdataverse-data/releases/download/espn_nba_player_boxscores/player_box_"+season+".csv";
  const res=await fetch(url,{redirect:"follow",signal:AbortSignal.timeout(90000)});

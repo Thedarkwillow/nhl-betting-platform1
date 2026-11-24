@@ -80,23 +80,23 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: true
-      - name: Validate offline private source and chronology checks
+      - name: Validate public native source and chronology checks
         if: steps.gate.outputs.allowed == 'true'
-        working-directory: private
+        working-directory: public
         run: |
           node --check scripts/collect-live-partner-nhl-nfl.cjs
           node --check scripts/diff-live-partner-captures.cjs
           node --test test/nhl-nfl-partner-direct-collection.test.cjs
           node --test test/daily-nhl-nfl-cross-day-line-movement.test.cjs
-      - name: Capture full NEW NHL and NFL source responses inside private checkout
+      - name: Execute public native capture into authorized archive
         if: steps.gate.outputs.allowed == 'true'
         id: snapshot
-        working-directory: private
+        working-directory: public
         env:
           PARTNER_CAPTURE_SLOT: ${{ steps.gate.outputs.slot }}
         run: |
           set -euo pipefail
-          node scripts/collect-live-partner-nhl-nfl.cjs | tee /tmp/private-board-summary.json
+          node scripts/capture-public-native-morning.cjs "$GITHUB_WORKSPACE/private" | tee /tmp/private-board-summary.json
           echo "ARCHIVE_DIR=$(node -e "const d=require('/tmp/private-board-summary.json');process.stdout.write(d.archiveDir)")" >> "$GITHUB_ENV"
           echo "status=$(node -e "const d=require('/tmp/private-board-summary.json');process.stdout.write(d.status)")" >> "$GITHUB_OUTPUT"
       - name: Compare honest actual-time observations and preview old NHL model

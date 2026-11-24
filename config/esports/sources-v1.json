@@ -366,6 +366,22 @@
       "paidCallsAllowed": false,
       "publicationRightsVerified": false,
       "declaredLicense": "CC BY 4.0"
+    },
+    {
+      "id": "vct_reference",
+      "url": "https://vct-reference.com/dataset",
+      "titles": [
+        "VALORANT"
+      ],
+      "access": "excluded_explicit_betting_restriction",
+      "capabilities": [
+        "historical_map_stats"
+      ],
+      "mode": "blocked",
+      "notes": "Terms at https://vct-reference.com/terms explicitly prohibit betting/fantasy use; do not acquire for this project.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
     }
   ],
   "titles": {

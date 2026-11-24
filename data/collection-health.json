@@ -1,20 +1,20 @@
 {
   "schemaVersion": 1,
   "kind": "public_nhl_nfl_pacific_morning_collection_health_v1",
-  "generatedAt": "2026-11-24T03:43:35.832Z",
-  "pacificDate": "2026-11-23",
+  "generatedAt": "2026-11-24T14:07:22.094Z",
+  "pacificDate": "2026-11-24",
   "slots": {
     "06:00": {
       "status": "privately_archived_complete",
-      "observedAt": "2026-11-23T14:05:54.475Z",
-      "nhlOffers": 1997,
-      "nflOffers": 2549
+      "observedAt": "2026-11-24T14:05:54.323Z",
+      "nhlOffers": 337,
+      "nflOffers": 5002
     },
     "09:00": {
-      "status": "privately_archived_complete",
-      "observedAt": "2026-11-23T17:05:43.966Z",
-      "nhlOffers": 2160,
-      "nflOffers": 2898
+      "status": "no_verified_full_capture",
+      "observedAt": null,
+      "nhlOffers": null,
+      "nflOffers": null
     }
   },
   "sportsbookPreboard": {
@@ -29,7 +29,7 @@
         "paidProviderCallsMadeByAudit": 0
       },
       "08:45": {
-        "status": "no_fresh_preboard_odds_archive",
+        "status": "not_due",
         "capturedAt": null,
         "boardSlot": "09:00",
         "verifiedExactPlayerGameMarketAndThreshold": false,
@@ -41,17 +41,16 @@
     "liveAppOfferVerified": false,
     "independentProbabilityBenchmarkVerified": false
   },
-  "latestCompleteSourceAt": "2026-11-23T17:05:43.966Z",
-  "latestSourceFreshWithin30Minutes": false,
-  "originalPregameFreezeVerifiedForToday": true,
-  "frozenSelectionCounts": {
-    "NHL": 190,
-    "NFL": 186
-  },
-  "sixToNineChangesVerified": true,
-  "allMorningCapturesVerified": true,
+  "latestCompleteSourceAt": "2026-11-24T14:05:54.323Z",
+  "latestSourceFreshWithin30Minutes": true,
+  "originalPregameFreezeVerifiedForToday": false,
+  "frozenSelectionCounts": null,
+  "sixToNineChangesVerified": false,
+  "allMorningCapturesVerified": false,
   "publicWorkflowGreenDoesNotImplyBoardCaptured": true,
-  "missingSlots": [],
+  "missingSlots": [
+    "09:00"
+  ],
   "sourceOriginalPlatformAppAuthenticated": false,
   "calibratedBettingProbabilities": false,
   "payoutEVVerified": false,

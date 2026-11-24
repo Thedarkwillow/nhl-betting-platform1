@@ -168,6 +168,9 @@ jobs:
             file="outputs/nfl/history/$year/drive_boundary_plays.json.gz"
             if test -f "$file"; then git add -f "$file"; fi
           done
+          for file in outputs/nfl/research/drive-exceptions-private-latest.json outputs/nfl/research/qb-live-context-latest.json; do
+            if test -f "$file"; then git add -f "$file"; fi
+          done
           git add -f outputs/nfl/history/2024/pbp_specialty_events.json.gz outputs/nfl/history/2025/pbp_specialty_events.json.gz
           git add -f outputs/nfl/history/manifest.json outputs/nfl/history/2026/player_weekly.json.gz outputs/nfl/history/2026/schedule.json.gz outputs/nfl/history/2026/weekly_rosters.json.gz outputs/nfl/history/2026/snap_counts.json.gz outputs/nfl/history/2026/team_weekly.json.gz outputs/nfl/history/2026/kicking_pbp.json.gz outputs/nfl/history/2026/pbp_specialty_events.json.gz outputs/health/cross-sport-position-h2h-replay-latest.json outputs/nfl/backtests/pregame-forecast-proof-latest.json outputs/nfl/backtests/frozen-direction-bias-diagnostic-latest.json outputs/nfl/backtests/frozen-shadow-prospective-grading-latest.json outputs/nfl/backtests/matchup-context-forward-grade-latest.json outputs/nfl/backtests/independent-source-forward-latest.json outputs/nfl/backtests/directional-v2-future-only-latest.json outputs/nfl/backtests/directional-first-threshold-review-latest.json
           if test -n "${SUNDAY_AUDIT_DATE:-}"; then

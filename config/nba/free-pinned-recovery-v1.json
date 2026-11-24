@@ -1,0 +1,80 @@
+{
+  "kind": "nba_free_pinned_parquet_recovery_v1",
+  "paidRequests": 0,
+  "sourceRightsIndependentlyVerified": false,
+  "sourceClaimsIndependentlyVerified": false,
+  "assets": [
+    {
+      "repo": "sportsdataverse/hoopR-nba-data",
+      "commit": "4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2",
+      "path": "nba/crosswalk/parquet/nba_player_crosswalk_2027.parquet",
+      "bytes": 37329,
+      "gitBlob": "104aaa6eaeacb89575743df992214d8927aca6c3",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-data/4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2/nba/crosswalk/parquet/nba_player_crosswalk_2027.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-data",
+      "commit": "4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2",
+      "path": "nba/crosswalk/parquet/nba_schedule_crosswalk_2027.parquet",
+      "bytes": 20574,
+      "gitBlob": "707c0a79c8311e56c0e56862355ff2e986e0ee67",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-data/4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2/nba/crosswalk/parquet/nba_schedule_crosswalk_2027.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-data",
+      "commit": "4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2",
+      "path": "nba/game_rosters/parquet/game_rosters_2027.parquet",
+      "bytes": 86728,
+      "gitBlob": "2228658efc89e441ad40b8dd073489bdc0e17c71",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-data/4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2/nba/game_rosters/parquet/game_rosters_2027.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-data",
+      "commit": "4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2",
+      "path": "nba/player_box/parquet/player_box_2027.parquet",
+      "bytes": 154065,
+      "gitBlob": "2fac09033f24c67eeac345146965ba9d4e684356",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-data/4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2/nba/player_box/parquet/player_box_2027.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-data",
+      "commit": "4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2",
+      "path": "nba/player_box/parquet/player_box_2026.parquet",
+      "bytes": 606444,
+      "gitBlob": "121dcfd61ab4221c357e142d18b73a1cec14723c",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-data/4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2/nba/player_box/parquet/player_box_2026.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-data",
+      "commit": "4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2",
+      "path": "nba/schedules/parquet/nba_schedule_2027.parquet",
+      "bytes": 173984,
+      "gitBlob": "1f62304429cb44c15973e9fde86e160a466fecb1",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-data/4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2/nba/schedules/parquet/nba_schedule_2027.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-data",
+      "commit": "4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2",
+      "path": "nba/team_box/parquet/team_box_2027.parquet",
+      "bytes": 50079,
+      "gitBlob": "22963f3d8e1bba6e15ac8f2c3bfc636341e90e5c",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-data/4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2/nba/team_box/parquet/team_box_2027.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-stats-data",
+      "commit": "d03b90a4cc0565542bf222047cbdd2b4347bccf4",
+      "path": "nba_stats/injury_report/parquet/injury_report_2027.parquet",
+      "bytes": 178891,
+      "gitBlob": "4c2f086f78e18e4b004026a7b2fb4fb794880f8d",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-stats-data/d03b90a4cc0565542bf222047cbdd2b4347bccf4/nba_stats/injury_report/parquet/injury_report_2027.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-stats-data",
+      "commit": "d03b90a4cc0565542bf222047cbdd2b4347bccf4",
+      "path": "nba_stats/game_rosters/parquet/game_rosters_2027.parquet",
+      "bytes": 22655,
+      "gitBlob": "7252e534e9912665929e286a3f6305aff54fb972",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-stats-data/d03b90a4cc0565542bf222047cbdd2b4347bccf4/nba_stats/game_rosters/parquet/game_rosters_2027.parquet"
+    }
+  ]
+}

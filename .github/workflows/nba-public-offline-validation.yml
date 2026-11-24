@@ -1,0 +1,20 @@
+name: NBA public offline validation
+on:
+  pull_request:
+    paths:
+      - 'scripts/run-nba-final-validation-v3.cjs'
+      - 'test/nba-final-validation-v3.test.cjs'
+      - '.github/workflows/nba-public-offline-validation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/nba-final-validation-v3.test.cjs

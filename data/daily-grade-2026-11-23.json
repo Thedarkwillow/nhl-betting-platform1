@@ -1,7 +1,7 @@
 {
   "kind": "public_original_daily_grade_v1",
   "slateDate": "2026-11-23",
-  "generatedAt": "2026-11-24T14:45:10.797Z",
+  "generatedAt": "2026-11-24T15:19:05.883Z",
   "nhl": {
     "status": "official_final_slate_graded",
     "scheduledGames": 7,
@@ -305,7 +305,7 @@
       }
     },
     "originalIdsReconciled": true,
-    "sourceReportGeneratedAt": "2026-11-24T14:42:14.331Z",
+    "sourceReportGeneratedAt": "2026-11-24T15:16:10.453Z",
     "appearanceReconciliation": {
       "status": "awaiting_exact_id_evidence",
       "sourceGradeReconciled": false,

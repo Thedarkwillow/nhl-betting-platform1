@@ -1,0 +1,45 @@
+{
+  "kind": "nba_prior_season_identity_assets_v1",
+  "assets": [
+    {
+      "repo": "sportsdataverse/hoopR-nba-data",
+      "commit": "4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2",
+      "path": "nba/crosswalk/parquet/nba_player_crosswalk_2024.parquet",
+      "gitBlob": "c1b6c796894b58b905da66c869e9973be498325a",
+      "bytes": 44668,
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-data/4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2/nba/crosswalk/parquet/nba_player_crosswalk_2024.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-data",
+      "commit": "4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2",
+      "path": "nba/crosswalk/parquet/nba_player_crosswalk_2025.parquet",
+      "gitBlob": "22950cec6534f1099022ea8424ea445ecf5fd1ec",
+      "bytes": 43711,
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-data/4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2/nba/crosswalk/parquet/nba_player_crosswalk_2025.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-data",
+      "commit": "4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2",
+      "path": "nba/crosswalk/parquet/nba_player_crosswalk_2026.parquet",
+      "gitBlob": "cf4aab0b981e7567b9a85e5129cf740d77523452",
+      "bytes": 44383,
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-data/4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2/nba/crosswalk/parquet/nba_player_crosswalk_2026.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-data",
+      "commit": "4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2",
+      "path": "nba/game_rosters/parquet/game_rosters_2026.parquet",
+      "gitBlob": "0e950ac40997f0c3afd2bbd4aec9efb6b2de1c8e",
+      "bytes": 299095,
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-data/4c8fafcc8154fd2fc8ac5e2bda8ea198933fe9b2/nba/game_rosters/parquet/game_rosters_2026.parquet"
+    },
+    {
+      "repo": "sportsdataverse/hoopR-nba-stats-data",
+      "commit": "d03b90a4cc0565542bf222047cbdd2b4347bccf4",
+      "path": "nba_stats/game_rosters/parquet/game_rosters_2026.parquet",
+      "gitBlob": "3763b15b034533855ddf8db5b25b28018b8ec0af",
+      "bytes": 83293,
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-stats-data/d03b90a4cc0565542bf222047cbdd2b4347bccf4/nba_stats/game_rosters/parquet/game_rosters_2026.parquet"
+    }
+  ]
+}

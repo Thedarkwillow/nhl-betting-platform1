@@ -53,7 +53,38 @@ def load():
         out[(s["repo"].split("/")[-1],name)]=pq.read_table(io.BytesIO(raw)).to_pylist()
     if len(out)!=6:raise ValueError("missing pinned inputs")
     return out
-def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster):
+def historical_inputs():
+    import pyarrow.parquet as pq
+    cfg=json.loads((ROOT/"config/nba/prior-season-identity-assets-v1.json").read_text())
+    cross=[];er=[];nr=[]
+    for a in cfg["assets"]:
+        if not a["url"].startswith("https://raw.githubusercontent.com/sportsdataverse/") or not 0<a["bytes"]<=2_000_000:raise ValueError("historical config")
+        with urllib.request.urlopen(urllib.request.Request(a["url"],headers={"User-Agent":"NBAIdentityResearch/1.0"}),timeout=35) as f:raw=f.read(a["bytes"]+1)
+        if len(raw)!=a["bytes"] or hashlib.sha1(("blob "+str(len(raw))).encode()+b"\0"+raw).hexdigest()!=a["gitBlob"]:raise ValueError("historical source integrity")
+        rows=pq.read_table(io.BytesIO(raw)).to_pylist()
+        if "crosswalk" in a["path"]:cross.extend(rows)
+        elif a["repo"].endswith("hoopR-nba-data"):er.extend(rows)
+        else:nr.extend(rows)
+    return cross,er,nr
+def historical_index(cross,er,nr):
+    en=defaultdict(set);nn=defaultdict(set)
+    for x in er:
+        for name in names(x.get("athlete_display_name")):
+            if ident(x.get("athlete_id")):en[name].add(ident(x["athlete_id"]))
+    for x in nr:
+        for name in names(str(x.get("first_name",""))+" "+str(x.get("last_name",""))):
+            if ident(x.get("player_id")):nn[name].add(ident(x["player_id"]))
+    pairs=defaultdict(set);ni=defaultdict(set);ei=defaultdict(set)
+    for x in cross:
+        n,e=ident(x.get("nba_player_id")),ident(x.get("espn_athlete_id"))
+        if not n or not e:continue
+        ni[n].add(e);ei[e].add(n)
+        for nm in names(x.get("nba_player_name"))&names(x.get("espn_full_name")):
+            if en[nm]=={e} and nn[nm]=={n}:pairs[nm].add((n,e))
+    return {nm:{(n,e) for n,e in vals if ni[n]=={e} and ei[e]=={n}} for nm,vals in pairs.items()}
+
+def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,historical=None):
+    historical=historical or {}
     gameoffers={}
     for r in offers:
         if r.get("league")!="NBA":raise ValueError("non-NBA archived line")
@@ -163,7 +194,16 @@ def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster):
                 ei={ident(x["athlete_id"]) for x in er};ni={ident(x["player_id"]) for x in nr}
                 report_id=ident(r["person_id"])
                 if len(ei)!=1 or len(ni)!=1:
-                    methods["priorDatedIdentityCandidate" if prior_identity(r,nm,team,cutoff) else "missingOrAmbiguousDatedRoster"]+=1
+                    if prior_identity(r,nm,team,cutoff):
+                        methods["priorDatedIdentityCandidate"]+=1
+                    else:
+                        historical_pairs=set().union(*(historical.get(x,set()) for x in nm))
+                        good={(nid,eid) for nid,eid in historical_pairs if (not report_id or report_id==nid) and (not ids[nid] or ids[nid]=={eid}) and (not reverse[eid] or reverse[eid]=={nid})}
+                        if len(good)==1 and len(historical_pairs)==1:
+                            methods["priorSeasonDualNamespaceIdentityCandidate"]+=1
+                        else:
+                            methods["missingOrAmbiguousDatedRoster"]+=1
+                            if report_id is None:methods["unresolvedMissingReportId"]+=1
                     continue
                 eid,nid=next(iter(ei)),next(iter(ni))
                 if report_id and report_id!=nid:methods["reportIdConflict"]+=1;continue
@@ -174,11 +214,12 @@ def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster):
                 methods["dualDatedRosterCandidate"]+=1
     original={"games":57,"teamSlots":114,"freshSubmitted":109,"teamsWithExplicitOut":104,"explicitOutRows":362,"oldExactMapped":227,"oldUnmapped":135}
     reconstructed=len(games)==original["games"] and all(metrics[k]==v for k,v in original.items() if k!="games")
-    return {"kind":"nba_original_injury_cohort_reconciliation_v1","archiveGames":len(gameoffers),"matchedGames":len(games),"unmatchedGames":unmatched,"reconstructedCounts":dict(metrics),"originalAggregateCounts":original,"originalAggregateReproduced":reconstructed,"candidateMethods":dict(methods),"newCandidateMappings":methods["dualDatedRosterCandidate"]+methods["priorDatedIdentityCandidate"],"original135RowLevelReconciliationVerified":False,"reason":"Prior audit contains aggregate counts, not immutable row identities; same-game roster evidence is retrospective, not pregame status proof.","freezeApproved":False,"paidRequests":0,"rawRowsPublished":0}
+    return {"kind":"nba_original_injury_cohort_reconciliation_v1","archiveGames":len(gameoffers),"matchedGames":len(games),"unmatchedGames":unmatched,"reconstructedCounts":dict(metrics),"originalAggregateCounts":original,"originalAggregateReproduced":reconstructed,"candidateMethods":dict(methods),"newCandidateMappings":methods["dualDatedRosterCandidate"]+methods["priorDatedIdentityCandidate"]+methods["priorSeasonDualNamespaceIdentityCandidate"],"original135RowLevelReconciliationVerified":False,"reason":"Prior audit contains aggregate counts, not immutable row identities; same-game roster evidence is retrospective, not pregame status proof.","freezeApproved":False,"paidRequests":0,"rawRowsPublished":0}
 def main():
     t=load()
+    historical=historical_index(*historical_inputs())
     with open(sys.argv[1],newline="",encoding="utf-8-sig") as f:offers=list(csv.DictReader(f))
     e="hoopR-nba-data";n="hoopR-nba-stats-data"
-    x=reconcile(offers,t[(e,"nba_schedule_2027.parquet")],t[(e,"nba_schedule_crosswalk_2027.parquet")],t[(e,"nba_player_crosswalk_2027.parquet")],t[(n,"injury_report_2027.parquet")],t[(e,"game_rosters_2027.parquet")],t[(n,"game_rosters_2027.parquet")])
+    x=reconcile(offers,t[(e,"nba_schedule_2027.parquet")],t[(e,"nba_schedule_crosswalk_2027.parquet")],t[(e,"nba_player_crosswalk_2027.parquet")],t[(n,"injury_report_2027.parquet")],t[(e,"game_rosters_2027.parquet")],t[(n,"game_rosters_2027.parquet")],historical=historical)
     print(json.dumps(x))
 if __name__=="__main__":main()

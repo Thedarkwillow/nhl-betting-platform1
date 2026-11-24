@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-24T14:29:39.318Z",
+  "generatedAt": "2026-11-24T14:41:20.766Z",
   "sourceReportAt": "2026-11-24T14:18:11.081Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -91,8 +91,8 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-24T14:09:50.244Z",
-    "nflReportAt": "2026-11-24T03:06:12.951Z",
+    "nhlReportAt": "2026-11-24T14:29:01.272Z",
+    "nflReportAt": "2026-11-24T14:37:39.436Z",
     "nhl": {
       "registered": 395,
       "eligible": 99,
@@ -115,7 +115,7 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-24T14:09:50.788Z",
+    "sourceReportAt": "2026-11-24T14:29:01.772Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
       "completeOfficialGames": 1649,
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-24T14:28:35.073Z",
+    "sourceReportAt": "2026-11-24T14:29:55.151Z",
     "nhl": {
       "sourceEligible": true,
       "examined": 0,
@@ -416,14 +416,14 @@
   },
   "matchupEvidence": {
     "kind": "public_matchup_evidence_counts_v1",
-    "sourceReportAt": "2026-11-24T03:07:07.579Z",
+    "sourceReportAt": "2026-11-24T14:38:46.600Z",
     "rankingTables": 70,
     "completeRankingTables": 70,
-    "teamGames": 1412,
-    "reconciledPuntTeamGames": 1412,
-    "reconciledKickTeamGames": 1412,
-    "punterAppearances": 1070,
-    "kickerAppearances": 1119,
+    "teamGames": 1414,
+    "reconciledPuntTeamGames": 1414,
+    "reconciledKickTeamGames": 1414,
+    "punterAppearances": 1072,
+    "kickerAppearances": 1121,
     "historicalOnly": true,
     "modelPromoted": false,
     "approvedPicks": 0

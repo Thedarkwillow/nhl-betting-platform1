@@ -29,5 +29,5 @@ function run(root=path.resolve(__dirname,"..")){
  console.log(JSON.stringify({acceptedArchives:report.acceptedArchives,rejectedArchives:report.rejectedArchives.length,observedDates:report.observedDates,researchOnly:true}));
  return report;
 }
-if(require.main===module)try{run()}catch(e){console.error("Private archive audit failed");process.exitCode=1;}
+if(require.main===module)try{run(process.env.RESEARCH_ARCHIVE_ROOT||undefined)}catch(e){console.error("Private archive audit failed");process.exitCode=1;}
 module.exports={run};

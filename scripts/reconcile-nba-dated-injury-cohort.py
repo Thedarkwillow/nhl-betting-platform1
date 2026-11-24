@@ -78,6 +78,26 @@ def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster):
     for r in nbaroster:
         g=ident(r["game_id"])
         if g:n_by[(g,abbr(r["team_abbreviation"]))].append(r)
+    # Crosswalk snapshot is not evidence of availability. Prior dated records
+    # corroborate identity only; never substitute a later roster or fuzzy name.
+    clocks={}
+    for s in schedule:
+        k=ident(s.get("game_id") or s.get("id"));t=utc(s.get("game_date_time") or s.get("date"))
+        if k and t and len(gameids[k])==1:
+            clocks[k]=t;clocks[next(iter(gameids[k]))]=t
+    def prior_identity(r,nm,team,cutoff):
+        rid=ident(r.get("person_id"))
+        possible=[]
+        for x in cross:
+            nid,eid=ident(x.get("nba_player_id")),ident(x.get("espn_athlete_id"))
+            if not nid or not eid or (rid and rid!=nid) or ids[nid]!={eid} or reverse[eid]!={nid}:continue
+            if not (names(x.get("nba_player_name"))&nm and names(x.get("espn_full_name"))&nm):continue
+            # Both the NBA and ESPN namespaces corroborate the same name;
+            # dated team evidence must precede the report cutoff.
+            er=any(g in clocks and clocks[g]<cutoff and cutoff-clocks[g]<=timedelta(days=60) and tm==team and any(ident(y.get("athlete_id"))==eid and names(y.get("athlete_display_name"))&nm for y in a) for (g,tm),a in e_by.items())
+            nr=any(g in clocks and clocks[g]<cutoff and cutoff-clocks[g]<=timedelta(days=60) and tm==team and any(ident(y.get("player_id"))==nid and names(str(y.get("first_name",""))+" "+str(y.get("last_name","")))&nm for y in a) for (g,tm),a in n_by.items())
+            if er and (nr or rid==nid):possible.append((nid,eid))
+        return len(set(possible))==1
     games=[];unmatched=0
     for h,a,t in gameoffers.values():
         tip=utc(t)
@@ -142,7 +162,9 @@ def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster):
                 nr=[x for x in n_by[(n,team)] if names(str(x["first_name"])+" "+str(x["last_name"]))&nm and ident(x["player_id"])]
                 ei={ident(x["athlete_id"]) for x in er};ni={ident(x["player_id"]) for x in nr}
                 report_id=ident(r["person_id"])
-                if len(ei)!=1 or len(ni)!=1:methods["missingOrAmbiguousDatedRoster"]+=1;continue
+                if len(ei)!=1 or len(ni)!=1:
+                    methods["priorDatedIdentityCandidate" if prior_identity(r,nm,team,cutoff) else "missingOrAmbiguousDatedRoster"]+=1
+                    continue
                 eid,nid=next(iter(ei)),next(iter(ni))
                 if report_id and report_id!=nid:methods["reportIdConflict"]+=1;continue
                 if (ids[nid] and ids[nid]!={eid}) or (reverse[eid] and reverse[eid]!={nid}):
@@ -152,7 +174,7 @@ def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster):
                 methods["dualDatedRosterCandidate"]+=1
     original={"games":57,"teamSlots":114,"freshSubmitted":109,"teamsWithExplicitOut":104,"explicitOutRows":362,"oldExactMapped":227,"oldUnmapped":135}
     reconstructed=len(games)==original["games"] and all(metrics[k]==v for k,v in original.items() if k!="games")
-    return {"kind":"nba_original_injury_cohort_reconciliation_v1","archiveGames":len(gameoffers),"matchedGames":len(games),"unmatchedGames":unmatched,"reconstructedCounts":dict(metrics),"originalAggregateCounts":original,"originalAggregateReproduced":reconstructed,"candidateMethods":dict(methods),"newCandidateMappings":methods["dualDatedRosterCandidate"],"original135RowLevelReconciliationVerified":False,"reason":"Prior audit contains aggregate counts, not immutable row identities; same-game roster evidence is retrospective, not pregame status proof.","freezeApproved":False,"paidRequests":0,"rawRowsPublished":0}
+    return {"kind":"nba_original_injury_cohort_reconciliation_v1","archiveGames":len(gameoffers),"matchedGames":len(games),"unmatchedGames":unmatched,"reconstructedCounts":dict(metrics),"originalAggregateCounts":original,"originalAggregateReproduced":reconstructed,"candidateMethods":dict(methods),"newCandidateMappings":methods["dualDatedRosterCandidate"]+methods["priorDatedIdentityCandidate"],"original135RowLevelReconciliationVerified":False,"reason":"Prior audit contains aggregate counts, not immutable row identities; same-game roster evidence is retrospective, not pregame status proof.","freezeApproved":False,"paidRequests":0,"rawRowsPublished":0}
 def main():
     t=load()
     with open(sys.argv[1],newline="",encoding="utf-8-sig") as f:offers=list(csv.DictReader(f))

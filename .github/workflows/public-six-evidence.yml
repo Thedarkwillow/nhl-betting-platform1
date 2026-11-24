@@ -1,0 +1,120 @@
+name: Public native six-priority evidence sprint
+on:
+  pull_request:
+    paths:
+      - 'scripts/public-six-*'
+      - 'scripts/reconcile-nba-dated-injury-cohort.py'
+      - 'scripts/report-nhl-standard-proof.cjs'
+      - 'scripts/report-partner-direction-tier-evidence.cjs'
+      - '.github/workflows/public-six-evidence.yml'
+  push:
+    branches: [main]
+    paths: ['.github/workflows/public-six-evidence.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '38 10 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: public-six-evidence
+  cancel-in-progress: false
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python3 -m py_compile scripts/public-six-esports-history.py scripts/reconcile-nba-dated-injury-cohort.py
+      - run: python3 -m unittest discover -s test -p test_nba_dated_injury_cohort.py
+      - run: node --test test/nhl-specialist-standard-proof.test.cjs test/esports-research-v1.test.cjs test/nba-final-validation-v3.test.cjs
+      - run: node --check scripts/report-nhl-standard-proof.cjs && node --check scripts/report-partner-direction-tier-evidence.cjs
+  esports:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.event_name != 'schedule' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install duckdb==1.4.1
+      - run: python scripts/public-six-esports-history.py
+  nba:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.event_name != 'schedule' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: d02aa363ebbfbf5619411cf46a01efcd5ddc6299
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyarrow==19.0.1
+      - name: Run original-cohort identity diagnostic
+        run: |
+          set -euo pipefail
+          log="$RUNNER_TEMP/reconcile"
+          python public/scripts/reconcile-nba-dated-injury-cohort.py archive/outputs/nba/research/pinnacle-2026-10-24-to-31-nba.csv >"$log" 2>&1 || { echo "Reconciliation failed closed"; exit 1; }
+          cat "$log"
+  public-native-audits:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run public Standard and source audit code, original archive remains unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          export RESEARCH_ARCHIVE_ROOT="$GITHUB_WORKSPACE/archive"
+          for script in report-nhl-standard-proof report-partner-direction-tier-evidence; do
+            log="$RUNNER_TEMP/$script"
+            node "public/scripts/$script.cjs" >"$log" 2>&1 || { echo "$script failed closed"; exit 1; }
+            node - "$log" <<'NODE'
+          const r=JSON.parse(require("fs").readFileSync(process.argv[2],"utf8"));
+          const keys=["accepted","newRows","newSelected","acceptedArchives","rejectedArchives","observedDates"];
+          console.log(JSON.stringify(Object.fromEntries(keys.filter(k=>typeof r[k]==="number").map(k=>[k,r[k]]))));
+          NODE
+          done
+          node public/scripts/public-eight-evidence.cjs esports archive
+          node - <<'NODE'
+          const fs=require("fs"),p="archive/outputs/health/nhl-standard-proof-latest.json";
+          const r=JSON.parse(fs.readFileSync(p,"utf8"));
+          console.log(JSON.stringify({kind:r.kind,accepted:r.accepted,newRows:r.newRows,newSelected:r.newSelected,modelPromoted:false,scorecardKeys:Object.keys(r.scorecard||{})}));
+          NODE

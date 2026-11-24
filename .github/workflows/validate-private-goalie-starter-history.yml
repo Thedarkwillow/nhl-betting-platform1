@@ -1,0 +1,63 @@
+name: Validate private official goalie history and train saves ML
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-goalie-starter-history.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-goalie-starter-history
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/goalie-starter-history-20261124
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Collect official starter evidence and train separate goalie artifact
+        working-directory: private
+        shell: bash
+        env:
+          PRIORITY_EXPANDED_ML: '1'
+          PRIORITY_GOALIE_ONLY: '1'
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(git rev-parse HEAD)" = "9d2164e2b8bc1ea66726cefa0a2c6aec63717b96"
+          report="outputs/health/ci-diagnostics/goalie-starter-history-${GITHUB_RUN_ID}.txt"
+          mkdir -p "$(dirname "$report")"
+          overall=0
+          stage() {
+            local name="$1"; shift
+            printf '\n=== %s ===\n' "$name" >> "$report"
+            if "$@" >> "$report" 2>&1; then printf '%s: PASS\n' "$name" >> "$report"; else printf '%s: FAIL\n' "$name" >> "$report"; overall=1; fi
+          }
+          stage regression node --test test/nhl-goalie-starter-history.test.cjs test/priority-common-ml-shadow-v1.test.cjs test/expanded-common-ml-grade.test.cjs
+          stage dependencies python -m pip install 'numpy<3' 'scikit-learn<2' --quiet
+          if [ "$overall" -eq 0 ]; then stage official_source node scripts/collect-nhl-goalie-starter-history.cjs; fi
+          if [ "$overall" -eq 0 ]; then stage export node scripts/export-priority-component-features.cjs; fi
+          if [ "$overall" -eq 0 ]; then stage train python scripts/train-priority-common-ml-shadow.py; fi
+          if [ "$overall" -eq 0 ]; then stage verify_artifact node -e 'const d=require("./outputs/research/priority-goalie-ml-artifact.json");console.log(JSON.stringify({skipped:d.skippedMarkets,holdout:d.historicalSyntheticHoldout}));if(d.researchOnly!==true||d.modelPromoted!==false||Object.keys(d.models?.nhl_saves||{}).length!==3)process.exit(1)'; fi
+          printf '\noverall_exit=%s\n' "$overall" >> "$report"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$report"
+          if test -s outputs/nhl-usage/goalie-starts-rest-latest.json; then git add -f outputs/nhl-usage/goalie-starts-rest-latest.json; fi
+          if [ "$overall" -eq 0 ]; then git add -f outputs/research/priority-goalie-ml-artifact.json; fi
+          git commit -qm 'research: archive private goalie starter history and validation results'
+          git push -q origin HEAD:research/goalie-starter-history-20261124
+          echo 'Private diagnostic evidence archived.'
+          exit "$overall"

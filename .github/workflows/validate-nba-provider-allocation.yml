@@ -1,0 +1,22 @@
+name: Verify separate NBA provider allocation
+on:
+  push:
+    branches: [nba-isolated-research-v1-20261124]
+    paths: ['.github/workflows/validate-nba-provider-allocation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  allocation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify whether NBA-only credentials and approved allocation are configured
+        env:
+          NBA_KEY: ${{ secrets.NBA_SPORTSGAMEODDS_API_KEY }}
+          ALLOCATION_CONFIRMED: ${{ vars.NBA_ODDS_SEPARATE_ACCOUNT_CONFIRMED }}
+        run: |
+          node - <<'NODE'
+          const key=Boolean(process.env.NBA_KEY),confirmed=process.env.ALLOCATION_CONFIRMED==='1';
+          console.log(JSON.stringify({nbaCredentialConfigured:key,approvedAllocationConfigured:confirmed,providerRequests:0,sharedCredentialRead:false,liveOddsVerified:false,status:key&&confirmed?'ready_for_bounded_account_probe':'blocked_missing_approved_nba_allocation'}));
+          NODE

@@ -1,0 +1,82 @@
+name: Public native archive-backed research validation
+on:
+  pull_request:
+    paths:
+      - 'scripts/public-archive-native-audit.cjs'
+      - 'scripts/report-nhl-dual-real-line-hit-rates-v1.cjs'
+      - 'scripts/public-workflow-migration-inventory.cjs'
+      - 'test/public-archive-native-audit.test.cjs'
+      - '.github/workflows/public-native-archive-validation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/public-archive-native-audit.cjs'
+      - 'scripts/report-nhl-dual-real-line-hit-rates-v1.cjs'
+      - '.github/workflows/public-native-archive-validation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/public-archive-native-audit.test.cjs
+      - run: node --check scripts/report-nhl-dual-real-line-hit-rates-v1.cjs
+      - run: node scripts/public-workflow-migration-inventory.cjs
+  archived-replay:
+    needs: contracts
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'Thedarkwillow/nhl-betting-platform1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        sport: [NHL, NFL]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Read original archive and Git chronology, not its executable code
+        uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run public code with network isolated and only aggregate output
+        shell: bash
+        env:
+          SPORT: ${{ matrix.sport }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/report" "$RUNNER_TEMP/offline-home"
+          log="$RUNNER_TEMP/private-audit.log"
+          if ! sudo unshare --net -- runuser -u "$(id -un)" -- env -i \
+              PATH="$PATH" HOME="$RUNNER_TEMP/offline-home" \
+              node public/scripts/public-archive-native-audit.cjs "$SPORT" \
+              "$GITHUB_WORKSPACE/archive" "$RUNNER_TEMP/report" >"$log" 2>&1; then
+            echo "::error::Public-native $SPORT audit failed; raw diagnostics withheld"
+            exit 1
+          fi
+          node - "$log" "$SPORT" <<'NODE'
+          const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[2],"utf8")),sport=process.argv[3];
+          if(x.kind!=="public_native_"+sport.toLowerCase()+"_archive_replay_v1"||
+             x.rawRowsPublished!==0||x.paidRequests!==0||x.modelPromoted!==false||x.calibrationApproved!==false)
+            throw Error("Invalid public aggregate");
+          console.log(JSON.stringify(x));
+          NODE
+          rm -f "$log"

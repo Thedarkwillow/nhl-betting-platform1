@@ -7,7 +7,13 @@ const fs=require("node:fs"),path=require("node:path"),
 const {mergeHistory}=require("../src/nhl-specialist-history-recovery.cjs");
 const {replay,forward}=require("../src/nhl-dual-real-line-hit-rates-v1.cjs");
 const {analyze:diagnoseDirectional}=require("../src/nhl-original-line-directional-bias-diagnostic-v1.cjs");
-const root=path.resolve(__dirname,"..");
+const codeRoot=path.resolve(__dirname,"..");
+const root=process.env.RESEARCH_ARCHIVE_ROOT?path.resolve(process.env.RESEARCH_ARCHIVE_ROOT):codeRoot;
+const reportRoot=process.env.RESEARCH_REPORT_ROOT?path.resolve(process.env.RESEARCH_REPORT_ROOT):root;
+const externalArchive=root!==codeRoot;
+if(externalArchive&&(!process.env.RESEARCH_REPORT_ROOT||reportRoot===root||reportRoot===codeRoot||
+ reportRoot.startsWith(root+path.sep)||reportRoot.startsWith(codeRoot+path.sep)))
+ throw Error("External archives require a separate ephemeral report directory");
 const at=x=>typeof x==="string"?Date.parse(x):NaN;
 const abs=p=>path.join(root,p);
 const exists=p=>fs.existsSync(abs(p));
@@ -19,6 +25,12 @@ function list(dir){
   .filter(n=>/^\d{4}-\d{2}-\d{2}\.json$/.test(n)).sort():[];
 }
 function policy(){
+ if(externalArchive){
+  const model="src/nhl-eight-accuracy-research-v1.cjs";
+  const archived=execFileSync("git",["show","HEAD:"+model],{cwd:root,timeout:25000,maxBuffer:8*1024*1024});
+  if(!archived.equals(fs.readFileSync(path.join(codeRoot,model))))
+   throw Error("Public policy differs from archived original recipe; cannot reuse old policy timestamp");
+ }
  const stamp=git(["log","--diff-filter=A","-1","--format=%cI",
   "--","src/nhl-eight-accuracy-research-v1.cjs"]);
  if(!Number.isFinite(at(stamp)))throw Error("New-model historical policy first-Git commit absent");
@@ -60,8 +72,9 @@ function history(){
  return mergeHistory(current,previous,pp,sh);
 }
 function save(file,report){
- fs.mkdirSync(path.dirname(abs(file)),{recursive:true});
- fs.writeFileSync(abs(file),JSON.stringify(report,null,2)+"\n");
+ const target=path.join(reportRoot,file);
+ fs.mkdirSync(path.dirname(target),{recursive:true});
+ fs.writeFileSync(target,JSON.stringify(report,null,2)+"\n");
 }
 function main(){
  const p=policy(),h=history(),f=archive(),

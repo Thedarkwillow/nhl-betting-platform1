@@ -1,5 +1,9 @@
 # nhl-betting-platform1
 
+## Public development and archive separation
+
+The owner-selected development repository is **Thedarkwillow/nhl-betting-platform1**. All legacy source, scripts and tests are present on public main. Use the public repository for new research and workflow development. Historical raw data and original first-Git evidence remain in the private archive until redistribution rights are verified; never recreate their original commit dates. Public-native archive validation uses public executable code, read-only archive data, no network or paid requests, and count-only diagnostics. Legacy private-code workflow definitions are preserved as migration templates and existing production runners remain active until individually validated replacements are ready. The older sections below document those legacy production runners, not the development repository choice.
+
 ## Public, free-runner official game-status monitoring
 
 The \`.github/workflows/collect-public-nhl-games.yml\` workflow runs at **06:08 and 09:08 America/Los_Angeles**, and can also be dispatched manually. It fetches *only* the NHL's public daily game scoreboard and stores a narrow allowlist of game IDs, teams, starts and scores in \`nhl-games.json\`. The raw API response is not committed. Each observation preserves its *actual* fetch time and provider name.

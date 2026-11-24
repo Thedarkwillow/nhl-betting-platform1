@@ -35,6 +35,11 @@
    card.append(node("strong",p.player+" · "+p.team),node("p",p.market.replaceAll("_"," ")+" · "+p.side+" "+p.line),
     node("p","Projection "+p.modelProjection+" · "+(100*p.conditionalModelProbability).toFixed(1)+"% conditional estimate","minor"),
     node("p","vs "+p.opponent+" · "+p.priorGames+" prior games","minor"));
+   const details=node("details","","minor");
+   details.append(node("summary","Why this research direction?"),
+    node("p","The historical model projects "+p.modelProjection+" against the "+p.line+" threshold ("+(p.modelProjection>p.line?"above":p.modelProjection<p.line?"below":"equal")+"). "+p.priorGames+" prior games contribute to the current research."),
+    node("p","Opponent: "+p.opponent+". Individual positional rank, exact head-to-head results, live workload and verified forecast are not included in this published card. Do not interpret missing context as favorable."));
+   card.append(details);
    list.append(card);
   }
  }
@@ -58,7 +63,13 @@
    for(const p of cards){
     const card=node("article","","card");card.append(node("strong",p.player+" · "+p.team),node("p",p.market.replaceAll("_"," ")+" · Higher "+p.line),
      node("p","Projection "+p.modelProjection+" · "+(100*p.conditionalModelProbability).toFixed(1)+"% conditional estimate","minor"),
-     node("p","vs "+p.opponent+" · "+p.priorGames+" prior games","minor"));list.append(card);
+     node("p","vs "+p.opponent+" · "+p.priorGames+" prior games","minor"));
+   const details=node("details","","minor");
+   details.append(node("summary","Why this research direction?"),
+    node("p","The historical model projects "+p.modelProjection+" against the "+p.line+" threshold ("+(p.modelProjection>p.line?"above":p.modelProjection<p.line?"below":"equal")+"). "+p.priorGames+" prior games contribute to the current research."),
+    node("p","Opponent: "+p.opponent+". Individual positional rank, exact head-to-head results, live workload and verified forecast are not included in this published card. Do not interpret missing context as favorable."));
+   card.append(details);
+    list.append(card);
    }
   }catch{list.replaceChildren();status.textContent="No fresh verified "+name+" scope; expired or incomplete research withheld.";}
  }

@@ -107,6 +107,9 @@ jobs:
           node scripts/diff-live-partner-captures.cjs "$ARCHIVE_DIR"
           node scripts/build-partner-board-preview.cjs "$ARCHIVE_DIR" || echo "::warning::Research preview failed; source archive still required"
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          if test -f scripts/collect-nfl-nws-weather.cjs; then
+            node scripts/collect-nfl-nws-weather.cjs >"$log" 2>&1 || echo "::warning::Verified-venue weather pilot unavailable; no forecast invented."
+          fi
           if ! node scripts/build-nfl-partner-board-research.cjs "$ARCHIVE_DIR" >"$log" 2>&1; then
             echo "::warning::NFL matchup research unavailable; original archive still preserved."
           fi
@@ -126,6 +129,7 @@ jobs:
           git add -f outputs/partner-source/line-delta 2>/dev/null || true
           git add -f outputs/partner-source/research-preview 2>/dev/null || true
           git add -f outputs/nfl/research/partner-research-preview-*.json 2>/dev/null || true
+          git add -f outputs/nfl/research/weather/*.json 2>/dev/null || true
           if git diff --cached --quiet; then echo "::error::No actual source archival changes"; exit 1; fi
           git commit -m "data: actual-time 6/9 AM private partner NHL and NFL boards"
           for attempt in 1 2 3 4 5; do

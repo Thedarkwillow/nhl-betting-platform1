@@ -1,0 +1,35 @@
+name: Validate independent NHL fallback without provider calls
+on:
+  push:
+    branches: [nhl-independent-sportsbook-fallback-runner-20261124]
+    paths: ['.github/workflows/validate-independent-nhl-fallback.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: ca90eaf78200814dfb68dd3da2b95bf6818eaa54
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run offline private regression and report aggregate results only
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --check scripts/collect-independent-nhl-sportsbook-fallback.cjs
+          node --check scripts/freeze-partner-nhl-pregame.cjs
+          if ! node --test test/nhl-independent-sportsbook-fallback.test.cjs test/sportsgameodds-nhl.test.cjs test/sportsbook-matched-model-research.test.cjs test/nhl-partner-pregame-freeze.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" || true
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail)' "$log"
+          echo 'No sportsbook credentials or requests used in tests.'

@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          test "$(git rev-parse HEAD)" = "9d2164e2b8bc1ea66726cefa0a2c6aec63717b96"
+          test "$(git rev-parse HEAD)" = "caa929f71f70a6aa71500ae9c87259e3090db2b5"
           report="outputs/health/ci-diagnostics/goalie-starter-history-${GITHUB_RUN_ID}.txt"
           mkdir -p "$(dirname "$report")"
           overall=0

@@ -1,0 +1,40 @@
+name: Recheck remaining private goalie count discrepancies
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/private-goalie-conflict-refresh.yml']
+permissions:
+  contents: read
+concurrency:
+  group: goalie-conflict-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reconcile exact official finals privately
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --test test/nhl-goalie-starter-history.test.cjs test/priority-common-ml-shadow-v1.test.cjs >"$log" 2>&1 || { echo 'Regression failed'; exit 1; }
+          node scripts/recheck-nhl-goalie-discrepancies.cjs >"$log" 2>&1 || { echo 'Official reconciliation failed'; exit 1; }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/health/goalie-conflict-refresh-latest.json outputs/nhl-usage/goalie-starts-rest-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: recheck goalie discrepancies against fresh official finals'
+          git push -q origin HEAD:main
+          echo 'Private goalie reconciliation archived.'

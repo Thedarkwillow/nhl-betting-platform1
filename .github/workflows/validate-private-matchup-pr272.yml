@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: e3eb17a7dbef9cea741fc4c9571452cbf67261b0
+          ref: ba1b05b6849ad279c03fd7cb1cab78d591749e7a
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: e3eb17a7dbef9cea741fc4c9571452cbf67261b0
+          ref: ba1b05b6849ad279c03fd7cb1cab78d591749e7a
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
@@ -141,4 +141,5 @@ jobs:
           console.log(JSON.stringify({afterHistoricalBackfill:true,specialistCoverage:r.nflSpecialistCoverage,fullBoundaryExceptionCounts:r.nflFullBoundaryExceptionCounts,modelPromoted:false}));
           console.log(JSON.stringify({qbPaceRefresh:r.qbAttemptDirectional?.paceCoverage,qbPaceFactors:r.qbAttemptDirectional?.paceFactorHoldout}));
           if(!r.qbAttemptDirectional?.paceCoverage?.reconciledTeamGames)throw Error('No reconciled pace data from refreshed full-play archive');
+          const ex=require('./outputs/nfl/research/drive-exceptions-private-latest.json');const reasons={};for(const x of ex.exceptions)for(const d of x.full.drives||[])reasons[d.reason]=(reasons[d.reason]||0)+1;console.log(JSON.stringify({fullDriveReasons:reasons,exceptions:ex.exceptions.length}));
           NODE

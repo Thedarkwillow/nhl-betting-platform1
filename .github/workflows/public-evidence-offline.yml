@@ -47,7 +47,7 @@ jobs:
           JS
       - name: Exercise paper research safeguards and NBA holdout rejection
         run: |
-          node --test test/nhl-lineup-evidence-release-v1.test.cjs test/lineup-reference-payout-bounds.test.cjs test/nhl-lineup-slate-resampling.test.cjs test/nba-fixed-holdout-gate-v1.test.cjs
+          node --test test/independent-provider-export-v1.test.cjs test/esports-zero-credit-coverage.test.cjs test/nhl-lineup-evidence-release-v1.test.cjs test/lineup-reference-payout-bounds.test.cjs test/nhl-lineup-slate-resampling.test.cjs test/nba-fixed-holdout-gate-v1.test.cjs
           node scripts/test-lineup-workspace.cjs
       - name: Inventory private-dependent workflows without checking out private source
         run: node scripts/public-workflow-migration-inventory.cjs

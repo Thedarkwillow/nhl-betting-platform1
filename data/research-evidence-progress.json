@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-23T22:41:27.443Z",
+  "generatedAt": "2026-11-24T00:21:38.601Z",
   "sourceReportAt": "2026-11-23T22:37:25.293Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -360,6 +360,7 @@
     "approvedPicks": 0,
     "approvedLineups": 0
   },
+  "matchupEvidence": null,
   "proprietaryRowsPublished": 0,
   "calibrationApproved": false,
   "modelPromoted": false

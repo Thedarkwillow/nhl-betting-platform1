@@ -1,0 +1,55 @@
+name: One-time requested NBA historical market pilot
+on:
+  push:
+    branches: [nba-dunk-real-line-pilot-20261124]
+    paths: ['.github/workflows/nba-dunk-real-line-pilot.yml']
+permissions:
+  contents: read
+concurrency:
+  group: nba-dunk-real-line-pilot-once
+  cancel-in-progress: false
+jobs:
+  pilot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check historical evaluator and source contract
+        run: |
+          set -euo pipefail
+          node --check scripts/audit-nba-dunk-real-lines-pilot.cjs
+          node --test test/nba-alternate-providers.test.cjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Retrieve one pre-reserved historical market sample
+        env:
+          NBA_DUNK_REAL_LINE_PILOT: '1'
+          NBA_DUNKAPI_API_KEY: ${{ secrets.NBA_DUNKAPI_API_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/audit-nba-dunk-real-lines-pilot.cjs
+      - name: Archive private historical data and evaluation
+        if: always()
+        run: |
+          set -euo pipefail
+          for p in outputs/nba/authorized-providers/dunk-history outputs/nba/authorized-providers/dunk-backtests; do
+            if test -d "$p"; then git add -f "$p"; fi
+          done
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: archive requested DunkAPI historical market pilot'
+          for attempt in 1 2 3 4 5 6; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then exit 0; fi
+            sleep "$((attempt*2))"
+          done
+          exit 1

@@ -10,7 +10,7 @@ const {zoneStarts,officialTeamAttemptEvidence}=
  require("../src/nhl-official-block-exposure-v1.cjs");
 const {officialPbpUrl}=require("../src/nhl-official-period-events.cjs");
 const {getJSON,fetchShiftPages}=require("./collect-nhl-official-period-events.cjs");
-const root=path.resolve(__dirname,".."),abs=p=>path.join(root,p),
+const root=process.env.RESEARCH_ARCHIVE_ROOT?fs.realpathSync(process.env.RESEARCH_ARCHIVE_ROOT):path.resolve(__dirname,".."),abs=p=>path.join(root,p),
  read=p=>JSON.parse(fs.readFileSync(abs(p),"utf8"));
 const out="outputs/research/nhl-block-exposure-history";
 function dates(dir){

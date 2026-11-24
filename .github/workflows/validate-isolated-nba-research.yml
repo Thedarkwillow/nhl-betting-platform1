@@ -8,12 +8,12 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: ad881f0ef8dca552909b80d4cb8dac895ad3abfb
+          ref: 2cace99bbfdc3def9b10e93945e9dbf10d2a9c64
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
           fetch-depth: 1
@@ -30,9 +30,15 @@ jobs:
             exit 1
           fi
           grep -E '^# (tests|pass|fail)' "$log"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install historical parquet reader
+        run: python -m pip install 'pyarrow>=18,<24'
       - name: Read-only live source preflight with no metered odds key
         env:
           NBA_ODDS_ENABLE: '0'
+          NBA_HISTORICAL_MIRROR_RESEARCH: '1'
         run: |
           set -euo pipefail
           umask 077

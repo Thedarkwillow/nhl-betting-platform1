@@ -1,0 +1,37 @@
+name: Verify newly configured NBA provider keys without metered data
+on:
+  push:
+    branches: [nba-live-provider-preflight-20261124]
+    paths: ['.github/workflows/verify-nba-new-provider-keys.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 0d4c263e8ee69232d6cf9dbeca63dad01f9a2f49
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Free schedule and noncharging estimate
+        env:
+          NBA_BALLDONTLIE_API_KEY: ${{ secrets.NBA_BALLDONTLIE_API_KEY }}
+          NBA_DUNKAPI_API_KEY: ${{ secrets.NBA_DUNKAPI_API_KEY }}
+          NBA_BDL_FREE_SOURCE_ENABLED: '1'
+          NBA_DUNK_ESTIMATE_ENABLED: '1'
+          NBA_DUNK_HISTORY_MANUAL_APPROVED: '0'
+          NBA_DUNK_PLAYER_ID: '3112335'
+          NBA_DUNK_MARKET: 'player_points'
+          NBA_DUNK_FROM_DATE: '2026-11-01'
+          NBA_DUNK_TO_DATE: '2026-11-23'
+        run: |
+          set -euo pipefail
+          node -e 'console.log(JSON.stringify({ballDontLieKeyConfigured:!!process.env.NBA_BALLDONTLIE_API_KEY,dunkAPIKeyConfigured:!!process.env.NBA_DUNKAPI_API_KEY}))'
+          node scripts/collect-nba-alternate-providers.cjs

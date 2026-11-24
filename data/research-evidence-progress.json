@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-24T16:43:48.906Z",
+  "generatedAt": "2026-11-24T16:46:02.597Z",
   "sourceReportAt": "2026-11-24T16:30:19.132Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -435,7 +435,12 @@
     "trainedMarkets": 16,
     "testedThresholds": 52,
     "thresholdsBeatingAllBaselines": 16,
-    "prospective": null,
+    "prospective": {
+      "sourceReportAt": "2026-11-24T16:43:31.267Z",
+      "registered": 2,
+      "decided": 0,
+      "correct": 0
+    },
     "historicalSyntheticOnly": true,
     "calibrationApproved": false,
     "modelPromoted": false,

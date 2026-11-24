@@ -1,0 +1,47 @@
+name: Validate NHL frozen evidence coverage offline
+on:
+  push:
+    branches: [nhl-evidence-audit-20261124]
+    paths: ['.github/workflows/validate-nhl-frozen-evidence-audit.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 76fb35f72b4c680cf87421322be027b009365b5d
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test evidence exporter and matching
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node --check scripts/export-private-nhl-compact.cjs
+          if ! node --test test/nhl-compact-private-export.test.cjs test/nhl-independent-sportsbook-fallback.test.cjs test/nhl-sportsbook-original-name.test.cjs >"$log" 2>&1; then
+            grep -E '^not ok|^# (tests|pass|fail)' "$log" || true
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail)' "$log"
+      - name: Audit exact November 24 freeze without provider access
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const {execFileSync}=require('node:child_process');
+          const git=args=>execFileSync('git',args,{encoding:'utf8',timeout:30000,maxBuffer:128*1024*1024}).trim();
+          const {summarize,loadEvidence}=require('./scripts/export-private-nhl-compact.cjs');
+          const p='outputs/research/snapshots/20261124T173347Z.json';
+          const commits=git(['log','--format=%H','--',p]).split('\n').filter(Boolean);
+          if(commits.length!==1||commits[0]!=='16ba5572e5a0f25442f3ba19c8831916895390fd')throw Error('Original immutable freeze mismatch');
+          const sha=commits[0],s=JSON.parse(git(['show',sha+':'+p])),firstCommittedAt=git(['show','-s','--format=%cI',sha]);
+          const sources=loadEvidence(git,s.generatedAt);
+          const a=summarize(s,{now:'2026-11-24T17:35:57.596Z',firstCommittedAt,sourcePath:p,sourceSha:sha,...sources});
+          console.log(JSON.stringify({originalFreeze:s.generatedAt,eligibleByTier:a.health.eligibleByTier,allRequiredMatchupEvidenceByTier:a.health.allRequiredMatchupEvidenceByTier,evidenceAuditByTier:a.health.evidenceAuditByTier,opponentArchives:sources.opponentAttemptArchives.length,oddsArchives:sources.oddsArchives.length,providerRequests:0,approvalChanged:false}));
+          NODE

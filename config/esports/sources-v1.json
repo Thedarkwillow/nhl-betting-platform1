@@ -378,8 +378,8 @@
         "historical_map_stats"
       ],
       "mode": "bounded_research_download",
-      "notes": "Owner reports specific permission on 2026-11-24 despite standard terms. No independently verified exception or redistribution rights; historical statistical research only. Do not publish raw database.",
-      "automatedNetworkEnabled": true,
+      "notes": "Owner reports specific permission on 2026-11-24 despite standard terms. No independently verified exception or redistribution rights; historical statistical research only. Do not publish raw database. Explicit one-time bounded historical research job is separate from the locked default esports engine.",
+      "automatedNetworkEnabled": false,
       "paidCallsAllowed": false,
       "publicationRightsVerified": false,
       "downloadUrl": "https://vct-reference.com/dataset/vct.duckdb"

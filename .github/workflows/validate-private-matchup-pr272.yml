@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 40c628674b2be57b92b9d3c9df105866cbf914f9
+          ref: 3b4811266843cf6884cc075dd27c725fb5fdf1b5
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
@@ -62,7 +62,9 @@ jobs:
           const rank=r.nflPositionalRankings,sp=r.nflSpecialistCoverage;
           if(rank?.kind!=='nfl_reconciled_position_rankings_v1'||!sp||!Object.values(rank.tables).every(t=>t.complete||t.rows.every(x=>x.rankMostAllowed===null))) throw Error('Invalid new coverage report');
           console.log(JSON.stringify({rankTables:Object.keys(rank.tables).length,completeRankTables:Object.values(rank.tables).filter(t=>t.complete).length,specialistCoverage:sp,rankingDiagnostics:rank.diagnostics}));
-          console.log(JSON.stringify({specialistReplay:r.nflSpecialistReplay.byMarket,nhlDirection:Object.fromEntries(Object.entries(r.nhl.byMarketPosition).filter(([k,v])=>!k.includes("|")&&v.headToHeadPairedMAE).map(([k,v])=>[k,v.headToHeadPairedMAE])),nflDirection:Object.fromEntries(Object.entries(r.nfl.byMarketPosition).filter(([k,v])=>v.combinedPaired>0).map(([k,v])=>[k,{paired:v.combinedPaired,base:v.combinedBaselineMAE,position:v.combinedPositionMAE,combined:v.combinedMAE,direction:v.syntheticDirection}]))}));
+          const safe=x=>({train:x.trainingAppearances,holdout:x.holdoutAppearances,baselineMAE:x.baselineMAE,fixedMAE:x.fixedMAE,learnedMAE:x.learnedMAE,thresholds:x.thresholds,baseWins:x.baseWins,learnedWins:x.learnedWins,alwaysHigher:x.alwaysHigher,alwaysLower:x.alwaysLower});
+          const collect=o=>Object.fromEntries(Object.entries(o).filter(([k,v])=>v.learnedMatchupHoldout?.holdoutAppearances>0).map(([k,v])=>[k,safe(v.learnedMatchupHoldout)]));
+          console.log(JSON.stringify({learnedNHL:collect(r.nhl.byMarketPosition),learnedNFL:collect(r.nfl.byMarketPosition),learnedSpecialist:collect(r.nflSpecialistReplay.byMarket)}));
           NODE
   refresh-trial:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -72,7 +74,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
-          ref: 40c628674b2be57b92b9d3c9df105866cbf914f9
+          ref: 3b4811266843cf6884cc075dd27c725fb5fdf1b5
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false

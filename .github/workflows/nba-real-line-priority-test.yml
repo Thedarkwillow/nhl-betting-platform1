@@ -1,0 +1,25 @@
+name: Validate NBA real-line collection priority
+on:
+  push:
+    branches: [nba-prioritize-real-lines-20261124]
+    paths: ['.github/workflows/nba-real-line-priority-test.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: d8a4ae3d9aaf52630fde5f4c7f1741b27b5df91b
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          set -euo pipefail
+          node --test test/nba-context-calibration-v2.test.cjs test/nba-dunk-cohort-study.test.cjs test/nba-alternate-providers.test.cjs test/nba-authorized-provider-access.test.cjs
+          node scripts/run-nba-dunk-cohort-study.cjs

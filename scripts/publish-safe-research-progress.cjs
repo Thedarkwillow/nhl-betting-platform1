@@ -456,7 +456,15 @@ function safeNHLOpponentCoverage(e,now){
   byMarket,sourceOnly:true,originalPlatformOffersVerified:false,
   probabilitiesCalibrated:false,approvedPicks:0,approvedLineups:0};
 }
-function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelective=null,modelIdeas=null,goblin=null,nhlOpponentCoverage=null}={}){
+function safeMatchupCoverage(r,now){
+ if(r?.kind!=="cross_sport_position_h2h_paired_replay_v1"||r.modelPromoted!==false||r.prospectiveAccuracyVerified!==false||!Number.isFinite(dt(r.generatedAt))||dt(r.generatedAt)>dt(now)||r.nhl?.syntheticThresholdsOnly!==true||r.nfl?.exactOriginalLines!==false)return null;
+ const tables=Object.values(r.nflPositionalRankings?.tables||{}),sp=r.nflSpecialistCoverage;
+ if(!tables.length||tables.some(t=>typeof t.complete!=="boolean"||(!t.complete&&t.rows?.some(x=>x.rankMostAllowed!==null))))return null;
+ const keys=["teamGames","reconciledPuntTeamGames","reconciledKickTeamGames","punterAppearances","kickerAppearances"];
+ if(keys.some(k=>count(sp?.[k])===null)||sp.reconciledPuntTeamGames>sp.teamGames||sp.reconciledKickTeamGames>sp.teamGames)return null;
+ return {kind:"public_matchup_evidence_counts_v1",sourceReportAt:r.generatedAt,rankingTables:tables.length,completeRankingTables:tables.filter(t=>t.complete).length,...Object.fromEntries(keys.map(k=>[k,sp[k]])),historicalOnly:true,modelPromoted:false,approvedPicks:0};
+}
+function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelective=null,modelIdeas=null,goblin=null,nhlOpponentCoverage=null,matchupReplay=null}={}){
  if(source?.kind!=="private_source_completion_readiness_v1"||!Number.isFinite(dt(now))||!Number.isFinite(dt(source.generatedAt))||dt(source.generatedAt)>dt(now)||source.modelPromoted!==false||source.wagersPlaced!==0)return null;
  const d=source.periodCoverage,p=d&&count(d.calendarDays)>0&&count(d.accountedDays)!==null&&count(d.pendingDays)!==null&&d.accountedDays+d.pendingDays===d.calendarDays?{accountedDays:d.accountedDays,calendarDays:d.calendarDays,pendingDays:d.pendingDays}:null;
  const evidence=Object.fromEntries(["nhl","nfl"].map(s=>[s,{firstObserved:count(source.prospective?.[s]?.firstObserved),matchedCalibrationRows:count(source.prospective?.[s]?.matchedCalibrationRows)}]));
@@ -488,6 +496,7 @@ function build(source,{now=new Date().toISOString(),nhlSelective=null,nflSelecti
   modelIdeas:safeModelIdeas(modelIdeas,now),
   goblinFuture:safeGoblin(goblin,now),
   nhlOpponentEvidence:safeNHLOpponentCoverage(nhlOpponentCoverage,now),
+  matchupEvidence:safeMatchupCoverage(matchupReplay,now),
   proprietaryRowsPublished:0,calibrationApproved:false,modelPromoted:false};
 }
 function main([privateRoot,publicRoot]=process.argv.slice(2)){
@@ -498,11 +507,12 @@ function main([privateRoot,publicRoot]=process.argv.slice(2)){
   nflSelective:read("outputs/nfl/backtests/directional-v2-future-only-latest.json"),
   modelIdeas:(()=>{try{return read("outputs/health/open-model-ideas-latest.json")}catch{return null}})(),
   goblin:(()=>{try{return read("outputs/health/goblin-forward-latest.json")}catch{return null}})(),
-  nhlOpponentCoverage:(()=>{try{return read("outputs/health/nhl-opponent-concession-coverage-latest.json")}catch{return null}})()
+  nhlOpponentCoverage:(()=>{try{return read("outputs/health/nhl-opponent-concession-coverage-latest.json")}catch{return null}})(),
+  matchupReplay:(()=>{try{return read("outputs/health/cross-sport-position-h2h-replay-latest.json")}catch{return null}})()
  });
  if(!out||!out.selectiveAccuracy)throw Error("Missing verified private prospective selective reports; refuse publication");
  const f=path.join(publicRoot,"data/research-evidence-progress.json");fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,JSON.stringify(out,null,2)+"\n");
  console.log("PASS: allowlisted progress counts only.");
 }
 if(require.main===module)main();
-module.exports={build};
+module.exports={build,safeMatchupCoverage};

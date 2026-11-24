@@ -1,0 +1,78 @@
+name: Validate private expanded ML PR 291
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/validate-private-expanded-ml-pr291.yml']
+permissions:
+  contents: read
+concurrency:
+  group: private-expanded-ml-pr291
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/expanded-common-ml-20261124
+          path: private
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate reviewed branch and privately persist all diagnostics
+        working-directory: private
+        shell: bash
+        env:
+          PRIORITY_EXPANDED_ML: '1'
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(git rev-parse HEAD)" = "3fa8d08fd1e4b087dd17bed07ebb2dfcf35a9a1b" || { echo "Private branch changed; review new SHA first."; exit 1; }
+          report="outputs/health/ci-diagnostics/expanded-ml-pr291-${GITHUB_RUN_ID}.txt"
+          mkdir -p "$(dirname "$report")"
+          printf 'source_commit=%s\n' "$(git rev-parse HEAD)" > "$report"
+          overall=0
+          stage() {
+            local name="$1"; shift
+            printf '\n=== %s ===\n' "$name" >> "$report"
+            if "$@" >> "$report" 2>&1; then
+              printf '%s: PASS\n' "$name" >> "$report"
+            else
+              printf '%s: FAIL\n' "$name" >> "$report"
+              overall=1
+            fi
+          }
+          stage regression node --test test/priority-common-ml-shadow-v1.test.cjs
+          stage exporter_syntax node --check scripts/export-priority-component-features.cjs
+          stage nfl_freeze_syntax node --check scripts/freeze-nfl-partner-pregame.cjs
+          stage nhl_freeze_syntax node --check scripts/freeze-partner-nhl-pregame.cjs
+          stage trainer_syntax python -m py_compile scripts/train-priority-common-ml-shadow.py
+          stage dependencies python -m pip install 'numpy<3' 'scikit-learn<2' --quiet
+          if [ "$overall" -eq 0 ]; then
+            stage historical_export node scripts/export-priority-component-features.cjs
+          fi
+          if [ "$overall" -eq 0 ]; then
+            stage historical_train python scripts/train-priority-common-ml-shadow.py
+          fi
+          if [ "$overall" -eq 0 ]; then
+            stage artifact_contract node -e 'const d=require("./outputs/research/priority-expanded-ml-artifact.json");if(d.researchOnly!==true||d.modelPromoted!==false||!Object.keys(d.models||{}).length)process.exit(1); console.log(JSON.stringify({trainedMarkets:Object.keys(d.models),skipped:d.skippedMarkets,holdout:d.historicalSyntheticHoldout}));'
+          fi
+          printf '\noverall_exit=%s\n' "$overall" >> "$report"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$report"
+          if [ "$overall" -eq 0 ]; then
+            git add -f outputs/research/priority-expanded-ml-artifact.json
+          fi
+          git commit -qm 'research: private expanded ML validation evidence'
+          git push -q origin HEAD:research/expanded-common-ml-20261124
+          echo "Private diagnostic report committed; no private artifacts published."
+          exit "$overall"

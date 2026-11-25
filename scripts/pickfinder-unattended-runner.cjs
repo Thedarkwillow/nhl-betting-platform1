@@ -149,7 +149,10 @@ async function main(env=process.env){
  const evidence=await discover({env});
  const preferredTargets=orderedPartitions(SPORTS,BOOKS,evidence);
  const optionalCodes=Object.keys(registry).filter(code=>!SPORTS.includes(code));
- const targets=p.reconcile?[...['NBA','NFL','NHL'].map(code=>({book:'prizepicks',code})),...preferredTargets.filter(p=>p.book!=='prizepicks'||!['NBA','NFL','NHL'].includes(p.code))]:preferredTargets;
+ // Adjacent NBA books reduce clock separation without asserting simultaneous capture.
+ const nbaPair=BOOKS.map(book=>({book,code:'NBA'}));
+ const other=preferredTargets.filter(p=>p.code!=='NBA');
+ const targets=[...nbaPair,...(p.reconcile?[...['NFL','NHL'].map(code=>({book:'prizepicks',code})),...other.filter(p=>p.book!=='prizepicks'||!['NFL','NHL'].includes(p.code))]:other)];
  console.log(JSON.stringify({state:'competition_discovery',sports:Object.fromEntries(Object.keys(registry).map(code=>[code,{source:evidence[code]?.source,status:evidence[code]?.status,upcoming:evidence[code]?.upcoming}])),paidEndpointsCalled:0}));
  const attempt=crypto.randomUUID();
  const counts=[],batches=[],normalized=[];let failed=false;

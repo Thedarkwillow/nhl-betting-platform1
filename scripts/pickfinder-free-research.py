@@ -1,11 +1,12 @@
 """Read-only public research page contract. No credentials, bets or historical backdating."""
 from html.parser import HTMLParser
 from urllib.parse import urljoin,urlsplit
-import json,sys,urllib.request
+import json,sys,urllib.request,hashlib,os
+from pathlib import Path
 from datetime import datetime,timezone
 BASE="https://www.pickfinder.app"
 # Three verified examples; the directory discovers additional sport pages without guessing paths.
-PILOT=["/leagues/nba/defense-vs-position","/leagues/cs2/fragger-board","/leagues/dota-2/heroes"]
+PILOT=["/leagues/nba/defense-vs-position","/leagues/cs2/fragger-board","/leagues/dota-2/heroes","/leagues/nhl/defense-vs-position","/leagues/nhl/soft-spots","/leagues/nhl/team-rankings"]
 class Parser(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True);self.tables=[];self.table=None;self.row=None;self.cell=None;self.heading="";self.h=None;self.links=[]
@@ -43,10 +44,19 @@ def main():
     # Public pages only. Stop on refusal; no retries, no bypass and no paid API.
     directory=fetch("/free-research")
     listed={urlsplit(urljoin(BASE,l)).path for l in directory.links if urlsplit(urljoin(BASE,l)).netloc==urlsplit(BASE).netloc}
-    out={}
+    out={}; snapshots=[]
     for rel in PILOT:
         if rel not in listed:out[rel]={"state":"not_listed"};continue
         p=fetch(rel);out[rel]={"state":"observed",**summarize(p)}
+        snapshots.append({"path":rel,"observedAt":datetime.now(timezone.utc).isoformat(),"tables":p.tables})
+    if "--private-root" in sys.argv:
+        root=Path(sys.argv[sys.argv.index("--private-root")+1]).resolve()
+        if os.getenv("RESTRICTED_DESTINATION_VERIFIED")!="1" or not (root/".git").exists():raise ValueError("private root")
+        base=root/"research/pickfinder-free-research"
+        if base.is_symlink() or base.parent.is_symlink():raise ValueError("symlink")
+        base.mkdir(parents=True,exist_ok=True)
+        payload=json.dumps({"schema":"pickfinder_free_research_v1","snapshots":snapshots,"historicalFeaturesApproved":False},sort_keys=True).encode()
+        with (base/(hashlib.sha256(payload).hexdigest()+".json")).open("xb") as f:f.write(payload)
     print(json.dumps({"kind":"pickfinder_public_research_probe","observedAt":datetime.now(timezone.utc).isoformat(),"pages":out,"historicalFeaturesApproved":False,"rawRowsPublished":0,"paidRequests":0}))
 if __name__=="__main__":
     try:main()

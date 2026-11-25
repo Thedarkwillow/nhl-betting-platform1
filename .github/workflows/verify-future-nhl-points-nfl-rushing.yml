@@ -1,5 +1,7 @@
 name: Validate future NHL points and NFL rushing models privately
 on:
+  pull_request:
+    paths: ['.github/workflows/verify-future-nhl-points-nfl-rushing.yml','src/nhl-points-role-shadow-v3.cjs','src/nfl-rushing-stability-shadow-v4.cjs','test/nhl-points-role-shadow-v3.test.cjs','test/nfl-rushing-stability-shadow-v4.test.cjs']
   workflow_dispatch:
   push:
     branches: [main]
@@ -18,22 +20,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Verify authorized private source
-        env:
-          TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
-        run: test -n "$TOKEN" || { echo "::error::Private code access missing"; exit 1; }
       - uses: actions/checkout@v4
         with:
-          repository: Thedarkwillow/nhl-betting-platform
-          ref: main
-          path: private
-          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Test pregame NHL points role and NFL rushing prior-week policies
-        working-directory: private
         shell: bash
         run: |
           set -euo pipefail

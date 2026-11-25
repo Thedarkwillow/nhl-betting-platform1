@@ -1,5 +1,7 @@
 name: Auto-test real 6AM and 9AM NHL NFL private source reliability
 on:
+  pull_request:
+    paths: ['.github/workflows/test-nhl-nfl-morning-capture-reliability.yml']
   workflow_dispatch:
   push:
     branches: [main]
@@ -15,7 +17,21 @@ concurrency:
   group: audit-real-original-nhl-nfl-morning-source
   cancel-in-progress: false
 jobs:
+  public-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Public source and scheduling contract tests without archive access
+        run: node --test scripts/test-pacific-morning-capture-gate.cjs scripts/test-public-capture-schedule.cjs scripts/test-audit-private-morning-archives.cjs test/nhl-nfl-partner-direct-collection.test.cjs test/daily-nhl-nfl-cross-day-line-movement.test.cjs test/partner-prizepicks-board.test.cjs
   verify-original-board:
+    needs: public-contracts
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -39,18 +55,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Simulate on-time, delayed and wrong-slot GitHub events across Pacific DST
-        working-directory: public
-        run: |
-          set -euo pipefail
-          node --test scripts/test-pacific-morning-capture-gate.cjs             scripts/test-public-capture-schedule.cjs             scripts/test-audit-private-morning-archives.cjs
-          echo "PASS: late GitHub scheduling cannot trigger a false or mislabelled NHL/NFL source collection."
-      - name: Verify independent original-source collector and cross-day source comparisons
-        working-directory: private
-        run: |
-          set -euo pipefail
-          node --test test/nhl-nfl-partner-direct-collection.test.cjs             test/daily-nhl-nfl-cross-day-line-movement.test.cjs             test/partner-prizepicks-board.test.cjs
-          echo "PASS: original private source offer IDs, full pagination and legitimate both-sport provenance."
       - name: Smoke-audit real archived Nov 10 NHL+NFL 6AM source (independent private Git proof)
         working-directory: public
         run: |

@@ -2,15 +2,16 @@
 const fs=require('node:fs'),path=require('node:path'),{normalize}=require('./pickfinder-premium-archive.cjs'),{collect,ORIGIN}=require('./pickfinder-browser.cjs'),{enrich}=require('./pickfinder-player-research.cjs'),{VERSION}=require('./pickfinder-research-coverage.cjs'),{checkpointBuffer}=require('./pickfinder-checkpoint-buffer.cjs'),{pacific,decide}=require('./pacific-morning-capture-gate.cjs'),{prioritySports,registry}=require('./season-aware-collection.cjs'),{discover}=require('./season-aware-discovery.cjs'),{openHostedBoard}=require('./pickfinder-unattended-runner.cjs'),{persist,read,safe,sha,assertDestination}=require('./pickfinder-public-archive.cjs');
 const {verifiedNavigation,traverseDashboardFilters,inspectCapabilities}=require('./pickfinder-dashboard-research.cjs');
 const {inspectTool}=require('./pickfinder-tool-schema.cjs');
+const gameContext=require('./pickfinder-public-nba-context.cjs'),{load}=require('./pickfinder-public-evidence-audit.cjs');
 const CORE=['NBA','NHL','NFL','CS2','DOTA2','VAL','LOL','COD','MLB','WNBA','CFB','CBB','TENNIS','SOCCER'],BOOKS=['prizepicks','underdog'];
 function invocation(env,now=new Date()){
  if(env.PICKFINDER_AUTOMATION_AUTHORIZED!=='1'||env.PICKFINDER_PUBLIC_DATA_AUTHORIZED!=='1')throw Error('authorization required');
  if(env.GITHUB_EVENT_NAME==='schedule'&&/^[0-9]+ (6|9) \* \* \*$/.test(env.GITHUB_EVENT_SCHEDULE))return decide({eventName:'schedule',schedule:env.GITHUB_EVENT_SCHEDULE,now});
  if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&['capture_0600','capture_0900'].includes(env.REQUESTED_MODE))return decide({eventName:'workflow_dispatch',mode:env.REQUESTED_MODE,now});
  const clock=pacific(now),mode=env.REQUESTED_MODE||'board_and_deep';
- if(!['board_and_deep','deep_research_now','probe_now'].includes(mode))throw Error('mode');
+ if(!['board_and_deep','deep_research_now','probe_now','nba_context_only'].includes(mode))throw Error('mode');
  if([6,9].includes(clock.hour))return {allowed:false,state:'protect_morning_hour',clock};
- return {allowed:true,expected:'manual',clock,deep:mode==='deep_research_now',probe:mode==='probe_now'};
+ return {allowed:true,expected:'manual',clock,deep:mode==='deep_research_now'||mode==='nba_context_only',contextOnly:mode==='nba_context_only',probe:mode==='probe_now'};
 }
 function cleanBoard(batch){
  const n=normalize(batch);return safe({...n,sourceDigest:sha(JSON.stringify(batch)),schema:'pickfinder-public-normalized-v1',authenticated:batch.authenticated===true,explicitEmpty:batch.explicitEmpty===true,disabledConfirmed:batch.disabledConfirmed===true,displayedPageCount:batch.displayedPageCount??null,lastPageReached:batch.lastPageReached===true,rawHtmlPublished:false,accountDataPublished:false});
@@ -87,6 +88,29 @@ async function main(root,env=process.env){
     }
    }catch{errors++;console.log(JSON.stringify({state:'public_game_context_pending'}));}
   }
+  if(alive()){
+   const until=Date.now()+(p.contextOnly?25:5)*60000,contextAlive=()=>alive()&&Date.now()<until;
+   const q=gameContext.queue(load(root),read(root,'directory'),new Date().toISOString());
+   const detail=await context.newPage();detail.setDefaultTimeout(5000);
+   let observed=0,complete=0;
+   const buffer=checkpointBuffer({write:records=>write('directory',{schema:'pickfinder-public-nba-context-v1',observedAt:new Date().toISOString(),records,modelInputsApproved:false}),onVerified:r=>{observed++;if(r.state==='explicit_context_observed')complete++;}});
+   try{
+    for(const item of q.pending){
+     if(!contextAlive())break;
+     let snap={};
+     try{
+      await detail.goto(ORIGIN+item.detailId,{timeout:10000});
+      await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});
+      if(!await premium(detail))throw Error('session unavailable');
+      await detail.getByRole('button',{name:'Line Movement',exact:true}).waitFor({timeout:5000});
+      snap=await detail.evaluate(gameContext.readVisible,{player:item.player,detailId:item.detailId});
+     }catch{if(!await premium(detail).catch(()=>false))throw Error('session unavailable');}
+     await buffer.add(gameContext.normalize(item,snap,new Date().toISOString()));
+    }
+   }finally{try{if(!buffer.failed())await buffer.flush();}finally{await detail.close();}}
+   console.log(JSON.stringify({state:'public_nba_context_pass',playerEventTargets:q.total,offerReferences:q.offerReferences,attemptsArchived:observed,explicitContextArchived:complete,independentReviewVerified:0}));
+  }
+  if(p.contextOnly)return;
   const q=queue(read(root,'board-parts'),read(root,'profiles'));console.log(JSON.stringify({state:'public_deep_queue',total:q.total,completed:q.done,remaining:q.pending.length,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
   const detail=await context.newPage();detail.setDefaultTimeout(5000);
   const buffer=checkpointBuffer({write:rows=>write('profiles',{schema:'pickfinder-public-profiles-v1',observedAt:new Date().toISOString(),records:rows,modelInputsApproved:false}),onVerified:r=>{profiles++;console.log(JSON.stringify({state:'public_deep_scope_checkpoint_verified',sport:r.sport,book:r.book,status:r.status,truncated:r.truncated,verifiedThisRun:profiles}));}});

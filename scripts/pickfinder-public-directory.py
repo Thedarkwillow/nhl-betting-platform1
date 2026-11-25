@@ -25,6 +25,15 @@ def safe(href):
 def priority(p):
     bits=p.split("?")[0].strip("/").split("/")
     return 0 if len(bits)<=2 else 1 if len(bits)==3 else 2
+def next_path(pending,existing,visited):
+    core={"nba","nhl","nfl"}; observed_active={"cs2","dota-2","valorant"}
+    def sport(p):return p.split("/")[2] if p.startswith("/leagues/") else "directory"
+    def rank(p):
+        s=sport(p)
+        # Core and recently observed active boards first; round-robin within group.
+        tier=0 if s=="directory" else 1 if s in core else 2 if s in observed_active else 3
+        return (priority(p),tier,p in existing,visited.get(s,0),p)
+    return min(pending,key=rank)
 def extract(html,rel):
     p=M["parse"](html)
     # Explicit links only. No guessed URLs or account/action navigation.
@@ -55,7 +64,7 @@ def main(root,budget=80):
         except Exception:continue
     known={"/free-research"}
     for _,d in existing.values():known.update(p for p in d.get("links",[]) if safe(p)==p)
-    attempted=set();counts=defaultdict(lambda:{"pages":0,"tables":0,"rows":0,"playerLinks":0});failed=0;stopped=False
+    attempted=set();counts=defaultdict(lambda:{"pages":0,"tables":0,"rows":0,"playerLinks":0});failed=0;stopped=False;visited=defaultdict(int)
     def due(p):
         if p not in existing:return True
         # Directory and rankings refreshed daily, player details weekly. Resume unseen profiles first.
@@ -64,7 +73,8 @@ def main(root,budget=80):
     while len(attempted)<budget:
         pending=[p for p in known if p not in attempted and due(p)]
         if not pending:break
-        rel=min(pending,key=lambda p:(priority(p),p in existing,p))
+        rel=next_path(pending,existing,visited)
+        visited[rel.split('/')[2] if rel.startswith('/leagues/') else 'directory']+=1
         attempted.add(rel)
         try:
             raw=fetch(rel);d=extract(raw.decode("utf-8"),rel)
@@ -83,6 +93,8 @@ def main(root,budget=80):
     pending=sum(due(p) for p in known)
     print(json.dumps({"state":"public_directory_progress","knownPaths":len(known),"observedPaths":sum(p in existing for p in known),"pendingOrRefreshDue":pending,"attempted":len(attempted),"failures":failed,"stoppedOnRefusal":stopped,"bySport":dict(counts),"allPagesCertified":False,"modelInputsApproved":False,"paidRequests":0,"rawRowsPublished":0}))
 def test():
+    assert next_path(['/leagues/call-of-duty/players/a','/leagues/nhl/players/b'],{}, {})=='/leagues/nhl/players/b'
+    assert next_path(['/leagues/nba/players/a','/leagues/nhl/players/b'],{}, {'nba':1})=='/leagues/nhl/players/b'
     assert safe("/leagues/cs2/players") == "/leagues/cs2/players"
     assert safe("/leagues/cs2/players/a?account=1") is None
     assert safe("/leagues/cs2/players?page=2")=="/leagues/cs2/players?page=2"

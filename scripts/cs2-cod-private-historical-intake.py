@@ -38,7 +38,11 @@ def cod(root):
         if i:time.sleep(60)
         obj=query({"action":"cargoquery","tables":"PlayerStats","fields":fields,"where":f"Date >= '{start}' AND Date < '{end}' AND TournamentPage LIKE 'Call of Duty League%'","order_by":"Date,UniqueLine","limit":"500","offset":str(i*500)})
         page=obj["cargoquery"];batch=[x["title"] for x in page]
-        if len(batch)>500 or any(not x.get("UniqueLine") or not start<=x["Date"][:10]<end for x in batch) or len({x["UniqueLine"] for x in rows+batch})!=len(rows+batch):raise ValueError("pagination")
+        if len(batch)>500:raise ValueError("page_size")
+        if any(not x.get("UniqueLine") for x in batch):raise ValueError("missing_unique_line")
+        if any(not start<=str(x.get("Date",""))[:10]<end for x in batch):raise ValueError("date_outside_window")
+        if len({x["UniqueLine"] for x in rows+batch})!=len(rows+batch):raise ValueError("unstable_pagination")
+        print(json.dumps({"stage":"cod_page_validated","page":i+1,"rows":len(batch)}),flush=True)
         rows.extend(batch);pages+=1
         if len(batch)<500:break
     clean,excluded,groups=parse(rows)

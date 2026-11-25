@@ -87,3 +87,5 @@ test('deep queue deduplicates exact scopes and rotates sports, excludes unpriced
  const q=queue(batches);assert.equal(q.total,3);assert.deepEqual(q.pending.map(x=>x.sport),['nba','cs2','nba']);
  assert.equal(queue(batches,new Set([q.pending[0].key])).pending.length,2);
 });
+
+test('targeted CS2 recovery is authorized and never a morning capture',()=>{const x=plan({...env,GITHUB_EVENT_NAME:'workflow_dispatch',REQUESTED_MODE:'cs2_reconcile_now',PICKFINDER_PRIOR_AUTH_PROOF:'1'},now);assert.equal(x.targeted,true);assert.equal(x.expected,'manual');assert.equal(x.full,true);assert.throws(()=>plan({...env,GITHUB_EVENT_NAME:'workflow_dispatch',REQUESTED_MODE:'cs2_reconcile_now'},now));});

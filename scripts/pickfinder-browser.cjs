@@ -88,21 +88,28 @@ async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldCon
     await button('Apps '+book).waitFor({state:'visible'});
     const read=()=>page.evaluate(readBoard,{book,code,sport,observedAt:new Date().toISOString()});
     let previous='';
+    const signature=rows=>JSON.stringify(rows.map(r=>[r.detailId,r.apps,r.appEvidence]));
+    const bookSeen=rows=>rows.some(r=>r.apps?.some(a=>a.book===book)||r.appEvidence?.some(a=>a.book===book));
     for(let n=1;n<=maxPages&&shouldContinue();n++){
-      let snapshot, stableEmpty=0, ready=false;
+      let snapshot, stableEmpty=0, ready=false, noBookReads=0;
       for(let retry=0;retry<24&&shouldContinue();retry++){
         snapshot=await read();
         if(!snapshot.authenticated){result.failure='session_expired';break;}
         stableEmpty=snapshot.empty?stableEmpty+1:0;
-        const first=snapshot.rows[0]?.detailId;
-        if((snapshot.number===n && Number.isSafeInteger(snapshot.total) && snapshot.total>=n && first && first!==previous && snapshot.rows.every(r=>r.sport===sport)) || (n===1&&stableEmpty>=4&&snapshot.rows.length===0)){ready=true;break;}
+        const sig=signature(snapshot.rows);
+        const scoped=snapshot.number===n && Number.isSafeInteger(snapshot.total) && snapshot.total>=n && snapshot.rows.length>0 && sig!==previous && snapshot.rows.every(r=>r.sport===sport);
+        if(scoped&&!bookSeen(snapshot.rows)){noBookReads++;if(noBookReads>=8){result.failure='selected_book_badge_absent';break;}}
+        else noBookReads=0;
+        if((scoped&&bookSeen(snapshot.rows)) || (n===1&&stableEmpty>=4&&snapshot.rows.length===0)){ready=true;break;}
         await new Promise(resolve=>setTimeout(resolve,250));
       }
-      if(!ready){result.failure=result.failure||'page_not_stable_or_scope_mismatch';break;}
+      if(!ready){result.failure=result.failure||'page_not_stable_or_scope_mismatch';
+        if(result.failure==='selected_book_badge_absent'&&snapshot?.rows?.length){result.displayedPageCount=snapshot.total;result.pages.push({number:n,rows:snapshot.rows});}
+        break;}
       if(n===1&&stableEmpty>=4&&snapshot.rows.length===0){result.boardState='empty';result.explicitEmpty=true;result.lastPageReached=true;break;}
       result.displayedPageCount=snapshot.total;
       result.pages.push({number:n,rows:snapshot.rows});
-      previous=snapshot.rows[0]?.detailId;
+      previous=signature(snapshot.rows);
       if(n===snapshot.total){result.lastPageReached=true;result.boardState=snapshot.empty&&n===1?'empty':'populated';break;}
       if(n<maxPages&&shouldContinue())await button('Next page').click();
     }

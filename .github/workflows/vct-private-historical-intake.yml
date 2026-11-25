@@ -42,9 +42,12 @@ jobs:
           ref: main
           path: archive
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
-          persist-credentials: false
+          persist-credentials: true
           fetch-depth: 0
-      - run: python3 -m pip install duckdb==1.2.2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --only-binary=:all: duckdb==1.2.2 scipy==1.15.3
       - name: Download bounded authorized dataset and evaluate historical context
         env:
           RESTRICTED_DESTINATION_VERIFIED: '1'

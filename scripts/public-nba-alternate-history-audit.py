@@ -122,14 +122,21 @@ def main():
             rows,excluded=normalize(raw,season,today);history.extend(rows);games=len({x["game"] for x in rows})
             seasons[str(season)]={**meta,"status":"observed","acceptedRows":len(rows),"games":games,"excludedRegularSeasonRows":excluded,"firstGame":min(x["day"] for x in rows),"lastGame":max(x["day"] for x in rows),"expectedCompletedSeasonGames":1230 if season<2027 else None,"allExpectedGamesObserved":season<2027 and games==1230}
         except Exception as e:seasons[str(season)]={**meta,"status":"pending","reason":type(e).__name__,"stage":"schema_or_normalization" if meta else "download_or_decode"}
-    cross={"status":"pending"}
+    cross={"status":"pending"};offer_links={"status":"pending"}
     try:
         data,meta=fetch("nba_crosswalk","nba_player_crosswalk",2027);facts=native_facts("nba")
         current=[x for x in history if x["day"]>="2026-07-01"]
-        cross={**meta,"status":"observed","espnRosterPlayers":len(facts.get("roster",[])),"nativeIdentityCandidates":len(nba_join(data,facts.get("roster",[]),current)),"pickfinderIdentityVerified":False}
+        pairs=nba_join(data,facts.get("roster",[]),current)
+        cross={**meta,"status":"observed","espnRosterPlayers":len(facts.get("roster",[])),"nativeIdentityCandidates":len(pairs),"pickfinderIdentityVerified":False}
+        if pairs:
+            try:
+                payload=json.dumps({"kind":"nba_offer_history_candidate_input_v1","history":model_input(history),"crosswalk":sorted(pairs),"facts":facts},allow_nan=False)
+                result=subprocess.run(["node",str(ROOT/"scripts/public-nba-offer-history-candidate-audit.cjs"),str(ROOT)],input=payload,text=True,capture_output=True,check=True,timeout=180,cwd=ROOT)
+                offer_links=json.loads(result.stdout)
+            except (ValueError,OSError,subprocess.SubprocessError) as e:offer_links={"status":"pending","reason":type(e).__name__}
     except Exception as e:cross={"status":"pending","reason":type(e).__name__}
     nfls=[x for x in read_docs("research/pickfinder-public-nfl-v1/season","nflverse_public_native_history_v1") if x.get("season")==2026]
     nfl=nfl_join(native_facts("nfl"),max(nfls,key=lambda x:x["observedAt"]) if nfls else {},dt.datetime.now(dt.timezone.utc))
-    out={"kind":"public_nba_alternate_history_audit_v1","generatedAt":now(),"seasons":seasons,"acceptedRows":len(history),"nbaNativeCrosswalk":cross,"nflNativeCrosswalk":nfl,"modelEvaluation":evaluate_model(history),"rawRowsPublished":0,"officialFinalClockVerified":False,"independentlyReviewedPickfinderCrosswalks":0,"modelApproved":False,"paidRequests":0,"privateRepoUsed":False,"sourceUse":"owner-confirmed commercial research and redistribution permission; documentary license not independently reviewed; raw rows not republished","sourcePermission":"user_attested_2026-11-25"}
+    out={"kind":"public_nba_alternate_history_audit_v1","generatedAt":now(),"seasons":seasons,"acceptedRows":len(history),"nbaNativeCrosswalk":cross,"nflNativeCrosswalk":nfl,"modelEvaluation":evaluate_model(history),"pickfinderOfferHistoryAudit":offer_links,"attribution":{"original":"NBA.com/stats and ESPN (native crosswalk)","mirror":"SportsDataverse / hoopR","source":"https://github.com/sportsdataverse/sportsdataverse-data","mirrorDataLicense":"https://creativecommons.org/licenses/by/4.0/","changes":"normalized and filtered rows; aggregate retrospective and candidate audit","upstreamTerms":"https://www.nba.com/termsofuse","upstreamPermissionDocumentInspected":False},"rawRowsPublished":0,"officialFinalClockVerified":False,"independentlyReviewedPickfinderCrosswalks":0,"modelApproved":False,"paidRequests":0,"privateRepoUsed":False,"sourceUse":"owner-confirmed commercial research and redistribution permission; documentary license not independently reviewed; raw rows not republished","sourcePermission":"user_attested_2026-11-25"}
     p=ROOT/"data/pickfinder-public-nba-alternate-health.json";p.parent.mkdir(exist_ok=True);p.write_text(json.dumps(out,indent=2)+"\n");print(json.dumps(out))
 if __name__=="__main__":main()

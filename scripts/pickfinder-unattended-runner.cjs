@@ -16,6 +16,7 @@ const scheduledResearchPilot=env=>env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFI
 function plan(env,now=new Date()){
  if(env.PICKFINDER_AUTOMATION_AUTHORIZED!=='1')throw Error('authorization_required');
  if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='probe_now')return {probe:true};
+ if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='nfl_reconcile_now'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')return {allowed:true,reconcile:true,full:true,targeted:true,targetCode:'NFL',expected:'manual',clock:pacific(now)};
  if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='cs2_reconcile_now'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')return {allowed:true,reconcile:true,full:true,targeted:true,expected:'manual',clock:pacific(now)};
  if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='deep_research_now'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')return {allowed:true,reconcile:true,deep:true,expected:'manual',clock:pacific(now)};
  if((env.GITHUB_EVENT_NAME==='workflow_dispatch'||env.GITHUB_EVENT_NAME==='push'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')&&['reconcile_now','full_reconcile_now'].includes(env.REQUESTED_MODE))return {allowed:true,reconcile:true,full:env.REQUESTED_MODE==='full_reconcile_now',expected:'manual',clock:pacific(now)};
@@ -184,7 +185,7 @@ async function main(env=process.env){
  const evidence=await discover({env});
  const preferredTargets=require('./season-aware-collection.cjs').prioritySports(SPORTS,evidence).flatMap(code=>BOOKS.map(book=>({code,book})));
  const optionalCodes=Object.keys(registry).filter(code=>!SPORTS.includes(code));
- const targets=p.targeted?BOOKS.map(book=>({book,code:'CS2'})):preferredTargets;
+ const targets=p.targeted?(p.targetCode==='NFL'?[{book:'prizepicks',code:'NFL'}]:BOOKS.map(book=>({book,code:'CS2'}))):preferredTargets;
  console.log(JSON.stringify({state:'competition_discovery',sports:Object.fromEntries(Object.keys(registry).map(code=>[code,{source:evidence[code]?.source,status:evidence[code]?.status,upcoming:evidence[code]?.upcoming}])),paidEndpointsCalled:0}));
  const attempt=crypto.randomUUID();
  const counts=[],batches=[],normalized=[],checkpointShas=[];let failed=false;
@@ -198,7 +199,7 @@ async function main(env=process.env){
    if(!remaining()){failed=true;break;}
    try{
     await stage('board_navigation',()=>page.goto(ORIGIN+'/props',{timeout:20000}));
-    const journal=createJournal({root,day:p.clock.day,slot:p.expected.replace(':',''),attempt,book,sport:({CFB:'college-football',CBB:'college-basketball',VAL:'valorant'})[code]||code.toLowerCase(),interval:p.targeted?1:10});
+    const journal=createJournal({root,day:p.clock.day,slot:p.expected.replace(':',''),attempt,book,sport:({CFB:'college-football',CBB:'college-basketball',VAL:'valorant'})[code]||code.toLowerCase(),interval:p.targeted&&p.targetCode!=='NFL'?1:10});
     let batch;
     try{batch=await stage('board_collection',()=>collect(page,{book,code,slot:p.expected,maxPages:p.reconcile&&!p.full?2:Infinity,shouldContinue:remaining,onPage:snapshot=>stage('page_journal_checkpoint',()=>journal.append(snapshot))}));}
     finally{await stage('page_journal_checkpoint',()=>journal.flush());}
@@ -211,7 +212,7 @@ async function main(env=process.env){
     checkpointShas.push(checkpointSha);batches.push(batch);normalized.push(normalize(batch));
     console.log(JSON.stringify({state:'partition_checkpoint_verified',book,code,sha:checkpointSha,remoteDigestVerified:true}));
     const health=classify({boardState:batch.boardState,offers:summary.health.distinctOfferKeys,pages:summary.health.pages,authenticated:batch.authenticated===true,explicitEmpty:batch.explicitEmpty===true,disabledConfirmed:batch.disabledConfirmed===true,failure:batch.failure,schedule:evidence[code]});
-    counts.push({book,code,seasonStatus:health.state,competition:health.competition,boardState:summary.boardState,withinSlot:summary.withinSlot,offers:summary.health.distinctOfferKeys,unresolved:summary.health.unresolvedRows,unresolvedEvidence:summary.health.unresolvedEvidence,pages:summary.health.pages,traversal:summary.pageTraversalComplete,failure:batch.failure||null});
+    counts.push({book,code,seasonStatus:health.state,competition:health.competition,boardState:summary.boardState,withinSlot:summary.withinSlot,offers:summary.health.distinctOfferKeys,unresolved:summary.health.unresolvedRows,unresolvedEvidence:summary.health.unresolvedEvidence,pages:summary.health.pages,traversal:summary.pageTraversalComplete,failure:batch.failure||null,pageFailureDiagnostics:batch.pageFailureDiagnostics||null});
     if(batch.failure==='session_expired'){failed=true;break;}
     if(!p.reconcile&&(!summary.withinSlot||!health.healthy||summary.health.unresolvedRows||summary.health.priceConflictKeys||summary.health.repeatOrUnresolvedLinks))failed=true;
     if(p.reconcile&&summary.boardState==='partial')failed=true;

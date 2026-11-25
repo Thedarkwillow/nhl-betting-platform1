@@ -129,3 +129,5 @@ test('dashboard duplicate links are accepted only for one safe destination',asyn
  assert.equal(await verifiedNavigation({evaluate:async()=>[good,good]},'Games',['/games']),good);
  assert.equal(await verifiedNavigation({evaluate:async()=>['https://example.com/games']},'Games',['/games']),null);
 });
+
+test('targeted PrizePicks NFL recovery requires prior auth and is manual only',()=>{const a={...env,GITHUB_EVENT_NAME:'workflow_dispatch',REQUESTED_MODE:'nfl_reconcile_now',PICKFINDER_PRIOR_AUTH_PROOF:'1'};const p=plan(a,now);assert.equal(p.targeted,true);assert.equal(p.targetCode,'NFL');assert.equal(p.full,true);assert.equal(p.expected,'manual');assert.throws(()=>plan({...a,PICKFINDER_PRIOR_AUTH_PROOF:'0'},now));});

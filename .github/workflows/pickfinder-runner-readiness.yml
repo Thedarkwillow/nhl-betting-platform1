@@ -1,0 +1,56 @@
+name: PickFinder runner readiness and private pilot audit
+on:
+  pull_request:
+    paths:
+      - 'scripts/collect-pickfinder-browser.cjs'
+      - 'scripts/audit-pickfinder-private-pilot.cjs'
+      - 'test/pickfinder-runner-readiness.test.cjs'
+      - '.github/workflows/pickfinder-runner-readiness.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/collect-pickfinder-browser.cjs'
+      - 'scripts/audit-pickfinder-private-pilot.cjs'
+      - 'test/pickfinder-runner-readiness.test.cjs'
+      - '.github/workflows/pickfinder-runner-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/pickfinder-runner-readiness.test.cjs test/pickfinder-premium-archive.test.cjs test/pickfinder-browser.test.cjs
+  audit:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Verify private archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: archive
+          fetch-depth: 0
+          persist-credentials: false
+          sparse-checkout: |
+            outputs/nba/history
+            outputs/esports/authorized-map-statistics
+            research/pickfinder-premium
+      - name: Re-normalize pinned manual pilot and compare existing source history
+        run: node public/scripts/audit-pickfinder-private-pilot.cjs archive

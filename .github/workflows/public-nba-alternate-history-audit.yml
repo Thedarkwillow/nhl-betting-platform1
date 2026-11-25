@@ -1,0 +1,61 @@
+name: Public NBA alternate history and native identity audit
+on:
+  pull_request:
+    paths: ['scripts/public-nba-alternate-history-audit.py','test/test_public_nba_alternate_history_audit.py','.github/workflows/public-nba-alternate-history-audit.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/public-nba-alternate-history-audit.py','.github/workflows/public-nba-alternate-history-audit.yml']
+  schedule:
+    - cron: '50 5,10,17 * * *'
+      timezone: America/Los_Angeles
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: public-nba-alternate-history-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python -m unittest discover -s test -p test_public_nba_alternate_history_audit.py
+  audit:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'pyarrow>=19,<24'
+      - run: python scripts/public-nba-alternate-history-audit.py
+      - name: Publish only aggregate research evidence
+        run: |
+          set -euo pipefail
+          git add -f data/pickfinder-public-nba-alternate-health.json
+          git diff --cached --quiet && exit 0
+          test "$(git diff --cached --name-only)" = data/pickfinder-public-nba-alternate-health.json
+          git config user.name 'Public NBA history audit'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Publish NBA alternate historical coverage and native ID counts'
+          for i in 1 2 3 4 5 6; do
+            git fetch --quiet origin main
+            git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
+            if git push --quiet origin HEAD:main; then
+              git fetch --quiet origin main
+              git merge-base --is-ancestor HEAD FETCH_HEAD
+              exit 0
+            fi
+            sleep "$((2*i))"
+          done
+          exit 1

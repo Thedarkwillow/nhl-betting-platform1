@@ -25,16 +25,21 @@ async function driver(){
 async function waitPremium(d){
  await d.wait(async()=>{if(!sameOrigin(await d.getCurrentUrl()))return false;const x=await d.executeScript(snapshot);return x.premium&&x.userMenu;},15000);
 }
+// The hosted wrapper exposes only newPage/close; use the actual page context.
+async function browserState(page){return page.context().storageState();}
+function sameCounts(a,b){return ['premium','userMenu','tables','profileRows','nextPage'].every(k=>a[k]===b[k]);}
+async function safeStage(name,fn){try{return await fn();}catch{throw new Error('probe_stage:'+name);}}
 async function fixtureRun(){
  const browser=await chromium.launch({headless:true});
  let d;
  try{
   const page=await browser.newPage();await page.setContent(fixture);
   const pw=await page.evaluate(snapshot);
+  const state=await browserState(page);assert.ok(Array.isArray(state.cookies));assert.ok(Array.isArray(state.origins));
   d=await driver();await d.get('data:text/html;charset=utf-8,'+encodeURIComponent(fixture));
   const se=await d.executeScript(snapshot);
   assert.deepEqual(pw,{premium:true,userMenu:true,tables:1,profileRows:2,nextPage:true});
-  assert.deepEqual(se,pw);
+  assert.deepEqual(se,pw);assert.equal(sameCounts(pw,se),true);assert.equal(sameCounts(pw,{...se,profileRows:3}),false);
   console.log(JSON.stringify({state:'offline_fixture_verified',playwright:pw,selenium:se,liveVerified:false}));
  }finally{if(d)await d.quit();await browser.close();}
 }
@@ -50,10 +55,10 @@ async function live(){
   console.log(JSON.stringify({engine:'playwright',state:'premium_board_observed',elapsedMs:pwMs,...pw}));
   if(!allowed())throw Error('protected_hour');
   // Transfer only the authorized first-party browser state in memory; no disk/export/logs.
-  const state=await context.storageState();
-  const startSe=Date.now();d=await driver();
+  const state=await safeStage('playwright_session_state',()=>browserState(page));
+  const startSe=Date.now();d=await safeStage('selenium_launch',()=>driver());
   await d.manage().setTimeouts({pageLoad:20000,script:10000});
-  await d.get(ORIGIN+'/props');
+  await safeStage('selenium_initial_navigation',()=>d.get(ORIGIN+'/props'));
   if(!sameOrigin(await d.getCurrentUrl()))throw Error('selenium_origin_unverified');
   const host=new URL(ORIGIN).hostname;
   for(const c of state.cookies){
@@ -63,14 +68,14 @@ async function live(){
    const cookie={name:c.name,value:c.value,domain:c.domain,path:c.path,secure:c.secure,httpOnly:c.httpOnly};
    if(c.expires>0)cookie.expiry=Math.floor(c.expires);
    if(['Strict','Lax','None'].includes(c.sameSite))cookie.sameSite=c.sameSite;
-   await d.manage().addCookie(cookie);
+   await safeStage('selenium_cookie_import',()=>d.manage().addCookie(cookie));
   }
   const local=state.origins.find(x=>x.origin===ORIGIN)?.localStorage||[];
-  await d.executeScript(function(items){for(const x of items)localStorage.setItem(x.name,x.value);},local);
-  await d.navigate().refresh();await waitPremium(d);
+  await safeStage('selenium_origin_storage',()=>d.executeScript(function(items){for(const x of items)localStorage.setItem(x.name,x.value);},local));
+  await safeStage('selenium_refresh',()=>d.navigate().refresh());await safeStage('selenium_premium_verification',()=>waitPremium(d));
   const se=await d.executeScript(snapshot);
   console.log(JSON.stringify({engine:'selenium',state:'premium_board_observed',elapsedMs:Date.now()-startSe,...se}));
-  console.log(JSON.stringify({state:'live_read_only_probe_verified',sameObservedCounts:JSON.stringify(pw)===JSON.stringify(se),fullCoverageVerified:false,originalOffersVerified:false,rawDataPublished:false}));
+  console.log(JSON.stringify({state:'live_read_only_probe_verified',sameObservedCounts:sameCounts(pw,se),fullCoverageVerified:false,originalOffersVerified:false,rawDataPublished:false}));
  }finally{if(d)await d.quit();if(context)await context.close();}
 }
-(async()=>{if(process.argv[2]==='live')await live();else await fixtureRun();})().catch(()=>{console.error('Browser engine probe failed closed; no account or DOM details logged');process.exitCode=1;});
+(async()=>{if(process.argv[2]==='live')await live();else await fixtureRun();})().catch(e=>{const allowed=/^probe_stage:(playwright_session_state|selenium_launch|selenium_initial_navigation|selenium_cookie_import|selenium_origin_storage|selenium_refresh|selenium_premium_verification)$/.test(e?.message||'');console.error(JSON.stringify({state:'browser_engine_probe_failed_closed',stage:allowed?e.message.slice(12):'other_or_gate',accountDataLogged:false}));process.exitCode=1;});

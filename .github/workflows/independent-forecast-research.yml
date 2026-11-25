@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths: ['scripts/independent-chronological-challenger.cjs','scripts/hypothetical-joint-scenario-audit.cjs','test/independent-chronological-challenger.test.cjs','test/hypothetical-joint-scenario-audit.test.cjs','.github/workflows/independent-forecast-research.yml']
   workflow_dispatch:
+  schedule:
+    - cron: '32 3 * * 1,4'
+      timezone: America/Los_Angeles
 permissions:
   contents: read
 jobs:

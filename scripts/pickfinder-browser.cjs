@@ -67,11 +67,15 @@ async function collect(page,{book,code,slot='manual',maxPages=500,shouldContinue
   const localDay=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(startedAt));
   const result={schema:'pickfinder-premium-export-v1',book,sport,slot,localDay,startedAt,pages:[],boardState:'partial',lastPageReached:false};
   if(!shouldContinue())return result;
+  await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:15000});
+  await page.waitForFunction(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium'),null,{timeout:15000});
   const initial=await page.evaluate(readBoard,{book,code,sport,observedAt:startedAt});
   if(!initial.authenticated)throw Error('premium_session_unavailable');
   const button=(name)=>page.getByRole('button',{name,exact:true});
   const sportButton=button(code);
-  if(!await sportButton.isEnabled())result.boardState='disabled';
+  await sportButton.waitFor({state:'visible',timeout:10000});
+  result.authenticated=true;
+  if(!await sportButton.isEnabled()){result.boardState='disabled';result.disabledConfirmed=true;}
   else {
     await sportButton.click();
     await page.getByRole('button',{name:/^Apps /}).click();
@@ -87,10 +91,11 @@ async function collect(page,{book,code,slot='manual',maxPages=500,shouldContinue
         if(!snapshot.authenticated){result.failure='session_expired';break;}
         stableEmpty=snapshot.empty?stableEmpty+1:0;
         const first=snapshot.rows[0]?.detailId;
-        if(snapshot.number===n && ((first && first!==previous && snapshot.rows.every(r=>r.sport===sport)) || stableEmpty>=4)){ready=true;break;}
+        if((snapshot.number===n && first && first!==previous && snapshot.rows.every(r=>r.sport===sport)) || (n===1&&stableEmpty>=4&&snapshot.rows.length===0)){ready=true;break;}
         await new Promise(resolve=>setTimeout(resolve,250));
       }
       if(!ready)break;
+      if(n===1&&stableEmpty>=4&&snapshot.rows.length===0){result.boardState='empty';result.explicitEmpty=true;result.lastPageReached=true;break;}
       result.displayedPageCount=snapshot.total;
       result.pages.push({number:n,rows:snapshot.rows});
       previous=snapshot.rows[0]?.detailId;

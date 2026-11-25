@@ -1,5 +1,6 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib');
+const {registry,contextGate}=require('./season-aware-collection.cjs');
 const relative='research/pickfinder-premium/2026-11-25/manual/browser-pilot-bb60508f.json.gz.b64';
 function audit(data){
  const result=[];
@@ -42,8 +43,8 @@ function inputAudit(normalized){
  const output={};
  for(const n of normalized){
   if(!['nba','cs2','valorant','lol','dota2','cod'].includes(n.sport))continue;
-  const t=output[n.sport]||={offers:0,explicitPrices:0,eventIds:0,pregameTimestampVerified:0,originalPlatformVerified:0,eligibleForLockedModel:0,researchFields:0,missingResearchValues:0};
-  for(const o of n.offers){t.offers++;if(valid(n.book,o))t.explicitPrices++;if(o.eventId)t.eventIds++;if(o.startAt&&Date.parse(o.observedAt)<Date.parse(o.startAt))t.pregameTimestampVerified++;if(o.originalPlatformVerified===true)t.originalPlatformVerified++;if(o.eligibleForLockedModel===true)t.eligibleForLockedModel++;}
+  const t=output[n.sport]||={offers:0,explicitPrices:0,eventIds:0,pregameTimestampVerified:0,originalPlatformVerified:0,eligibleForLockedModel:0,researchFields:0,missingResearchValues:0,contextIncompleteOrChanged:0};
+  for(const o of n.offers){t.offers++;const code=Object.keys(registry).find(c=>registry[c]===n.sport);if(contextGate(code,null,o.context).needsRevalidation)t.contextIncompleteOrChanged++;if(valid(n.book,o))t.explicitPrices++;if(o.eventId)t.eventIds++;if(o.startAt&&Date.parse(o.observedAt)<Date.parse(o.startAt))t.pregameTimestampVerified++;if(o.originalPlatformVerified===true)t.originalPlatformVerified++;if(o.eligibleForLockedModel===true)t.eligibleForLockedModel++;}
   t.researchFields+=n.researchObservations.length;t.missingResearchValues+=n.researchObservations.filter(x=>x.value===null).length;
  }
  return {sports:output,independentIdentityAndResultJoinVerified:false,modelInputsApproved:false,modelPromoted:false,rawRowsPublished:0};

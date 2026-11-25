@@ -4,7 +4,7 @@ const {collect}=require('../scripts/pickfinder-browser.cjs');
 const {normalize}=require('../scripts/pickfinder-premium-archive.cjs');
 function session(snapshots){
   const control={click:async()=>{},isEnabled:async()=>true,waitFor:async()=>{},getByRole:()=>control};
-  return {getByRole:()=>control,evaluate:async(_fn,params)=>{
+  return {getByRole:()=>control,waitForFunction:async()=>{},evaluate:async(_fn,params)=>{
     const state=snapshots.shift();assert.ok(state,'unexpected board read');
     return {...state,rows:(state.rows||[]).map(row=>({...row,observedAt:params.observedAt}))};
   }};
@@ -26,3 +26,5 @@ test('duplicate across two pages is reconciled and manual observations never qua
  const r=normalize(input);assert.equal(r.offers.length,2);assert.equal(r.health.repeatOrUnresolvedLinks,1);
  assert.equal(r.withinSlot,false);assert.equal(r.fullBoardCertified,false);assert.equal(r.offers[0].displayedPrice,'-200');
 });
+
+test('stable authenticated explicit empty board with no pager is not a failure',async()=>{const input=await collect(session([active,...Array.from({length:4},()=>({...active,empty:true,rows:[]}))]),{book:'prizepicks',code:'NHL'});assert.equal(input.boardState,'empty');assert.equal(input.explicitEmpty,true);assert.equal(input.authenticated,true);assert.equal(normalize(input).health.appearances,0);});

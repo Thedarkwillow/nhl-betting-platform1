@@ -1,0 +1,47 @@
+name: All-sport season awareness and free fixture discovery
+on:
+  pull_request:
+    paths: ['scripts/season-aware-*.cjs','test/season-aware-collection.test.cjs','.github/workflows/season-aware-discovery.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/season-aware-*.cjs','test/season-aware-collection.test.cjs','.github/workflows/season-aware-discovery.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '24 5 * * *'
+      timezone: America/Los_Angeles
+    - cron: '24 8 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: season-awareness-free-discovery
+  cancel-in-progress: false
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/season-aware-collection.test.cjs
+  discovery:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check public fixtures and separately authorized no-charge esports fixtures
+        env:
+          PANDASCORE_API_KEY: ${{ secrets.PANDASCORE_API_KEY || secrets.PANDASCORE_TOKEN || secrets.PANDASCORE }}
+          PANDASCORE_BETTING_DATA_AUTHORIZED: ${{ vars.PANDASCORE_BETTING_DATA_AUTHORIZED }}
+          PANDASCORE_NO_CHARGE_CONFIRMED: ${{ vars.PANDASCORE_NO_CHARGE_CONFIRMED }}
+        run: node scripts/season-aware-discovery.cjs

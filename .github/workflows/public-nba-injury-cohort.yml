@@ -47,6 +47,8 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install pyarrow==19.0.1
       - name: Reconstruct original cutoff and match dated roster identities
+        env:
+          NBA_RESTRICTED_IDENTITY_REVIEW: ${{ runner.temp }}/nba-pending-identity-review.json
         shell: bash
         run: |
           set -euo pipefail
@@ -59,3 +61,26 @@ jobs:
           if x["kind"]!="nba_original_injury_cohort_reconciliation_v1" or x["rawRowsPublished"]!=0 or x["freezeApproved"] is not False:raise ValueError("contract")
           print(json.dumps(x))
           PY
+      - name: Preserve unresolved identity review only in private archive
+        if: github.event_name == 'push' && github.run_attempt == 1
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          file="$RUNNER_TEMP/nba-pending-identity-review.json"
+          trap 'rm -f "$file"' EXIT
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          cd archive
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config core.hooksPath /dev/null
+          git switch -c research/nba-pending-identity-review-20261124
+          mkdir -p research/nba-pending-identity-review-20261124
+          install -m 600 "$file" research/nba-pending-identity-review-20261124/pending.json
+          git add research/nba-pending-identity-review-20261124/pending.json
+          git commit -qm 'Retain reconstructed unresolved NBA identity evidence'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet --force-with-lease=refs/heads/research/nba-pending-identity-review-20261124: origin HEAD:refs/heads/research/nba-pending-identity-review-20261124
+          remote="$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin refs/heads/research/nba-pending-identity-review-20261124 | cut -f1)"
+          test "$remote" = "$(git rev-parse HEAD)"
+          echo 'Restricted NBA identity review committed and verified.'

@@ -93,11 +93,12 @@ async function run(env=process.env,fetcher=fetch){
   return report;
  }
  let q=meta.quota;
+ report.freePlanConfirmed=env.GETODDS_FREE_PLAN_CONFIRMED==="1";
  for(const source of SOURCES){
-  if(q.remaining===null||q.remaining<1){report.sources[source]={status:"quota_guard"};continue;}
+  if(q.remaining===null||q.remaining<1||q.used===null||q.remaining+q.used!==100){report.sources[source]={status:"quota_guard"};break;}
   try{report.dataRequests++;const r=await bounded("/api/v1/markets?source="+source+"&limit=5",key,fetcher);q=r.quota;
    report.sources[source]={httpStatus:r.status,quota:q,status:r.status===403?"source_grant_denied":r.status===401?"invalid_or_revoked_key":r.status===429?"quota_exhausted":r.status===200?"source_response_received":"source_unavailable",sample:r.status===200?summarize(source,r.body):null};
-   if(r.status===401||r.status===429||q.remaining===null)break;
+   if(r.status===401||r.status===429||q.remaining===null||q.used===null||q.remaining+q.used!==100||q.last===null||q.last>1){report.stoppedAfterSource=source;break;}
   }catch{report.sources[source]={status:"request_failed"};break;}
  }
  report.status="bounded_probe_completed";return report;

@@ -133,6 +133,13 @@ def main():
     strict=[r for k,a in verified_maps.items() if all_ids[k]==1 for r in a]
     recovered=sum(k not in maps and all_ids[k]==1 for k in verified_maps)
     from esports_context_models import evaluate as context_eval
+    review=os.environ.get("ESPORTS_CROSSWALK_REVIEW")
+    if review:
+        from esports_independent_crosswalk import audit as crosswalk_audit
+        archived=json.loads(pathlib.Path(os.environ["ESPORTS_CROSSWALK_CAPTURE"]).read_text())
+        reviewed=json.loads(pathlib.Path(review).read_text())
+        print(json.dumps(crosswalk_audit(archived,reviewed,rows)))
+
     # Optional restricted inputs; only aggregate readiness counts leave the runner.
     capture=os.environ.get("CS2_RESTRICTED_CAPTURE")
     if capture:

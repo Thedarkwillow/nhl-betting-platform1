@@ -1,0 +1,88 @@
+{
+  "schema": "pickfinder_public_checkpoint_progress_v1",
+  "generatedAt": "2026-11-25T13:57:00.968Z",
+  "archiveRevision": "5d33a667009d70ed842917766524fbc5c7101b61",
+  "archiveTree": "81b296356f5e457e33796c15eda0e28b8763d00b",
+  "latestCheckpointAt": "2026-11-25T13:56:36.046Z",
+  "boardPartFiles": 184,
+  "profileCheckpointFiles": 34,
+  "invalid": {
+    "boardParts": 0,
+    "profiles": 0
+  },
+  "countsComplete": true,
+  "total": 40897,
+  "completedSampledScopes": 340,
+  "remaining": 40557,
+  "offerReferences": 55746,
+  "sharedAcrossBooks": 5836,
+  "profileAttempts": 340,
+  "nontruncatedSampleAttempts": 340,
+  "bySport": {
+    "college-basketball": {
+      "total": 1806,
+      "completedSampledScopes": 34,
+      "remaining": 1772,
+      "sharedAcrossBooks": 447
+    },
+    "college-football": {
+      "total": 6904,
+      "completedSampledScopes": 34,
+      "remaining": 6870,
+      "sharedAcrossBooks": 1043
+    },
+    "cs2": {
+      "total": 34,
+      "completedSampledScopes": 34,
+      "remaining": 0,
+      "sharedAcrossBooks": 0
+    },
+    "dota2": {
+      "total": 46,
+      "completedSampledScopes": 34,
+      "remaining": 12,
+      "sharedAcrossBooks": 0
+    },
+    "nba": {
+      "total": 7225,
+      "completedSampledScopes": 34,
+      "remaining": 7191,
+      "sharedAcrossBooks": 920
+    },
+    "nfl": {
+      "total": 9198,
+      "completedSampledScopes": 34,
+      "remaining": 9164,
+      "sharedAcrossBooks": 1767
+    },
+    "nhl": {
+      "total": 4644,
+      "completedSampledScopes": 34,
+      "remaining": 4610,
+      "sharedAcrossBooks": 1208
+    },
+    "soccer": {
+      "total": 10793,
+      "completedSampledScopes": 34,
+      "remaining": 10759,
+      "sharedAcrossBooks": 439
+    },
+    "tennis": {
+      "total": 193,
+      "completedSampledScopes": 34,
+      "remaining": 159,
+      "sharedAcrossBooks": 12
+    },
+    "valorant": {
+      "total": 54,
+      "completedSampledScopes": 34,
+      "remaining": 20,
+      "sharedAcrossBooks": 0
+    }
+  },
+  "scope": "all committed public board parts, deduplicated by collector queue; sampled completion is not exhaustive research",
+  "liveJobLogsRequired": false,
+  "allFiltersVerified": false,
+  "originalOffersVerified": false,
+  "modelApproved": false
+}

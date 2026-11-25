@@ -1,0 +1,6 @@
+"use strict";
+const {test}=require("node:test"),assert=require("node:assert/strict"),{check,inspect}=require("../scripts/kashrock-sandbox-prop-check.cjs");
+const response=d=>new Response(JSON.stringify(d),{headers:{"content-type":"application/json"}});
+test("no secret and non-sandbox plan prevent projection call",async()=>{assert.equal((await check({},()=>{throw Error()})).metaRequests,0);let n=0;const r=await check({KASHROCK_API_KEY:"test"},async()=>{n++;return response({plan:"hobby"})});assert.equal(n,1);assert.equal(r.projectionRequests,0);});
+test("bounded sandbox evaluation counts source observations, never original proof",async()=>{let n=0;const r=await check({KASHROCK_API_KEY:"test"},async()=>++n===1?response({plan:"sandbox"}):response({sport:"cs2",props:[]}));assert.equal(n,2);assert.equal(r.documentedSandboxCredits,5);assert.equal(r.originalOffersVerified,0);});
+test("reject expired and missing opponent; no freshness inference",()=>{const now=Date.parse("2026-11-25T04:00:00Z"),a={propId:"a",player_name:"p",stat_type:"CS2_KILLS_MAPS_1_2",line:28.5,direction:"over",team:"A",opponent:"B",book_name:"PrizePicks",event_time:"2026-11-25T07:00:00Z"};const r=inspect({sport:"cs2",props:[a,{...a,propId:"b",opponent:null}]},now);assert.equal(r.byBook.PrizePicks.validPregame,1);assert.equal(r.byBook.PrizePicks.freshPregame,0);});

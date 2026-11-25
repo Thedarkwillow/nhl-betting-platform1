@@ -1,8 +1,8 @@
 {
   "kind": "public_pickfinder_identity_health_v1",
-  "generatedAt": "2026-11-25T14:09:26.552Z",
-  "archiveRevision": "4ac6490ef62502c595ebcac935b0425ab67e997e",
-  "sourceEvents": 236,
+  "generatedAt": "2026-11-25T17:47:08.583Z",
+  "archiveRevision": "320501c1f0e68723fe5bfea1aaa0584bc5526d2b",
+  "sourceEvents": 240,
   "sources": {
     "nba": {
       "state": "observed",
@@ -26,7 +26,7 @@
       "failedTeams": 0,
       "sourceEvents": 16,
       "uniqueEventCandidates": 5,
-      "uniquePlayerCandidates": 230,
+      "uniquePlayerCandidates": 234,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -35,11 +35,11 @@
       "source": "nhl:official",
       "events": 59,
       "upcoming": 59,
-      "rosterPlayers": 803,
+      "rosterPlayers": 804,
       "failedTeams": 0,
       "sourceEvents": 14,
       "uniqueEventCandidates": 14,
-      "uniquePlayerCandidates": 548,
+      "uniquePlayerCandidates": 568,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -54,11 +54,11 @@
       "source": "espn:college-football",
       "events": 67,
       "upcoming": 67,
-      "rosterPlayers": 2800,
+      "rosterPlayers": 4000,
       "failedTeams": 0,
       "sourceEvents": 65,
-      "uniqueEventCandidates": 14,
-      "uniquePlayerCandidates": 276,
+      "uniqueEventCandidates": 20,
+      "uniquePlayerCandidates": 399,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -66,12 +66,12 @@
       "state": "observed",
       "source": "espn:college-basketball",
       "events": 101,
-      "upcoming": 101,
-      "rosterPlayers": 605,
+      "upcoming": 100,
+      "rosterPlayers": 603,
       "failedTeams": 0,
-      "sourceEvents": 12,
-      "uniqueEventCandidates": 5,
-      "uniquePlayerCandidates": 57,
+      "sourceEvents": 15,
+      "uniqueEventCandidates": 6,
+      "uniquePlayerCandidates": 64,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -82,7 +82,7 @@
       "upcoming": 0,
       "rosterPlayers": 0,
       "failedTeams": 0,
-      "sourceEvents": 42,
+      "sourceEvents": 37,
       "uniqueEventCandidates": 0,
       "uniquePlayerCandidates": 0,
       "sourceContextCorroborated": 0,
@@ -95,7 +95,7 @@
       "upcoming": 4,
       "rosterPlayers": 0,
       "failedTeams": 0,
-      "sourceEvents": 64,
+      "sourceEvents": 69,
       "uniqueEventCandidates": 0,
       "uniquePlayerCandidates": 0,
       "sourceContextCorroborated": 0,
@@ -103,17 +103,17 @@
     },
     "cs2": {
       "state": "fixture_source_pending",
-      "sourceEvents": 2,
+      "sourceEvents": 10,
       "independentReviewVerified": 0
     },
     "valorant": {
       "state": "fixture_source_pending",
-      "sourceEvents": 8,
+      "sourceEvents": 2,
       "independentReviewVerified": 0
     },
     "dota2": {
       "state": "fixture_source_pending",
-      "sourceEvents": 4,
+      "sourceEvents": 3,
       "independentReviewVerified": 0
     },
     "lol": {
@@ -141,7 +141,7 @@
   },
   "independentlyReviewedCrosswalks": 0,
   "paidRequests": 0,
-  "publicRequests": 183,
+  "publicRequests": 195,
   "privateRepoUsed": false,
   "modelApproved": false
 }

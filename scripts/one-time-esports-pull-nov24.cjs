@@ -2,7 +2,7 @@
 const fs=require("node:fs"),path=require("node:path");
 const adapters=require("../src/independent-provider-export-v1.cjs");
 const {check}=require("./esports-zero-credit-coverage.cjs");
-const providers=[{name:"PrizePicks",host:"https://prizepicksapi.com",key:"PRIZEPICKSAPI_KEY",adapter:adapters.prizepicks,leagues:[["CS2",300]]},{name:"Underdog",host:"https://underdogapi.com",key:"UNDERDOG_API_KEY",adapter:adapters.underdog,leagues:[["CS",200],["VAL",100],["DOTA",100]]}];
+const providers=[{name:"PrizePicks",host:"https://prizepicksapi.com",key:"PRIZEPICKSAPI_KEY",adapter:adapters.prizepicksCompact,leagues:[["CS2",300]]},{name:"Underdog",host:"https://underdogapi.com",key:"UNDERDOG_API_KEY",adapter:adapters.underdogCompact,leagues:[["CS",200],["VAL",100],["DOTA",100]]}];
 async function main(){
  const output=process.argv[2];if(!output||!path.isAbsolute(output)||!process.env.RUNNER_TEMP||!output.startsWith(process.env.RUNNER_TEMP+path.sep))throw Error("restricted runner output required");
  const report=[],captured=[];let calls=0;

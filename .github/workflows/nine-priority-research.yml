@@ -1,7 +1,7 @@
 name: Nine priority guarded research
 on:
   pull_request:
-    paths: ['.github/workflows/nine-priority-research.yml','scripts/nba_verified_absence_replay.py','scripts/esports_opponent_strength.py','src/nhl-prior-market-direction-research.cjs','scripts/nhl-nine-priority-archive-audit.cjs','config/nba/untouched-forward-protocol-v1.json']
+    paths: ['.github/workflows/nine-priority-research.yml','scripts/nba_verified_absence_replay.py','scripts/esports_opponent_strength.py','src/nhl-prior-market-direction-research.cjs','scripts/nhl-nine-priority-archive-audit.cjs','config/nba/untouched-forward-protocol-v1.json','src/nhl-original-pair-no-substitution.cjs','test/nhl-original-pair-no-substitution.test.cjs']
   push:
     branches: [main]
     paths: ['.github/workflows/nine-priority-research.yml']
@@ -20,7 +20,7 @@ jobs:
           node-version: '22'
       - run: python3 -m unittest discover -s test -p test_nba_verified_absence_replay.py
       - run: python3 -m unittest discover -s test -p test_esports_opponent_strength.py
-      - run: node --check scripts/nhl-nine-priority-archive-audit.cjs && node --test test/nhl-prior-market-direction-research.test.cjs test/nhl-all-tier-exact-mass-calibration.test.cjs test/nhl-original-pair-dependence-research.test.cjs
+      - run: node --check scripts/nhl-nine-priority-archive-audit.cjs && node --test test/nhl-prior-market-direction-research.test.cjs test/nhl-all-tier-exact-mass-calibration.test.cjs test/nhl-original-pair-dependence-research.test.cjs test/nhl-original-pair-no-substitution.test.cjs
   nba:
     needs: tests
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

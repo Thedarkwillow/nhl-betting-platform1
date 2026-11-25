@@ -9,6 +9,19 @@ const OUT='research/pickfinder-public-identity-v1';
 const day=x=>new Date(x).toISOString().slice(0,10);
 const pause=()=>new Promise(r=>setTimeout(r,350));
 const validTime=x=>typeof x==='string'&&/(?:Z|[+-]\d\d:\d\d)$/.test(x)&&Number.isFinite(dt(x));
+// Select distinct, uncollected verified-final schedule candidates; never reuse a
+// conflicting event or exceed the existing twelve boxscore calls per run.
+function selectNhlFinals(events,known,clock){
+ const at=dt(clock),byId=new Map(),conflicts=new Set();
+ if(!Number.isFinite(at))throw Error('history_clock');
+ for(const g of events){
+  if(g?.namespace!=='nhl:official'||g.completed!==true||g.status!=='post'||!g.eventId||!Number.isFinite(dt(g.startAt))||dt(g.startAt)>=at||known.has(g.eventId))continue;
+  const old=byId.get(g.eventId);
+  if(old&&(dt(old.startAt)!==dt(g.startAt)||JSON.stringify(old.teams)!==JSON.stringify(g.teams)))conflicts.add(g.eventId);
+  else byId.set(g.eventId,g);
+ }
+ return [...byId.values()].filter(g=>!conflicts.has(g.eventId)).sort((a,b)=>dt(b.startAt)-dt(a.startAt)).slice(0,12);
+}
 function save(root,kind,doc){const raw=JSON.stringify(doc)+'\n',digest=sha(raw),d=path.join(root,OUT,kind);fs.mkdirSync(d,{recursive:true});const file=path.join(d,digest+'.json');if(!fs.existsSync(file))fs.writeFileSync(file,raw,{flag:'wx'});return digest;}
 async function request(url,headers={},client=fetch){
  const r=await client(url,{redirect:'error',headers:{Accept:'application/json',...headers},signal:AbortSignal.timeout(15000)});if(!r.ok){const e=Error('http_'+r.status);e.status=r.status;throw e;}
@@ -120,9 +133,16 @@ async function main(root){
     }catch(e){failedTeams++;if([401,403,429].includes(e.status))break;}await pause();
    }
    if(official){
-    let finalEvents=events.filter(g=>g.completed&&dt(g.startAt)<dt(at));
-    try{const prev=await get('https://api-web.nhle.com/v1/schedule/'+day(Date.now()-7*86400000));proofs.push({url:prev.url,digest:prev.sourceDigest,observedAt:prev.observedAt});finalEvents.push(...nhlEvents(prev.data).filter(g=>g.completed&&dt(g.startAt)<dt(at)));}catch{}
-    finalEvents=[...new Map(finalEvents.map(g=>[g.eventId,g])).values()].sort((a,b)=>dt(b.startAt)-dt(a.startAt)).slice(0,12);
+    let finalEvents=[...events];
+    // Expand historical discovery without increasing the per-run boxscore budget.
+    // Skip only verified, committed final evidence, not mere schedule observations.
+    const prior=require('./prizepicks-native-context-readiness.cjs').receipts(root,OUT+'/nhl-final-stat-facts','nhl_official_recent_final_stats_v1',now());
+    const known=new Set(prior.flatMap(h=>(h.doc.games||[]).filter(g=>g.event?.completed===true&&g.event?.status==='post'&&Number.isFinite(dt(g.observedAt))&&dt(g.event.startAt)<dt(g.observedAt)&&dt(g.observedAt)<=dt(h.first)+999&&/^[a-f0-9]{64}$/.test(g.sourceDigest||'')&&Array.isArray(g.rows)&&g.rows.some(r=>r.appeared===true)).map(g=>g.event.eventId)));
+    for(const offset of [7,14,21]){
+     try{const prev=await get('https://api-web.nhle.com/v1/schedule/'+day(Date.now()-offset*86400000));proofs.push({url:prev.url,digest:prev.sourceDigest,observedAt:prev.observedAt});finalEvents.push(...nhlEvents(prev.data));}catch(e){if([401,403,429].includes(e.status))break;}
+     await pause();
+    }
+    finalEvents=selectNhlFinals(finalEvents,known,at);
     const finals=[];for(const g of finalEvents){try{const d=await get('https://api-web.nhle.com/v1/gamecenter/'+g.eventId+'/boxscore');finals.push({event:g,observedAt:d.observedAt,sourceDigest:d.sourceDigest,rows:nhlFinal(d.data,g)});}catch(e){if([401,403,429].includes(e.status))break;}await pause();}
     if(finals.length)save(root,'nhl-final-stat-facts',{kind:'nhl_official_recent_final_stats_v1',observedAt:now(),games:finals,originalPlatformSettlementVerified:false});
     nativeHistory.nhl={finalGames:finals.length,playerAppearances:finals.reduce((s,x)=>s+x.rows.length,0),completeHistoricalSeasons:false};
@@ -154,5 +174,5 @@ async function main(root){
  const summary={kind:'public_pickfinder_identity_health_v1',generatedAt:now(),archiveRevision:git(root,['rev-parse','HEAD']),sourceEvents:groups.length,sources,nativeHistory,independentlyReviewedCrosswalks:0,paidRequests:0,publicRequests:requests,privateRepoUsed:false,modelApproved:false};
  fs.mkdirSync(path.join(root,'data'),{recursive:true});fs.writeFileSync(path.join(root,'data/pickfinder-public-identity-health.json'),JSON.stringify(summary,null,2)+'\n');console.log(JSON.stringify(summary));
 }
-module.exports={espnEvents,espnRoster,nhlEvents,nhlRoster,groupOffers,match,nhlFinal};
+module.exports={espnEvents,espnRoster,nhlEvents,nhlRoster,groupOffers,match,nhlFinal,selectNhlFinals};
 if(require.main===module)main(fs.realpathSync(process.argv[2]||'.')).catch(()=>{console.error('Public identity audit failed closed');process.exitCode=1;});

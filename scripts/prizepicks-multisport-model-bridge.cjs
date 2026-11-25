@@ -71,9 +71,29 @@ function evaluateOther(rows,ctx,clock){
    if(!['Higher','Lower'].includes(side)||v?.available!==true||!['standard','goblin','demon'].includes(v.tier)||side==='Lower'&&v.tier!=='standard')continue;
    const key=JSON.stringify([row.sport,s.playerId,s.gameId,p.metric,row.period,row.line,side,v.tier]);if(seen.has(key)){reject('duplicate_direction');continue;}seen.add(key);
    const q=p.probabilities,den=q?q.higher+q.lower:0;
-   predictions.push({sport:row.sport,nativePlayerId:s.playerId,nativeGameId:s.gameId,player:row.player,market:p.metric,period:row.period,line:row.line,side,tier:v.tier,projection:p.projection,rawConditionalEstimate:den>0?q[side.toLowerCase()]/den:null,pushEstimate:q?.push??null,priorObservations:p.prior,method:p.method,forecastAt:clock,sourceObservedAt:row.observedAt,gameStartAt:row.startsAt,modelRevision:ctx.revision,identityEvidenceSha256:s.receiptDigest,historyDigests:s.historyDigests,providerOfferId:row.providerOfferId,originalPlatformVerified:false,calibrated:false,expectedValue:null,modelApproved:false,restricted:true,...crosscheck(row,side,v.tier,s,ctx.archive,clock)});
+   predictions.push({sport:row.sport,nativePlayerId:s.playerId,nativeGameId:s.gameId,player:row.player,team:s.team,opponent:s.opponent,market:p.metric,period:row.period,line:row.line,side,tier:v.tier,projection:p.projection,rawConditionalEstimate:den>0?q[side.toLowerCase()]/den:null,pushEstimate:q?.push??null,priorObservations:p.prior,method:p.method,forecastAt:clock,sourceObservedAt:row.observedAt,gameStartAt:row.startsAt,modelRevision:ctx.revision,identityEvidenceSha256:s.receiptDigest,historyDigests:s.historyDigests,providerOfferId:row.providerOfferId,originalPlatformVerified:false,calibrated:false,expectedValue:null,modelApproved:false,restricted:true,...crosscheck(row,side,v.tier,s,ctx.archive,clock)});
   }
  }
  return {predictions,excluded};
 }
-module.exports={evaluateOther,mapPeriod,crosscheck};
+// Unqualified challenger only: strictly prior rolling errors from the existing
+// point projection. Keep out of the live adapter until chronological validation
+// against eligible historical lines and independent holdout performance.
+function nflResidualChallenger(history,line,{nonnegative=false}={}){
+ if(!Array.isArray(history)||history.length<15||!history.every(Number.isFinite)||!Number.isFinite(line)||typeof nonnegative!=='boolean')return null;
+ const f=nfl.forecast(history);if(!f)return null;
+ const errors=[];
+ for(let i=5;i<history.length;i++){
+  const prior=nfl.forecast(history.slice(0,i));
+  if(prior)errors.push(history[i]-prior.shrunk_last5);
+ }
+ if(errors.length<10)return null;
+ let higher=0,lower=0,push=0;
+ for(const error of errors){
+  let v=Math.round(f.shrunk_last5+error);if(nonnegative)v=Math.max(0,v);
+  if(v>line)higher++;else if(v<line)lower++;else push++;
+ }
+ const n=errors.length;
+ return {higher:higher/n,lower:lower/n,push:push/n,residualObservations:n,method:'rolling_shrunk_last5_residual_v0',calibrated:false,modelApproved:false};
+}
+module.exports={evaluateOther,mapPeriod,crosscheck,nflResidualChallenger};

@@ -64,3 +64,18 @@ t('retention denied by default; authorized test storage is exclusive, allowliste
  a.throws(()=>retain(result,{...options,grant,directory:process.cwd()}),/storage_not_private/);
  }finally{fs.rmSync(d,{recursive:true,force:true});}
 });
+
+t('verified team and opponent are preserved in new restricted multisport forecasts',()=>{
+ const p=evaluateOther([row],ctx(scope),clock).predictions;
+ a.equal(p.length,2);for(const x of p){a.equal(x.team,scope.team);a.equal(x.opponent,scope.opponent);}
+});
+
+t('NFL residual challenger abstains on short samples, handles pushes and stays unapproved',()=>{
+ const {nflResidualChallenger:q}=require('../scripts/prizepicks-multisport-model-bridge.cjs');
+ a.equal(q(Array(14).fill(2),2),null);
+ a.equal(q([...Array(14).fill(2),NaN],2),null);
+ const exact=q(Array(20).fill(2),2,{nonnegative:true});
+ a.equal(exact.push,1);a.equal(exact.higher,0);a.equal(exact.lower,0);a.equal(exact.residualObservations,15);a.equal(exact.modelApproved,false);a.equal(exact.calibrated,false);
+ const half=q(Array(20).fill(2),1.5,{nonnegative:true});a.equal(half.higher,1);a.equal(half.push,0);
+ const mixed=q(Array.from({length:20},(_,i)=>i%3),1);a.ok(Math.abs(mixed.higher+mixed.lower+mixed.push-1)<1e-12);
+});

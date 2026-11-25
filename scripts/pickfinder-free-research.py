@@ -52,13 +52,16 @@ def main():
         bits=rel.strip("/").split("/")
         if len(bits)==3 and bits[0]=="leagues" and bits[1] in ("nba","nhl","nfl","cs2","dota-2","valorant","league-of-legends","lol","cod","mlb","wnba","college-football","college-basketball","soccer","tennis") and rel not in PILOT:groups[bits[1]].append(rel)
     additional=[]
-    while groups and len(additional)<6:
+    while groups:
         for sport in list(groups):
-            if groups[sport] and len(additional)<6:additional.append(groups[sport].popleft())
+            if groups[sport]:additional.append(groups[sport].popleft())
             if not groups[sport]:del groups[sport]
-    for rel in PILOT+additional:
+    import time
+    eligible=PILOT+additional
+    for rel in eligible:
         if rel not in listed:out[rel]={"state":"not_listed"};continue
         p=fetch(rel);out[rel]={"state":"observed",**summarize(p)}
+        time.sleep(0.5)
         snapshots.append({"path":rel,"observedAt":datetime.now(timezone.utc).isoformat(),"tables":p.tables})
     if "--private-root" in sys.argv:
         root=Path(sys.argv[sys.argv.index("--private-root")+1]).resolve()

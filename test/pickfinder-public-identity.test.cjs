@@ -1,0 +1,6 @@
+'use strict';
+const t=require('node:test'),a=require('node:assert/strict'),{match,espnRoster,nhlFinal}=require('../scripts/pickfinder-public-identity.cjs');
+const at='2026-11-25T13:00:00Z',start='2026-11-25T22:00:00Z',teams=[{id:'A',abbr:'AAA',name:'Team A'},{id:'B',abbr:'BBB',name:'Team B'}],events=[{sport:'nba',namespace:'espn:nba',eventId:'42',status:'pre',startAt:start,teams}],rosters=[{name:'Alice Example',playerId:'1',teamId:'A'},{name:'Bob Example',playerId:'2',teamId:'B'}],p=(name,team,opp)=>({name,sourceTeams:[team],sourceOpponents:[opp],detailIds:['fixture']}),group={sport:'nba',eventId:'untrusted',players:[p('Alice Example','aaa','bbb'),p('Bob Example','bbb','aaa')],startTimes:[start],manifestDigests:[]};
+t('explicit source clock and exact team context are corroborated but not independent review',()=>{const x=match(group,events,rosters,at);a.equal(x.possibleEvents.length,1);a.equal(x.players[0].sourceContextCorroborated,true);a.equal(x.independentReviewVerified,false);});
+t('missing time and ambiguous identity fail closed',()=>{a.equal(match({...group,startTimes:[]},events,rosters,at).players[0].sourceContextCorroborated,false);a.equal(match(group,events,[...rosters,{...rosters[0],playerId:'3'}],at).possibleEvents.length,0);});
+t('roster response must identify exact team',()=>{a.throws(()=>espnRoster({team:{id:'B'},athletes:[]},teams[0]));});

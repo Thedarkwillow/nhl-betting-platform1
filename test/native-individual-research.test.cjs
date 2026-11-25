@@ -44,3 +44,10 @@ test('roster-only candidate stays out of model-ready rows and requires matching 
  const ctx={preparedAt:'2026-11-25T19:10:00Z',scopes:[],identityScopes:[s]};const docs=[{schema:'pickfinder-public-nba-context-v1',records:[r]}];
  const a=reconcileArchive(ctx,docs);assert.equal(a.uniqueCandidates,0);assert.equal(a.identityOnlyUnique,1);assert.equal(a.identityOnlyRows[0].sourceClockVerified,false);assert.equal(a.identityOnlyRows[0].historyVerified,false);assert.equal(reconcileArchive({...ctx,identityScopes:[{...s,homeAway:'home'}]},docs).identityOnlyUnique,0);
 });
+
+test('clock comparison counts distinct events, handles midnight and never verifies timezone',()=>{
+ const {clockAudit}=require('../scripts/native-individual-research.cjs');
+ const a={sport:'nhl',eventId:'e',nativeStartAt:'2026-11-26T00:00:00Z',localMatchup:{weekday:'Wed',hour:4,minute:0,dayPeriod:'PM'}};
+ const b={...a,eventId:'f'};const bad={...b,localMatchup:{...b.localMatchup,hour:5}};
+ const out=clockAudit([a,a,b,bad]);assert.equal(out.distinctEvents,2);assert.equal(out.conflictingEvents,1);assert.equal(out.offsetMinutesByEvent['-480'],1);assert.equal(out.sourceClockVerified,false);
+});

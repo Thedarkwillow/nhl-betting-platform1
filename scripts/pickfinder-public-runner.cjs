@@ -13,6 +13,14 @@ function invocation(env,now=new Date()){
  if([6,9].includes(clock.hour))return {allowed:false,state:'protect_morning_hour',clock};
  return {allowed:true,expected:'manual',clock,deep:mode==='deep_research_now'||mode==='nba_context_only',contextOnly:mode==='nba_context_only',probe:mode==='probe_now'};
 }
+function captureOrigin(env,policy){
+ const event=env.GITHUB_EVENT_NAME,runId=String(env.GITHUB_RUN_ID||''),attempt=String(env.GITHUB_RUN_ATTEMPT||''),revision=String(env.GITHUB_SHA||'');
+ if(!/^[1-9][0-9]{0,19}$/.test(runId)||!/^[1-9][0-9]{0,5}$/.test(attempt)||! /^[a-f0-9]{40}$/.test(revision))return null;
+ const cron=event==='schedule'?String(env.GITHUB_EVENT_SCHEDULE||''):null;
+ if(event==='schedule'&&(!/^[0-9]{1,2} (6|9|12|16) \* \* \*$/.test(cron)||policy.expected!=='manual'&&Number(cron.split(' ')[1])!==Number(policy.expected.slice(0,2))))return null;
+ if(!['schedule','workflow_dispatch','push'].includes(event))return null;
+ return {event,runId,attempt,revision,cron};
+}
 function cleanBoard(batch){
  const n=normalize(batch);return safe({...n,sourceDigest:sha(JSON.stringify(batch)),schema:'pickfinder-public-normalized-v1',authenticated:batch.authenticated===true,explicitEmpty:batch.explicitEmpty===true,disabledConfirmed:batch.disabledConfirmed===true,displayedPageCount:batch.displayedPageCount??null,lastPageReached:batch.lastPageReached===true,rawHtmlPublished:false,accountDataPublished:false});
 }
@@ -66,7 +74,7 @@ async function main(root,env=process.env){
    if(!alive())break;
    try{await page.goto(ORIGIN+'/props',{timeout:20000});const names=code==='DOTA2'?['DOTA2','Dota 2']:[code];let visible=false;for(const name of names){const b=page.getByRole('button',{name,exact:true});if(await b.count()===1&&await b.isVisible())visible=true;}if(!visible){console.log(JSON.stringify({state:'public_board_not_exposed',code,book,competition:'unknown'}));continue;}
     const batch=await collect(page,{book,code,slot:p.expected,shouldContinue:alive,onPage:async x=>{if(x.page.number===1||x.page.number%10===0)console.log(JSON.stringify({state:'public_board_progress',code,book,pages:x.page.number,displayedPages:x.displayedPageCount}));}});
-    const n=cleanBoard(batch),{meta,parts}=splitBoard(n),partDigests=[];for(const part of parts)partDigests.push((await write('board-parts',part)).digest);const receipt=await write('boards',{...meta,partDigests});boards++;
+    const n=cleanBoard(batch),{meta,parts}=splitBoard(n),partDigests=[];for(const part of parts)partDigests.push((await write('board-parts',part)).digest);const receipt=await write('boards',{...meta,partDigests,captureOrigin:captureOrigin(env,p)});boards++;
     console.log(JSON.stringify({state:'public_board_checkpoint_verified',code,book,slot:n.slot,withinSlot:n.withinSlot,boardState:n.boardState,pages:n.health.pages,offers:n.health.distinctOfferKeys,unresolved:n.health.unresolvedRows,sourceDigest:n.sourceDigest,archiveDigest:receipt.digest,remoteDigestVerified:true,originalOffersVerified:false}));
     if(batch.failure==='session_expired')throw Error('session expired');if(batch.boardState==='partial')errors++;
    }catch{errors++;console.log(JSON.stringify({state:'public_board_partition_pending',code,book}));if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
@@ -140,5 +148,5 @@ async function main(root,env=process.env){
   await context.close();console.log(JSON.stringify({state:'public_pickfinder_throughput',boards,profiles,profileMs,archiveMs,transactions,errors,elapsedMs:Date.now()-started,privateRepoUsed:false,modelInputsApproved:false}));
  }
 }
-module.exports={invocation,queue,cleanBoard,publicProfile,splitBoard};
+module.exports={invocation,queue,cleanBoard,publicProfile,splitBoard,captureOrigin};
 if(require.main===module)main(fs.realpathSync(process.argv[2])).catch(()=>{console.error(JSON.stringify({state:'public_pickfinder_failed_closed',privateRepoUsed:false,accountDataLogged:false}));process.exitCode=1;});

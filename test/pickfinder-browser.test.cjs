@@ -28,3 +28,14 @@ test('duplicate across two pages is reconciled and manual observations never qua
 });
 
 test('stable authenticated explicit empty board with no pager is not a failure',async()=>{const input=await collect(session([active,...Array.from({length:4},()=>({...active,empty:true,rows:[]}))]),{book:'prizepicks',code:'NHL'});assert.equal(input.boardState,'empty');assert.equal(input.explicitEmpty,true);assert.equal(input.authenticated,true);assert.equal(normalize(input).health.appearances,0);});
+
+
+test('visible non-overview profile table is retained; unrelated tables are excluded',()=>{
+ const {readSections}=require('../scripts/pickfinder-player-research.cjs');
+ const cell={innerText:'42',querySelectorAll:()=>[]};
+ const makeTable=panel=>({getClientRects:()=>[1],closest:()=>panel?{getClientRects:()=>[1]}:null,querySelectorAll:q=>q==='thead th'?[{innerText:'Opponent rank'}]:q==='tbody tr'?[{cells:[cell]}]:[]});
+ const previous=global.document;
+ global.document={querySelectorAll:q=>q==='table'?[makeTable(true),makeTable(false)]:[],body:{innerText:''}};
+ try{const fields=readSections({tab:'Defense',origin:'profile',observedAt:'2026-11-25T10:00:00Z',context:{}});assert.equal(fields.length,1);assert.equal(fields[0].scope,'Opponent rank');}
+ finally{global.document=previous;}
+});

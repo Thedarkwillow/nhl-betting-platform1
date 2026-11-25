@@ -13,6 +13,7 @@ on:
       - 'Refresh allowlisted NHL public research rankings'
       - 'Publish safe NFL independent research coverage'
       - 'Validate Accuracy And Platform Evidence Dashboard'
+      - 'Public PrizePicks model ranking research'
     types: [completed]
   push:
     branches: [main]
@@ -28,6 +29,7 @@ on:
       - 'data/source-line-movement.json'
       - 'data/nfl-independent-coverage.json'
       - 'data/public-multi-sport-sprint.json'
+      - 'data/prizepicks-model-rankings.json'
       - 'nhl-games.json'
       - '.github/workflows/publish.yml'
 permissions:

@@ -72,6 +72,21 @@ async function main(root,env=process.env){
   }}
   // Morning board acquisition is independent of deep research and must never delay next slot.
   if(p.expected!=='manual')return;
+  // Capture game context before the potentially very long deep-profile queue.
+  // Time-box this independently and never consume a protected morning window.
+  if(alive()){
+   const until=Date.now()+90000,gameAlive=()=>alive()&&Date.now()<until;
+   try{
+    await page.goto(ORIGIN+'/props',{timeout:15000});
+    const href=await verifiedNavigation(page,'Games',['/games']);
+    if(href&&gameAlive()){
+     await page.goto(href,{timeout:15000});
+     if(await premium(page)&&gameAlive())await traverseDashboardFilters(page,'Games',{shouldContinue:gameAlive,onSnapshot:async s=>{
+      const {controls,...sports}=s;await write('dashboards',{schema:'pickfinder-public-dashboard-v1',...sports});
+     }});
+    }
+   }catch{errors++;console.log(JSON.stringify({state:'public_game_context_pending'}));}
+  }
   const q=queue(read(root,'board-parts'),read(root,'profiles'));console.log(JSON.stringify({state:'public_deep_queue',total:q.total,completed:q.done,remaining:q.pending.length,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
   const detail=await context.newPage();detail.setDefaultTimeout(5000);
   const buffer=checkpointBuffer({write:rows=>write('profiles',{schema:'pickfinder-public-profiles-v1',observedAt:new Date().toISOString(),records:rows,modelInputsApproved:false}),onVerified:r=>{profiles++;console.log(JSON.stringify({state:'public_deep_scope_checkpoint_verified',sport:r.sport,book:r.book,status:r.status,truncated:r.truncated,verifiedThisRun:profiles}));}});

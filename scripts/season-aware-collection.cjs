@@ -37,6 +37,7 @@ function contextGate(code,previous,current){
  const keys=requiredContext(code);
  const missing=keys.filter(k=>typeof current?.[k]!=='string'||!current[k].trim());
  const changed=keys.filter(k=>previous?.[k]&&current?.[k]&&previous[k]!==current[k]);
- return {missing,changed,needsRevalidation:missing.length>0||changed.length>0||!previous,modelPromotionAllowed:false};
+ const missingPrior=keys.filter(k=>typeof previous?.[k]!=='string'||!previous[k].trim());
+ return {missing,missingPrior,changed,needsRevalidation:missing.length>0||missingPrior.length>0||changed.length>0,modelPromotionAllowed:false};
 }
 module.exports={registry,preferred,scheduleStatus,classify,orderedPartitions,contextGate,requiredContext};

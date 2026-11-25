@@ -45,6 +45,7 @@ jobs:
           path: public
           persist-credentials: false
       - name: Confirm authorized private archive
+        id: private_destination
         env:
           GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
         run: |
@@ -75,3 +76,19 @@ jobs:
             esac
           fi
           node public/scripts/morning-private-archive-health.cjs archive "$AUDIT_DAY" "$AUDIT_SLOT"
+      - name: Inspect separate existing free-provider archive
+        if: always() && !cancelled() && steps.private_destination.outcome == 'success'
+        id: provider_checkout
+        uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/esports-free-providers
+          path: provider-archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Report native historical source context separately from morning forecast certification
+        if: always() && !cancelled() && steps.provider_checkout.outcome == 'success'
+        run: |
+          set -euo pipefail
+          node -e 'const fs=require("node:fs"),p=fs.realpathSync("provider-archive"),a=require("./public/scripts/private-source-history-connections.cjs").providerArchive(p);console.log(JSON.stringify({kind:"morning_native_provider_context_v1",historicalSourceContext:a,forecastFreezeVerified:false,paidRequests:0,rawRowsPublished:0}))'

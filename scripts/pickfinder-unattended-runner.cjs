@@ -5,7 +5,7 @@ const {pacific,decide}=require('./pacific-morning-capture-gate.cjs');
 const {collect,ORIGIN}=require('./pickfinder-browser.cjs');
 const {enrich}=require('./pickfinder-player-research.cjs');
 const {archive,normalize}=require('./pickfinder-premium-archive.cjs');
-const {loadPilot,compare,inputAudit}=require('./pickfinder-pilot-reconcile.cjs');
+const {loadPilot,compare,inputAudit,missingDisposition,loadVerifiedAttempt}=require('./pickfinder-pilot-reconcile.cjs');
 const {registry,classify,orderedPartitions}=require('./season-aware-collection.cjs');
 const {discover}=require('./season-aware-discovery.cjs');
 const SPORTS=['NBA','CS2','VAL','LOL','DOTA2','COD','NHL','NFL'];
@@ -14,7 +14,7 @@ const partitions=()=>SPORTS.flatMap(code=>BOOKS.map(book=>({code,book})));
 function plan(env,now=new Date()){
  if(env.PICKFINDER_AUTOMATION_AUTHORIZED!=='1')throw Error('authorization_required');
  if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='probe_now')return {probe:true};
- if((env.GITHUB_EVENT_NAME==='workflow_dispatch'||env.GITHUB_EVENT_NAME==='push'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')&&env.REQUESTED_MODE==='reconcile_now')return {allowed:true,reconcile:true,expected:'manual',clock:pacific(now)};
+ if((env.GITHUB_EVENT_NAME==='workflow_dispatch'||env.GITHUB_EVENT_NAME==='push'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')&&['reconcile_now','full_reconcile_now'].includes(env.REQUESTED_MODE))return {allowed:true,reconcile:true,full:env.REQUESTED_MODE==='full_reconcile_now',expected:'manual',clock:pacific(now)};
  if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_SCHEDULE_ENABLED!=='1')return {allowed:false,state:'schedule_disabled'};
  return decide({eventName:env.GITHUB_EVENT_NAME,mode:env.REQUESTED_MODE,schedule:env.GITHUB_EVENT_SCHEDULE,now});
 }
@@ -134,7 +134,7 @@ async function main(env=process.env){
   if(env.GITHUB_EVENT_NAME==='schedule'&&!receipt.captureVerifiedAt)throw Error('manual in-window remote archive proof required');
  }
  const prefix='research/pickfinder-premium/'+p.clock.day+'/'+p.expected.replace(':','');
- const deadline=Date.now()+20*60000;
+ const deadline=Date.now()+(p.full?40:20)*60000;
  const remaining=()=>{const t=pacific(new Date());return p.reconcile?Date.now()<deadline&&t.day===p.clock.day:t.day===p.clock.day&&t.hour===p.clock.hour&&t.minute<55;};
  const evidence=await discover({env});
  const preferredTargets=orderedPartitions(SPORTS,BOOKS,evidence);
@@ -153,7 +153,7 @@ async function main(env=process.env){
    if(!remaining()){failed=true;break;}
    try{
     await stage('board_navigation',()=>page.goto(ORIGIN+'/props',{timeout:20000}));
-    const batch=await stage('board_collection',()=>collect(page,{book,code,slot:p.expected,maxPages:p.reconcile?2:100,shouldContinue:remaining}));
+    const batch=await stage('board_collection',()=>collect(page,{book,code,slot:p.expected,maxPages:p.full?500:p.reconcile?2:500,shouldContinue:remaining}));
     // A bounded profile sample preserves board coverage. Separate deep research is still required.
     const sample=batch.pages.flatMap(pg=>pg.rows).find(r=>r.apps.length);
     if(sample&&remaining())try{await enrich(detail,sample,{navigate:url=>detail.goto(url,{timeout:8000})});}catch{sample.profileCollection={status:'unavailable'};}
@@ -185,14 +185,18 @@ async function main(env=process.env){
     if(crypto.createHash('sha256').update(raw).digest('hex')!==n.sourceDigest||raw.toString()!==JSON.stringify(b))throw Error('archive mismatch');
    }
   });
-  if(p.reconcile)console.log(JSON.stringify({state:'fresh_reconciliation',...compare(loadPilot(root),batches)}));
+  if(p.reconcile){const pilot=loadPilot(root);console.log(JSON.stringify({state:'fresh_reconciliation',...compare(pilot,batches)}));
+   console.log(JSON.stringify({state:'prior_missing_disposition',...missingDisposition(pilot,loadVerifiedAttempt(root,'168bd736ee99157891fcf87b766ffcae49170dd2'))}));
+   console.log(JSON.stringify({state:'current_missing_disposition',...missingDisposition(pilot,batches)}));
+  }
   console.log(JSON.stringify({state:'nba_esports_input_audit',...inputAudit(normalized)}));
   if(!p.reconcile&&!hosted&&counts.length===targets.length&&counts.every(c=>c.withinSlot===true)&&counts.some(c=>c.offers>0)){
    fs.writeFileSync(receiptPath,JSON.stringify({...receipt,captureVerifiedAt:new Date().toISOString(),archiveSha:sha}),{mode:0o600});
   }
-  console.log(JSON.stringify({state:'remote_archive_verified',sha,slot:p.expected,partitions:counts,allPartitionsAttempted:counts.length===targets.length,remoteDigestVerified:true,boundedSample:p.reconcile===true,fullBoardCertified:false,modelInputsApproved:false}));
+  console.log(JSON.stringify({state:'remote_archive_verified',sha,slot:p.expected,partitions:counts,allPartitionsAttempted:counts.length===targets.length,remoteDigestVerified:true,boundedSample:p.reconcile===true&&!p.full,allVisibleBoardsTraversed:counts.length===targets.length&&counts.every(c=>c.traversal||['verified_empty_board','verified_disabled_board'].includes(c.seasonStatus)),fullBoardCertified:false,modelInputsApproved:false}));
  }else failed=true;
  if(p.reconcile&&!counts.some(c=>c.offers>0))failed=true;
+ if(p.full&&counts.some(c=>!c.traversal&&!['verified_empty_board','verified_disabled_board'].includes(c.seasonStatus)))failed=true;
  if(failed||counts.length!==targets.length)process.exitCode=1;
 }
 module.exports={plan,receiptValid,safeAddedFiles,partitions,passwordLogin,submitLoginStep,stage,RunnerStageError};

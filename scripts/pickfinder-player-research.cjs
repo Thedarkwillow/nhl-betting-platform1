@@ -23,7 +23,9 @@ function readSections({tab,origin,observedAt,context}) {
     const isMovement=headers.includes('App')&&headers.includes('Time')&&headers.includes('Line');
     if(origin==='line_movement'&&!isMovement)continue;
     if(origin==='prop_history'&&!headers.some(h=>/line|result/i.test(h))||origin==='prop_history'&&isMovement)continue;
-    if(origin==='profile'&&(isMovement||tab!=='Player overview'))continue;
+    if(origin==='profile'&&isMovement)continue;
+    // Non-overview research must belong to a visible tab panel, not background page chrome.
+    if(origin==='profile'&&tab!=='Player overview'&&!table.closest('[role=tabpanel]')?.getClientRects().length)continue;
     if(!header.trim())continue;
     let i=0;
     for(const tr of table.querySelectorAll('tbody tr')){

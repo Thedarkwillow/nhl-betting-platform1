@@ -79,6 +79,14 @@ jobs:
           path: restricted
           persist-credentials: false
           fetch-depth: 0
+      - name: Isolate authorized archive outside public checkout
+        id: isolate_archive
+        run: |
+          set -euo pipefail
+          test -d "$GITHUB_WORKSPACE/restricted/.git"
+          test ! -e "$RUNNER_TEMP/nov24-restricted"
+          mv "$GITHUB_WORKSPACE/restricted" "$RUNNER_TEMP/nov24-restricted"
+          test "$(git -C "$RUNNER_TEMP/nov24-restricted" rev-parse --show-toplevel)" = "$RUNNER_TEMP/nov24-restricted"
       - name: Actual-time private partner observations, not a morning slot
         id: capture
         env:
@@ -86,11 +94,11 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          node scripts/capture-public-native-morning.cjs "$GITHUB_WORKSPACE/restricted" > "$RUNNER_TEMP/capture.json"
+          node scripts/capture-public-native-morning.cjs "$RUNNER_TEMP/nov24-restricted" > "$RUNNER_TEMP/capture.json"
           node -e 'const d=require(process.argv[1]);if(d.status!=="saved_private_only"||!/^outputs\/manual-board-captures\/\d{4}-\d{2}-\d{2}\/\d{8}T\d{6}Z$/.test(d.archiveDir))throw Error("capture not verified");console.log(JSON.stringify({kind:"actual_time_partner_capture",counts:d.counts,capturedAt:d.capturedAt,originalAppVerified:false,paidRequests:0}));require("fs").appendFileSync(process.env.GITHUB_OUTPUT,"dir="+d.archiveDir+"\n")' "$RUNNER_TEMP/capture.json"
       - name: Archive capture privately
         if: steps.capture.outcome == 'success'
-        working-directory: restricted
+        working-directory: ${{ runner.temp }}/nov24-restricted
         env:
           GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           DIR: ${{ steps.capture.outputs.dir }}
@@ -104,9 +112,9 @@ jobs:
           test "$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin refs/heads/research/nov24-source-refresh-20261125 | cut -f1)" = "$(git rev-parse HEAD)"
           echo 'Private fresh capture verified.'
       - name: Collect actual November 24 NHL finals and grade immutable frozen selections
-        if: always() && !cancelled() && steps.private_destination.outcome == 'success' && steps.restricted_checkout.outcome == 'success'
+        if: always() && !cancelled() && steps.private_destination.outcome == 'success' && steps.restricted_checkout.outcome == 'success' && steps.isolate_archive.outcome == 'success'
         id: grade
-        working-directory: restricted
+        working-directory: ${{ runner.temp }}/nov24-restricted
         run: |
           set -euo pipefail
           umask 077
@@ -116,8 +124,8 @@ jobs:
           node scripts/build-nhl-private-ledger-and-labs.cjs > "$RUNNER_TEMP/nhl-ledger.log" 2>&1
           node scripts/report-nhl-2026-11-21-slate-grade.cjs 2026-11-24
       - name: Preserve official result and grade checkpoint on isolated branch
-        if: always() && !cancelled() && steps.private_destination.outcome == 'success' && steps.restricted_checkout.outcome == 'success' && steps.grade.outcome == 'success'
-        working-directory: restricted
+        if: always() && !cancelled() && steps.private_destination.outcome == 'success' && steps.restricted_checkout.outcome == 'success' && steps.isolate_archive.outcome == 'success' && steps.grade.outcome == 'success'
+        working-directory: ${{ runner.temp }}/nov24-restricted
         env:
           GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
         run: |

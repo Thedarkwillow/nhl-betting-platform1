@@ -3,6 +3,7 @@
 const fs=require('node:fs'),{load,list,read}=require('./pickfinder-public-evidence-audit.cjs'),{groupOffers,match}=require('./pickfinder-public-identity.cjs');
 const {displayedClockAt,indexReviews,matchesReview,teamCode}=require('./pickfinder-reviewed-game-context.cjs');
 const {aliases}=require('./pickfinder-public-model-validation.cjs');
+const nba=require('../src/nba-research-pipeline-v1.cjs');
 const dt=Date.parse,dayFormat=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'});
 const et=t=>dayFormat.format(new Date(t));
 const norm=x=>String(x||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
@@ -20,6 +21,8 @@ function audit(archive,payload,clock,receipts=[]){
   const seen=dialogEvents.get(row.eventId)||new Map();
   seen.set(JSON.stringify([row.displayedClock,row.browserTimeZone,row.teams]),row);dialogEvents.set(row.eventId,seen);
  }
+ const modelHistory=nba.indexHistory([{rows:payload.history}]);
+ const modelResearch={evaluated:0,abstained:0,byMarket:{},modelApproved:false,qualifiedForecasts:0};
  const out={};let total=0,candidate=0,context=0,profileContextCandidates=0,reviewedOrBoardContext=0;
  for(const b of archive.latest.filter(b=>b.m.sport==='nba')){
   const z=out[b.m.book]??={offers:0,historyCandidates:0,sourceContextCorroborated:0,excluded:{},byMarket:{}};
@@ -37,6 +40,9 @@ function audit(archive,payload,clock,receipts=[]){
    const offerDay=et(o.observedAt);
    const prior=(h.get(String(native))||[]).filter(x=>x.gameDate<offerDay&&norm(x.player)===norm(o.player)&&norm(x.team)===norm(e.team)&&Number.isFinite(x[metric]));
    if(prior.length<12){reject('insufficient_prior_history');continue;}
+   // Historical candidate calculation only; no prospective freeze or platform verification.
+   const estimate=nba.project(modelHistory,{playerId:Number(native),team:nba.teams(e.team),opponent:nba.teams(event.teams.find(t=>t.id!==e.teamId)?.abbr),market:metric,line:o.line},offerDay,{opponentContext:false});
+   if(estimate){modelResearch.evaluated++;modelResearch.byMarket[metric]=(modelResearch.byMarket[metric]||0)+1;}else modelResearch.abstained++;
    candidate++;z.historyCandidates++;
    const cards=dialogEvents.get(o.eventId);
    if(cards?.size===1){
@@ -63,7 +69,7 @@ function audit(archive,payload,clock,receipts=[]){
    context++;z.sourceContextCorroborated++;m.sourceContextCorroborated++;
   }
  }
- return {kind:'nba_pickfinder_offer_history_candidate_audit_v1',status:'observed',archiveInvalidManifests:archive.invalid.length,totalOffers:total,historyCandidates:candidate,independentlyReviewedOfferMatches:reviewedOfferMatches,unresolvedHistoryCandidates:candidate-reviewedOfferMatches,sourceContextCorroborated:context,boardNativeClockCorroborated:context,reviewedOrBoardContext,reviewedProfileContextKeys:reviewedProfileKeys.size,missingReviewedAndBoardContext:candidate-reviewedOrBoardContext,contextCountSemantics:'sourceContextCorroborated requires the original board clock; independentlyReviewedOfferMatches requires the separate reviewed receipt; reviewedOrBoardContext is their union; none certifies first-party offers or automated crosswalk intake',profileContextCandidates,profileContextPlayerEventKeys:sourceContexts.size,byBook:out,independentlyReviewedPickfinderCrosswalks:0,originalPlatformVerified:false,modelApproved:false,rawRowsPublished:0};
+ return {kind:'nba_pickfinder_offer_history_candidate_audit_v1',status:'observed',archiveInvalidManifests:archive.invalid.length,totalOffers:total,historyCandidates:candidate,independentlyReviewedOfferMatches:reviewedOfferMatches,unresolvedHistoryCandidates:candidate-reviewedOfferMatches,sourceContextCorroborated:context,boardNativeClockCorroborated:context,reviewedOrBoardContext,reviewedProfileContextKeys:reviewedProfileKeys.size,missingReviewedAndBoardContext:candidate-reviewedOrBoardContext,modelResearch,contextCountSemantics:'sourceContextCorroborated requires the original board clock; independentlyReviewedOfferMatches requires the separate reviewed receipt; reviewedOrBoardContext is their union; none certifies first-party offers or automated crosswalk intake',profileContextCandidates,profileContextPlayerEventKeys:sourceContexts.size,byBook:out,independentlyReviewedPickfinderCrosswalks:0,originalPlatformVerified:false,modelApproved:false,rawRowsPublished:0};
 }
 if(require.main===module)try{const payload=JSON.parse(fs.readFileSync(0,'utf8'));console.log(JSON.stringify(audit(load(process.argv[2],'nba'),payload,new Date().toISOString(),['directory','dashboards'].flatMap(kind=>list(process.argv[2],kind).map(d=>read(process.argv[2],kind,d))))));}catch{console.error('NBA offer candidate audit failed closed');process.exitCode=1;}
 module.exports={audit};

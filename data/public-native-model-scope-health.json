@@ -1,0 +1,435 @@
+{
+  "kind": "public_native_model_scope_validation_v1",
+  "generatedAt": "2026-11-25T14:05:44.744489+00:00",
+  "nfl": {
+    "inputPlayerGames": 47962,
+    "conflictingPlayerGames": 0,
+    "markets": [
+      {
+        "market": "completions",
+        "developmentN": 457,
+        "evaluationN": 291,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "shrunk",
+        "developmentMAE": {
+          "last5": 5.4752735229759315,
+          "last10": 5.204002118717657,
+          "ewma": 5.3117401369544615,
+          "shrunk": 5.165988248328062
+        },
+        "evaluationMAE": {
+          "last5": 5.500343642611682,
+          "last10": 5.207697867233946,
+          "ewma": 5.396537552834141,
+          "shrunk": 5.2295465906689635
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "attempts",
+        "developmentN": 457,
+        "evaluationN": 291,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "shrunk",
+        "developmentMAE": {
+          "last5": 7.713785557986875,
+          "last10": 7.392203292695636,
+          "ewma": 7.477936606679905,
+          "shrunk": 7.316346327801994
+        },
+        "evaluationMAE": {
+          "last5": 8.246048109965633,
+          "last10": 7.855745104456442,
+          "ewma": 7.993128660570642,
+          "shrunk": 7.8514008707670735
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "passing_yards",
+        "developmentN": 457,
+        "evaluationN": 291,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "last10",
+        "developmentMAE": {
+          "last5": 65.43369803063462,
+          "last10": 61.63787034142615,
+          "ewma": 64.23338520926387,
+          "shrunk": 62.27623774741553
+        },
+        "evaluationMAE": {
+          "last5": 68.34432989690723,
+          "last10": 65.22851551846398,
+          "ewma": 67.08418641172378,
+          "shrunk": 65.71043671513395
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "passing_tds",
+        "developmentN": 457,
+        "evaluationN": 291,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "shrunk",
+        "developmentMAE": {
+          "last5": 1.003938730853391,
+          "last10": 0.989960404293008,
+          "ewma": 1.019070823344104,
+          "shrunk": 0.9845406168963946
+        },
+        "evaluationMAE": {
+          "last5": 0.9573883161512028,
+          "last10": 0.9287555228276875,
+          "ewma": 0.9666368224114017,
+          "shrunk": 0.9379053057725939
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "passing_interceptions",
+        "developmentN": 457,
+        "evaluationN": 291,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "last10",
+        "developmentMAE": {
+          "last5": 0.65164113785558,
+          "last10": 0.6413401757493653,
+          "ewma": 0.6577372557815762,
+          "shrunk": 0.641614539313644
+        },
+        "evaluationMAE": {
+          "last5": 0.676288659793815,
+          "last10": 0.6597324496809027,
+          "ewma": 0.675163470626828,
+          "shrunk": 0.668182961870723
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "carries",
+        "developmentN": 1581,
+        "evaluationN": 910,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "shrunk",
+        "developmentMAE": {
+          "last5": 2.9690069576217595,
+          "last10": 3.015318062708954,
+          "ewma": 2.9465646903702787,
+          "shrunk": 2.922112725269651
+        },
+        "evaluationMAE": {
+          "last5": 3.0971428571428548,
+          "last10": 3.1844531658817363,
+          "ewma": 3.0435757711505667,
+          "shrunk": 3.0460580218516626
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "rushing_yards",
+        "developmentN": 1581,
+        "evaluationN": 910,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "shrunk",
+        "developmentMAE": {
+          "last5": 19.42745098039218,
+          "last10": 19.21201444735601,
+          "ewma": 19.482334529205186,
+          "shrunk": 18.917811207231676
+        },
+        "evaluationMAE": {
+          "last5": 19.299560439560487,
+          "last10": 19.467124106052683,
+          "ewma": 19.0412891403669,
+          "shrunk": 18.846052425752635
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "rushing_tds",
+        "developmentN": 1581,
+        "evaluationN": 910,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "last10",
+        "developmentMAE": {
+          "last5": 0.37912713472485743,
+          "last10": 0.3775681957370779,
+          "ewma": 0.3831335165839583,
+          "shrunk": 0.3787313929549242
+        },
+        "evaluationMAE": {
+          "last5": 0.37318681318681185,
+          "last10": 0.365963718820862,
+          "ewma": 0.36665999793554666,
+          "shrunk": 0.36503905476292603
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "receptions",
+        "developmentN": 3356,
+        "evaluationN": 1901,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "shrunk",
+        "developmentMAE": {
+          "last5": 1.4549463647198977,
+          "last10": 1.4188253211495185,
+          "ewma": 1.4455363985738179,
+          "shrunk": 1.4116011438632075
+        },
+        "evaluationMAE": {
+          "last5": 1.4863755917937946,
+          "last10": 1.4527894675317077,
+          "ewma": 1.5070411772794707,
+          "shrunk": 1.448247697555898
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "targets",
+        "developmentN": 3356,
+        "evaluationN": 1901,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "shrunk",
+        "developmentMAE": {
+          "last5": 1.8092967818831869,
+          "last10": 1.7819732958737686,
+          "ewma": 1.8009017668699516,
+          "shrunk": 1.7666140683214873
+        },
+        "evaluationMAE": {
+          "last5": 1.8905839032088365,
+          "last10": 1.857123443801506,
+          "ewma": 1.8978824733653212,
+          "shrunk": 1.8486106834004552
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "receiving_yards",
+        "developmentN": 3356,
+        "evaluationN": 1901,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "shrunk",
+        "developmentMAE": {
+          "last5": 20.094219308700804,
+          "last10": 19.59218149913915,
+          "ewma": 20.08569033123793,
+          "shrunk": 19.44433972270143
+        },
+        "evaluationMAE": {
+          "last5": 21.134771173066824,
+          "last10": 20.41588908928471,
+          "ewma": 21.27790509994611,
+          "shrunk": 20.477461237558234
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "receiving_tds",
+        "developmentN": 3356,
+        "evaluationN": 1901,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "last5",
+        "developmentMAE": {
+          "last5": 0.3108462455303972,
+          "last10": 0.3143578428590373,
+          "ewma": 0.3129995684495654,
+          "shrunk": 0.3127972902848689
+        },
+        "evaluationMAE": {
+          "last5": 0.32319831667543425,
+          "last10": 0.32146384943597045,
+          "ewma": 0.3191097003614656,
+          "shrunk": 0.32481367960114244
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "fg_made",
+        "developmentN": 421,
+        "evaluationN": 277,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "shrunk",
+        "developmentMAE": {
+          "last5": 1.0517814726840853,
+          "last10": 1.0200250725785176,
+          "ewma": 1.0677753042273745,
+          "shrunk": 1.0168386962837836
+        },
+        "evaluationMAE": {
+          "last5": 1.0830324909747282,
+          "last10": 1.0704515500544374,
+          "ewma": 1.1043798045819595,
+          "shrunk": 1.0626027595505834
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "fg_att",
+        "developmentN": 421,
+        "evaluationN": 277,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "shrunk",
+        "developmentMAE": {
+          "last5": 1.1453681710213774,
+          "last10": 1.093795008106173,
+          "ewma": 1.1500122375613684,
+          "shrunk": 1.0895337557516385
+        },
+        "evaluationMAE": {
+          "last5": 1.1299638989169667,
+          "last10": 1.10004727522778,
+          "ewma": 1.1464990806502227,
+          "shrunk": 1.099456679573141
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "pat_made",
+        "developmentN": 421,
+        "evaluationN": 277,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "shrunk",
+        "developmentMAE": {
+          "last5": 1.2085510688836092,
+          "last10": 1.186893450967085,
+          "ewma": 1.2220356309611913,
+          "shrunk": 1.1857775505962227
+        },
+        "evaluationMAE": {
+          "last5": 1.2353790613718414,
+          "last10": 1.1801916795599101,
+          "ewma": 1.22786147281413,
+          "shrunk": 1.182694163010759
+        },
+        "minimumEvidenceMet": true
+      },
+      {
+        "market": "pat_att",
+        "developmentN": 421,
+        "evaluationN": 277,
+        "developmentWeeks": 18,
+        "evaluationWeeks": 11,
+        "selected": "shrunk",
+        "developmentMAE": {
+          "last5": 1.2023752969121129,
+          "last10": 1.185751046261736,
+          "ewma": 1.2259756051624644,
+          "shrunk": 1.1839700639370445
+        },
+        "evaluationMAE": {
+          "last5": 1.252707581227437,
+          "last10": 1.1787777204744703,
+          "ewma": 1.2336768854966542,
+          "shrunk": 1.1892871383158037
+        },
+        "minimumEvidenceMet": true
+      }
+    ],
+    "selectionYear": 2025,
+    "retrospectiveEvaluationYear": 2026,
+    "conditionalOnObservedWorkload": true,
+    "noPregameAvailabilityVerified": true,
+    "actualPropLinesUsed": false,
+    "modelApproved": false
+  },
+  "identity": {
+    "nba": {
+      "eventCandidates": 9,
+      "playerCandidates": 125,
+      "sourceContextCorroborated": 0,
+      "missingSourceEventClock": 126,
+      "missingTeam": 126,
+      "missingOpponent": 126,
+      "ambiguousEvent": 0,
+      "ambiguousPlayer": 1
+    },
+    "nfl": {
+      "eventCandidates": 5,
+      "playerCandidates": 230,
+      "sourceContextCorroborated": 0,
+      "missingSourceEventClock": 517,
+      "missingTeam": 517,
+      "missingOpponent": 517,
+      "ambiguousEvent": 279,
+      "ambiguousPlayer": 287
+    },
+    "nhl": {
+      "eventCandidates": 14,
+      "playerCandidates": 548,
+      "sourceContextCorroborated": 0,
+      "missingSourceEventClock": 566,
+      "missingTeam": 566,
+      "missingOpponent": 566,
+      "ambiguousEvent": 0,
+      "ambiguousPlayer": 18
+    },
+    "college-football": {
+      "eventCandidates": 14,
+      "playerCandidates": 276,
+      "sourceContextCorroborated": 0,
+      "missingSourceEventClock": 1288,
+      "missingTeam": 1288,
+      "missingOpponent": 1288,
+      "ambiguousEvent": 969,
+      "ambiguousPlayer": 1012
+    },
+    "college-basketball": {
+      "eventCandidates": 5,
+      "playerCandidates": 57,
+      "sourceContextCorroborated": 0,
+      "missingSourceEventClock": 77,
+      "missingTeam": 77,
+      "missingOpponent": 77,
+      "ambiguousEvent": 32,
+      "ambiguousPlayer": 20
+    },
+    "tennis": {
+      "eventCandidates": 0,
+      "playerCandidates": 0,
+      "sourceContextCorroborated": 0,
+      "missingSourceEventClock": 75,
+      "missingTeam": 75,
+      "missingOpponent": 0,
+      "ambiguousEvent": 75,
+      "ambiguousPlayer": 75
+    },
+    "soccer": {
+      "eventCandidates": 0,
+      "playerCandidates": 0,
+      "sourceContextCorroborated": 0,
+      "missingSourceEventClock": 1484,
+      "missingTeam": 1484,
+      "missingOpponent": 1484,
+      "ambiguousEvent": 1484,
+      "ambiguousPlayer": 1484
+    }
+  },
+  "dota": {
+    "deduplicatedNativeMapsWithTenPlayersAndSeriesId": 6,
+    "conflictingMaps": 0,
+    "chronologicalSeriesCandidates": 2,
+    "independentMapOrdinalVerified": 0,
+    "originalOfferMatched": false
+  },
+  "paidRequests": 0,
+  "privateRepoUsed": false,
+  "modelApproved": false,
+  "independentlyReviewedPickfinderCrosswalks": 0
+}

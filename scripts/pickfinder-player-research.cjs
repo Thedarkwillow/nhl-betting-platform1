@@ -58,7 +58,7 @@ async function enrich(page,row,{navigate,maxFields=500}){
   const context={period:row.period,mapRange:row.mapRange,gameMode:row.gameMode};
   const collect=async(tab,origin)=>{const fields=await page.evaluate(readSections,{tab,origin,observedAt:new Date().toISOString(),context});groups.push(fields);tabAudit.push({tab,origin,fields:fields.length,state:fields.length?'observed':'empty'});};
   await collect('Player overview','profile');
-  for(const name of ['Matchup','Defense','Shooting','Similar','Rankings','Injuries','Player Stats','Maps','Team Form','Depth Chart','Lineups','Home/Away','Splits','Season','Teammates','Modes','Agents','Champions','Heroes']){
+  for(const name of ['Matchup','Defense','Shooting','Similar','Rankings','Injuries','Player Stats','Maps','Team Form',...(maxFields>500?['Depth Chart','Lineups','Home/Away','Splits','Season','Teammates','Modes','Agents','Champions','Heroes']:[])]){
     const target=page.getByRole('tab',{name,exact:true}).or(page.getByRole('button',{name,exact:true})).first();
     if(await target.isVisible()){
       await target.click();

@@ -113,20 +113,39 @@ jobs:
           path: archive
           fetch-depth: 0
       - name: Collect public research privately
+        id: collect-public
         env:
           RESTRICTED_DESTINATION_VERIFIED: '1'
         run: python public/scripts/pickfinder-free-research.py --authorized --private-root archive
       - name: Archive append-only and verify remote digest
+        if: always() && steps.collect-public.outcome != 'skipped'
         working-directory: archive
         run: |
           set -euo pipefail
           git add -- research/pickfinder-free-research
           files="$(git diff --cached --name-status)"
-          test "$(printf '%s\n' "$files" | wc -l)" = 1
-          printf '%s\n' "$files" | grep -Eq '^A[[:space:]]research/pickfinder-free-research/[a-f0-9]{64}\.json$'
-          p="$(git diff --cached --name-only)"
-          expected="$(basename "$p" .json)"
-          test "$(sha256sum "$p" | cut -d' ' -f1)" = "$expected"
+          test -n "$files"
+          if printf '%s\n' "$files" | grep -Ev '^A[[:space:]]research/pickfinder-free-research/[a-f0-9]{64}\.json
+          git -c user.name=research-runner -c user.email=research-runner@users.noreply.github.com commit -m 'Archive dated public PickFinder research'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then
+              git fetch -q origin main
+              for p in "${paths[@]}"; do
+                test "$(git show "FETCH_HEAD:$p" | sha256sum | cut -d' ' -f1)" = "$(basename "$p" .json)"
+              done
+              echo 'Private research snapshot remote digest verified'
+              exit 0
+            fi
+          done
+          exit 1
+; then exit 1; fi
+          mapfile -t paths < <(git diff --cached --name-only)
+          for p in "${paths[@]}"; do
+            expected="$(basename "$p" .json)"
+            test "$(sha256sum "$p" | cut -d' ' -f1)" = "$expected"
+          done
           git -c user.name=research-runner -c user.email=research-runner@users.noreply.github.com commit -m 'Archive dated public PickFinder research'
           for attempt in 1 2 3; do
             git fetch -q origin main

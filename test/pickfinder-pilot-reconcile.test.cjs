@@ -34,3 +34,15 @@ test('input audit leaves independent verification and model promotion off',()=>{
 });
 
 test('tier-only evidence stays distinct from actionable offer',()=>{const {missingDisposition}=require('../scripts/pickfinder-pilot-reconcile.cjs');const row={sport:'nba',player:'fixture',market:'points',detailId:'fixture',apps:[]};const source={book:'prizepicks',sport:'nba',pages:[{rows:[row]}]};const fresh={...source,pages:[{rows:[{...row,appEvidence:[{book:'prizepicks',icons:['prizepicks','goblin'],tier:'goblin',line:1.5}]},row]}]};const r=missingDisposition({partitions:[{source,normalized:{health:{unresolvedRows:1}}}]},[fresh]);assert.equal(r.originalMissingAppEvidence,1);assert.equal(r.newRows,2);assert.equal(r.tierOnly,1);assert.equal(r.missingBook,1);assert.equal(r.pricesInferred,0);assert.equal(r.sidesInferred,0);});
+
+test('source-reported pregame clock does not count as independent verification',()=>{
+ const r=inputAudit([{sport:'nba',book:'prizepicks',offers:[{book:'prizepicks',side:'Higher',line:2.5,displayedPrice:'-110',eventId:'event',observedAt:'2026-11-25T10:00:00Z',startAt:'2026-11-25T20:00:00Z'}],researchObservations:[]}]);
+ assert.equal(r.sports.nba.sourceReportedPregame,1);assert.equal(r.sports.nba.pregameTimestampVerified,0);
+});
+test('replay of genuine-shaped tier-only fixture yields research evidence without a price or side',()=>{
+ const {replayTierEvidence}=require('../scripts/pickfinder-pilot-reconcile.cjs');
+ const observedAt='2026-11-25T10:00:00Z';
+ const row={sport:'nba',player:'fixture',market:'points',detailId:'fixture',eventId:'fixture',observedAt,apps:[],appEvidence:[{book:'prizepicks',icons:['prizepicks','goblin'],tier:'goblin',line:1.5}]};
+ const batch={schema:'pickfinder-premium-export-v1',book:'prizepicks',sport:'nba',localDay:'2026-11-25',slot:'manual',startedAt:observedAt,endedAt:observedAt,boardState:'populated',displayedPageCount:1,lastPageReached:true,pages:[{number:1,rows:[row]}]};
+ assert.deepEqual(replayTierEvidence(batch),{tierRecords:1,pricedOfferKeys:0,unresolvedAppearances:1});
+});

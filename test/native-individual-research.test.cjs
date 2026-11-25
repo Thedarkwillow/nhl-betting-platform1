@@ -36,3 +36,11 @@ test('candidate offer links retain exact threshold and never qualify a probabili
  const rows=candidateOffers(ctx,{rows:[c]});assert.equal(rows.length,1);assert.equal(rows[0].line,0.5);assert.equal(rows[0].probability,null);assert.equal(rows[0].sourceClockVerified,false);assert.equal(rows[0].modelApproved,false);
  const a=reconcileArchive(ctx,[{schema:'pickfinder-public-nba-context-v1',records:[{state:'context_incomplete',routeVerified:false}]}]);assert.equal(a.reasons.unverified_profile,1);assert.equal(a.counts.unresolved,1);
 });
+
+test('roster-only candidate stays out of model-ready rows and requires matching venue',()=>{
+ const {reconcileArchive}=require('../scripts/native-individual-research.cjs');
+ const r={sport:'nba',eventId:'e',player:'Example',playerPath:'/players/nba/abc',detailId:'/players/nba/abc?prop=x%3Aplayer_points%3Ae%3A20.5',state:'context_incomplete',routeVerified:true,playerLabelVerified:true,team:'NYK',opponent:'CLE',observedAt:'2026-11-25T19:00:00Z',displayedEvidence:[{label:'Matchup',value:'NYK @ CLE • Thu @ 12:00AM'}],displayedClocks:[]};
+ const s={sport:'NBA',name:'Example',team:'NYK',opponent:'CLE',gameId:'9',playerId:'1',startAt:'2026-11-26T00:00:00Z',identityReviewed:true,eventReviewed:true,rosterReviewed:true,evidenceKind:'automated_native_schedule_roster_only',historyVerified:false,nativeNamespace:'espn:nba',homeAway:'away',receiptDigest:'a'.repeat(64),firstGitAt:'2026-11-25T19:05:00Z'};
+ const ctx={preparedAt:'2026-11-25T19:10:00Z',scopes:[],identityScopes:[s]};const docs=[{schema:'pickfinder-public-nba-context-v1',records:[r]}];
+ const a=reconcileArchive(ctx,docs);assert.equal(a.uniqueCandidates,0);assert.equal(a.identityOnlyUnique,1);assert.equal(a.identityOnlyRows[0].sourceClockVerified,false);assert.equal(a.identityOnlyRows[0].historyVerified,false);assert.equal(reconcileArchive({...ctx,identityScopes:[{...s,homeAway:'home'}]},docs).identityOnlyUnique,0);
+});

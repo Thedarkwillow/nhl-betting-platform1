@@ -49,6 +49,8 @@ jobs:
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           path: reviewed
           persist-credentials: false
+      - name: Audit archived title-specific historical sample sizes
+        run: python3 scripts/datasportsapi_archive_model_readiness.py restricted/research/datasportsapi-esports-history
       - name: Audit exact overlapping matches without public raw data
         env:
           CS2_RESTRICTED_CROSSWALK_DIR: restricted/research/datasportsapi-esports-history

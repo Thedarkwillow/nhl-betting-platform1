@@ -36,7 +36,7 @@ function seedBatches(root){
 }
 function priorDone(root){
  const done=new Set(),files=git(root,['ls-tree','-r','--name-only','HEAD','--',ROOT+'/'+SEED]).toString().trim().split('\n').filter(x=>x.endsWith('/research.json'));
- for(const file of files){const b=JSON.parse(git(root,['show','HEAD:'+file]));if(b.seed!==SEED||b.schema!=='pickfinder-deep-v1')throw Error('checkpoint contract');for(const r of b.records)if(r.status==='sampled'&&r.research?.length&&/^[a-f0-9]{64}$/.test(r.key))done.add(r.key);}
+ for(const file of files){const b=JSON.parse(git(root,['show','HEAD:'+file]));if(b.seed!==SEED||b.schema!=='pickfinder-deep-v1')throw Error('checkpoint contract');for(const r of b.records)if(r.status==='sampled'&&r.profileCollection?.truncated===false&&r.research?.length&&/^[a-f0-9]{64}$/.test(r.key))done.add(r.key);}
  return done;
 }
 function inventory(){
@@ -76,7 +76,7 @@ async function run({root,context,page,enrich,collect,limit=20,shouldContinue=()=
    const b=await collect(page,{book:'prizepicks',code,maxPages:1,shouldContinue});
    diagnostics[code]={state:b.boardState,pages:b.pages.length,displayedPages:b.displayedPageCount||null,failure:b.failure||null,controls:await page.evaluate(inventory)};
   }catch{diagnostics[code]={state:'failed',controls:await page.evaluate(inventory).catch(()=>null)};}
-  if(!await premium(page))throw Error('session unavailable');
+  if(!await premium(page)){diagnostics[code].sessionUnverified=true;await page.goto('https://www.pickfinder.app/props',{timeout:20000});await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:15000});}
  }
  const detail=await context.newPage();detail.setDefaultTimeout(5000);
  for(const item of q.pending.slice(0,limit)){
@@ -107,7 +107,7 @@ async function run({root,context,page,enrich,collect,limit=20,shouldContinue=()=
  if(!sha)throw Error('deep archive push failed');
  git(root,['fetch','origin','main']);git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']);
  if(hash(git(root,['show','FETCH_HEAD:'+file]))!==hash(raw))throw Error('deep archive digest mismatch');
- const sampled=records.filter(r=>r.status==='sampled').length;
- return {state:'deep_research_verified',sha,queueTotal:q.total,priorSampled:done.size,attempted:records.length,sampled,remaining:q.pending.length-sampled,diagnostics,rawRowsPublished:0,modelInputsApproved:false};
+ const sampled=records.filter(r=>r.status==='sampled').length,complete=records.filter(r=>r.status==='sampled'&&r.profileCollection?.truncated===false).length;
+ return {state:'deep_research_verified',sha,queueTotal:q.total,priorSampled:done.size,attempted:records.length,sampled,completeUntruncatedProfiles:complete,remaining:q.pending.length-complete,diagnostics,rawRowsPublished:0,modelInputsApproved:false};
 }
 module.exports={scope,queue,inventory,run};

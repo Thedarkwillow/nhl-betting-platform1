@@ -37,7 +37,7 @@
     },
     {
       "sport": "League of Legends",
-      "description": "200,040 historical player-game records; champion-conditioned test on 24,992 matched observations per market improved kills, deaths and assists error.",
+      "description": "200,040 historical source rows; 19,999 complete validated games, 15,623 exact series/game-number bindings, 46,263 Maps 1–2 and 23,289 Maps 1–3 player-series. Team-kill MAE 6.779→6.542; kill share 2.101→2.074; assist share 3.652→3.597. Synthetic calibration worsened; no original prop validation.",
       "historicalRows": 200040
     },
     {
@@ -205,6 +205,26 @@
       "singleMapCandidates": 3,
       "adjacentDateMapDiagnostics": 1,
       "tokenBoundaryConflicts": 15
+    },
+    "specialistScorecards": {
+      "sourceRun": 45542340820,
+      "authenticatedOffers": 0,
+      "productionApproved": false,
+      "LOL": {
+        "completeGames": 19999,
+        "exactGameBindings": 15623,
+        "unmatchedGames": 4376,
+        "map12PlayerSeries": 46263,
+        "map123PlayerSeries": 23289,
+        "calibrationApproved": false
+      },
+      "CS2": {
+        "steamNativeRegulationRows": 11250,
+        "authoritativeLinks": 0,
+        "conflicts": 17,
+        "csapiFailedRequests": 5,
+        "originalOffersVerified": 0
+      }
     }
   },
   "validationRuns": {
@@ -223,6 +243,7 @@
     "exposure": 45538478739,
     "restrictedFinal": 45538478728,
     "nbaPrimaryPdf": 45539564919,
-    "opponentExposure": 45539565008
+    "opponentExposure": 45539565008,
+    "lolCs2Specialists": 45542340820
   }
 }

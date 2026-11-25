@@ -1,0 +1,74 @@
+name: Esports advanced ten-priority research
+on:
+  pull_request:
+    paths: ['.github/workflows/esports-advanced-ten-priority.yml','scripts/cs2_static_hltv_research.py','scripts/lol_advanced_research.py','scripts/esports_authorized_final_archive_audit.py','test/test_cs2_static_hltv_research.py','test/test_lol_advanced_research.py','scripts/public-opencs2-map-baseline.py']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/esports-advanced-ten-priority.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1 lightgbm==4.6.0
+      - run: python -m unittest discover -s test -p test_cs2_static_hltv_research.py
+      - run: python -m unittest discover -s test -p test_lol_advanced_research.py
+      - run: python -m unittest discover -s test -p test_opencs2_map_baseline.py
+      - run: python -m unittest discover -s test -p test_esports_result_contract.py
+      - run: node --check assets/public-multi-sport-sprint.js
+  cs2:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyarrow==19.0.1
+      - name: Independent static scoreboard and Steam-native overlap
+        env:
+          CS2_STATIC_HLTV_RESEARCH: '1'
+        run: python scripts/public-opencs2-map-baseline.py
+  lol:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyarrow==19.0.1 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1 lightgbm==4.6.0
+      - run: python scripts/lol_advanced_research.py
+  finals:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - run: python3 scripts/esports_authorized_final_archive_audit.py archive

@@ -1,0 +1,52 @@
+name: Owner-authorized one-time PrizePicksAPI November 25 capture
+on:
+  pull_request:
+    paths: ['scripts/prizepicks-one-time-nov25.cjs','test/prizepicks-one-time-nov25.test.cjs','.github/workflows/prizepicks-one-time-nov25.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/prizepicks-one-time-nov25.yml']
+permissions:
+  contents: read
+concurrency:
+  group: prizepicks-one-time-nov25
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/prizepicks-one-time-nov25.test.cjs test/esports-zero-credit-coverage.test.cjs test/independent-provider-export-v1.test.cjs
+  capture:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Enforce unique introduction and dated authorization
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          test "$(date -u +%F)" = 2026-11-25
+          git cat-file -e "$BEFORE^{commit}"
+          if git cat-file -e "$BEFORE:.github/workflows/prizepicks-one-time-nov25.yml" 2>/dev/null; then
+            echo 'One-time workflow already existed; no requests.'
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: One quota preflight and at most three compact pages
+        env:
+          PRIZEPICKS_ONE_TIME_APPROVED: '2026-11-25'
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+        run: node scripts/prizepicks-one-time-nov25.cjs

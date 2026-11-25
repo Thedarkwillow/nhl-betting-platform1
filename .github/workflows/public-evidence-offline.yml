@@ -54,6 +54,7 @@ jobs:
           node scripts/test-lineup-workspace.cjs
       - name: Exercise historical esports and NBA identity diagnostics
         run: |
+          python3 -m unittest discover -s test -p test_cs2_restricted_history_join.py
           python3 -m unittest discover -s test -p test_esports_context_models.py
           python3 -m unittest discover -s test -p test_nba_dated_injury_cohort.py
           node --check src/nhl-standard-forward-scoreboard.cjs

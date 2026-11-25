@@ -16,7 +16,7 @@ test("DunkAPI sends estimate-only request and rejects actual records",async()=>{
  assert.equal(x.status,"unverified_estimate_response");
 });
 test("future validation requires distinct days, rejects conflicting duplicate outcome, never auto-promotes",()=>{
- const rows=Array.from({length:100},(_,i)=>({id:"r"+i,gameId:100+i,gameDate:"2026-11-24",tier:"Standard",market:"points",side:"Higher",status:"correct",rawSelectedEstimate:.6,sourceCommit:"a"}));
+ const rows=Array.from({length:100},(_,i)=>({id:"r"+i,gameId:100+i,gameDate:"2026-11-24",tier:"Standard",market:"points",side:"Higher",status:"correct",rawSelectedEstimate:.6,sourceCommit:"a",modelRevision:"b".repeat(40)}));
  const x=prospectiveSummary([...rows,{...rows[0],status:"incorrect"}]);assert.equal(x.conflictingGradesExcluded,1);
  const g=Object.values(x.groups)[0];assert.equal(g.decided,99);assert.equal(g.minimumEvidenceMet,false);assert.equal(x.calibrationApproved,false);
  const y=prospectiveSummary(rows.map((r,i)=>({...r,gameDate:"2026-11-"+String(10+i%10)})));assert.equal(Object.values(y.groups)[0].minimumEvidenceMet,true);assert.equal(y.modelPromoted,false);

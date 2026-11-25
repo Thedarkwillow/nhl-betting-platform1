@@ -18,6 +18,11 @@ def num(x):
     except (ValueError,TypeError):return None
 def integer(x):
     n=num(x);return int(n) if n is not None and n.is_integer() else None
+def explicit_win(x):
+    v=str(x or "").strip().lower()
+    if v in ("1","1.0","win","won","true","victory","w"):return 1
+    if v in ("0","0.0","loss","lost","false","defeat","l"):return 0
+    return None
 def duration(x):
     if isinstance(x,str) and re.fullmatch(r"\d{1,3}:\d{2}",x):
         a,b=map(int,x.split(":"));v=a*60+b if b<60 else None
@@ -42,7 +47,7 @@ def read_players(raw):
             role=ROLES.get(str(field(r,"position","role")).lower())
             vals={m:integer(r.get(m)) for m in MARKETS[:3]};vals["creep_score"]=integer(field(r,"total_cs","totalcs","creep_score","cs"))
             if not p or not g or not t or not label or not role or None in vals.values():continue
-            x=dict(event=str(g),player=str(p),date=day,team=str(t),teamLabel=str(label),role=role,side=str(r.get("side") or "").lower(),champion=field(r,"champion","champion_name"),league=r.get("league"),patch=r.get("patch"),won=integer(r.get("result")),duration=duration(field(r,"game_duration_seconds","duration_seconds","gamelength","game_length","duration","game_duration","game_length_seconds")),series=field(r,"series_id","match_id","seriesid","matchid"),ordinal=integer(field(r,"game_number","game","map_number","game_index")),**vals)
+            x=dict(event=str(g),player=str(p),date=day,team=str(t),teamLabel=str(label),role=role,side=str(r.get("side") or "").lower(),champion=field(r,"champion","champion_name"),league=r.get("league"),patch=r.get("patch"),won=explicit_win(r.get("result")),duration=duration(field(r,"game_duration_seconds","duration_seconds","gamelength","game_length","duration","game_duration","game_length_seconds")),series=field(r,"series_id","match_id","seriesid","matchid"),ordinal=integer(field(r,"game_number","game","map_number","game_index")),**vals)
             for k,keys in {"damage":("dpm","damage_per_minute"),"gold":("earnedgoldshare","earned_gold_share","goldshare","gold_share"),"vision":("vspm","vision_score_per_minute"),"gold15":("golddiffat15","gold_diff_at_15","gold_diff_at15")}.items():
                 val=field(r,*keys)
                 try:

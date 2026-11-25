@@ -1,0 +1,107 @@
+name: KashRock restricted esports capture and master roadmap
+on:
+  pull_request:
+    paths: ['docs/MASTER_BETTING_PLATFORM_ROADMAP.md','scripts/kashrock-restricted-capture.cjs','scripts/validate-execution-roadmap.cjs','test/kashrock-restricted-capture.test.cjs','.github/workflows/kashrock-private-source-capture.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/kashrock-private-source-capture.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '27 6,9 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: kashrock-private-source-capture
+  cancel-in-progress: false
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/validate-master-roadmap.cjs && node scripts/validate-execution-roadmap.cjs && node --test test/validate-master-roadmap.test.cjs test/execution-roadmap.test.cjs test/kashrock-restricted-capture.test.cjs test/kashrock-sandbox-prop-check.test.cjs
+  capture:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Verify private destination and push permission
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: restricted
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - name: Resume private archive branch
+        working-directory: restricted
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          branch=research/kashrock-source-captures
+          if git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote --exit-code origin "refs/heads/$branch" >/dev/null; then
+            git -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch --quiet origin "refs/heads/$branch"
+            git switch --detach FETCH_HEAD
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Bounded Sandbox capture
+        env:
+          KASHROCK_API_KEY: ${{ secrets.KASHROCK_API_KEY }}
+          RESTRICTED_DESTINATION_VERIFIED: '1'
+        run: node public/scripts/kashrock-restricted-capture.cjs "$RUNNER_TEMP/kashrock-restricted.json"
+      - name: Private immutable archival
+        working-directory: restricted
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          file="$RUNNER_TEMP/kashrock-restricted.json"
+          trap 'rm -f "$file"' EXIT
+          test -f "$file" || { echo "No accepted source observations"; exit 0; }
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          dest="research/kashrock-source-captures/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.json"
+          mkdir -p "$(dirname "$dest")"
+          test ! -e "$dest"
+          install -m 600 "$file" "$dest"
+          git add -f "$dest"
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config core.hooksPath /dev/null
+          git commit -qm 'Archive restricted KashRock source observations'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:refs/heads/research/kashrock-source-captures
+          test "$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin refs/heads/research/kashrock-source-captures | cut -f1)" = "$(git rev-parse HEAD)"
+          echo 'Private KashRock archive commit verified.'
+  models:
+    needs: tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install scipy==1.15.3
+      - run: python scripts/dota_lane_and_scope_probability.py
+      - run: python scripts/lol_strength_patch_research.py

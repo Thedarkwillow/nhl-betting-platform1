@@ -13,5 +13,5 @@ function validate(s){
  for(const k of log.keys())if(!tasks.has(k))errors.push("unknown evidence "+k);
  return {valid:errors.length===0&&tasks.size>0,checked:[...tasks.values()].filter(Boolean).length,open:[...tasks.values()].filter(x=>!x).length,errors};
 }
-if(require.main===module){const r=validate(fs.readFileSync(path.join(__dirname,"../docs/EXECUTION_ROADMAP.md"),"utf8"));console.log(JSON.stringify(r));if(!r.valid)process.exitCode=1;}
+if(require.main===module){const r=validate((()=>{const master=fs.readFileSync(path.join(__dirname,"../docs/MASTER_BETTING_PLATFORM_ROADMAP.md"),"utf8");const phase=master.match(/## Phase 22\b([\s\S]*?)(?=\n## Verified completion log)/)?.[1]||"";const log=master.match(/## Verified completion log\b([\s\S]*?)(?=\n## Roadmap change history)/)?.[1]||"";return phase+"\n"+log.split("\n").filter(x=>/^\| ESP-/.test(x)).join("\n");})());console.log(JSON.stringify(r));if(!r.valid)process.exitCode=1;}
 module.exports={validate};

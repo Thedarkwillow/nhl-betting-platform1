@@ -4,7 +4,7 @@
 const {fromArchive}=require('./prizepicks-native-context-readiness.cjs');
 const {git}=require('./pickfinder-public-evidence-audit.cjs');
 const {read}=require('./pickfinder-public-archive.cjs');
-const {target,key}=require('./pickfinder-public-nba-context.cjs');
+const {target,key:contextKey}=require('./pickfinder-public-nba-context.cjs');
 const {project}=require('./prizepicks-multisport-model-bridge.cjs');
 const nhl=require('../src/projections.cjs');
 const fs=require('node:fs');
@@ -18,7 +18,7 @@ function researchTier(o){
  return null;
 }
 function generate(ctx,receipts=[]){
- const contexts=new Map();for(const doc of receipts.filter(x=>x.schema==='pickfinder-public-nba-context-v1'))for(const r of doc.records||[]){if(r.state!=='explicit_context_observed'||r.routeVerified!==true||r.playerLabelVerified!==true||!r.team||!r.opponent||!Number.isFinite(Date.parse(r.startAt))||!Number.isFinite(Date.parse(r.observedAt))||Date.parse(r.observedAt)>Date.parse(ctx.preparedAt)||Date.parse(r.startAt)<=Date.parse(ctx.preparedAt)+900000)continue;const k=key(r),a=contexts.get(k)||[];a.push(r);contexts.set(k,a);}
+ const contexts=new Map();for(const doc of receipts.filter(x=>x.schema==='pickfinder-public-nba-context-v1'))for(const r of doc.records||[]){if(r.state!=='explicit_context_observed'||r.routeVerified!==true||r.playerLabelVerified!==true||!r.team||!r.opponent||!Number.isFinite(Date.parse(r.startAt))||!Number.isFinite(Date.parse(r.observedAt))||Date.parse(r.observedAt)>Date.parse(ctx.preparedAt)||Date.parse(r.startAt)<=Date.parse(ctx.preparedAt)+900000)continue;const k=contextKey(r),a=contexts.get(k)||[];a.push(r);contexts.set(k,a);}
 
  const clock=ctx.preparedAt,at=Date.parse(clock),native=[],rows=[],excluded={};
  const reject=k=>{excluded[k]=(excluded[k]||0)+1;};
@@ -36,7 +36,7 @@ function generate(ctx,receipts=[]){
    if(!side){reject('invalid_direction');continue;}
    if(!['standard','goblin','demon'].includes(tier)){reject('invalid_tier');continue;}
    if(!Number.isFinite(Date.parse(o.observedAt))||Date.parse(o.observedAt)>at){reject('invalid_observation_clock');continue;}
-   const t=target(o),e=t?contexts.get(key(t))||[]:[];
+   const t=target(o),e=t?contexts.get(contextKey(t))||[]:[];
    const signatures=new Set(e.map(r=>JSON.stringify([r.team,r.opponent,Date.parse(r.startAt)])));
    if(signatures.size>1){reject('conflicting_event_context');continue;}
    const recovered=e.sort((a,b)=>Date.parse(b.observedAt)-Date.parse(a.observedAt))[0];

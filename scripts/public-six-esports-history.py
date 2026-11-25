@@ -48,7 +48,7 @@ def vct():
     return {"context":context_eval(rows,("kills","deaths","assists"),["map"]),"title":"VALORANT","source":"VCT Reference; user reports specific research permission; redistribution unverified","sha256":hashlib.sha256(raw).hexdigest(),"completeMaps":len(rows)//10,"baseline":free.baseline(rows),"paidRequests":0}
 def dota():
     # The documented Explorer endpoint provides player-match rows in one bounded read.
-    sql="""SELECT m.match_id,m.start_time,pm.account_id,pm.kills,pm.deaths,pm.assists,pm.hero_id,pm.last_hits
+    sql="""SELECT m.match_id,m.start_time,m.duration,pm.account_id,pm.kills,pm.deaths,pm.assists,pm.hero_id,pm.last_hits
     FROM matches m JOIN player_matches pm ON m.match_id=pm.match_id
     WHERE m.leagueid>0 AND m.radiant_team_id>0 AND m.dire_team_id>0
     AND m.start_time>=1735689600 AND pm.account_id>0
@@ -59,11 +59,14 @@ def dota():
         for r in obj["rows"]:
             if not all(type(r.get(k)) is int and r[k]>=0 for k in ("kills","deaths","assists")):continue
             day=datetime.fromtimestamp(int(r["start_time"]),timezone.utc).date().isoformat()
-            groups[str(r["match_id"])].append(dict(event=str(r["match_id"]),player=str(r["account_id"]),date=day,hero=str(r["hero_id"]) if type(r.get("hero_id")) is int and r["hero_id"]>0 else None,**{k:r[k] for k in ("kills","deaths","assists")}))
+            row=dict(event=str(r["match_id"]),player=str(r["account_id"]),date=day,hero=str(r["hero_id"]) if type(r.get("hero_id")) is int and r["hero_id"]>0 else None,**{k:r[k] for k in ("kills","deaths","assists")})
+            if type(r.get("last_hits")) is int and r["last_hits"]>=0:row["last_hits"]=r["last_hits"]
+            if type(r.get("duration")) is int and r["duration"]>0:row["durationSeconds"]=r["duration"]
+            groups[str(r["match_id"])].append(row)
         rows=[r for g in groups.values() if len(g)==10 and len({x["player"] for x in g})==10 for r in g]
         if not rows:raise ValueError("no complete matches")
         from esports_context_models import evaluate as context_eval
-        return {"context":context_eval(rows,("kills","deaths","assists"),["hero"]),"title":"DOTA2","source":"OpenDota Explorer professional league matches","completeMatches":len(rows)//10,"baseline":free.baseline(rows),"seriesMapScopeVerified":False,"freeRequests":1}
+        return {"lastHitRows":sum("last_hits" in r for r in rows),"lastHitContext":context_eval([r for r in rows if "last_hits" in r],("last_hits",),["hero"]),"context":context_eval(rows,("kills","deaths","assists"),["hero"]),"title":"DOTA2","source":"OpenDota Explorer professional league matches","completeMatches":len(rows)//10,"baseline":free.baseline(rows),"seriesMapScopeVerified":False,"freeRequests":1}
     except Exception as e:
         return {"title":"DOTA2","status":"explorer_unavailable","reason":free.safe_error(e),"fallback":free.dota()}
 def main():

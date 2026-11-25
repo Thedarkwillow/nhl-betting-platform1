@@ -47,6 +47,16 @@ def audit(kaggle,demos,evidence_out=None):
     if evidence_out is None:evidence_out=[]
     ki,kc=group_maps(kaggle,False);di,dc=group_maps(demos,True)
     pairs=set();alias_pairs=set();links=defaultdict(set);counts=Counter();headshots=0
+    # Date-free fingerprints diagnose timezone offsets only, never create links.
+    from datetime import date
+    datefree=defaultdict(list)
+    for k,events in ki.items():
+        if len(events)==1:datefree[k[1:]].append(k)
+    for key,events in di.items():
+        if key in ki or len(events)!=1:continue
+        adjacent=[k for k in datefree[key[1:]] if abs((date.fromisoformat(k[0])-date.fromisoformat(key[0])).days)==1]
+        if len(adjacent)==1 and len(datefree[key[1:]])==1:counts["unique_adjacent_date_boxscore_diagnostic"]+=1
+        elif adjacent:counts["ambiguous_adjacent_date_boxscore_diagnostic"]+=1
     for key,ds in di.items():
         hs=ki.get(key,[])
         if len(ds)!=1 or len(hs)!=1:
@@ -66,7 +76,11 @@ def audit(kaggle,demos,evidence_out=None):
                 if method=="explicit_alias_conflict":
                     counts["explicit_alias_conflict"]+=1
                     if compact_alias(alias)==compact_alias(other):counts["format_only_conflict"]+=1
-                    elif alias in other or other in alias:counts["substring_conflict"]+=1
+                    elif alias in other or other in alias:
+                        counts["substring_conflict"]+=1
+                        short,long=sorted((alias,other),key=len)
+                        if len(short)>=3 and re.search(r"(?<![a-z0-9])"+re.escape(short)+r"(?![a-z0-9])",long):counts["token_boundary_substring_conflict"]+=1
+                        else:counts["embedded_substring_conflict"]+=1
                     else:counts["distinct_alias_conflict"]+=1
                     continue
                 pairs.add(pair);links[pair].add((hid,did))

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Bounded public Cargo API research, stop on refusal; no scraping bypass."""
-import json, urllib.parse, urllib.request, time, re, sys
+import json, urllib.parse, urllib.request, urllib.error, time, re, sys
 from datetime import date
 from collections import defaultdict, Counter
 from esports_context_models import evaluate
@@ -41,6 +41,7 @@ def main():
         month=sys.argv[2]
         if month not in ("03","06","09"):raise ValueError("invalid bounded window")
         start=year+"-"+month+"-01"
+        end=min(end,year+f"-{int(month)+1:02d}-01")
     fields="Date,SeriesId,GameNumber,PlayerLink,Team,TeamVs,GameTitle,Gamemode,Win,Kills,Deaths,TournamentPage,UniqueLine"
     try:
         # Bounded contiguous chronological sample; not a full modern archive.
@@ -49,9 +50,12 @@ def main():
             obj=query({"action":"cargoquery","tables":"PlayerStats","fields":fields,"where":f"Date >= '{start}' AND Date < '{end}' AND TournamentPage LIKE 'Call of Duty League%'","order_by":"Date,UniqueLine","limit":"500","offset":str(i*500)})
             page=obj.get("cargoquery")
             if not isinstance(page,list) or len(page)>500:raise ValueError("schema")
-            rows.extend(x["title"] for x in page);pages+=1
+            batch=[x["title"] for x in page]
+            keys={x.get("UniqueLine") for x in rows}
+            if any(not x.get("UniqueLine") or x["UniqueLine"] in keys for x in batch) or len({x["UniqueLine"] for x in batch})!=len(batch):raise ValueError("unstable pagination")
+            rows.extend(batch);pages+=1
             if len(page)<500:status="source_exhausted";break
-    except Exception as e:status="source_unavailable_or_partial_"+type(e).__name__
+    except Exception as e:status="source_unavailable_or_partial_"+("http_"+str(e.code) if isinstance(e,urllib.error.HTTPError) else type(e).__name__)
     clean,excluded,groups=parse(rows)
     print(json.dumps({"kind":"modern_cod_wiki_baseline_v1","source":"Call of Duty Esports Wiki, CC BY-SA 3.0; https://cod-esports.fandom.com/wiki/Stats_Hub","status":status,"year":year,"windowStart":start,"windowEndExclusive":end,"pages":pages,"rawRowsRead":len(rows),"completeMaps":len(clean)//8,"invalidRows":excluded,"candidateMaps":groups,"context":evaluate(clean,("kills","deaths"),["mode","team","opponent"],["edition"]),"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
 if __name__=="__main__":main()

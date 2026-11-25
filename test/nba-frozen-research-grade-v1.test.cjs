@@ -19,3 +19,12 @@ test("nonappearance or unknown final never counted as an under",()=>{
  const o=official(doc,id,start,"2026-11-25T05:00:00Z");
  frame.rows[0].offeredSide="Lower";assert.equal(gradeFrame(frame,commit,new Map([[id,o]]))[0].status,"pending");
 });
+
+test("calibration diagnostics isolate model revisions and unconfirmed provenance",()=>{
+ const {prospectiveSummary}=require("../scripts/grade-nba-frozen-research-v1.cjs");
+ const base={gameId:1,gameDate:"2026-11-25",tier:"Standard",market:"points",side:"Higher",status:"correct",rawSelectedEstimate:.7,sourceCommit:"a"};
+ const r=prospectiveSummary([{...base,id:"1",modelRevision:"b".repeat(40)},{...base,id:"2",modelRevision:"c".repeat(40),status:"incorrect"},{...base,id:"3"}]);
+ assert.equal(Object.keys(r.groups).length,3);
+ assert.ok(Object.values(r.groups).every(g=>g.decided===1&&g.reliability.reduce((n,b)=>n+b.n,0)===1&&g.approved===false));
+ assert.equal(r.calibrationApproved,false);
+});

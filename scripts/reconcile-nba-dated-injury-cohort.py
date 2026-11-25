@@ -2,7 +2,7 @@
 """Reconstruct the original dated injury cohort from pinned free source tables.
 Only count summaries leave runner memory; no new paid calls, no roster-based
 retrospective identity resolution asserted to be pregame availability proof."""
-import csv, hashlib, io, json, pathlib, re, sys, unicodedata, urllib.request
+import csv, hashlib, io, json, pathlib, re, sys, unicodedata, urllib.request, os
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -126,7 +126,7 @@ def exact_alias_candidate(aliases,nid,espn_team_ids,known_espn_ids,ids,reverse):
     if known_espn_ids and known_espn_ids!={eid}:return None
     if (ids.get(nid) and ids[nid]!={eid}) or (reverse.get(eid) and reverse[eid]!={nid}):return None
     return eid
-def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,historical=None,supplemental=(),aliases=()):
+def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,historical=None,supplemental=(),aliases=(),restricted_review=None):
     historical=historical or {}
     gameoffers={}
     for r in offers:
@@ -199,6 +199,12 @@ def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,hist
     metrics=Counter()
     methods=Counter()
     unresolved_diagnostics=Counter()
+    def record_pending(row,e,n,team,latest,cutoff,why):
+        if restricted_review is None:return
+        # Only identity evidence, not medical reason or unrelated fields.
+        v={"espnGameId":e,"nbaGameId":n,"team":team,"reportAt":latest.isoformat(),"cutoffAt":cutoff.isoformat(),"reportName":str(row.get("report_player_name") or ""),"nbaReportId":ident(row.get("person_id")),"reason":why}
+        v["reconstructedIdentitySha256"]=hashlib.sha256(json.dumps(v,sort_keys=True).encode()).hexdigest()
+        restricted_review.append(v)
     for e,n,h,a,archive_tip,schedule_tip in games:
         day=schedule_tip.astimezone(EAST).date().isoformat()
         cutoff=archive_tip-timedelta(minutes=60)
@@ -232,7 +238,7 @@ def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,hist
                 if old(r):metrics["oldExactMapped"]+=1;continue
                 metrics["oldUnmapped"]+=1
                 nm=names(r["report_player_name"])
-                if not nm:methods["missingName"]+=1;continue
+                if not nm:methods["missingName"]+=1;record_pending(r,e,n,team,latest,cutoff,"missingName");continue
                 er=[x for x in e_by[(e,team)] if names(x["athlete_display_name"])&nm and ident(x["athlete_id"])]
                 nr=[x for x in n_by[(n,team)] if names(str(x["first_name"])+" "+str(x["last_name"]))&nm and ident(x["player_id"])]
                 ei={ident(x["athlete_id"]) for x in er};ni={ident(x["player_id"]) for x in nr}
@@ -262,12 +268,14 @@ def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,hist
                                     methods["supplementalDatedRosterCandidate"]+=1
                                     continue
                             methods["missingOrAmbiguousDatedRoster"]+=1
+                            record_pending(r,e,n,team,latest,cutoff,"missingOrAmbiguousDatedRoster")
                             unresolved_diagnostics["supplemental_no_unique_compatible_match"]+=1
                             unresolved_diagnostics["present_report_id"]+=1
                             unresolved_diagnostics["historical_name_pair_absent" if not historical_pairs else "historical_name_pair_ambiguous" if len(historical_pairs)>1 else "historical_pair_conflicts_with_current_ids"]+=1
                             if len(ei)!=1:unresolved_diagnostics["espn_roster_missing_or_ambiguous"]+=1
                         else:
                             methods["missingOrAmbiguousDatedRoster"]+=1
+                            record_pending(r,e,n,team,latest,cutoff,"missingOrAmbiguousDatedRoster")
                             if report_id is None:methods["unresolvedMissingReportId"]+=1
                             unresolved_diagnostics["missing_report_id" if report_id is None else "present_report_id"]+=1
                             unresolved_diagnostics["historical_name_pair_absent" if not historical_pairs else "historical_name_pair_ambiguous" if len(historical_pairs)>1 else "historical_pair_conflicts_with_current_ids"]+=1
@@ -275,9 +283,9 @@ def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,hist
                             if len(ni)!=1:unresolved_diagnostics["nba_roster_missing_or_ambiguous"]+=1
                     continue
                 eid,nid=next(iter(ei)),next(iter(ni))
-                if report_id and report_id!=nid:methods["reportIdConflict"]+=1;continue
+                if report_id and report_id!=nid:methods["reportIdConflict"]+=1;record_pending(r,e,n,team,latest,cutoff,"reportIdConflict");continue
                 if (ids[nid] and ids[nid]!={eid}) or (reverse[eid] and reverse[eid]!={nid}):
-                    methods["crosswalkConflict"]+=1;continue
+                    methods["crosswalkConflict"]+=1;record_pending(r,e,n,team,latest,cutoff,"crosswalkConflict");continue
                 # Identity evidence is retrospective: both same-game rosters
                 # explicitly corroborate player/team, not a pregame roster assertion.
                 methods["dualDatedRosterCandidate"]+=1
@@ -293,10 +301,18 @@ def main():
     except Exception: supplemental=[];source_status="unavailable_or_changed"
     try: aliases=supplemental_aliases();alias_status="verified"
     except Exception: aliases=[];alias_status="unavailable_or_changed"
-    x=reconcile(offers,t[(e,"nba_schedule_2027.parquet")],t[(e,"nba_schedule_crosswalk_2027.parquet")],t[(e,"nba_player_crosswalk_2027.parquet")],t[(n,"injury_report_2027.parquet")],t[(e,"game_rosters_2027.parquet")],t[(n,"game_rosters_2027.parquet")],historical=historical,supplemental=supplemental,aliases=aliases)
+    review_path=os.environ.get("NBA_RESTRICTED_IDENTITY_REVIEW")
+    pending=[] if review_path else None
+    x=reconcile(offers,t[(e,"nba_schedule_2027.parquet")],t[(e,"nba_schedule_crosswalk_2027.parquet")],t[(e,"nba_player_crosswalk_2027.parquet")],t[(n,"injury_report_2027.parquet")],t[(e,"game_rosters_2027.parquet")],t[(n,"game_rosters_2027.parquet")],historical=historical,supplemental=supplemental,aliases=aliases,restricted_review=pending)
     x["supplementalSourceStatus"]=source_status
     x["supplementalRosterRows"]=len(supplemental)
     x["supplementalAliasSourceStatus"]=alias_status
     x["supplementalAliasRows"]=len(aliases)
+    if review_path:
+        if not x["originalAggregateReproduced"] or len(pending)!=135-x["newCandidateMappings"]:raise ValueError("unresolved cohort accounting")
+        root=pathlib.Path(os.environ["RUNNER_TEMP"]).resolve();dest=pathlib.Path(review_path).resolve()
+        if dest.parent!=root:raise ValueError("restricted review destination")
+        fd=os.open(dest,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+        with os.fdopen(fd,"w") as f:json.dump({"kind":"nba_reconstructed_pending_identity_review_v1","originalImmutableRowsVerified":False,"rows":pending,"rawRowsPublished":0},f)
     print(json.dumps(x))
 if __name__=="__main__":main()

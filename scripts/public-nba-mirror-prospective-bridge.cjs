@@ -65,7 +65,7 @@ function choose({archive,historyRows,reviewRows,schedule,clock,revision,prior=[]
   const source=features.find(x=>x.manifestDigest===r.sourceManifestDigest&&x.offer.detailId===r.sourceDetailId&&x.offer.book===r.book&&x.offer.side===r.offeredSide&&x.offer.line===r.line);
   if(!source||Math.abs(dt(source.offer.startAt)-dt(r.gameStartAt))>300000||seen.has(key(r)))return false;
   seen.add(key(r));return true;
- }).map(r=>({...r,historySource:'SportsDataverse NBA Stats-derived mirror',historySourceDigests:digests,originalPlatformVerified:false,researchOnly:true,modelApproved:false}));
+ }).map(r=>{const matches=reviewRows.filter(x=>x.eventId===r.sourceEventId&&x.detailId===r.sourceDetailId&&x.nativePlayerId===r.playerId&&x.nativeEventId===r.gameId&&x.nativeMarket===r.market&&x.reviewCommit===r.reviewCommit);if(matches.length!==1||!isHash(matches[0].identityEvidenceSha256))throw Error('review provenance');return {...r,identityEvidenceSha256:matches[0].identityEvidenceSha256,historySource:'SportsDataverse NBA Stats-derived mirror',historySourceDigests:digests,originalPlatformVerified:false,researchOnly:true,modelApproved:false};});
  return {rows,reason:rows.length?'eligible_research_only':'no_fresh_eligible_offers'};
 }
 function run(root,payload,clock=now()){

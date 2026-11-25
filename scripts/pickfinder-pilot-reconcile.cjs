@@ -43,8 +43,8 @@ function inputAudit(normalized){
  const output={};
  for(const n of normalized){
   if(!['nba','cs2','valorant','lol','dota2','cod'].includes(n.sport))continue;
-  const t=output[n.sport]||={offers:0,explicitPrices:0,eventIds:0,pregameTimestampVerified:0,originalPlatformVerified:0,eligibleForLockedModel:0,researchFields:0,missingResearchValues:0,contextIncompleteOrChanged:0};
-  for(const o of n.offers){t.offers++;const code=Object.keys(registry).find(c=>registry[c]===n.sport);if(contextGate(code,null,o.context).needsRevalidation)t.contextIncompleteOrChanged++;if(valid(n.book,o))t.explicitPrices++;if(o.eventId)t.eventIds++;if(o.startAt&&Date.parse(o.observedAt)<Date.parse(o.startAt))t.pregameTimestampVerified++;if(o.originalPlatformVerified===true)t.originalPlatformVerified++;if(o.eligibleForLockedModel===true)t.eligibleForLockedModel++;}
+  const t=output[n.sport]||={offers:0,explicitPrices:0,eventIds:0,sourceReportedPregame:0,pregameTimestampVerified:0,originalPlatformVerified:0,eligibleForLockedModel:0,researchFields:0,missingResearchValues:0,contextIncompleteOrChanged:0};
+  for(const o of n.offers){t.offers++;const code=Object.keys(registry).find(c=>registry[c]===n.sport);if(contextGate(code,null,o.context).needsRevalidation)t.contextIncompleteOrChanged++;if(valid(n.book,o))t.explicitPrices++;if(o.eventId)t.eventIds++;if(o.startAt&&Date.parse(o.observedAt)<Date.parse(o.startAt))t.sourceReportedPregame++;if(o.originalPlatformVerified===true)t.originalPlatformVerified++;if(o.eligibleForLockedModel===true)t.eligibleForLockedModel++;}
   t.researchFields+=n.researchObservations.length;t.missingResearchValues+=n.researchObservations.filter(x=>x.value===null).length;
  }
  return {sports:output,independentIdentityAndResultJoinVerified:false,modelInputsApproved:false,modelPromoted:false,rawRowsPublished:0};
@@ -75,6 +75,13 @@ function loadVerifiedAttempt(root,sha){
  return JSON.parse(raw);});
 }
 // Count-only re-audit of an already committed attempt; no source requests.
+function replayTierEvidence(batch){
+ const {normalize}=require('./pickfinder-premium-archive.cjs');
+ const n=normalize(batch);
+ const rows=n.unpricedTierObservations||[];
+ if(rows.some(r=>r.side!==null||r.displayedPrice!==null||r.originalPlatformVerified!==false||r.eligibleForLockedModel!==false))throw Error('unsafe tier replay');
+ return {tierRecords:rows.length,pricedOfferKeys:n.offers.length,unresolvedAppearances:n.health.unresolvedRows};
+}
 function auditCommitted(root,sha,expected){
  const cp=require('node:child_process'),crypto=require('node:crypto');
  const run=args=>cp.execFileSync('git',['-C',root,...args],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']});
@@ -82,15 +89,15 @@ function auditCommitted(root,sha,expected){
  run(['merge-base','--is-ancestor',sha,'HEAD']);
  const paths=run(['diff-tree','--no-commit-id','--name-only','-r',sha]).toString().trim().split('\n').filter(p=>/^research\/pickfinder-premium\/\d{4}-\d\d-\d\d\/manual\/[a-z-]+\/[a-z0-9-]+\/[a-z0-9-]+\/source\.json$/.test(p));
  if(paths.length!==expected)throw Error('partition count mismatch');
- const batches=[],normalized=[];
+ const batches=[],normalized=[],tierReplay={tierRecords:0,pricedOfferKeys:0,unresolvedAppearances:0};
  for(const p of paths){
   const raw=run(['show',sha+':'+p]),n=JSON.parse(run(['show',sha+':'+p.replace(/source\.json$/,'normalized.json')]));
   if(crypto.createHash('sha256').update(raw).digest('hex')!==n.sourceDigest)throw Error('source digest mismatch');
   const b=JSON.parse(raw);if(b.book!==n.book||b.sport!==n.sport||b.localDay!==n.localDay)throw Error('partition mismatch');
-  batches.push(b);normalized.push(n);
+  batches.push(b);normalized.push(n);const replay=replayTierEvidence(b);for(const k of Object.keys(tierReplay))tierReplay[k]+=replay[k];
  }
  const pilot=loadPilot(root);
- return {state:'committed_archive_digest_audit',sha,partitions:paths.length,remoteDigestVerified:true,comparison:compare(pilot,batches),disposition:missingDisposition(pilot,batches),inputs:inputAudit(normalized),rawRowsPublished:0,paidEndpointsCalled:0};
+ return {state:'committed_archive_digest_audit',sha,partitions:paths.length,remoteDigestVerified:true,tierReplay,comparison:compare(pilot,batches),disposition:missingDisposition(pilot,batches),inputs:inputAudit(normalized),rawRowsPublished:0,paidEndpointsCalled:0};
 }
-module.exports={audit,loadPilot,compare,inputAudit,missingDisposition,loadVerifiedAttempt,auditCommitted};
+module.exports={audit,loadPilot,compare,inputAudit,missingDisposition,loadVerifiedAttempt,auditCommitted,replayTierEvidence};
 if(require.main===module){try{const root=fs.realpathSync(process.argv[2]);if(process.argv[3]==='audit-committed'){console.log(JSON.stringify(auditCommitted(root,process.argv[4],Number(process.argv[5]))));return;}const file=path.join(root,relative);const data=JSON.parse(zlib.gunzipSync(Buffer.from(fs.readFileSync(file,'utf8'),'base64')));console.log(JSON.stringify(audit(data)));}catch{console.error('Private pilot audit failed');process.exitCode=1;}}

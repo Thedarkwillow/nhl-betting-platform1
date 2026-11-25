@@ -51,7 +51,7 @@ function readBoard({book, code, sport, observedAt}) {
         value:!value || value==='-'?null:value,scope:'displayed prop',observedAt,
         window:/^(L5|L10|L15|Avg L10|H2H|SZN)$/.test(metric)?metric:null});
     }
-    rows.push({sport:rawSport===code.toLowerCase()?sport:rawSport,player:a.querySelector('p')?.innerText,
+    rows.push({sport:rawSport===code.toLowerCase()||code==='DOTA2'&&['dota-2','dota_2'].includes(rawSport)?sport:rawSport,player:a.querySelector('p')?.innerText,
       market,eventId:parts[2],detailId:u.pathname+'?'+u.search.slice(1).split('&').filter(part=>part.startsWith('prop=')).join('&'),
       period:market?.match(/^(\d+(?:st|nd|rd|th)_(?:half|quarter|period))/)?.[1]||null,
       mapRange:market?.match(/^(.*?maps?)_player/)?.[1]||null,gameMode:null,
@@ -72,7 +72,11 @@ async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldCon
   const initial=await page.evaluate(readBoard,{book,code,sport,observedAt:startedAt});
   if(!initial.authenticated)throw Error('premium_session_unavailable');
   const button=(name)=>page.getByRole('button',{name,exact:true});
-  const sportButton=button(code);
+  let sportButton=button(code);
+  if(code==='DOTA2'&&typeof sportButton.count==='function'&&await sportButton.count()===0){
+    const alternate=button('Dota 2');
+    if(await alternate.count()===1&&await alternate.isVisible())sportButton=alternate;
+  }
   await sportButton.waitFor({state:'visible',timeout:10000});
   result.authenticated=true;
   if(!await sportButton.isEnabled()){result.boardState='disabled';result.disabledConfirmed=true;}
@@ -94,7 +98,7 @@ async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldCon
         if((snapshot.number===n && Number.isSafeInteger(snapshot.total) && snapshot.total>=n && first && first!==previous && snapshot.rows.every(r=>r.sport===sport)) || (n===1&&stableEmpty>=4&&snapshot.rows.length===0)){ready=true;break;}
         await new Promise(resolve=>setTimeout(resolve,250));
       }
-      if(!ready)break;
+      if(!ready){result.failure=result.failure||'page_not_stable_or_scope_mismatch';break;}
       if(n===1&&stableEmpty>=4&&snapshot.rows.length===0){result.boardState='empty';result.explicitEmpty=true;result.lastPageReached=true;break;}
       result.displayedPageCount=snapshot.total;
       result.pages.push({number:n,rows:snapshot.rows});

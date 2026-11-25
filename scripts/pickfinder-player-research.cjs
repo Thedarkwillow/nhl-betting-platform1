@@ -48,31 +48,32 @@ function readSections({tab,origin,observedAt,context}) {
   }
   return fields;
 }
-async function enrich(page,row,{navigate}){
+async function enrich(page,row,{navigate,maxFields=500}){
+  if(!Number.isInteger(maxFields)||maxFields<1||maxFields>2000)throw Error('invalid profile field budget');
   const url=new URL(row.detailId,'https://www.pickfinder.app');
   if(url.origin!=='https://www.pickfinder.app'||!url.pathname.startsWith('/players/'))throw Error('invalid profile');
   await navigate(url.href);
   await page.getByRole('button',{name:'Line Movement',exact:true}).waitFor({state:'visible'});
-  const groups=[];
+  const groups=[],tabAudit=[];
   const context={period:row.period,mapRange:row.mapRange,gameMode:row.gameMode};
-  const collect=async(tab,origin)=>groups.push(await page.evaluate(readSections,{tab,origin,observedAt:new Date().toISOString(),context}));
+  const collect=async(tab,origin)=>{const fields=await page.evaluate(readSections,{tab,origin,observedAt:new Date().toISOString(),context});groups.push(fields);tabAudit.push({tab,origin,fields:fields.length,state:fields.length?'observed':'empty'});};
   await collect('Player overview','profile');
-  for(const name of ['Matchup','Defense','Shooting','Similar','Rankings','Injuries','Player Stats','Maps','Team Form']){
+  for(const name of ['Matchup','Defense','Shooting','Similar','Rankings','Injuries','Player Stats','Maps','Team Form',...(maxFields>500?['Depth Chart','Lineups','Home/Away','Splits','Season','Teammates','Modes','Agents','Champions','Heroes']:[])]){
     const target=page.getByRole('tab',{name,exact:true}).or(page.getByRole('button',{name,exact:true})).first();
     if(await target.isVisible()){
       await target.click();
       await collect(name,'profile');
-    }
+    }else tabAudit.push({tab:name,origin:'profile',state:'not_visible',fields:0});
   }
   for(const [name,origin] of [['Line Movement','line_movement'],['Prop History','prop_history']]){
     const target=page.getByRole('button',{name,exact:true});
-    if(await target.isVisible()){await target.click();await collect(name,origin);}
+    if(await target.isVisible()){await target.click();await collect(name,origin);}else tabAudit.push({tab:name,origin,state:'not_visible',fields:0});
   }
   // Allocate across panels so a long game log cannot crowd out history or injury data.
-  const remaining=500-row.research.length;
+  const remaining=Math.max(0,maxFields-row.research.length);
   const nonempty=groups.filter(g=>g.length);
   const limit=Math.floor(remaining/Math.max(1,nonempty.length));
-  row.profileCollection={observationsAvailable:groups.reduce((n,g)=>n+g.length,0),panels:groups.length};
+  row.profileCollection={observationsAvailable:groups.reduce((n,g)=>n+g.length,0),panels:groups.length,tabAudit,truncated:groups.some(g=>g.length>limit)};
   for(const group of nonempty)row.research.push(...group.slice(0,limit));
 }
 module.exports={enrich,readSections};

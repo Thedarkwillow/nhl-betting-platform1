@@ -64,6 +64,12 @@ function readBoard({book, code, sport, observedAt}) {
         value:!value || value==='-'?null:value,scope:'displayed prop',observedAt,
         window:/^(L5|L10|L15|Avg L10|H2H|SZN)$/.test(metric)?metric:null});
     }
+    // Team order is from this player's own visible matchup line.
+    const matchups=(a.innerText||'').split('\n').map(line=>line.trim().match(/^([A-Za-z0-9][A-Za-z0-9 ._-]{0,39}?)\s+(@|vs\.?)\s+([A-Za-z0-9][A-Za-z0-9 ._-]{0,39})$/i)).filter(Boolean);
+    if(matchups.length===1&&matchups[0][1]!==matchups[0][3]){
+      for(const [metric,value] of [['Team',matchups[0][1]],['Opponent',matchups[0][3]]])
+        research.push({origin:'board',tab:'Props',metric,value,scope:'displayed prop',observedAt});
+    }
     const eventTimes=[...new Set([...(tr.querySelectorAll?.('time[datetime]')||[])].map(t=>t.getAttribute('datetime')).filter(t=>typeof t==='string'&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(t)&&Number.isFinite(Date.parse(t))))];
     // A single explicitly labeled game/start time only; never infer a clock from event ID.
     const labeledTimes=[...(tr.querySelectorAll?.('time[datetime]')||[])].filter(t=>/^(?:game|match|event|scheduled)\s*(?:start|time)/i.test(t.getAttribute('aria-label')||t.getAttribute('title')||'')||/^(?:Game|Match|Event|Scheduled) (?:Start|Time|Start Time)$/i.test(headers[t.closest('td')?.cellIndex]||''));

@@ -14,10 +14,11 @@ function list(root,kind){
  const d=path.join(root,ROOT,kind);if(!fs.existsSync(d))return [];
  return fs.readdirSync(d).filter(n=>/^[a-f0-9]{64}\.json$/.test(n)).map(n=>n.slice(0,-5));
 }
-function load(root){
+function load(root,sport=null){
  const manifests=[],invalid=[],latest=new Map();
  for(const digest of list(root,'boards'))try{
   const m=read(root,'boards',digest);
+  if(sport&&m.sport!==sport)continue;
   if(m.schema!=='pickfinder-public-normalized-v1'||!['prizepicks','underdog'].includes(m.book)||!valid(m.firstObservedAt)||!valid(m.lastObservedAt)||dt(m.firstObservedAt)>dt(m.lastObservedAt)||m.authenticated!==true||!Array.isArray(m.partDigests)||new Set(m.partDigests).size!==m.partDigests.length)throw Error('manifest');
   const rows={offers:[],researchObservations:[],unpricedTierObservations:[],sportsbookQuotes:[]};
   for(const p of m.partDigests){const x=read(root,'board-parts',p);if(x.schema!=='pickfinder-public-board-part-v1'||x.sourceDigest!==m.sourceDigest||x.sport!==m.sport||x.book!==m.book||!(x.field in fields)||!Array.isArray(x.rows))throw Error('part');rows[x.field].push(...x.rows);}

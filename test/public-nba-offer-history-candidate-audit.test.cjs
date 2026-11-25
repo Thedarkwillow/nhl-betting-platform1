@@ -10,3 +10,16 @@ const archive=(os,fs)=>({invalid:[],latest:[{m:{sport:'nba',book:'prizepicks'},f
 test('links individual candidate offers but does not certify original platform or production',()=>{const a=audit(archive(offers,fields),payload,clock);assert.equal(a.historyCandidates,2);assert.equal(a.sourceContextCorroborated,2);assert.equal(a.modelApproved,false);assert.equal(a.independentlyReviewedPickfinderCrosswalks,0);});
 test('missing game context is never promoted',()=>{const a=audit(archive(offers.map(o=>({...o,startAt:null})),[]),payload,clock);assert.equal(a.historyCandidates,2);assert.equal(a.sourceContextCorroborated,0);});
 test('insufficient prior history is excluded',()=>{const a=audit(archive(offers,fields),{...payload,history:[]},clock);assert.equal(a.historyCandidates,0);});
+test('reviewed game context binds both sources to the exact archived event and player',()=>{
+ const {indexReviews,matchesReview}=require('../scripts/pickfinder-reviewed-game-context.cjs');
+ const game={eventId:'pf1',sourceUrl:'https://www.pickfinder.app/game-lines?game=pf1',nbaGameId:'0022600100',espnGameId:'10',home:'NYK',away:'BOS',displayedClock:'Wed 11/25, 3:00 PM',observedAt:obs,scheduleStartAt:start};
+ const row={eventId:'pf1',player:'Alpha Player',playerPath:'/players/nba/p',sourceUrl:'https://www.pickfinder.app/players/nba/p?prop=m:points:pf1:20',nbaPlayerId:'101',espnPlayerId:'1',team:'BOS',opponent:'NYK',displayedMatchup:'BOS @ NYK',independentRosterVerified:true,observedAt:obs};
+ const doc={schema:'pickfinder-independent-nba-matchup-review-v1',clockComparisonZone:'America/Los_Angeles',games:[game],records:[row]};
+ const ev={...event,teams:[{abbr:'BOS',homeAway:'away'},{abbr:'NY',homeAway:'home'}]};
+ const offer={...offers[0],eventId:'pf1',detailId:row.sourceUrl};
+ const check=(docs,override={})=>matchesReview(indexReviews(docs,clock),{...offer,...override},'101',roster[0],ev);
+ assert.equal(check([doc]),true);
+ assert.equal(check([doc],{eventId:'wrong'}),false);
+ assert.equal(check([{...doc,games:[{...game,displayedClock:'Wed 11/25, 4:00 PM'}]}]),false);
+ assert.equal(check([doc,{...doc,records:[{...row,nbaPlayerId:'102'}]}]),false);
+});

@@ -2,9 +2,10 @@
 const {traverseNativeFilters}=require('./pickfinder-research-coverage.cjs');
 const {traverseCustomFilters}=require('./pickfinder-custom-filters.cjs');
 // Capture visible sporting tables and cards only, without account details or actions.
+function dashboardRoutes(name){return name==='Games'?['/games','/game-lines']:['/'+name.toLowerCase()];}
 async function captureDashboard(page,name){
  if(!['Games','Discrepancies','Popular'].includes(name))throw Error('dashboard scope');
- const url=new URL(page.url());if(url.origin!=='https://www.pickfinder.app'||url.pathname!=='/'+name.toLowerCase())throw Error('route');
+ const url=new URL(page.url());if(url.origin!=='https://www.pickfinder.app'||!dashboardRoutes(name).includes(url.pathname))throw Error('route');
  const observedAt=new Date().toISOString();
  const snapshot=await page.evaluate(()=>{
   const visible=e=>e.getClientRects().length>0;
@@ -22,6 +23,39 @@ async function captureDashboard(page,name){
  return {name,path:url.pathname,observedAt,...snapshot,originalOffersVerified:false,modelInputsApproved:false};
 }
 
+// A game ID appears in the URL only after opening its matchup dialog.
+async function captureGameDialogs(page,sport,shouldContinue,onGame){
+ const filter=page.getByRole('button',{name:sport,exact:true});
+ if(await filter.count()!==1||!await filter.isEnabled())return;
+ await filter.click();
+ const buttons=page.locator('article[data-tour-sport="'+sport.toLowerCase()+'"]').getByRole('button',{name:/^Matchup details, /});
+ try{await buttons.first().waitFor({state:'visible',timeout:2500});}catch{return;}
+ const labels=await buttons.evaluateAll(es=>es.map(e=>e.getAttribute('aria-label')));
+ for(const label of new Set(labels)){
+  if(!shouldContinue())break;
+  const button=buttons.and(page.getByRole('button',{name:label,exact:true}));
+  if(await button.count()!==1)continue;
+  await button.click();
+  const title=label.slice('Matchup details, '.length);
+  const dialog=page.getByRole('dialog',{name:title,exact:true});
+  try{
+   await dialog.waitFor({state:'visible',timeout:3500});
+   const route=new URL(page.url()),ids=route.searchParams.getAll('game');
+   if(route.origin!=='https://www.pickfinder.app'||!dashboardRoutes('Games').includes(route.pathname)||ids.length!==1||!/^[\w-]{1,80}$/.test(ids[0]))continue;
+   const card=dialog.getByRole('article');
+   const evidence=await card.evaluate(el=>{
+    const clocks=el.innerText.split('\n').map(x=>x.trim()).filter(x=>/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat) \d{1,2}\/\d{1,2}, \d{1,2}:\d{2} [AP]M$/.test(x));
+    const teams=[...el.querySelectorAll('img[alt]')].slice(0,2).map(i=>i.alt);
+    return {teams,displayedClock:clocks.length===1?clocks[0]:null,browserTimeZone:Intl.DateTimeFormat().resolvedOptions().timeZone};
+   });
+   if(evidence.displayedClock)await onGame({sport,eventId:ids[0],sourceUrl:route.origin+route.pathname+'?game='+encodeURIComponent(ids[0]),matchup:title,...evidence,observedAt:new Date().toISOString()});
+  }finally{
+   const close=dialog.getByRole('article').getByRole('button',{name:'Close',exact:true});
+   if(await close.count()===1)await close.click();else await page.keyboard.press('Escape');
+   await dialog.waitFor({state:'hidden',timeout:3500});
+  }
+ }
+}
 async function traverseDashboard(page,name,{shouldContinue=()=>true,onSnapshot=async()=>{},filterSelection=null}={}){
  const seen=new Set();let pages=0,state='unverified_pagination';
  while(shouldContinue()){
@@ -70,4 +104,4 @@ async function traverseDashboardFilters(page,name,{shouldContinue=()=>true,onSna
  const customFilterAudit=await traverseCustomFilters(page,{shouldContinue,maxMs:60000,onState:async selection=>{const x=await traverseDashboard(page,name,{shouldContinue,onSnapshot,filterSelection:selection});if(x.state!=='explicit_last_page_observed')throw Error('filter pagination incomplete');}});
  return {...defaultTraversal,filterAudit,customFilterAudit,filtersExhausted:false,allDashboardDataVerified:false};
 }
-module.exports={captureDashboard,traverseDashboard,traverseDashboardFilters,inspectCapabilities,verifiedNavigation};
+module.exports={dashboardRoutes,captureGameDialogs,captureDashboard,traverseDashboard,traverseDashboardFilters,inspectCapabilities,verifiedNavigation};

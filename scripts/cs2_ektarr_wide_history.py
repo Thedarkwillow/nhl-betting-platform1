@@ -53,7 +53,7 @@ def parse(reader):
                     if vals["kills"]>5*(a+b) or vals["deaths"]>a+b:raise ValueError("round_counts")
                     name=r[p].strip()
                     if not name:raise ValueError("name")
-                    batch.append(dict(event=mid+"|"+gid,player="ektarr:"+pid,date=day,map=mp,team=teams[side-1],rounds=a+b,**vals))
+                    batch.append(dict(event=mid+"|"+gid,player="ektarr:"+pid,date=day,map=mp,team=teams[side-1],opponent=teams[2-side],rounds=a+b,**vals))
             if len({x["player"] for x in batch})!=10:raise ValueError("duplicate_player")
             groups[key]=batch
         except (ValueError,KeyError,AttributeError,TypeError):excluded["invalid_map_row"]+=1

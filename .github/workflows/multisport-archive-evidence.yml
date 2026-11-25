@@ -16,6 +16,7 @@ jobs:
         with:
           persist-credentials: false
       - run: |
+          python -m unittest discover -s test -p test_pickfinder_public_directory.py
           python -m py_compile scripts/esports-native-cache-replay.py scripts/pickfinder-free-research.py
           node --check scripts/multisport-archive-evidence.cjs
           node --test test/pickfinder-unattended-runner.test.cjs test/pickfinder-archive-comparison-history.test.cjs test/nba-low-count-accuracy-research.test.cjs

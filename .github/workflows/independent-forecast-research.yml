@@ -1,0 +1,52 @@
+name: Independent chronological challenger and joint research scenarios
+on:
+  pull_request:
+    paths: ['scripts/independent-chronological-challenger.cjs','scripts/hypothetical-joint-scenario-audit.cjs','test/independent-chronological-challenger.test.cjs','test/hypothetical-joint-scenario-audit.test.cjs','.github/workflows/independent-forecast-research.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/independent-chronological-challenger.cjs','scripts/hypothetical-joint-scenario-audit.cjs','test/independent-chronological-challenger.test.cjs','test/hypothetical-joint-scenario-audit.test.cjs','.github/workflows/independent-forecast-research.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/independent-chronological-challenger.test.cjs test/hypothetical-joint-scenario-audit.test.cjs test/chronological-player-stat-audit.test.cjs test/esports-prospective-archive.test.cjs
+  historical-evidence:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Verify private source
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: archive
+          persist-credentials: false
+          fetch-depth: 0
+          sparse-checkout: |
+            outputs/nba/history
+            outputs/esports/authorized-map-statistics
+            outputs/esports/authorized-original-offers
+            outputs/esports/prospective-frozen
+      - name: Run aggregate historical challenger only
+        run: node public/scripts/independent-chronological-challenger.cjs archive
+      - name: Audit genuine immutable esports forecasts and independent grading evidence
+        run: node public/scripts/esports-prospective-archive.cjs archive audit

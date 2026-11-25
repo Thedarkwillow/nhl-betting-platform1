@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-25T05:45:20.538Z",
+  "generatedAt": "2026-11-25T08:49:33.288Z",
   "sourceReportAt": "2026-11-25T04:18:03.342Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-25T05:44:10.848Z",
+    "sourceReportAt": "2026-11-25T08:48:19.510Z",
     "nhl": {
       "sourceEligible": false,
       "examined": 0,
@@ -295,21 +295,10 @@
       "gameSchedule": null,
       "conditionalGSIS": null,
       "positiveGameStatements": null,
-      "officialInjuryStatuses": {
-        "kind": "public_nfl_explicit_official_injury_status_counts_v1",
-        "reportCapturedAt": "2026-11-25T05:29:32.527445+00:00",
-        "explicitStatuses": 11,
-        "ruledOut": 3,
-        "questionable": 8,
-        "doubtful": 0,
-        "duplicateStatuses": 0,
-        "medicalClearanceVerified": false,
-        "gameDayActiveVerified": false,
-        "bettingEligible": 0
-      },
+      "officialInjuryStatuses": null,
       "identityInjuryOverlap": null,
       "gamedayOriginal": null,
-      "originalGoblinOffersAudited": 1538,
+      "originalGoblinOffersAudited": 0,
       "exactIdentityReadyForModel": 0,
       "verifiedActiveRoster": false,
       "officialGameBridgeMissing": null,

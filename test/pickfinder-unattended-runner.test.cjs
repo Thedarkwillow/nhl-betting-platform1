@@ -72,3 +72,18 @@ test('unique Continue is selected even with multiple other form buttons',async()
 test('marked push reconciliation requires verified prior authentication',()=>{assert.throws(()=>plan({...env,GITHUB_EVENT_NAME:'push',REQUESTED_MODE:'reconcile_now'},now));assert.equal(plan({...env,GITHUB_EVENT_NAME:'push',REQUESTED_MODE:'reconcile_now',PICKFINDER_PRIOR_AUTH_PROOF:'1'},now).reconcile,true);});
 
 test('scheduled research pilot needs prior proof and original Pacific slot',()=>{const a={...env,PICKFINDER_SCHEDULE_ENABLED:'0',PICKFINDER_SCHEDULE_RESEARCH_PILOT:'1'};assert.equal(plan(a,now).allowed,false);assert.equal(plan({...a,PICKFINDER_PRIOR_AUTH_PROOF:'1'},now).allowed,true);assert.equal(plan({...a,PICKFINDER_PRIOR_AUTH_PROOF:'1'},new Date('2026-11-25T17:07:00Z')).allowed,false);assert.equal(plan({...a,GITHUB_EVENT_NAME:'push',REQUESTED_MODE:'full_reconcile_now',PICKFINDER_PRIOR_AUTH_PROOF:'1'},now).full,true);});
+
+test('deep research is authorized and isolated from scheduled capture',()=>{
+ const a={...env,GITHUB_EVENT_NAME:'workflow_dispatch',REQUESTED_MODE:'deep_research_now',PICKFINDER_PRIOR_AUTH_PROOF:'1'};
+ assert.equal(plan(a,now).deep,true);
+ assert.throws(()=>plan({...a,PICKFINDER_AUTOMATION_AUTHORIZED:'0'},now),/authorization/);
+ assert.throws(()=>plan({...a,PICKFINDER_PRIOR_AUTH_PROOF:'0'},now));
+});
+test('deep queue deduplicates exact scopes and rotates sports, excludes unpriced and unsafe links',()=>{
+ const {queue}=require('../scripts/pickfinder-deep-research.cjs');
+ const row=(sport,n)=>({sport,player:'fixture',market:'points',eventId:'e'+n,detailId:'/players/'+sport+'/p?prop=fixture:'+n,apps:[{book:'prizepicks',line:2,side:'Higher',displayedPrice:'-110'}]});
+ const a=row('nba',1),b=row('nba',2),c=row('cs2',3);
+ const batches=[{book:'prizepicks',sport:'nba',pages:[{rows:[a,a,b,{...a,detailId:'https://example.com/players/x?prop=x'},{...a,detailId:'/players/nba/x?prop=x',apps:[]}]}]},{book:'prizepicks',sport:'cs2',pages:[{rows:[c]}]}];
+ const q=queue(batches);assert.equal(q.total,3);assert.deepEqual(q.pending.map(x=>x.sport),['nba','cs2','nba']);
+ assert.equal(queue(batches,new Set([q.pending[0].key])).pending.length,2);
+});

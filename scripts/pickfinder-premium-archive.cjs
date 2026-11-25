@@ -27,7 +27,7 @@ function scopedResearch(fields,first,last,sport){
 }
 function normalize(input,{now=new Date()}={}){
  if(!input||input.schema!=="pickfinder-premium-export-v1"||!BOOKS.has(input.book)||!SPORTS.has(input.sport))throw Error("partition contract");
- if(!/^\d{4}-\d\d-\d\d$/.test(input.localDay)||!["06:00","09:00"].includes(input.slot))throw Error("slot required");
+ if(!/^\d{4}-\d\d-\d\d$/.test(input.localDay)||!["06:00","09:00","manual"].includes(input.slot))throw Error("slot required");
  if(!Array.isArray(input.pages)||input.pages.length>500||!["populated","empty","disabled","partial"].includes(input.boardState))throw Error("page contract");
  const first=instant(input.startedAt),last=instant(input.endedAt);
  if(first>last||last>now)throw Error("attempt chronology");
@@ -44,7 +44,7 @@ function normalize(input,{now=new Date()}={}){
    if(observed<first||observed>last)throw Error("row outside attempt");
    links.add(row.detailId);
    for(const field of scopedResearch(row.research,first,last,input.sport))researchObservations.push({...field,detailId:row.detailId,player:row.player});
-   if(!inSlot(observed,input.localDay,input.slot))crossHourRows++;
+   if(input.slot!=="manual"&&!inSlot(observed,input.localDay,input.slot))crossHourRows++;
    let matched=0;
    for(const a of row.apps){
     if(!a||a.book!==input.book)continue;
@@ -65,7 +65,9 @@ function normalize(input,{now=new Date()}={}){
  const withinSlot=inSlot(first,input.localDay,input.slot)&&inSlot(last,input.localDay,input.slot)&&crossHourRows===0;
  const pageTraversalComplete=input.boardState==="populated"&&contiguous&&input.lastPageReached===true;
  const reasons=[];
- if(!withinSlot)reasons.push("outside_requested_hour");
+ if(input.slot==="manual"&&pacific(first).day!==input.localDay)throw Error("manual date mismatch");
+ if(input.slot==="manual")reasons.push("manual_observation");
+ else if(!withinSlot)reasons.push("outside_requested_hour");
  if(input.boardState==="populated"&&!pageTraversalComplete)reasons.push("incomplete_page_traversal");
  if(repeatLinks>0)reasons.push("duplicate_or_unresolved_detail_links");
  if(wrongSport||unresolvedRows||conflicts.size)reasons.push("unresolved_rows_or_price_changes");
@@ -92,3 +94,4 @@ if(require.main===module){
  const result=archive(JSON.parse(fs.readFileSync(process.argv[2],"utf8")),process.argv[3],process.argv[4]);console.log(JSON.stringify(result));}
  catch(e){console.error("PickFinder export rejected: "+e.name);process.exitCode=1;}
 }
+

@@ -1,7 +1,7 @@
 name: CS2 expanded wide-format history
 on:
   pull_request:
-    paths: ['scripts/cs2_ektarr_wide_history.py','test/test_cs2_ektarr_wide_history.py','.github/workflows/cs2-ektarr-wide-history.yml']
+    paths: ['scripts/cs2_ektarr_wide_history.py','scripts/cs2_context_challenger.py','test/test_cs2_ektarr_wide_history.py','.github/workflows/cs2-ektarr-wide-history.yml']
   workflow_dispatch:
 permissions:
   contents: read

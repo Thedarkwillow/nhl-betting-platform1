@@ -49,5 +49,30 @@ function inputAudit(normalized){
  }
  return {sports:output,independentIdentityAndResultJoinVerified:false,modelInputsApproved:false,modelPromoted:false,rawRowsPublished:0};
 }
-module.exports={audit,loadPilot,compare,inputAudit};
+// Evidence classification is not price recovery. Preserve historical observations unchanged.
+function missingDisposition(data,batches){
+ const historical=audit(data);
+ const counts={originalMissingAppEvidence:historical.partitions.reduce((n,p)=>n+p.noApps-p.evidenceRetained,0),historicalPricesRecovered:0,newRows:0,tierOnly:0,missingBook:0,other:0,explicitLineBadgeEvidence:0};
+ for(const b of batches)for(const p of b.pages)for(const r of p.rows){
+  if(r.sport!==b.sport||!Array.isArray(r.apps)||r.apps.some(a=>valid(b.book,a)))continue;
+  counts.newRows++;
+  const a=Array.isArray(r.appEvidence)?r.appEvidence:[];
+  if(!a.length)counts.missingBook++;
+  else if(a.some(e=>e.book===b.book&&['goblin','demon'].includes(e.tier)&&Number.isFinite(e.line)&&Array.isArray(e.icons)&&e.icons.filter(i=>i===b.book).length===1&&e.icons.every(i=>[b.book,'goblin','demon'].includes(i))&&!e.icons.includes(e.tier==='goblin'?'demon':'goblin'))){counts.tierOnly++;counts.explicitLineBadgeEvidence++;}
+  else counts.other++;
+ }
+ return {...counts,pricesInferred:0,sidesInferred:0,modelInputsApproved:false,rawRowsPublished:0};
+}
+function loadVerifiedAttempt(root,sha){
+ const cp=require('node:child_process'),crypto=require('node:crypto');
+ const run=args=>cp.execFileSync('git',['-C',root,...args],{encoding:'utf8',maxBuffer:64*1024*1024,stdio:['ignore','pipe','pipe']});
+ if(!/^[a-f0-9]{40}$/.test(sha))throw Error('revision');
+ run(['merge-base','--is-ancestor',sha,'HEAD']);
+ const paths=run(['diff-tree','--no-commit-id','--name-only','-r',sha]).trim().split('\n').filter(p=>/^research\/pickfinder-premium\/2026-11-25\/manual\/[a-z-]+\/[a-z0-9-]+\/[a-z0-9-]+\/source\.json$/.test(p));
+ if(paths.length!==28)throw Error('unexpected prior partition count');
+ return paths.map(p=>{const raw=run(['show',sha+':'+p]),n=JSON.parse(run(['show',sha+':'+p.replace(/source\.json$/,'normalized.json')]));
+ if(crypto.createHash('sha256').update(raw).digest('hex')!==n.sourceDigest)throw Error('digest mismatch');
+ return JSON.parse(raw);});
+}
+module.exports={audit,loadPilot,compare,inputAudit,missingDisposition,loadVerifiedAttempt};
 if(require.main===module){try{const root=fs.realpathSync(process.argv[2]);const file=path.join(root,relative);const data=JSON.parse(zlib.gunzipSync(Buffer.from(fs.readFileSync(file,'utf8'),'base64')));console.log(JSON.stringify(audit(data)));}catch{console.error('Private pilot audit failed');process.exitCode=1;}}

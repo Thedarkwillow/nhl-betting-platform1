@@ -1,7 +1,7 @@
 {
   "kind": "public_pickfinder_identity_health_v1",
-  "generatedAt": "2026-11-25T17:47:08.583Z",
-  "archiveRevision": "320501c1f0e68723fe5bfea1aaa0584bc5526d2b",
+  "generatedAt": "2026-11-25T18:16:50.002Z",
+  "archiveRevision": "8b8e353213abf0e087a4b3aa5736255e5d936385",
   "sourceEvents": 240,
   "sources": {
     "nba": {
@@ -130,7 +130,7 @@
   "nativeHistory": {
     "nhl": {
       "finalGames": 12,
-      "playerAppearances": 313,
+      "playerAppearances": 312,
       "completeHistoricalSeasons": false
     },
     "dota2": {
@@ -141,7 +141,7 @@
   },
   "independentlyReviewedCrosswalks": 0,
   "paidRequests": 0,
-  "publicRequests": 195,
+  "publicRequests": 197,
   "privateRepoUsed": false,
   "modelApproved": false
 }

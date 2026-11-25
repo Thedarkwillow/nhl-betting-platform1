@@ -22,7 +22,9 @@ function load(root){
   const rows={offers:[],researchObservations:[],unpricedTierObservations:[],sportsbookQuotes:[]};
   for(const p of m.partDigests){const x=read(root,'board-parts',p);if(x.schema!=='pickfinder-public-board-part-v1'||x.sourceDigest!==m.sourceDigest||x.sport!==m.sport||x.book!==m.book||!(x.field in fields)||!Array.isArray(x.rows))throw Error('part');rows[x.field].push(...x.rows);}
   for(const [f,k] of Object.entries(fields))if(rows[f].length!==m.health?.[k])throw Error('count');
-  const entry={digest,m,...rows};manifests.push(entry);
+  const rel=ROOT+'/boards/'+digest+'.json',commits=git(root,['log','--format=%H','--',rel]).split('\n');if(commits.length!==1||!/^[a-f0-9]{40}$/.test(commits[0]))throw Error('immutable manifest');
+  const first=git(root,['show','-s','--format=%cI',commits[0]]);if(!valid(first)||dt(first)+999<dt(m.lastObservedAt))throw Error('archive clock');
+  const entry={digest,m,first,...rows};manifests.push(entry);
   const k=m.sport+'/'+m.book,old=latest.get(k);if(!old||dt(old.m.lastObservedAt)<dt(m.lastObservedAt))latest.set(k,entry);
  }catch{invalid.push(digest);}
  return {manifests,latest:[...latest.values()],invalid};
@@ -68,7 +70,7 @@ function analyze(archive,now=new Date().toISOString()){
    const k=key([scope(o),o.line,o.tier??null,o.side]),v=comp.get(k)||new Map();const old=v.get(o.book);if(!old||dt(old.observedAt)<dt(o.observedAt))v.set(o.book,o);comp.set(k,v);
    const b=features(o,f.get(key([o.detailId,o.eventId,o.market,o.observedAt]))||[]),c=quotes(o,q.get(scope(o))||[],m.lastObservedAt);
    if(c.length)x.matchedTwoSidedQuotes++;if(Object.keys(b).length)x.boardFeatureRows++;
-   if(Object.keys(b).length||c.length)featureRows.push({offer:o,manifestDigest:a.digest,features:b,quotes:c});
+   if(Object.keys(b).length||c.length)featureRows.push({offer:o,manifestDigest:a.digest,manifestFirst:a.first,features:b,quotes:c});
   }
  }
  for(const v of comp.values())if(v.size===2){const a=v.get('prizepicks'),b=v.get('underdog');if(Math.abs(dt(a.observedAt)-dt(b.observedAt))<=900000){exactComparisons++;bySport[a.sport].exactCrossBookRows++;}}

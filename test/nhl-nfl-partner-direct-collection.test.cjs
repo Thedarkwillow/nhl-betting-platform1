@@ -106,3 +106,12 @@ test("morning source duplicate guard ignores a green-but-incomplete or falsified
   write();assert.equal(existingMorningSlot(parent,"09:00",root),null);
  }finally{fs.rmSync(root,{recursive:true,force:true});}
 });
+
+test("November 24 workflow isolates the archive and preserves completed grading after collection failure",()=>{
+ const y=fs.readFileSync(path.join(__dirname,"../.github/workflows/nov24-bounded-source-refresh.yml"),"utf8");
+ assert.match(y,/mv "\$GITHUB_WORKSPACE\/restricted" "\$RUNNER_TEMP\/nov24-restricted"/);
+ assert.match(y,/capture-public-native-morning\.cjs "\$RUNNER_TEMP\/nov24-restricted"/);
+ const guard=y.split("name: Preserve official result and grade checkpoint on isolated branch")[1].split("working-directory:")[0];
+ for(const s of ["always()","!cancelled()","steps.private_destination.outcome == 'success'","steps.restricted_checkout.outcome == 'success'","steps.isolate_archive.outcome == 'success'","steps.grade.outcome == 'success'"])assert.ok(guard.includes(s),s);
+ assert.ok(!guard.includes("steps.capture.outcome"));
+});

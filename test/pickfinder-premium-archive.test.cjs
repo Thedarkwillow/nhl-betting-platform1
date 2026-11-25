@@ -44,3 +44,8 @@ test("map ranges and game modes cannot collapse to one offer",()=>{
  const x=input(),r=row();x.pages[0].rows[0].gameMode="HP";r.gameMode="S&D";x.pages[0].rows.push(r);
  assert.equal(normalize(x,{now}).offers.length,2);
 });
+
+test("unpriced tier, absent badge and mixed-book groups remain unresolved with separate counters",()=>{
+ const x=input(),r=row();r.apps=[];r.appEvidence=[{book:"prizepicks",icons:["prizepicks","goblin"],tier:"goblin",line:28.5}];x.pages[0].rows=[r,{...r,detailId:"b",appEvidence:[]},{...r,detailId:"c",appEvidence:[{book:"prizepicks",icons:["prizepicks","underdog"],line:28.5}]}];
+ const y=normalize(x,{now});assert.equal(y.offers.length,0);assert.equal(y.health.unresolvedEvidence.tierWithoutExplicitPrice,1);assert.equal(y.health.unresolvedEvidence.bookBadgeMissing,1);assert.equal(y.health.unresolvedEvidence.ambiguousBookGroup,1);
+});

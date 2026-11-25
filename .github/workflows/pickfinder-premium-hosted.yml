@@ -1,0 +1,82 @@
+name: PickFinder Premium public orchestration
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        required: true
+        type: choice
+        options: [audit_pilot, probe_now, reconcile_now, capture_0600, capture_0900]
+  schedule:
+    - cron: '7 6 * * *'
+      timezone: America/Los_Angeles
+    - cron: '7 9 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: pickfinder-hosted-capture
+  cancel-in-progress: false
+jobs:
+  run:
+    if: github.repository == 'Thedarkwillow/nhl-betting-platform1' && github.ref == 'refs/heads/main' && (inputs.mode == 'audit_pilot' || (vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1' && (github.event_name == 'workflow_dispatch' || (vars.PICKFINDER_SCHEDULE_ENABLED == '1' && vars.PICKFINDER_HOSTED_AUTH_VERIFIED == '1' && vars.PICKFINDER_HOSTED_CAPTURE_VERIFIED == '1'))))
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public-source
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check restricted destination
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .visibility)" = private
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: private-archive
+          persist-credentials: true
+          fetch-depth: 0
+      - name: Offline tests and count-only pilot reconciliation
+        run: |
+          set -euo pipefail
+          cd public-source
+          node --test test/pickfinder-unattended-runner.test.cjs test/pickfinder-browser.test.cjs test/pickfinder-premium-archive.test.cjs test/pickfinder-pilot-reconcile.test.cjs scripts/test-pacific-morning-capture-gate.cjs
+          node scripts/pickfinder-pilot-reconcile.cjs ../private-archive
+      - name: Install pinned browser dependency before injecting credentials
+        if: inputs.mode != 'audit_pilot'
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/pickfinder-deps" "$RUNNER_TEMP/pickfinder-profile"
+          chmod 700 "$RUNNER_TEMP/pickfinder-profile"
+          npm install --prefix "$RUNNER_TEMP/pickfinder-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          "$RUNNER_TEMP/pickfinder-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Authorized private research capture
+        if: inputs.mode != 'audit_pilot'
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
+          REQUESTED_MODE: ${{ inputs.mode }}
+          PICKFINDER_AUTOMATION_AUTHORIZED: ${{ vars.PICKFINDER_AUTOMATION_AUTHORIZED }}
+          PICKFINDER_SCHEDULE_ENABLED: ${{ vars.PICKFINDER_SCHEDULE_ENABLED }}
+          PICKFINDER_HOSTED_AUTH_VERIFIED: ${{ vars.PICKFINDER_HOSTED_AUTH_VERIFIED }}
+          PICKFINDER_HOSTED_CAPTURE_VERIFIED: ${{ vars.PICKFINDER_HOSTED_CAPTURE_VERIFIED }}
+          PICKFINDER_HOSTED: '1'
+          PICKFINDER_EMAIL: ${{ secrets.PICKFINDER_EMAIL }}
+          PICKFINDER_PASSWORD: ${{ secrets.PICKFINDER_PASSWORD }}
+          PICKFINDER_STORAGE_STATE: ${{ secrets.PICKFINDER_STORAGE_STATE }}
+          PICKFINDER_PROFILE_DIR: ${{ runner.temp }}/pickfinder-profile
+          PICKFINDER_PRIVATE_ROOT: ${{ github.workspace }}/private-archive
+          NODE_PATH: ${{ runner.temp }}/pickfinder-deps/node_modules
+        run: |
+          set -euo pipefail
+          node public-source/scripts/pickfinder-unattended-runner.cjs
+      - name: Remove temporary profile
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/pickfinder-profile"

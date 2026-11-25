@@ -11,6 +11,7 @@ const partitions=()=>SPORTS.flatMap(code=>BOOKS.map(book=>({code,book})));
 function plan(env,now=new Date()){
  if(env.PICKFINDER_AUTOMATION_AUTHORIZED!=='1')throw Error('authorization_required');
  if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&env.REQUESTED_MODE==='probe_now')return {probe:true};
+ if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&env.REQUESTED_MODE==='reconcile_now')return {allowed:true,reconcile:true,expected:'manual',clock:pacific(now)};
  if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_SCHEDULE_ENABLED!=='1')return {allowed:false,state:'schedule_disabled'};
  return decide({eventName:env.GITHUB_EVENT_NAME,mode:env.REQUESTED_MODE,schedule:env.GITHUB_EVENT_SCHEDULE,now});
 }
@@ -42,43 +43,76 @@ async function openBoard(chromium,profile){
   return {context,page};
  }catch(e){await context.close();throw e;}
 }
+async function openHostedBoard(chromium,env){
+ const browser=await chromium.launch({headless:true});
+ try{
+  const state=env.PICKFINDER_STORAGE_STATE;
+  const context=await browser.newContext(state?{storageState:JSON.parse(state)}:{});
+  const page=await context.newPage();page.setDefaultTimeout(8000);
+  if(!state){
+   if(!env.PICKFINDER_EMAIL||!env.PICKFINDER_PASSWORD)throw Error('authorized login secret required');
+   await page.goto(ORIGIN+'/sign-in',{timeout:20000});
+   if(new URL(page.url()).origin!==ORIGIN)throw Error('unexpected login origin');
+   const email=page.locator('input[type=email]'),password=page.locator('input[type=password]');
+   const submit=page.getByRole('button',{name:/^(sign in|log in|continue)$/i});
+   if(await email.count()!==1||await password.count()!==1||await submit.count()!==1)throw Error('normal password login unavailable');
+   await email.fill(env.PICKFINDER_EMAIL);await password.fill(env.PICKFINDER_PASSWORD);
+   await submit.click();
+   await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:20000});
+  }
+  await page.goto(ORIGIN+'/props',{timeout:20000});
+  await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:15000});
+  if(!await page.evaluate(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium')))throw Error('premium session unavailable');
+  return {page,context:{newPage:()=>context.newPage(),close:()=>browser.close()}};
+ }catch(e){await browser.close();throw e;}
+}
 async function main(env=process.env){
  const p=plan(env);
  if(!p.probe&&!p.allowed){console.log(JSON.stringify(p));return;}
  const {root,profile}=destination(env);
  const {chromium}=require('playwright');
+ const hosted=env.PICKFINDER_HOSTED==='1';
+ const open=()=>hosted?openHostedBoard(chromium,env):openBoard(chromium,profile);
  const receiptPath=path.join(profile,'.pickfinder-automation-probe.json');
  if(p.probe){
+  if(hosted){const {context}=await open();await context.close();console.log(JSON.stringify({state:'hosted_fresh_auth_verified',offers:0}));return;}
   if(!env.RUNNER_NAME)throw Error('private runner name required');
   try{fs.unlinkSync(receiptPath);}catch(e){if(e.code!=='ENOENT')throw e;}
   for(let i=0;i<2;i++){const {context}=await openBoard(chromium,profile);await context.close();}
   fs.writeFileSync(receiptPath,JSON.stringify({runner:env.RUNNER_NAME,launches:2,checkedAt:new Date().toISOString()}),{flag:'wx',mode:0o600});
   console.log(JSON.stringify({state:'two_browser_relaunches_authenticated',hostRebootVerified:false,offers:0}));return;
  }
- const receipt=JSON.parse(fs.readFileSync(receiptPath,'utf8'));
- if(!receiptValid(receipt,env.RUNNER_NAME))throw Error('recent runner probe required');
- if(env.GITHUB_EVENT_NAME==='schedule'&&!receipt.captureVerifiedAt)throw Error('manual in-window remote archive proof required');
+ const receipt=hosted?null:JSON.parse(fs.readFileSync(receiptPath,'utf8'));
+ if(hosted){
+  if(env.PICKFINDER_HOSTED_AUTH_VERIFIED!=='1')throw Error('fresh hosted probe required');
+  if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_HOSTED_CAPTURE_VERIFIED!=='1')throw Error('manual capture proof required');
+ }else{
+  if(!receiptValid(receipt,env.RUNNER_NAME))throw Error('recent runner probe required');
+  if(env.GITHUB_EVENT_NAME==='schedule'&&!receipt.captureVerifiedAt)throw Error('manual in-window remote archive proof required');
+ }
  const prefix='research/pickfinder-premium/'+p.clock.day+'/'+p.expected.replace(':','');
- const remaining=()=>{const t=pacific(new Date());return t.day===p.clock.day&&t.hour===p.clock.hour&&t.minute<55;};
+ const deadline=Date.now()+20*60000;
+ const remaining=()=>{const t=pacific(new Date());return p.reconcile?Date.now()<deadline&&t.day===p.clock.day:t.day===p.clock.day&&t.hour===p.clock.hour&&t.minute<55;};
+ const targets=p.reconcile?['NBA','NFL','NHL'].map(code=>({book:'prizepicks',code})):partitions();
  const attempt=crypto.randomUUID();
  const counts=[];let failed=false;
  process.env.RESTRICTED_DESTINATION_VERIFIED='1';
- const {context,page}=await openBoard(chromium,profile);
+ const {context,page}=await open();
  try{
   const detail=await context.newPage();detail.setDefaultTimeout(5000);
-  for(const {book,code} of partitions()){
+  for(const {book,code} of targets){
    if(!remaining()){failed=true;break;}
    try{
     await page.goto(ORIGIN+'/props',{timeout:20000});
-    const batch=await collect(page,{book,code,slot:p.expected,maxPages:100,shouldContinue:remaining});
+    const batch=await collect(page,{book,code,slot:p.expected,maxPages:p.reconcile?2:100,shouldContinue:remaining});
     // A bounded profile sample preserves board coverage. Separate deep research is still required.
     const sample=batch.pages.flatMap(pg=>pg.rows).find(r=>r.apps.length);
     if(sample&&remaining())try{await enrich(detail,sample,{navigate:url=>detail.goto(url,{timeout:8000})});}catch{sample.profileCollection={status:'unavailable'};}
     batch.endedAt=new Date().toISOString();
     const summary=archive(batch,root,attempt);
-    counts.push({book,code,boardState:summary.boardState,withinSlot:summary.withinSlot,offers:summary.health.distinctOfferKeys,unresolved:summary.health.unresolvedRows,pages:summary.health.pages,traversal:summary.pageTraversalComplete});
+    counts.push({book,code,boardState:summary.boardState,withinSlot:summary.withinSlot,offers:summary.health.distinctOfferKeys,unresolved:summary.health.unresolvedRows,unresolvedEvidence:summary.health.unresolvedEvidence,pages:summary.health.pages,traversal:summary.pageTraversalComplete});
     if(batch.failure==='session_expired'){failed=true;break;}
-    if(!summary.withinSlot||summary.boardState==='partial'||summary.health.unresolvedRows||summary.health.priceConflictKeys||summary.health.repeatOrUnresolvedLinks)failed=true;
+    if(!p.reconcile&&!summary.withinSlot||summary.boardState==='partial'||summary.health.unresolvedRows||summary.health.priceConflictKeys||summary.health.repeatOrUnresolvedLinks)failed=true;
    }catch{counts.push({book,code,state:'partition_failed'});failed=true;}
   }
  }finally{await context.close();}
@@ -90,12 +124,12 @@ async function main(env=process.env){
   git(root,['push','origin','HEAD:refs/heads/main']);
   git(root,['fetch','origin','main']);
   git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']);
-  if(counts.length===partitions().length&&counts.every(c=>c.withinSlot===true)&&counts.some(c=>c.offers>0)){
+  if(!p.reconcile&&!hosted&&counts.length===partitions().length&&counts.every(c=>c.withinSlot===true)&&counts.some(c=>c.offers>0)){
    fs.writeFileSync(receiptPath,JSON.stringify({...receipt,captureVerifiedAt:new Date().toISOString(),archiveSha:sha}),{mode:0o600});
   }
-  console.log(JSON.stringify({state:'remote_archive_verified',sha,slot:p.expected,partitions:counts,allPartitionsAttempted:counts.length===partitions().length,fullBoardCertified:false,modelInputsApproved:false}));
+  console.log(JSON.stringify({state:'remote_archive_verified',sha,slot:p.expected,partitions:counts,allPartitionsAttempted:counts.length===targets.length,fullBoardCertified:false,modelInputsApproved:false}));
  }else failed=true;
- if(failed||counts.length!==partitions().length)process.exitCode=1;
+ if(failed||counts.length!==targets.length)process.exitCode=1;
 }
 module.exports={plan,receiptValid,safeAddedFiles,partitions};
 if(require.main===module)main().catch(()=>{console.error('Private PickFinder runner failed; inspect runner provisioning, session, clock or archive access. No raw data logged.');process.exitCode=1;});

@@ -17,19 +17,30 @@ function readBoard({book, code, sport, observedAt}) {
     const rawSport = u.pathname.split('/')[2];
     const market = parts[1];
     const line = parts[3] && Number(parts[3]);
-    const apps = [];
+    const apps = [], appEvidence=[];
     const cell = tr.cells[headers.indexOf('Apps')];
-    const badge = cell?.querySelector('img[alt="'+book+'"]');
-    const group = badge?.parentElement?.parentElement;
-    if (group && Number.isFinite(line)) {
-      const icons = [...group.querySelectorAll('img')].map(i=>i.alt.toLowerCase());
-      if (icons.every(icon=>[book,'goblin','demon'].includes(icon))) {
-        for (const span of group.querySelectorAll('span')) {
-          const side = span.firstChild?.textContent;
-          const match = span.innerText.trim().match(/^([OU])\s*([+-]\d+)$/);
-          if (match && match[1]===side) apps.push({book,line,side:side==='O'?'Higher':'Lower',
-            displayedPrice:match[2],tier:icons.find(icon=>icon!==book)||null});
-        }
+    const badges = [...(cell?.querySelectorAll('img[alt]')||[])].filter(i=>i.alt.toLowerCase()===book);
+    for(const badge of badges){
+      // Choose the largest local group before crossing into a different book or the entire cell.
+      let group=badge.parentElement;
+      while(group?.parentElement&&group.parentElement!==cell){
+        const candidate=group.parentElement;
+        const icons=[...candidate.querySelectorAll('img[alt]')].map(i=>i.alt.toLowerCase());
+        if(icons.filter(i=>i===book).length!==1||icons.some(i=>![book,'goblin','demon'].includes(i)))break;
+        group=candidate;
+      }
+      const icons=[...(group?.querySelectorAll('img[alt]')||[])].map(i=>i.alt.toLowerCase());
+      const tier=icons.includes('goblin')&&icons.includes('demon')?null:icons.find(i=>i==='goblin'||i==='demon')||null;
+      const display=group?.innerText.trim().slice(0,400)||'';
+      appEvidence.push({book,icons,tier,display,line:Number.isFinite(line)?line:null,
+        state:Number.isFinite(line)?'book_badge_observed':'line_missing'});
+      if(!Number.isFinite(line)||icons.filter(i=>i===book).length!==1||icons.some(i=>![book,'goblin','demon'].includes(i))||icons.includes('goblin')&&icons.includes('demon'))continue;
+      // Parse explicit side+price from a book-isolated group, including split text nodes.
+      const matches=[...display.matchAll(/(?:^|\s)(O|U|Higher|Lower|Over|Under)\s*([+-]\d{2,4})(?=\s|$)/gi)];
+      for(const m of matches){
+        const side=/^(o|over|higher)$/i.test(m[1])?'Higher':'Lower';
+        if(!apps.some(a=>a.side===side&&a.displayedPrice===m[2]&&a.tier===tier))
+          apps.push({book,line,side,displayedPrice:m[2],tier});
       }
     }
     const research = [];
@@ -44,7 +55,7 @@ function readBoard({book, code, sport, observedAt}) {
       market,eventId:parts[2],detailId:u.pathname+'?'+u.search.slice(1).split('&').filter(part=>part.startsWith('prop=')).join('&'),
       period:market?.match(/^(\d+(?:st|nd|rd|th)_(?:half|quarter|period))/)?.[1]||null,
       mapRange:market?.match(/^(.*?maps?)_player/)?.[1]||null,gameMode:null,
-      observedAt,apps,research});
+      observedAt,apps,appEvidence,research});
   }
   return {authenticated,rows,number:Number(pages?.[1]),total:Number(pages?.[2]),
     empty:table?.innerText.includes('No props found')===true};

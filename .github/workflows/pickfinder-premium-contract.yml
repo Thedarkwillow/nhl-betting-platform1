@@ -1,10 +1,10 @@
 name: PickFinder Premium archive contract
 on:
   pull_request:
-    paths: ['scripts/pickfinder*','scripts/collect-pickfinder-browser.cjs','test/pickfinder-browser.test.cjs','test/pickfinder-unattended-runner.test.cjs','test/pickfinder-premium-archive.test.cjs','scripts/pacific-morning-capture-gate.cjs','.github/workflows/pickfinder-premium-contract.yml']
+    paths: ['scripts/pickfinder*','scripts/collect-pickfinder-browser.cjs','test/pickfinder-browser.test.cjs','test/pickfinder-unattended-runner.test.cjs','test/pickfinder-pilot-reconcile.test.cjs','.github/workflows/pickfinder-premium-hosted.yml','test/pickfinder-premium-archive.test.cjs','scripts/pacific-morning-capture-gate.cjs','.github/workflows/pickfinder-premium-contract.yml']
   push:
     branches: [main]
-    paths: ['scripts/pickfinder*','scripts/collect-pickfinder-browser.cjs','test/pickfinder-browser.test.cjs','test/pickfinder-unattended-runner.test.cjs','test/pickfinder-premium-archive.test.cjs','scripts/pacific-morning-capture-gate.cjs','.github/workflows/pickfinder-premium-contract.yml']
+    paths: ['scripts/pickfinder*','scripts/collect-pickfinder-browser.cjs','test/pickfinder-browser.test.cjs','test/pickfinder-unattended-runner.test.cjs','test/pickfinder-pilot-reconcile.test.cjs','.github/workflows/pickfinder-premium-hosted.yml','test/pickfinder-premium-archive.test.cjs','scripts/pacific-morning-capture-gate.cjs','.github/workflows/pickfinder-premium-contract.yml']
 permissions:
   contents: read
 jobs:
@@ -17,5 +17,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test test/pickfinder-unattended-runner.test.cjs test/pickfinder-browser.test.cjs test/pickfinder-premium-archive.test.cjs scripts/test-pacific-morning-capture-gate.cjs
+      - run: node --test test/pickfinder-pilot-reconcile.test.cjs test/pickfinder-unattended-runner.test.cjs test/pickfinder-browser.test.cjs test/pickfinder-premium-archive.test.cjs scripts/test-pacific-morning-capture-gate.cjs
 

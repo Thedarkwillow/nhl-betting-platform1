@@ -85,9 +85,29 @@ async function collectDota(root,client=fetch){
   if(!Array.isArray(q.data)||q.data.length>100)throw Error("index");
   const now=Date.now(),seen=new Set();
   for(const x of q.data){const r=dotaIndex(x,now);if(!r||seen.has(r.providerGameId))continue;seen.add(r.providerGameId);data.index.push(r);}
+  // One bounded backward index page; do not infer map order from an incomplete listing.
+  if(q.data.length&&q.data.every(x=>id(x.match_id))){
+   const cursor=Math.min(...q.data.map(x=>x.match_id));await pause();report.requests++;
+   try{const z=await request("https://api.opendota.com/api/proMatches?less_than_match_id="+cursor,{},client);
+    if(!Array.isArray(z.data)||z.data.length>100||z.data.some(x=>!id(x.match_id)||x.match_id>=cursor))throw Error("pagination");
+    for(const x of z.data){const r=dotaIndex(x,now);if(!r||seen.has(r.providerGameId))continue;seen.add(r.providerGameId);data.index.push(r);}
+    data.sourceDigests.push({endpoint:"proMatches_backfill",sha256:z.digest});report.backfillIndex="read";
+   }catch(e){report.backfillIndex=failure(e);if([401,403,429].includes(e.status)){report.status=failure(e);return {report,data};}}
+  }
+  const groups=new Map();
+  for(const x of data.index)if(x.providerSeriesId){const k=x.leagueId+"|"+x.providerSeriesId;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x);}
+  let ordered=0,ambiguous=0;
+  for(const a of groups.values()){
+   a.sort((x,y)=>Date.parse(x.startAt)-Date.parse(y.startAt));
+   const teams=new Set(a.map(x=>JSON.stringify([...x.teamIds].sort())));
+   if(a.length<2)continue;
+   if(teams.size!==1||new Set(a.map(x=>x.providerSeriesType)).size!==1||a.some((x,i)=>i&&Date.parse(a[i-1].endAt)>Date.parse(x.startAt))){ambiguous++;continue;}
+   ordered++;
+  }
+  report.chronologicalSeriesCandidates=ordered;report.ambiguousSeries=ambiguous;
   report.indexRecords=data.index.length;report.seriesIdRecords=data.index.filter(r=>r.providerSeriesId).length;data.sourceDigests.push({endpoint:"proMatches",sha256:q.digest});
   const prior=previousIds(root);report.skippedArchived=data.index.filter(x=>prior.has(x.providerGameId)).length;
-  for(const x of data.index.filter(x=>!prior.has(x.providerGameId)).slice(0,5)){
+  for(const x of data.index.filter(x=>!prior.has(x.providerGameId)).slice(0,8)){
    await pause();report.requests++;
    try{
     const r=await request("https://api.opendota.com/api/matches/"+x.providerGameId,{},client);

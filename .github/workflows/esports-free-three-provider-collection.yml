@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test test/esports-free-source-adapters.test.cjs test/esports-research-v1.test.cjs
+      - run: node --test test/esports-free-source-adapters.test.cjs test/esports-research-v1.test.cjs test/esports-lol-count-challenger.test.cjs test/esports-prospective-archive.test.cjs
   collect:
     needs: test
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

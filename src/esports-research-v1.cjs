@@ -1,5 +1,6 @@
 "use strict";
 // Private offline research. Never treats a reference quote as a bookable offer.
+const {countMass}=require("./esports-lol-count-challenger.cjs");
 const TITLES={
  CS2:{unit:"rounds",stats:["kills","headshotKills","assists","deaths","killsPlusAssists"]},
  VALORANT:{unit:"rounds",stats:["kills","headshotKills","assists","deaths","killsPlusAssists"]},
@@ -83,7 +84,7 @@ function predict(o,rows){
  const challengers=Object.fromEntries(Object.entries(comparable).map(([k,v])=>[k,v.length>=12?{n:v.length,projection:avg(v.map(x=>x.total)),probabilities:probabilities(v.map(x=>x.total),o.line)}:null]));
  return {status:"research_only",priorSeries:a.length,projection:avg(raw),ratePerExposure:rate,baseline:probabilities(raw,o.line),
   exposureChallenger:exposure?{n:a.length,projection:rate*ctx.expectedExposure,probabilities:probabilities(exposure,o.line)}:null,
-  contextChallengers:challengers,priorSeriesIds:a.map(x=>x.seriesId),calibrated:false,researchOnly:true,bettingEligible:false};
+  contextChallengers:challengers,lolCountChallenger:o.title==="LOL"?countMass(raw.slice(0,20),o.line):null,priorSeriesIds:a.map(x=>x.seriesId),calibrated:false,researchOnly:true,bettingEligible:false};
 }
 function grade(o,rows){
  if(!validOffer(o))return {status:"invalid_offer"};

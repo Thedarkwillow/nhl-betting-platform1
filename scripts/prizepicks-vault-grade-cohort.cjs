@@ -68,7 +68,7 @@ function reconcileNfl(rows,facts,seasons,cache=new Map()){
  const out=[];
  for(const p of rows){
   if(p.sport!=='NFL'||!digest(p.identityEvidenceSha256)||!Array.isArray(p.historyDigests)||!p.historyDigests.every(digest)||!rev(p.modelRevision))continue;
-  const key=JSON.stringify([p.identityEvidenceSha256,[...p.historyDigests].sort(),p.forecastAt,p.modelRevision]);
+  const key=JSON.stringify([p.identityEvidenceSha256,[...p.historyDigests].sort(),p.forecastAt,p.sourceObservedAt,p.modelRevision]);
   if(!cache.has(key)){
    const f=facts.filter(x=>x.digest===p.identityEvidenceSha256&&dt(x.first)<=dt(p.sourceObservedAt)),h=seasons.filter(x=>p.historyDigests.includes(x.digest)&&dt(x.first)<=dt(p.sourceObservedAt));
    if(f.length!==1||h.length!==3)cache.set(key,[]);

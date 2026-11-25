@@ -131,7 +131,7 @@ function grade(files,maps,offers=[]){
    const den=p.higher+p.lower;if(!den){counts.pending++;g.pending++;continue;}
    const y=Number(final.outcome==="Higher"),q=p.higher/den;
    counts.decided++;g.decided++;g.higher+=y;g.wins+=Number(r.frozenDirection===final.outcome);g.brierSum+=(q-y)**2;totalBrier+=(q-y)**2;g.series.add(o.seriesId);g.dates.add(o.seriesStartAt.slice(0,10));
-   const alt=r.forecast.lolCountChallenger;if(o.title==="LOL"&&alt&&hash(alt)===hash(check.lolCountChallenger)&&[alt.higher,alt.lower,alt.push].every(x=>Number.isFinite(x)&&x>=0&&x<=1)&&Math.abs(alt.higher+alt.lower+alt.push-1)<1e-8&&alt.higher+alt.lower>0){const v=alt.higher/(alt.higher+alt.lower),z=challenger[k]??={n:0,baselineBrierSum:0,countBrierSum:0,baselineWins:0,countWins:0};z.n++;z.baselineBrierSum+=(q-y)**2;z.countBrierSum+=(v-y)**2;z.baselineWins+=Number(Number(q>.5)===y);z.countWins+=Number(Number(v>.5)===y);}
+   const alt=r.forecast.lolCountChallenger;if(o.title==="LOL"&&alt&&check.lolCountChallenger&&hash(alt)===hash(check.lolCountChallenger)&&[alt.higher,alt.lower,alt.push].every(x=>Number.isFinite(x)&&x>=0&&x<=1)&&Math.abs(alt.higher+alt.lower+alt.push-1)<1e-8&&alt.higher+alt.lower>0){const v=alt.higher/(alt.higher+alt.lower),z=challenger[k]??={n:0,baselineBrierSum:0,countBrierSum:0,baselineWins:0,countWins:0};z.n++;z.baselineBrierSum+=(q-y)**2;z.countBrierSum+=(v-y)**2;z.baselineWins+=Number(Number(q>.5)===y);z.countWins+=Number(Number(v>.5)===y);}
   }
  }
  // Only groups by market/platform/scope; no players, offers, or private IDs.

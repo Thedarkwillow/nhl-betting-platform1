@@ -34,7 +34,7 @@ def audit(archive,review,history=()):
     if archive.get("kind")!="restricted_independent_esports_research_v1" or review.get("kind")!="restricted_esports_manual_crosswalk_review_v1" or not archive.get("sourceDocumentSha256") or archive["sourceDocumentSha256"]!=review.get("sourceDocumentSha256"):raise ValueError("capture evidence mismatch")
     rows=archive.get("quarantinedSourceObservations",[])
     if len(rows)>5:raise ValueError("bounded review only")
-    counts=Counter();reasons=Counter();samples=defaultdict(dict);duplicates=set()
+    counts=Counter();reasons=Counter();samples=defaultdict(dict);duplicates=set();replays=[]
     for h in history:
         try:
             match,idx=h["event"].rsplit("|",1);key=(h["player"],match);i=int(idx)
@@ -53,11 +53,18 @@ def audit(archive,review,history=()):
         if len(links)!=1 or not re.fullmatch(r"\d{17}",str(links[0].get("steamIdCandidate",""))):reasons["missing_or_conflicting_player_link"]+=1;continue
         counts["steamCandidates"]+=1
         p=links[0]["steamIdCandidate"];prior=clock(r["observed_at"]).date().isoformat()
-        n=0
+        prior_values=[]
         for key,maps in samples.items():
             if key[0]!=p or key in duplicates or not all(i in maps for i in s[1]):continue
-            if all(isinstance(maps[i].get("date"),str) and maps[i]["date"]<prior and type(maps[i].get(s[0])) is int and maps[i][s[0]]>=0 for i in s[1]):n+=1
-        if n>=10:counts["candidateHistorySufficient"]+=1
+            if all(isinstance(maps[i].get("date"),str) and maps[i]["date"]<prior and type(maps[i].get(s[0])) is int and maps[i][s[0]]>=0 for i in s[1]):prior_values.append((max(maps[i]["date"] for i in s[1]),key[1],sum(maps[i][s[0]] for i in s[1])))
+        if len(prior_values)>=10:
+            counts["candidateHistorySufficient"]+=1
+            if links[0].get("steamIdIndependentlyVerified") is True:
+                from esports_result_contract import threshold_replay
+                replay=threshold_replay([v for _,_,v in sorted(prior_values)],r.get("line"))
+                if replay:
+                    counts["retrospectiveThresholdEvaluated"]+=1
+                    replays.append(replay)
         if links[0].get("steamIdIndependentlyVerified") is not True:reasons["steam_identity_not_corroborated"]+=1
         else:reasons["late_review_not_original_freeze"]+=1
-    return {"kind":"restricted_esports_crosswalk_audit_v1","counts":dict(counts),"excluded":dict(reasons),"qualified":0,"originalForecastFrozen":False,"officialSettlementVerified":False,"rawRowsPublished":0,"paidRequests":0,"modelPromoted":False}
+    return {"kind":"restricted_esports_crosswalk_audit_v1","counts":dict(counts),"excluded":dict(reasons),"aggregateHistoricalThresholdComparisons":{"higher":sum(x["historicalHigherCount"] for x in replays),"lower":sum(x["historicalLowerCount"] for x in replays),"ties":sum(x["historicalTieCount"] for x in replays),"notIndependentObservations":True,"calibratedProbability":None},"qualified":0,"originalForecastFrozen":False,"officialSettlementVerified":False,"rawRowsPublished":0,"paidRequests":0,"modelPromoted":False}

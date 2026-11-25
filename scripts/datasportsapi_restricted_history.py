@@ -76,7 +76,7 @@ def collect(client,now,days,previous=(),pending=None,retry=()):
                     if not isinstance(gs,list):raise ValueError("game_contract")
                     games=[g for g in gs if game_valid(g,now)]
                     ids=Counter(g["id"] for g in games);nums=Counter(g["number"] for g in games)
-                    for g in sorted(games,key=lambda x:x["number"]):
+                    for g in sorted(games,key=lambda x:(0 if any(str(item.get("fixture",{}).get("id"))==str(fid) and str(item.get("game",{}).get("id"))==str(x["id"]) for item in retry) else 1,x["number"])):
                         if client.stopped or client.calls>=client.max_calls:break
                         if ids[g["id"]]!=1 or nums[g["number"]]!=1:excluded["ambiguous_game"]+=1;continue
                         key=(str(fid),str(g["id"]))
@@ -95,7 +95,7 @@ def collect(client,now,days,previous=(),pending=None,retry=()):
                             elif len(d["home"])!=5 or len(d["away"])!=5:reason="lineup_not_five_per_side"
                             else:reason="lineup_missing_identity_or_stats"
                             excluded[reason]+=1
-                            if reason=="lineup_empty_side":pending.append({"title":title,"fixture":f,"game":g,"reason":reason})
+                            if reason in ("lineup_empty_side","lineup_not_five_per_side","lineup_missing_identity_or_stats"):pending.append({"title":title,"fixture":f,"game":g,"reason":reason})
                             counts[title+":incompleteLineups"]+=1
                             continue
                         batch=[]

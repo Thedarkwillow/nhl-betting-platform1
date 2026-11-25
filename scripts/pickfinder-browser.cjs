@@ -43,6 +43,19 @@ function readBoard({book, code, sport, observedAt}) {
           apps.push({book,line,side,displayedPrice:m[2],tier});
       }
     }
+    // Keep competitor quotes distinct from the selected fantasy book. The board's line
+    // is not assumed to be the competitor's own threshold.
+    const sportsbookEvidence=[];
+    const supported=new Set(['draftkings','fanduel','betmgm','caesars','pinnacle','bet365','espnbet','fanatics','betrivers','hardrockbet','betonline','bovada','fliff','betfair']);
+    const canonical=x=>x.toLowerCase().replace(/[^a-z0-9]/g,'');
+    for(const icon of cell?.querySelectorAll('img[alt]')||[]){
+      const label=icon.alt.trim(),id=canonical(label);if(!supported.has(id))continue;
+      let group=icon.parentElement;
+      while(group?.parentElement&&group.parentElement!==cell){const next=group.parentElement,icons=[...next.querySelectorAll('img[alt]')];if(icons.length!==1||icons[0]!==icon)break;group=next;}
+      const display=group?.innerText.trim().slice(0,400)||'';
+      const prices=[...display.matchAll(/(?:^|\\s)(O|U|Higher|Lower|Over|Under)\\s*([+-]\\d{2,4})(?=\\s|$)/gi)].map(m=>({side:/^(o|over|higher)$/i.test(m[1])?'Higher':'Lower',price:m[2]}));
+      sportsbookEvidence.push({book:id,displayedBookLabel:label,display,prices,quoteLine:null,originalPlatformVerified:false,modelInputsApproved:false});
+    }
     const research = [];
     for (const [i,metric] of headers.entries()) {
       if (!metric || ['Apps','Line'].includes(metric)) continue;
@@ -55,7 +68,7 @@ function readBoard({book, code, sport, observedAt}) {
       market,eventId:parts[2],detailId:u.pathname+'?'+u.search.slice(1).split('&').filter(part=>part.startsWith('prop=')).join('&'),
       period:market?.match(/^(\d+(?:st|nd|rd|th)_(?:half|quarter|period))/)?.[1]||null,
       mapRange:market?.match(/^(.*?maps?)_player/)?.[1]||null,gameMode:null,
-      observedAt,apps,appEvidence,research});
+      observedAt,apps,appEvidence,sportsbookEvidence,research});
   }
   return {authenticated,rows,number:Number(pages?.[1]),total:Number(pages?.[2]),
     empty:table?.innerText.includes('No props found')===true};

@@ -4,6 +4,7 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const {execFileSync}=require('node:child_process');
 const SEED='aef07d2aecb75388c6757c9cc5844b2113d6a0ac';
 const ROOT='research/pickfinder-premium-deep';
+const {captureDashboard}=require('./pickfinder-dashboard-research.cjs');
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const git=(root,args)=>execFileSync('git',['-C',root,...args],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']});
 function scope(book,row){
@@ -35,7 +36,7 @@ function seedBatches(root){
 }
 function priorDone(root){
  const done=new Set(),files=git(root,['ls-tree','-r','--name-only','HEAD','--',ROOT+'/'+SEED]).toString().trim().split('\n').filter(x=>x.endsWith('/research.json'));
- for(const file of files){const b=JSON.parse(git(root,['show','HEAD:'+file]));if(b.seed!==SEED||b.schema!=='pickfinder-deep-v1')throw Error('checkpoint contract');for(const r of b.records)if(r.status==='sampled'&&r.research?.length&&/^[a-f0-9]{64}$/.test(r.key))done.add(r.key);}
+ for(const file of files){const b=JSON.parse(git(root,['show','HEAD:'+file]));if(b.seed!==SEED||b.schema!=='pickfinder-deep-v1')throw Error('checkpoint contract');for(const r of b.records)if(r.status==='sampled'&&r.profileCollection?.truncated===false&&r.research?.length&&/^[a-f0-9]{64}$/.test(r.key))done.add(r.key);}
  return done;
 }
 function inventory(){
@@ -52,6 +53,7 @@ async function run({root,context,page,enrich,collect,limit=20,shouldContinue=()=
  diagnostics.controls=await page.evaluate(inventory);
  // Only follow uniquely visible same-origin read-only dashboard anchors. Builder and alerts are inventory-only.
  diagnostics.dashboards={};
+ const dashboardSnapshots=[];
  for(const name of ['Games','Discrepancies','Popular']){
   if(!shouldContinue())break;
   try{
@@ -63,7 +65,9 @@ async function run({root,context,page,enrich,collect,limit=20,shouldContinue=()=
    await page.goto(u.href,{timeout:15000});
    await page.waitForFunction(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium'),null,{timeout:12000});
    if(!await premium(page))throw Error('session unavailable');
-   diagnostics.dashboards[name]={state:'visible_route',controls:await page.evaluate(inventory)};
+   const snapshot=await captureDashboard(page,name);
+   dashboardSnapshots.push(snapshot);
+   diagnostics.dashboards[name]={state:snapshot.tables.length||snapshot.cards.length?'observed':'no_visible_records',tables:snapshot.tables.length,cards:snapshot.cards.length,controls:await page.evaluate(inventory)};
   }catch{diagnostics.dashboards[name]={state:'unverified'};await page.goto('https://www.pickfinder.app/props',{timeout:20000});await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:15000});if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
  }
  for(const code of ['DOTA2','SOCCER']){
@@ -72,7 +76,7 @@ async function run({root,context,page,enrich,collect,limit=20,shouldContinue=()=
    const b=await collect(page,{book:'prizepicks',code,maxPages:1,shouldContinue});
    diagnostics[code]={state:b.boardState,pages:b.pages.length,displayedPages:b.displayedPageCount||null,failure:b.failure||null,controls:await page.evaluate(inventory)};
   }catch{diagnostics[code]={state:'failed',controls:await page.evaluate(inventory).catch(()=>null)};}
-  if(!await premium(page))throw Error('session unavailable');
+  if(!await premium(page)){diagnostics[code].sessionUnverified=true;await page.goto('https://www.pickfinder.app/props',{timeout:20000});await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:15000});}
  }
  const detail=await context.newPage();detail.setDefaultTimeout(5000);
  for(const item of q.pending.slice(0,limit)){
@@ -84,7 +88,7 @@ async function run({root,context,page,enrich,collect,limit=20,shouldContinue=()=
   }catch{records.push({...item,status:'failed',research:[]});if(!await premium(detail).catch(()=>false))break;}
  }
  const finishedAt=new Date().toISOString(),id=crypto.randomUUID(),prefix=ROOT+'/'+SEED+'/'+id;
- const data={schema:'pickfinder-deep-v1',seed:SEED,startedAt,finishedAt,diagnostics,records,modelInputsApproved:false,originalOffersVerified:false};
+ const data={schema:'pickfinder-deep-v1',seed:SEED,startedAt,finishedAt,diagnostics,dashboardSnapshots,records,modelInputsApproved:false,originalOffersVerified:false};
  const target=path.join(root,prefix);
  fs.mkdirSync(target,{recursive:true,mode:0o700});
  const file=prefix+'/research.json',raw=JSON.stringify(data);
@@ -103,7 +107,7 @@ async function run({root,context,page,enrich,collect,limit=20,shouldContinue=()=
  if(!sha)throw Error('deep archive push failed');
  git(root,['fetch','origin','main']);git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']);
  if(hash(git(root,['show','FETCH_HEAD:'+file]))!==hash(raw))throw Error('deep archive digest mismatch');
- const sampled=records.filter(r=>r.status==='sampled').length;
- return {state:'deep_research_verified',sha,queueTotal:q.total,priorSampled:done.size,attempted:records.length,sampled,remaining:q.pending.length-sampled,diagnostics,rawRowsPublished:0,modelInputsApproved:false};
+ const sampled=records.filter(r=>r.status==='sampled').length,complete=records.filter(r=>r.status==='sampled'&&r.profileCollection?.truncated===false).length;
+ return {state:'deep_research_verified',sha,queueTotal:q.total,priorSampled:done.size,attempted:records.length,sampled,completeUntruncatedProfiles:complete,remaining:q.pending.length-complete,diagnostics,rawRowsPublished:0,modelInputsApproved:false};
 }
 module.exports={scope,queue,inventory,run};

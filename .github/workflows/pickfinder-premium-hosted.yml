@@ -79,6 +79,7 @@ jobs:
           GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
           REQUESTED_MODE: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-cs2]') && 'cs2_reconcile_now' || github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-deep]') && 'deep_research_now' || github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-reconcile]') && 'full_reconcile_now' || github.event_name == 'push' && 'probe_now' || inputs.mode }}
+          RUN_DEEP_AFTER_FULL: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-all-research]') && '1' || '0' }}
           PICKFINDER_SCHEDULE_RESEARCH_PILOT: ${{ github.event_name == 'schedule' && '1' || '0' }}
           PICKFINDER_PRIOR_AUTH_PROOF: ${{ steps.prior-auth.outputs.verified }}
           PICKFINDER_AUTOMATION_AUTHORIZED: ${{ vars.PICKFINDER_AUTOMATION_AUTHORIZED }}
@@ -97,7 +98,15 @@ jobs:
           NODE_PATH: ${{ runner.temp }}/pickfinder-deps/node_modules
         run: |
           set -euo pipefail
-          node public-source/scripts/pickfinder-unattended-runner.cjs
+          if [[ "$REQUESTED_MODE" == full_reconcile_now && "$GITHUB_EVENT_NAME" == push && "$RUN_DEEP_AFTER_FULL" == 1 ]]; then
+            full_status=0
+            node public-source/scripts/pickfinder-unattended-runner.cjs || full_status=$?
+            deep_status=0
+            REQUESTED_MODE=deep_research_now node public-source/scripts/pickfinder-unattended-runner.cjs || deep_status=$?
+            test "$full_status" = 0 && test "$deep_status" = 0
+          else
+            node public-source/scripts/pickfinder-unattended-runner.cjs
+          fi
       - name: Remove temporary profile
         if: always()
         run: rm -rf "$RUNNER_TEMP/pickfinder-profile"

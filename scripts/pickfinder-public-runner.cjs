@@ -9,6 +9,7 @@ function invocation(env,now=new Date()){
  if(env.GITHUB_EVENT_NAME==='schedule'&&/^[0-9]+ (6|9) \* \* \*$/.test(env.GITHUB_EVENT_SCHEDULE))return decide({eventName:'schedule',schedule:env.GITHUB_EVENT_SCHEDULE,now});
  if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&['capture_0600','capture_0900'].includes(env.REQUESTED_MODE))return decide({eventName:'workflow_dispatch',mode:env.REQUESTED_MODE,now});
  const clock=pacific(now),mode=env.REQUESTED_MODE||'board_and_deep';
+ if(mode==='timezone_validation'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual experiment only');return {allowed:![5,6,8,9].includes(clock.hour),expected:'manual',clock,timezoneOnly:true,state:'timezone_experiment_gate'};}
  if(!['board_and_deep','deep_research_now','probe_now','nba_context_only','features_only','boards_only'].includes(mode))throw Error('mode');
  if([6,9].includes(clock.hour)||(['features_only','boards_only','nba_context_only'].includes(mode)&&[5,8].includes(clock.hour)))return {allowed:false,state:'protect_morning_hour',clock};
  return {allowed:true,expected:'manual',clock,deep:['deep_research_now','nba_context_only','features_only'].includes(mode),contextOnly:mode==='nba_context_only',featuresOnly:mode==='features_only',boardsOnly:mode==='boards_only',probe:mode==='probe_now'};
@@ -65,7 +66,9 @@ function publicProfile(row){
 const premium=page=>page.evaluate(()=>document.body.innerText.split('\n').some(x=>x.trim()==='Premium')&&!!document.querySelector('button[aria-label="Open user menu"]'));
 async function main(root,env=process.env){
  assertDestination(root);const p=invocation(env);if(!p.allowed){console.log(JSON.stringify(p));return;}
- const {chromium}=require('playwright');const {page,context}=await openHostedBoard(chromium,env);
+ const {chromium}=require('playwright');
+ if(p.timezoneOnly){const probe=require('./pickfinder-controlled-clock.cjs'),until=Date.now()+8*60000;const alive=()=>Date.now()<until&&pacific(new Date()).day===p.clock.day&&![5,6,8,9].includes(pacific(new Date()).hour);const targets=probe.select(load(root),new Date().toISOString());const result=await probe.observe({targets,open:zone=>openHostedBoard(chromium,env,zone),alive,write:data=>persist(root,'directory',data),premium,origin:ORIGIN});console.log(JSON.stringify({state:'controlled_clock_experiment',...result}));return;}
+ const {page,context}=await openHostedBoard(chromium,env);
  const started=Date.now(),deadline=started+(p.expected==='manual'?40:45)*60000,alive=()=>{const c=pacific(new Date());return Date.now()<deadline&&c.day===p.clock.day&&(p.expected==='manual'?!(p.featuresOnly||p.boardsOnly||p.contextOnly?[5,6,8,9]:[6,9]).includes(c.hour):c.hour===p.clock.hour&&c.minute<55);};
  let boards=0,profiles=0,archiveMs=0,transactions=0,profileMs=0,errors=0;const write=async(kind,data)=>{const t=Date.now();const receipt=await persist(root,kind,data);archiveMs+=Date.now()-t;transactions++;return receipt;};
  try{

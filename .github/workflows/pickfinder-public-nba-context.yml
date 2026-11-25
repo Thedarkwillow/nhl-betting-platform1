@@ -1,8 +1,14 @@
 name: Targeted public NBA player event context
 on:
   pull_request:
-    paths: ['scripts/pickfinder-public-nba-context.cjs','scripts/pickfinder-public-runner.cjs','test/pickfinder-public-nba-context.test.cjs','.github/workflows/pickfinder-public-nba-context.yml']
+    paths: ['scripts/pickfinder-public-nba-context.cjs','scripts/pickfinder-public-runner.cjs','test/pickfinder-public-nba-context.test.cjs','scripts/pickfinder-controlled-clock.cjs','test/pickfinder-controlled-clock.test.cjs','scripts/pickfinder-unattended-runner.cjs','.github/workflows/pickfinder-public-nba-context.yml']
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Bounded timezone validation or normal context collection'
+        type: choice
+        options: [timezone_validation, nba_context_only]
+        default: timezone_validation
   schedule:
     - cron: '5 7 * * *'
       timezone: America/Los_Angeles
@@ -20,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - run: node --test test/pickfinder-public-nba-context.test.cjs test/pickfinder-public-runner.test.cjs
+      - run: node --test test/pickfinder-public-nba-context.test.cjs test/pickfinder-public-runner.test.cjs test/pickfinder-controlled-clock.test.cjs
   collect:
     needs: test
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1'
@@ -47,7 +53,7 @@ jobs:
           "$RUNNER_TEMP/pickfinder-deps/node_modules/.bin/playwright" install --with-deps chromium
       - name: Capture targeted source context
         env:
-          REQUESTED_MODE: nba_context_only
+          REQUESTED_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'nba_context_only' }}
           PICKFINDER_PUBLIC_DATA_AUTHORIZED: '1'
           PICKFINDER_AUTOMATION_AUTHORIZED: ${{ vars.PICKFINDER_AUTOMATION_AUTHORIZED }}
           PICKFINDER_EMAIL: ${{ secrets.PICKFINDER_EMAIL }}

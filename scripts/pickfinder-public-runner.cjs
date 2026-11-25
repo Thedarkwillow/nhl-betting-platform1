@@ -21,19 +21,28 @@ function splitBoard(n){
   let rows=[],bytes=0;for(const value of values||[]){const size=Buffer.byteLength(JSON.stringify(value))+1;if(size>2000000)throw Error('record too large');if(bytes+size>2000000){parts.push({schema:'pickfinder-public-board-part-v1',book:n.book,sport:n.sport,sourceDigest:n.sourceDigest,field,rows});rows=[];bytes=0;}rows.push(value);bytes+=size;}if(rows.length)parts.push({schema:'pickfinder-public-board-part-v1',book:n.book,sport:n.sport,sourceDigest:n.sourceDigest,field,rows});
  }return {meta,parts};
 }
+function sharedScope(s){
+ const {sport,player,market,eventId,detailId}=s;
+ if(!sport||!player||!market||!eventId||!detailId)return null;
+ let u;try{u=new URL(detailId,ORIGIN);}catch{return null;}
+ if(u.origin!==ORIGIN||!u.pathname.startsWith('/players/')||u.searchParams.getAll('prop').length!==1||[...u.searchParams.keys()].some(k=>k!=='prop'))return null;
+ return {sport,player,market,eventId,detailId:u.pathname+'?'+u.searchParams.toString(),period:s.period??null,mapRange:s.mapRange??null,gameMode:s.gameMode??null};
+}
 function queue(boards,profiles){
- const done=new Set(),attempted=new Map();for(const b of profiles)for(const r of b.records||[]){attempted.set(r.key,(attempted.get(r.key)||0)+1);if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&r.research?.length)done.add(r.key);}
- const q=new Map();for(const b of boards)for(const o of [...b.offers||[],...b.unpricedTierObservations||[],...(['offers','unpricedTierObservations'].includes(b.field)?b.rows:[])]){
-  if(!o.eventId||!o.detailId||!o.player||!o.market)continue;
-  const u=new URL(o.detailId,ORIGIN);if(u.origin!==ORIGIN||!u.pathname.startsWith('/players/')||!u.searchParams.has('prop')||[...u.searchParams.keys()].some(k=>k!=='prop'))continue;
-  const s={book:b.book,sport:b.sport,player:o.player,market:o.market,eventId:o.eventId,detailId:o.detailId,period:o.period??null,mapRange:o.mapRange??null,gameMode:o.gameMode??null};
-  const key=sha(JSON.stringify(s));q.set(key,{key,...s});
+ const done=new Set(),attempted=new Map();for(const b of profiles)for(const r of b.records||[]){const scope=sharedScope(r);if(!scope)continue;const key=sha(JSON.stringify(scope));attempted.set(key,(attempted.get(key)||0)+1);if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&r.research?.length)done.add(key);}
+ const q=new Map();let references=0;
+ for(const b of boards)for(const o of [...b.offers||[],...b.unpricedTierObservations||[],...(['offers','unpricedTierObservations'].includes(b.field)?b.rows:[])]){
+  if(!['prizepicks','underdog'].includes(b.book))continue;
+  const scope=sharedScope({...o,sport:b.sport});if(!scope)continue;
+  const key=sha(JSON.stringify(scope)),prev=q.get(key);references++;
+  const books=[...new Set([...(prev?.books||[]),b.book])].sort();
+  q.set(key,{key,...scope,book:books[0],books});
  }
  const groups=new Map();for(const x of q.values())if(!done.has(x.key)){const a=groups.get(x.sport)||[];a.push(x);groups.set(x.sport,a);}
  const order=['nba','nhl','nfl','cs2','dota2','valorant','lol','cod',...groups.keys()];const sports=[...new Set(order)].filter(s=>groups.has(s));
  for(const a of groups.values())a.sort((x,y)=>(attempted.get(x.key)||0)-(attempted.get(y.key)||0));
  const i=new Map(),pending=[];while(sports.some(s=>(i.get(s)||0)<groups.get(s).length))for(const s of sports){const n=i.get(s)||0;if(n<groups.get(s).length){pending.push(groups.get(s)[n]);i.set(s,n+1);}}
- return {total:q.size,done:[...done].filter(k=>q.has(k)).length,pending};
+ return {total:q.size,done:[...done].filter(k=>q.has(k)).length,pending,offerReferences:references,sharedAcrossBooks:[...q.values()].filter(x=>x.books.length>1).length};
 }
 function publicProfile(row){
  const fields=[];for(const f of row.research||[]){
@@ -41,7 +50,7 @@ function publicProfile(row){
   if(!['profile','line_movement','prop_history'].includes(f.origin)||!f.metric||/^displayed panel/.test(f.metric))continue;
   try{fields.push(safe({origin:f.origin,tab:f.tab,scope:f.scope,metric:f.metric,value:f.value,observedAt:f.observedAt,period:f.period??null,mapRange:f.mapRange??null,gameMode:f.gameMode??null,window:f.window??null,filterSelection:f.filterSelection??null}));}catch{}
  }
- return {key:row.key,book:row.book,sport:row.sport,player:row.player,market:row.market,eventId:row.eventId,detailId:row.detailId,period:row.period,mapRange:row.mapRange,gameMode:row.gameMode,status:fields.length?'sampled':'empty',coverageVersion:VERSION,truncated:row.profileCollection?.truncated!==false,research:fields,excludedFields:(row.research||[]).length-fields.length,modelInputsApproved:false,originalOffersVerified:false};
+ return {key:row.key,book:row.book,books:row.books||[row.book],bookCoverageVerified:false,sport:row.sport,player:row.player,market:row.market,eventId:row.eventId,detailId:row.detailId,period:row.period,mapRange:row.mapRange,gameMode:row.gameMode,status:fields.length?'sampled':'empty',coverageVersion:VERSION,truncated:row.profileCollection?.truncated!==false,research:fields,excludedFields:(row.research||[]).length-fields.length,modelInputsApproved:false,originalOffersVerified:false};
 }
 const premium=page=>page.evaluate(()=>document.body.innerText.split('\n').some(x=>x.trim()==='Premium')&&!!document.querySelector('button[aria-label="Open user menu"]'));
 async function main(root,env=process.env){
@@ -63,7 +72,7 @@ async function main(root,env=process.env){
   }}
   // Morning board acquisition is independent of deep research and must never delay next slot.
   if(p.expected!=='manual')return;
-  const q=queue(read(root,'board-parts'),read(root,'profiles'));console.log(JSON.stringify({state:'public_deep_queue',total:q.total,completed:q.done,remaining:q.pending.length,legacyPrivateHistoryImported:false}));
+  const q=queue(read(root,'board-parts'),read(root,'profiles'));console.log(JSON.stringify({state:'public_deep_queue',total:q.total,completed:q.done,remaining:q.pending.length,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
   const detail=await context.newPage();detail.setDefaultTimeout(5000);
   const buffer=checkpointBuffer({write:rows=>write('profiles',{schema:'pickfinder-public-profiles-v1',observedAt:new Date().toISOString(),records:rows,modelInputsApproved:false}),onVerified:r=>{profiles++;console.log(JSON.stringify({state:'public_deep_scope_checkpoint_verified',sport:r.sport,book:r.book,status:r.status,truncated:r.truncated,verifiedThisRun:profiles}));}});
   try{

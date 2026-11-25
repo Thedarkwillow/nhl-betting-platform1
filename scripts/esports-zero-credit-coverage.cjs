@@ -13,6 +13,12 @@ function summary(doc){
  }
  return rows;
 }
+function quota(headers){
+ const integer=v=>typeof v==="string"&&/^\d{1,12}$/.test(v)?Number(v):null;
+ const unit=headers.get("X-Usage-Unit");
+ const reset=headers.get("X-Quota-Reset");
+ return {remainingCredits:integer(headers.get("X-Credits-Remaining")),remainingRequests:integer(headers.get("X-Requests-Remaining")),usageUnit:["credit","credits","request","requests"].includes(unit)?unit:null,resetAt:reset&&Number.isFinite(Date.parse(reset))?new Date(Date.parse(reset)).toISOString():null};
+}
 async function check(platform,key,client=fetch){
  if(!key)return {platform,configured:false,status:"missing_key"};
  const p=providers[platform];
@@ -26,9 +32,9 @@ async function check(platform,key,client=fetch){
   const rd=r.body.getReader(),buf=[];let n=0;
   try{for(;;){const q=await rd.read();if(q.done)break;n+=q.value.length;if(n>2_000_000){await rd.cancel();throw Error();}buf.push(Buffer.from(q.value));}}finally{rd.releaseLock();}
   const checkedAt=new Date().toISOString(),rows=summary(JSON.parse(Buffer.concat(buf).toString("utf8"))).map(x=>({...x,ageMinutes:x.observedAt===null?null:Math.max(0,Math.round((Date.parse(checkedAt)-Date.parse(x.observedAt))/60000)),freshnessVerified:x.observedAt!==null&&Date.parse(x.observedAt)<=Date.parse(checkedAt)&&Date.parse(checkedAt)-Date.parse(x.observedAt)<=900000}));
-  return {platform,configured:true,status:"authenticated_independent_metadata",checkedAt,chargedCredits:charge==="0"?0:null,rows,originalAppAvailabilityVerified:false};
+  return {platform,configured:true,status:"authenticated_independent_metadata",checkedAt,chargedCredits:charge==="0"?0:null,quota:quota(r.headers),rows,originalAppAvailabilityVerified:false};
  }catch{return {platform,configured:true,status:"coverage_contract_unavailable"};}
 }
 async function main(){const results=[];for(const [p,c] of Object.entries(providers))results.push(await check(p,process.env[c.key]));console.log(JSON.stringify({kind:"esports_independent_zero_credit_coverage_v1",results,documentedMeteredEndpointsCalled:0,originalOffersVerified:0,rawRowsPublished:0}));if(results.some(x=>x.status==="unexpected_nonzero_charge"))process.exitCode=1;}
 if(require.main===module)main().catch(()=>{console.error("Coverage failed closed");process.exitCode=1});
-module.exports={summary,check};
+module.exports={summary,check,quota};

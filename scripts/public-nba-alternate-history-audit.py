@@ -96,6 +96,23 @@ def nfl_join(facts,history,at):
             c=[x for x in history.get("rosters",[]) if x["week"]==n["week"] and x["espnId"]==e["playerId"] and x["team"]==nt(e["team"]) and x["team"] in pair]
             if len(c)==1:rows.add((n["gameId"],e["playerId"],c[0]["gsisId"]))
     return {"matchedEvents":len(games),"candidateRows":len(rows),"pickfinderIdentityVerified":False}
+def model_input(history):
+    # Match the existing NBA research model's normalized row shape.
+    # Mirror provenance remains separate from direct NBA Stats retrieval.
+    rows=[]
+    for h in history:
+        p,r,a=h["pts"],h["reb"],h["ast"]
+        rows.append({"gameId":int(h["game"]),"gameDate":h["day"],"playerId":int(h["player"]),"player":h["name"],"team":h["team"],"opponent":h["opponent"],"home":h["home"],"minutes":h["minutes"],"wl":h["wl"],"points":p,"rebounds":r,"assists":a,"threePointersMade":h["fg3m"],"steals":h["stl"],"blocks":h["blk"],"turnovers":h["tov"],"pointsReboundsAssists":p+r+a,"pointsRebounds":p+r,"pointsAssists":p+a,"reboundsAssists":r+a})
+    return rows
+def evaluate_model(history):
+    if not history:return {"status":"pending","reason":"no_normalized_history"}
+    try:
+        payload=json.dumps({"kind":"nba_alternate_mirror_model_input_v1","rows":model_input(history)},allow_nan=False)
+        result=subprocess.run(["node",str(ROOT/"scripts/public-nba-mirror-model-evaluation.cjs")],input=payload,text=True,capture_output=True,check=True,timeout=240,cwd=ROOT)
+        out=json.loads(result.stdout)
+        if out.get("kind")!="nba_alternate_mirror_model_evaluation_v1":raise ValueError("unexpected model report")
+        return out
+    except (ValueError,OSError,subprocess.SubprocessError) as e:return {"status":"pending","reason":type(e).__name__}
 def main():
     today=dt.datetime.now(dt.timezone.utc).date();history=[];seasons={}
     for season in SEASONS:
@@ -113,6 +130,6 @@ def main():
     except Exception as e:cross={"status":"pending","reason":type(e).__name__}
     nfls=[x for x in read_docs("research/pickfinder-public-nfl-v1/season","nflverse_public_native_history_v1") if x.get("season")==2026]
     nfl=nfl_join(native_facts("nfl"),max(nfls,key=lambda x:x["observedAt"]) if nfls else {},dt.datetime.now(dt.timezone.utc))
-    out={"kind":"public_nba_alternate_history_audit_v1","generatedAt":now(),"seasons":seasons,"acceptedRows":len(history),"nbaNativeCrosswalk":cross,"nflNativeCrosswalk":nfl,"rawRowsPublished":0,"officialFinalClockVerified":False,"independentlyReviewedPickfinderCrosswalks":0,"modelApproved":False,"paidRequests":0,"privateRepoUsed":False,"sourceUse":"counts-only research source audit; upstream redistribution and commercial rights not established"}
+    out={"kind":"public_nba_alternate_history_audit_v1","generatedAt":now(),"seasons":seasons,"acceptedRows":len(history),"nbaNativeCrosswalk":cross,"nflNativeCrosswalk":nfl,"modelEvaluation":evaluate_model(history),"rawRowsPublished":0,"officialFinalClockVerified":False,"independentlyReviewedPickfinderCrosswalks":0,"modelApproved":False,"paidRequests":0,"privateRepoUsed":False,"sourceUse":"owner-confirmed commercial research and redistribution permission; documentary license not independently reviewed; raw rows not republished","sourcePermission":"user_attested_2026-11-25"}
     p=ROOT/"data/pickfinder-public-nba-alternate-health.json";p.parent.mkdir(exist_ok=True);p.write_text(json.dumps(out,indent=2)+"\n");print(json.dumps(out))
 if __name__=="__main__":main()

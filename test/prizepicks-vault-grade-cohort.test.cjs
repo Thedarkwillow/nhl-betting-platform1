@@ -15,7 +15,7 @@ t('witness and seven original frames require exact immutable commit and bytes, p
  const vault={privateRepo:async()=>{},first:async p=>({sha:paths.get(p).commit,at:paths.get(p).at}),read:async p=>paths.get(p)};
  const c=await cohort(vault,clock);a.equal(c.frames.length,7);a.equal(c.frames.flatMap(f=>f.rows).length,547);a.equal(c.archivedAt,'2026-11-25T18:18:00.000Z');a.equal(c.serverPushTimestampVerified,false);
  await a.rejects(cohort(vault,'2026-11-25T18:16:00Z'),/witness_invalid/);
- const bad={...vault,read:async(p,ref)=>p===frames[0].path&&ref==='main'?{...paths.get(p),bytes:Buffer.from('changed')}:paths.get(p)};
+ const bad={...vault,read:async(p,ref='main')=>p===frames[0].path&&ref==='main'?{...paths.get(p),bytes:Buffer.from('changed')}:paths.get(p)};
  await a.rejects(cohort(bad,clock),/forecast_integrity/);
 });
 t('NFL sidecar requires exact original pregame identity and season receipts; never edits input',()=>{

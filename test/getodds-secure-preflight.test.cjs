@@ -24,3 +24,9 @@ test("bounded source requests with explicit confirmed free allowance",async()=>{
  const r=await run({GETODDS_API_KEY:"synthetic",GETODDS_FREE_PLAN_CONFIRMED:"1"},mock);
  assert.equal(r.dataRequests,2);assert.equal(r.sources.prizepicks.httpStatus,200);assert.equal(r.sources.underdog.sample.rows,0);
 });
+
+test("existing GETODDSAPI alias authenticates without printing the key",async()=>{
+ const calls=[];
+ const r=await run({GETODDSAPI:"synthetic"},async(u,o)=>{calls.push(u);assert.equal(o.headers.Authorization,"Bearer synthetic");return new Response("",{status:401});});
+ assert.equal(r.credentialConfigured,true);assert.equal(r.status,"invalid_or_revoked_key");assert.equal(r.dataRequests,0);assert.equal(calls.length,1);assert.equal(JSON.stringify(r).includes("synthetic"),false);
+});

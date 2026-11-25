@@ -1,0 +1,61 @@
+name: Public NFL native history and ID evidence
+on:
+  pull_request:
+    paths: ['scripts/public-nfl-native-history.py','test/test_public_nfl_native_history.py','.github/workflows/public-nfl-native-history.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/public-nfl-native-history.py','.github/workflows/public-nfl-native-history.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '42 5,10 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: public-nfl-native-history-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python -m unittest discover -s test -p test_public_nfl_native_history.py
+  collect:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'nflreadpy>=0.1,<2'
+      - run: python scripts/public-nfl-native-history.py
+      - name: Commit normalized public evidence
+        run: |
+          set -euo pipefail
+          git add -f data/pickfinder-public-nfl-history-health.json
+          if test -d research/pickfinder-public-nfl-v1; then git add -f research/pickfinder-public-nfl-v1; fi
+          git diff --cached --quiet && exit 0
+          test -z "$(git diff --cached --name-only --diff-filter=CDRTUXB)"
+          git config user.name 'Public NFL evidence'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Archive attributed NFL native identity and historical facts'
+          for i in 1 2 3 4 5 6; do
+            git fetch --quiet origin main
+            git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
+            if git push --quiet origin HEAD:main; then
+              git fetch --quiet origin main
+              git merge-base --is-ancestor HEAD FETCH_HEAD
+              exit 0
+            fi
+            sleep "$((2*i))"
+          done
+          exit 1

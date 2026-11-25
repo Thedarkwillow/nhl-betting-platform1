@@ -34,10 +34,10 @@ def lineup_valid(doc,game_id):
 class Client:
     def __init__(self,key,max_calls=MAX_CALLS):
         if not 1<=max_calls<=40:raise ValueError("request_cap")
-        self.key=key;self.calls=0;self.stopped=False;self.max_calls=max_calls
+        self.key=key;self.calls=0;self.stopped=False;self.max_calls=max_calls;self.rateLimitRetryAfterSeconds=None;self.quotaRemaining=None;self.quotaResetSeconds=None;self.rateLimitReason=None
     def get(self,path):
         if self.stopped or self.calls>=self.max_calls:raise ValueError("request_cap")
-        if self.calls:time.sleep(6.5)
+        if self.calls:time.sleep(9)
         self.calls+=1
         req=urllib.request.Request(BASE+path,headers={"Authorization":"Bearer "+self.key,"Accept":"application/json","User-Agent":"EsportsResearchContract/1.0"})
         # Do not forward credentials to redirects.
@@ -46,12 +46,23 @@ class Client:
         try:
             with urllib.request.build_opener(NoRedirect()).open(req,timeout=20) as r:
                 body=r.read(3_000_001)
+                for name,attr in [('RateLimit-Remaining','quotaRemaining'),('RateLimit-Reset','quotaResetSeconds')]:
+                    value=r.headers.get(name,'')
+                    if value.isdigit() and len(value)<=10:setattr(self,attr,int(value))
+                if self.quotaRemaining is not None and self.quotaRemaining<=10:self.stopped=True
             if len(body)>3_000_000:raise ValueError("response_cap")
             doc=json.loads(body)
             if not isinstance(doc,dict) or "data" not in doc:raise ValueError("response_contract")
             return doc
         except urllib.error.HTTPError as e:
             if e.code in (401,403,429) or 300<=e.code<400:self.stopped=True
+            if e.code==429:
+                value=e.headers.get('Retry-After','') if e.headers else ''
+                self.rateLimitRetryAfterSeconds=int(value) if value.isdigit() and len(value)<=7 else None
+                try:
+                    err=json.loads(e.read(16384)).get('error',{}).get('code')
+                    if err in ('rate_limited','quota_exceeded'):self.rateLimitReason=err
+                except (ValueError,AttributeError,TypeError):pass
             raise ValueError("http_"+str(e.code)) from None
 def audit(client,now):
     report={"kind":"datasportsapi_esports_preflight_v1","status":"connected","fixturesRead":0,"upcomingFixtures":0,"finishedFixtures":0,"completedGames":0,"completeLineupMaps":0,"playerMapRows":0,"statCoverage":{},"errors":{},"fixturePaginationComplete":False,"historicalArchiveEnabled":False,"originalOffersMatched":0,"officialSettlementVerified":False,"rawRowsPublished":0,"paidEndpointsCalled":0,"modelPromoted":False}

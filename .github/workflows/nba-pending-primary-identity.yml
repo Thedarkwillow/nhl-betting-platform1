@@ -1,0 +1,35 @@
+name: NBA remaining primary identity audit
+on:
+  pull_request:
+    paths: ['scripts/nba_pending_primary_identity_audit.py','test/test_nba_pending_primary_identity_audit.py','.github/workflows/nba-pending-primary-identity.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/nba-pending-primary-identity.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s test -p test_nba_pending_primary_identity_audit.py
+  audit:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/nba-pending-identity-review-20261124
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: restricted
+          persist-credentials: false
+      - run: python3 scripts/nba_pending_primary_identity_audit.py restricted/research/nba-pending-identity-review-20261124

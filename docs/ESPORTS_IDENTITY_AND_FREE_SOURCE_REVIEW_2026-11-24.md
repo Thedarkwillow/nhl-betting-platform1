@@ -1,0 +1,10 @@
+# Non-Cito source review and remaining evidence gates (2026-11-24 PT)
+
+- DataSportsAPI: free tier 10 requests/minute, daily quota shown by RateLimit headers. Treat `rate_limited` and `quota_exceeded` separately, stop on both, no retry loops. https://datasportsapi.com/docs/limits/ and https://datasportsapi.com/docs/errors/
+- DataSportsAPI game-lineup endpoint documents CS2 headshots, Dota last hits, LoL creep score. Current-profile search and player detail are free; an exact alias/team match is a candidate only, not an official Steam link. https://datasportsapi.com/docs/fixtures/game-lineups/ and https://datasportsapi.com/docs/search/query/
+- Riot GRID Open Access (launched Nov 12, 2026) offers official LoL/Valorant data. Commercial licensing is separate; do not ingest or publish until approved use scope and credentials are verified. https://grid.gg/riot-open-access/
+- VLRdevAPI and vlrggapi are unofficial clients; client MIT licensing does not license VLR underlying records. The hosted vlrggapi instance reports free-tier exhaustion. No scraping or production activation presumed. https://github.com/axsddlr/vlrggapi
+- COD: cdlhub documents 151,463 historical rows, but modern CDL seasons are Cito-derived and held locally. Do not count them as freely downloadable independent records. The older Activision CWL archive and wiki remain distinct historical research sources. https://github.com/WillTufff/COD-DataAnalysis
+- NBA: four pending reconstructed identities can be checked against current ESPN primary rosters; current identity cannot certify original injury-report availability. The untouched qualification plan remains locked, minimum 100 decisions/30 games/10 dates per market and no reuse of development holdouts.
+- Migration: the four NBA offline test files match private-main blob hashes. Test them on the public checkout, without secrets. The two orchestration scripts differ from private main; do not blindly replace either or disable the existing live workflow. Preserve private raw archives.
+- No new paid calls, no Cito, no model promotion or original-offer grading claims.

@@ -76,7 +76,7 @@ def collect(client,now,days,previous=(),pending=None,retry=()):
                     if not isinstance(gs,list):raise ValueError("game_contract")
                     games=[g for g in gs if game_valid(g,now)]
                     ids=Counter(g["id"] for g in games);nums=Counter(g["number"] for g in games)
-                    for g in sorted(games,key=lambda x:x["number"]):
+                    for g in sorted(games,key=lambda x:(0 if any(str(item.get("fixture",{}).get("id"))==str(fid) and str(item.get("game",{}).get("id"))==str(x["id"]) for item in retry) else 1,x["number"])):
                         if client.stopped or client.calls>=client.max_calls:break
                         if ids[g["id"]]!=1 or nums[g["number"]]!=1:excluded["ambiguous_game"]+=1;continue
                         key=(str(fid),str(g["id"]))
@@ -95,7 +95,7 @@ def collect(client,now,days,previous=(),pending=None,retry=()):
                             elif len(d["home"])!=5 or len(d["away"])!=5:reason="lineup_not_five_per_side"
                             else:reason="lineup_missing_identity_or_stats"
                             excluded[reason]+=1
-                            if reason=="lineup_empty_side":pending.append({"title":title,"fixture":f,"game":g,"reason":reason})
+                            if reason in ("lineup_empty_side","lineup_not_five_per_side","lineup_missing_identity_or_stats"):pending.append({"title":title,"fixture":f,"game":g,"reason":reason})
                             counts[title+":incompleteLineups"]+=1
                             continue
                         batch=[]
@@ -119,7 +119,7 @@ def collect(client,now,days,previous=(),pending=None,retry=()):
         key=(str(x["fixture"]["id"]),str(x["game"]["id"]))
         if key not in known:unique[key]=x
     pending[:]=list(unique.values())
-    report.update(pendingLineups=len(pending),requests=client.calls,counts=dict(counts),excluded=dict(excluded),titleDateComplete=len(completed_days),fullHistoryVerified=False,status="sample_captured" if out else "no_verified_game_rows")
+    report.update(rateLimitReason=getattr(client,"rateLimitReason",None),quotaRemaining=getattr(client,"quotaRemaining",None),quotaResetSeconds=getattr(client,"quotaResetSeconds",None),rateLimitRetryAfterSeconds=getattr(client,"rateLimitRetryAfterSeconds",None),pendingLineups=len(pending),requests=client.calls,counts=dict(counts),excluded=dict(excluded),titleDateComplete=len(completed_days),fullHistoryVerified=False,status="sample_captured" if out else "no_verified_game_rows")
     return report,out
 def main():
     key=os.environ.get("DATASPORTSAPI_API_KEY","").strip()
@@ -134,7 +134,7 @@ def main():
             doc=json.loads(p.read_text())
             if doc.get("kind")=="datasportsapi_restricted_game_archive_v1":
                 previous.extend(doc.get("rows",[]));retry.extend(doc.get("pendingLineups",[]))
-    report,rows=collect(Client(key,max_calls=40 if days==7 else 24),now,days,previous,pending,retry)
+    report,rows=collect(Client(key,max_calls=32 if days==7 else 24),now,days,previous,pending,retry)
     if rows or pending:
         fd=os.open(dest,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
         with os.fdopen(fd,"w") as f:json.dump({"kind":"datasportsapi_restricted_game_archive_v1","observedAt":now.isoformat(),"source":"DataSportsAPI","report":report,"rows":rows,"pendingLineups":pending,"publicRedistributionAllowed":False},f,allow_nan=False)

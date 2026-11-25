@@ -3,12 +3,26 @@ DataSportsAPI archive and manually reviewed Steam crosswalk remain private.
 """
 import json,os,re
 from collections import Counter,defaultdict
-from datetime import date
+from datetime import date,timedelta
 from pathlib import Path
 from cs2_team_identity import norm
 
 MAP_ALIASES={"dust ii":"dust2","dust 2":"dust2","de_dust2":"dust2"}
 MARKETS=("kills","deaths","assists")
+# Scoped CS2 research labels for the reviewed November fixtures only.
+TEAM_ALIASES={
+ "tl":"liquid","team liquid":"liquid",
+ "nip":"ninjas in pyjamas","ninjas in pyjamas":"ninjas in pyjamas",
+ "prv":"parivision","pari vision":"parivision",
+ "faze clan":"faze","faze":"faze",
+ "den":"dendele","dendele":"dendele",
+ "9z team":"9z","9z":"9z",
+ "cw":"chinggis warriors","chinggis warriors":"chinggis warriors",
+ "bcg":"bc.game","bcgame":"bc.game","bc.game esports":"bc.game",
+}
+def reviewed_team(x):
+    n=norm(x)
+    return TEAM_ALIASES.get(n,n)
 def mapname(x):
     n=norm(x)
     return MAP_ALIASES.get(n,n.removeprefix("de_"))
@@ -30,7 +44,7 @@ def one_to_one(pairs):
     for a,b in pairs:left[a].add(b);right[b].add(a)
     return {(a,next(iter(bs))) for a,bs in left.items() if len(bs)==1 and len(right[next(iter(bs))])==1}
 def audit(history,archives,review=None,capture=None):
-    by_event=defaultdict(list);index=defaultdict(list);alias_hist=defaultdict(list)
+    by_event=defaultdict(list);index=defaultdict(list);alias_hist=defaultdict(list);by_date=defaultdict(list)
     for p in history:
         by_event[p["event"]].append(p);alias_hist[norm(p.get("alias"))].append(p)
     for eid,rows in by_event.items():
@@ -38,7 +52,8 @@ def audit(history,archives,review=None,capture=None):
         for p in rows:sides[p["team"]].append(p)
         if len(rows)!=10:continue
         f=fingerprint(rows[0]["date"],rows[0]["map"],[(ps[0].get("teamLabel"),ps[0].get("teamScore"),ps) for ps in sides.values()])
-        if f:index[f].append((eid,rows))
+        if f:
+            index[f].append((eid,rows));by_date[f[0]].append(f)
     counts=Counter();evidence=[];pairs=set();team_pairs=set();map_matches=[];api_alias=defaultdict(list)
     seen={}
     for a in archives:
@@ -61,7 +76,27 @@ def audit(history,archives,review=None,capture=None):
         f=fingerprint(str(g.get("fixtureStartsAt"))[:10],g.get("map"),[(g.get("homeTeam"),g.get("homeScore"),ps[:5]),(g.get("awayTeam"),g.get("awayScore"),ps[5:])])
         if not f:counts["invalidFingerprint"]+=1;continue
         hits=index.get(f,[])
-        if len(hits)!=1:counts["noUniqueExactOverlap"]+=1;continue
+        if len(hits)!=1:
+            counts["noUniqueExactOverlap"]+=1
+            try: d=date.fromisoformat(f[0])
+            except ValueError:continue
+            neighborhood=[q for delta in (-1,0,1) for q in by_date[(d+timedelta(days=delta)).isoformat()]]
+            same_map=[q for q in neighborhood if q[1]==f[1]]
+            same_scores=[q for q in same_map if sorted(z[1] for z in q[2])==sorted(z[1] for z in f[2])]
+            aliases=lambda q:{p[0] for z in q[2] for p in z[2]}
+            roster=[q for q in same_scores if aliases(q)==aliases(f)]
+            team=[q for q in roster if {z[0] for z in q[2]}=={z[0] for z in f[2]}]
+            if not neighborhood:counts["diagnostic_no_nearby_date"]+=1
+            elif not same_map:counts["diagnostic_no_map"]+=1
+            elif not same_scores:counts["diagnostic_no_score_pair"]+=1
+            elif not roster:counts["diagnostic_no_exact_roster"]+=1
+            elif not team:counts["diagnostic_team_labels_differ"]+=1
+            else:counts["diagnostic_stats_or_date_differ"]+=1
+            # A unique adjacent-day identical full fingerprint may reflect a timezone
+            # difference; report it as a candidate, never use it as a verified link.
+            adjacent=[q for q in neighborhood if q[0]!=f[0] and q[1:]==f[1:]]
+            if len(adjacent)==1:counts["adjacent_day_full_fingerprint_candidate"]+=1
+            continue
         eid,hs=hits[0];counts["exactMapMatches"]+=1
         h={norm(p["alias"]):p for p in hs}
         map_matches.append({"historyEvent":eid,"providerFixtureId":key[0],"providerGameId":key[1],"mapOrdinal":g.get("mapOrdinal"),"method":"exact_date_map_team_score_ten_alias_kda","sourceRef":g.get("sourceRef")})
@@ -87,6 +122,14 @@ def audit(history,archives,review=None,capture=None):
             except ValueError:return False
         hs={q["player"] for q in alias_hist[alias] if prior(q["date"]) and norm(q.get("teamLabel"))==team}
         ap={pid for pid,tm,dt in api_alias[alias] if tm==team and prior(dt)}
+        if not hs:
+            counts["steam_no_exact_alias_team"]+=1
+            if any(prior(q["date"]) for q in alias_hist[alias]):counts["steam_alias_present_other_team_label"]+=1
+        elif len(hs)>1:counts["steam_ambiguous_alias_team"]+=1
+        if not hs:
+            hs={q["player"] for q in alias_hist[alias] if prior(q["date"]) and reviewed_team(q.get("teamLabel"))==reviewed_team(team)}
+            if len(hs)==1:counts["reviewedTeamAliasCandidate"]+=1
+        ap={pid for pid,tm,dt in api_alias[alias] if reviewed_team(tm)==reviewed_team(team) and prior(dt)}
         if len(hs)==1:
             h=next(iter(hs));counts["uniqueHistoryAliasTeamCandidates"]+=1
             steam.append({"historyPlayerId":h,"steamId":x["steamIdCandidate"],"providerPlayerIds":[pid for pid in ap if (h,pid) in verified],"method":"exact_alias_dated_team_review_candidate","originalPregameVerification":False})

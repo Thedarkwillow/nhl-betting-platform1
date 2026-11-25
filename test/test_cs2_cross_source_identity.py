@@ -23,3 +23,11 @@ class Test(unittest.TestCase):
  def test_duplicate_map_rejected(self):
   rows=fixture();r,_=audit(rows+fixture(event="m2"),[archive(rows)])
   self.assertEqual(r["verifiedMapOrdinals"],0)
+
+ def test_overlap_diagnostics_do_not_promote(self):
+  rows=fixture();a=archive(rows)
+  a["rows"][0]["fixtureStartsAt"]="2026-11-21T00:00:00Z"
+  r,_=audit(rows,[a])
+  self.assertEqual(r["counts"]["adjacent_day_full_fingerprint_candidate"],1)
+  self.assertEqual(r["uniquePlayerLinks"],0)
+  self.assertFalse(r["productionEligible"])

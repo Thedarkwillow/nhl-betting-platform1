@@ -11,7 +11,7 @@ on:
       - '.github/workflows/public-expanded-recovery.yml'
   push:
     branches: [main]
-    paths: ['.github/workflows/public-expanded-recovery.yml']
+    paths: ['.github/workflows/public-expanded-recovery.yml','src/nhl-standard-rolling-calibration-research.cjs','scripts/public-nhl-original-paired-audit.cjs']
   workflow_dispatch:
   schedule:
     - cron: '25 10 * * *'

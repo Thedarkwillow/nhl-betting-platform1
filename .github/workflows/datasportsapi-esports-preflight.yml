@@ -2,14 +2,11 @@ name: DataSportsAPI esports connection check
 on:
   pull_request:
     paths: ['scripts/datasportsapi_esports_preflight.py','test/test_datasportsapi_esports_preflight.py','.github/workflows/datasportsapi-esports-preflight.yml']
-  push:
-    branches: [main]
-    paths: ['scripts/datasportsapi_esports_preflight.py','.github/workflows/datasportsapi-esports-preflight.yml']
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: datasportsapi-esports-preflight
+  group: ${{ github.event_name == 'pull_request' && format('datasportsapi-preflight-pr-{0}', github.event.pull_request.number) || 'datasportsapi-esports-preflight' }}
   cancel-in-progress: false
 jobs:
   test:

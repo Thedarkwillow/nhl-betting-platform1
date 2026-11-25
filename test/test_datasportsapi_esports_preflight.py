@@ -23,3 +23,18 @@ class Tests(unittest.TestCase):
   self.assertFalse(game_valid({**game,"status":"inprogress"},now))
   players[5]["player"]["id"]=1
   self.assertIsNone(lineup_valid(line,3))
+
+ def test_quota_stop_and_header(self):
+  import io,urllib.error
+  from unittest.mock import patch
+  from datasportsapi_esports_preflight import Client
+  c=Client("test-only",max_calls=3)
+  e=urllib.error.HTTPError("https://api.datasportsapi.com/v2/categories",429,"limit",{"Retry-After":"60"},io.BytesIO(b'{"error":{"code":"rate_limited"}}'))
+  with patch("urllib.request.build_opener") as o:
+   o.return_value.open.side_effect=e
+   with self.assertRaisesRegex(ValueError,"http_429"):c.get("/v2/categories")
+   self.assertEqual(c.rateLimitRetryAfterSeconds,60)
+   self.assertEqual(c.rateLimitReason,"rate_limited")
+   self.assertTrue(c.stopped)
+   with self.assertRaisesRegex(ValueError,"request_cap"):c.get("/v2/categories")
+   self.assertEqual(c.calls,1)

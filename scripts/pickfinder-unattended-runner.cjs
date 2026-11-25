@@ -42,28 +42,59 @@ async function openBoard(chromium,profile){
   return {context,page};
  }catch(e){await context.close();throw e;}
 }
+async function openHostedBoard(chromium,env){
+ const browser=await chromium.launch({headless:true});
+ try{
+  const state=env.PICKFINDER_STORAGE_STATE;
+  const context=await browser.newContext(state?{storageState:JSON.parse(state)}:{});
+  const page=await context.newPage();page.setDefaultTimeout(8000);
+  if(!state){
+   if(!env.PICKFINDER_EMAIL||!env.PICKFINDER_PASSWORD)throw Error('authorized login secret required');
+   await page.goto(ORIGIN+'/sign-in',{timeout:20000});
+   if(new URL(page.url()).origin!==ORIGIN)throw Error('unexpected login origin');
+   const email=page.locator('input[type=email]'),password=page.locator('input[type=password]');
+   const submit=page.getByRole('button',{name:/^(sign in|log in|continue)$/i});
+   if(await email.count()!==1||await password.count()!==1||await submit.count()!==1)throw Error('normal password login unavailable');
+   await email.fill(env.PICKFINDER_EMAIL);await password.fill(env.PICKFINDER_PASSWORD);
+   await submit.click();
+   await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:20000});
+  }
+  await page.goto(ORIGIN+'/props',{timeout:20000});
+  await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:15000});
+  if(!await page.evaluate(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium')))throw Error('premium session unavailable');
+  return {page,context:{newPage:()=>context.newPage(),close:()=>browser.close()}};
+ }catch(e){await browser.close();throw e;}
+}
 async function main(env=process.env){
  const p=plan(env);
  if(!p.probe&&!p.allowed){console.log(JSON.stringify(p));return;}
  const {root,profile}=destination(env);
  const {chromium}=require('playwright');
+ const hosted=env.PICKFINDER_HOSTED==='1';
+ const open=()=>hosted?openHostedBoard(chromium,env):openBoard(chromium,profile);
  const receiptPath=path.join(profile,'.pickfinder-automation-probe.json');
  if(p.probe){
+  if(hosted){const {context}=await open();await context.close();console.log(JSON.stringify({state:'hosted_fresh_auth_verified',offers:0}));return;}
   if(!env.RUNNER_NAME)throw Error('private runner name required');
   try{fs.unlinkSync(receiptPath);}catch(e){if(e.code!=='ENOENT')throw e;}
   for(let i=0;i<2;i++){const {context}=await openBoard(chromium,profile);await context.close();}
   fs.writeFileSync(receiptPath,JSON.stringify({runner:env.RUNNER_NAME,launches:2,checkedAt:new Date().toISOString()}),{flag:'wx',mode:0o600});
   console.log(JSON.stringify({state:'two_browser_relaunches_authenticated',hostRebootVerified:false,offers:0}));return;
  }
- const receipt=JSON.parse(fs.readFileSync(receiptPath,'utf8'));
- if(!receiptValid(receipt,env.RUNNER_NAME))throw Error('recent runner probe required');
- if(env.GITHUB_EVENT_NAME==='schedule'&&!receipt.captureVerifiedAt)throw Error('manual in-window remote archive proof required');
+ const receipt=hosted?null:JSON.parse(fs.readFileSync(receiptPath,'utf8'));
+ if(hosted){
+  if(env.PICKFINDER_HOSTED_AUTH_VERIFIED!=='1')throw Error('fresh hosted probe required');
+  if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_HOSTED_CAPTURE_VERIFIED!=='1')throw Error('manual capture proof required');
+ }else{
+  if(!receiptValid(receipt,env.RUNNER_NAME))throw Error('recent runner probe required');
+  if(env.GITHUB_EVENT_NAME==='schedule'&&!receipt.captureVerifiedAt)throw Error('manual in-window remote archive proof required');
+ }
  const prefix='research/pickfinder-premium/'+p.clock.day+'/'+p.expected.replace(':','');
  const remaining=()=>{const t=pacific(new Date());return t.day===p.clock.day&&t.hour===p.clock.hour&&t.minute<55;};
  const attempt=crypto.randomUUID();
  const counts=[];let failed=false;
  process.env.RESTRICTED_DESTINATION_VERIFIED='1';
- const {context,page}=await openBoard(chromium,profile);
+ const {context,page}=await open();
  try{
   const detail=await context.newPage();detail.setDefaultTimeout(5000);
   for(const {book,code} of partitions()){
@@ -90,7 +121,7 @@ async function main(env=process.env){
   git(root,['push','origin','HEAD:refs/heads/main']);
   git(root,['fetch','origin','main']);
   git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']);
-  if(counts.length===partitions().length&&counts.every(c=>c.withinSlot===true)&&counts.some(c=>c.offers>0)){
+  if(!hosted&&counts.length===partitions().length&&counts.every(c=>c.withinSlot===true)&&counts.some(c=>c.offers>0)){
    fs.writeFileSync(receiptPath,JSON.stringify({...receipt,captureVerifiedAt:new Date().toISOString(),archiveSha:sha}),{mode:0o600});
   }
   console.log(JSON.stringify({state:'remote_archive_verified',sha,slot:p.expected,partitions:counts,allPartitionsAttempted:counts.length===partitions().length,fullBoardCertified:false,modelInputsApproved:false}));

@@ -1,0 +1,59 @@
+name: Public PickFinder checkpoint progress
+on:
+  pull_request:
+    paths: ['scripts/pickfinder-public-checkpoint-progress.cjs','test/pickfinder-public-checkpoint-progress.test.cjs','.github/workflows/pickfinder-public-checkpoint-progress.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/pickfinder-public-checkpoint-progress.cjs','.github/workflows/pickfinder-public-checkpoint-progress.yml']
+  schedule:
+    - cron: '3,18,33,48 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: public-pickfinder-checkpoint-progress-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/pickfinder-public-checkpoint-progress.test.cjs
+  report:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/pickfinder-public-checkpoint-progress.cjs .
+      - name: Publish counts only
+        run: |
+          set -euo pipefail
+          git add -f data/pickfinder-public-checkpoint-progress.json
+          git diff --cached --quiet && exit 0
+          test "$(git diff --cached --name-only)" = data/pickfinder-public-checkpoint-progress.json
+          git config user.name 'Public checkpoint progress'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Publish PickFinder checkpoint counts'
+          for i in 1 2 3 4 5 6; do
+            git fetch --quiet origin main
+            git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
+            if git push --quiet origin HEAD:main; then
+              git fetch --quiet origin main
+              git merge-base --is-ancestor HEAD FETCH_HEAD
+              exit 0
+            fi
+            sleep "$((2*i))"
+          done
+          exit 1

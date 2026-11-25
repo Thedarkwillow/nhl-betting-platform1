@@ -35,5 +35,5 @@ test('deadline prevents another board read or next-page action',async()=>{
  const control={click:async()=>{clicks++;},isEnabled:async()=>true,waitFor:async()=>{},getByRole:()=>control};
  const page={getByRole:()=>control,evaluate:async()=>{reads++;return {authenticated:true};}};
  const result=await collect(page,{book:'prizepicks',code:'NBA',shouldContinue:()=>false});
- assert.equal(reads,1);assert.equal(clicks,3);assert.equal(result.boardState,'partial');assert.equal(result.pages.length,0);
+ assert.equal(reads,0);assert.equal(clicks,0);assert.equal(result.boardState,'partial');assert.equal(result.pages.length,0);
 });

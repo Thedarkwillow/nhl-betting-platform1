@@ -15,7 +15,7 @@ test('review receipt derives exact full-game scope but cannot supply missing boa
  const player={eventId,player:'Fixture',playerPath,sourceUrl:'https://www.pickfinder.app'+detailId,nbaPlayerId:'7',espnPlayerId:'8',team:'BOS',opponent:'NYK',displayedMatchup:'BOS vs NYK',independentRosterVerified:true,observedAt:'2026-11-25T13:11:00Z'};
  const doc={schema:'pickfinder-independent-nba-matchup-review-v1',clockComparisonZone:'America/Los_Angeles',games:[game],records:[player]};
  const receipt={doc,digest:'c'.repeat(64),commit:'d'.repeat(40),first:'2026-11-25T13:30:00Z'};
- const archive={invalid:[],latest:[{m:{sport:'nba',book:'prizepicks',health:{unresolvedRows:0},lastObservedAt:offer.observedAt},offers:[offer],unpricedTierObservations:[],sportsbookQuotes:[],researchObservations:[],first:receipt.first,digest:'e'.repeat(64)}]};
+ const archive={invalid:[],latest:[{m:{sport:'nba',book:'prizepicks',health:{unresolvedRows:0},lastObservedAt:offer.observedAt},offers:[offer],unpricedTierObservations:[],sportsbookQuotes:[],researchObservations:[],first:'2026-11-25T13:55:00Z',digest:'e'.repeat(64)}]};
  const args={archive,schedule:input.schedule,clock,receipts:[receipt]};
  const derived=reviewedScopes(args);assert.equal(derived.length,1);assert.equal(derived[0].nativePlayerId,7);assert.equal(derived[0].identityEvidenceSha256,receipt.digest);
  assert.equal(reviewedScopes({...args,receipts:[{...receipt,doc:{...doc,records:[{...player,independentRosterVerified:false}]}}]}).length,0);
@@ -23,4 +23,7 @@ test('review receipt derives exact full-game scope but cannot supply missing boa
  assert.equal(reviewedScopes({...args,schedule:{...input.schedule,games:[{...input.schedule.games[0],startAt:'2026-11-25T23:30:00Z'}]}}).length,0);
  assert.equal(reviewedScopes({...args,explicit:derived}).length,0);
  assert.equal(choose({...input,archive,reviewRows:derived}).rows.length,0);
+ const ready={...archive,latest:[{...archive.latest[0],offers:[{...offer,startAt:start}],researchObservations:[{...offer,origin:'board',metric:'Avg L10',value:'20'}]}]};
+ const result=choose({...input,archive:ready,reviewRows:derived});assert.equal(result.rows.length,1);assert.equal(result.rows[0].identityEvidenceSha256,receipt.digest);assert.equal(result.rows[0].modelApproved,false);
+ assert.equal(choose({...input,archive:ready,reviewRows:derived,prior:result.rows}).rows.length,0);
 });

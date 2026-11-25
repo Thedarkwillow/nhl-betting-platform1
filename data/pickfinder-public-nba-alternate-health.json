@@ -1,0 +1,44 @@
+{
+  "kind": "public_nba_alternate_history_audit_v1",
+  "generatedAt": "2026-11-25T14:03:03.012686+00:00",
+  "seasons": {
+    "2024": {
+      "status": "pending",
+      "reason": "ValueError"
+    },
+    "2025": {
+      "status": "pending",
+      "reason": "ValueError"
+    },
+    "2026": {
+      "status": "pending",
+      "reason": "ValueError"
+    },
+    "2027": {
+      "status": "pending",
+      "reason": "ValueError"
+    }
+  },
+  "acceptedRows": 0,
+  "nbaNativeCrosswalk": {
+    "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/nba_crosswalk/nba_player_crosswalk_2027.parquet",
+    "sha256": "c81e20dd19806d174ca9833589c9a259646407312a0926e65c6e071620591bc0",
+    "sourceRows": 507,
+    "status": "observed",
+    "espnRosterPlayers": 494,
+    "nativeIdentityCandidates": 0,
+    "pickfinderIdentityVerified": false
+  },
+  "nflNativeCrosswalk": {
+    "matchedEvents": 5,
+    "candidateRows": 599,
+    "pickfinderIdentityVerified": false
+  },
+  "rawRowsPublished": 0,
+  "officialFinalClockVerified": false,
+  "independentlyReviewedPickfinderCrosswalks": 0,
+  "modelApproved": false,
+  "paidRequests": 0,
+  "privateRepoUsed": false,
+  "sourceUse": "counts-only research source audit; upstream redistribution and commercial rights not established"
+}

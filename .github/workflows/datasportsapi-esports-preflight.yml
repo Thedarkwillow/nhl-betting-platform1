@@ -30,5 +30,5 @@ jobs:
           persist-credentials: false
       - name: Check authenticated free endpoint coverage (aggregate only)
         env:
-          DATASPORTSAPI_API_KEY: ${{ secrets.DATASPORTSAPI_API_KEY || secrets.DATASPORTSAPI_KEY || secrets.DATA_SPORTS_API_KEY || secrets.DATASPORTS_API_KEY }}
+          DATASPORTSAPI_API_KEY: ${{ secrets.DATASPORTSAPI || secrets.DATASPORTSAPI_API_KEY || secrets.DATASPORTSAPI_KEY || secrets.DATA_SPORTS_API_KEY || secrets.DATASPORTS_API_KEY }}
         run: python3 scripts/datasportsapi_esports_preflight.py

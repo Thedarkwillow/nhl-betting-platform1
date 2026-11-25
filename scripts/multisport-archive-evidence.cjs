@@ -6,11 +6,39 @@ const SEED='aef07d2aecb75388c6757c9cc5844b2113d6a0ac';
 const git=(root,args)=>execFileSync('git',['-C',root,...args],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']});
 const norm=x=>typeof x==='string'?x.normalize('NFC').trim().toLowerCase().replace(/\s+/g,' '):'';
 function read(root,rel){return JSON.parse(git(root,['show','HEAD:'+rel]));}
+function workloadReplay(lines,logs){
+ const seen=new Set(),out={};
+ const minutes=x=>{
+  const raw=x.timeOnIce??x.toi;
+  if(typeof raw==='string'&&/^\\d{1,2}:[0-5]\\d$/.test(raw)){const [m,s]=raw.split(':').map(Number);return m+s/60;}
+  if(Number.isFinite(x.timeOnIceSeconds)&&x.timeOnIceSeconds>0)return x.timeOnIceSeconds/60;
+  return null;
+ };
+ for(const line of lines){
+  const market=line.market;if(!['shotsOnGoal','assists','points','blockedShots','goals'].includes(market)||!Number.isFinite(line.line)||line.line%1!==.5)continue;
+  const hist=logs[String(line.playerId)]||[],game=hist.find(x=>String(x.gameId)===String(line.gameId));
+  if(!game||game[market]!==line.actual||!Number.isFinite(game[market]))continue;
+  const at=line.sourceObservedAt??line.observedAt??line.capturedAt, start=line.eventStartsAt??line.gameStartAt;
+  if(at!=null&&(!Number.isFinite(Date.parse(at))||start!=null&&(!Number.isFinite(Date.parse(start))||Date.parse(at)>=Date.parse(start))))continue;
+  const id=JSON.stringify([line.gameId,line.playerId,market,line.line]);if(seen.has(id))continue;seen.add(id);
+  const prior=hist.filter(x=>x.gameDate<game.gameDate&&Number.isFinite(x[market])&&minutes(x)>0).sort((a,b)=>a.gameDate.localeCompare(b.gameDate)).slice(-30);
+  if(prior.length<12)continue;
+  const mean=prior.reduce((a,x)=>a+x[market],0)/prior.length;
+  const expectedMinutes=prior.slice(-10).reduce((a,x)=>a+minutes(x),0)/10;
+  const workload=prior.reduce((a,x)=>a+x[market],0)/prior.reduce((a,x)=>a+minutes(x),0)*expectedMinutes;
+  const {estimateCountProbabilities}=require('../src/prop-probabilities.cjs');
+  const p=estimateCountProbabilities(mean,line.line)?.higher,q=estimateCountProbabilities(workload,line.line)?.higher;
+  if(!Number.isFinite(p)||!Number.isFinite(q))continue;
+  const y=Number(game[market]>line.line),z=out[market]??={n:0,baseline:0,workload:0,baseMAE:0,workloadMAE:0,games:new Set()};
+  z.n++;z.games.add(line.gameId);z.baseline+=(p-y)**2;z.workload+=(q-y)**2;z.baseMAE+=Math.abs(mean-game[market]);z.workloadMAE+=Math.abs(workload-game[market]);
+ }
+ return Object.fromEntries(Object.entries(out).map(([k,z])=>[k,{n:z.n,distinctGames:z.games.size,baselineBrier:z.baseline/z.n,workloadBrier:z.workload/z.n,baselineMAE:z.baseMAE/z.n,workloadMAE:z.workloadMAE/z.n}]));
+}
 function nhl(root){
  const a=read(root,'outputs/oddspapi/nhl/outcome-audit-latest.json'),h=read(root,'outputs/oddspapi/nhl/official-historical-player-logs-latest.json');
  if(!Array.isArray(a.lines)||!h.logs||a.matchedLines<1||a.generatedAt!==h.lineOutcomeAuditGeneratedAt)throw Error('NHL archive provenance');
  const q=compareCandidates(a.lines,h.logs);
- return {source:'archived OddsPapi PrizePicks-labelled thresholds; official statistical outcomes',eligibleArchivedLines:q.eligibleArchivedLines,bySeason:q.bySeason,byMarket:q.byMarket,holdout:q.temporalHoldout,archivedModelSelectionBeforeGames:false,platformSettlementVerified:false,modelPromoted:false,rawRowsPublished:0,paidRequests:0};
+ return {source:'archived OddsPapi PrizePicks-labelled thresholds; official statistical outcomes',eligibleArchivedLines:q.eligibleArchivedLines,bySeason:q.bySeason,byMarket:q.byMarket,holdout:q.temporalHoldout,priorTimeOnIceChallenger:workloadReplay(a.lines,h.logs),archivedModelSelectionBeforeGames:false,platformSettlementVerified:false,modelPromoted:false,rawRowsPublished:0,paidRequests:0};
 }
 function identityCandidates(root){
  const rawRows=files.flatMap(([season,file,sha])=>{const raw=git(root,['show','HEAD:outputs/nba/history/'+season+'/'+file]);validate(raw,season,sha);return JSON.parse(raw).rows;});
@@ -43,4 +71,4 @@ async function official(root,client=fetch){
  return {sourceProfiles:candidates.length,uniqueMirrorCandidates:candidates.filter(c=>c.candidate).length,missingOrAmbiguous:candidates.filter(c=>!c.candidate).length,officialHistoricalIdNameTeamCorroborated:matched,conflict,unmatched,unavailable,notChecked:candidates.filter(c=>c.candidate).length-matched-conflict-unmatched-unavailable,freeRequests:requests,authoritativePickFinderIdentityLinks:0,rawRowsPublished:0,paidRequests:0};
 }
 if(require.main===module)(async()=>{try{const root=fs.realpathSync(process.argv[2]);console.log(JSON.stringify(process.argv[3]==='nhl'?nhl(root):await official(root)));}catch{console.error('Multisport archive audit failed closed');process.exitCode=1;}})();
-module.exports={nhl,identityCandidates,official};
+module.exports={nhl,identityCandidates,official,workloadReplay};

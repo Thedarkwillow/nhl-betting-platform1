@@ -7,7 +7,7 @@ from urllib.parse import urlsplit,urljoin,parse_qs,urlencode
 M=runpy.run_path(str(Path(__file__).with_name("pickfinder-free-research.py")))
 BASE=M["BASE"]
 SPORTS={"nba","nhl","nfl","cs2","valorant","dota-2","league-of-legends","lol","call-of-duty","cod"}
-RESEARCH={"defense-vs-position","soft-spots","team-rankings","fragger-board","kill-environment","map-pool","map-pool-matrix","headshot-board","lan-lift","bloodiest-teams","champions","assist-board","agents","first-bloods","heroes","map-and-mode-matrix","map-mode-matrix","mode-splits","players"}
+RESEARCH={"defense-vs-position","soft-spots","team-rankings","fragger-board","kill-environment","map-pool","map-pool-matrix","headshot-board","headshots","lan-lift","bloodiest-teams","champions","assist-board","assists","agents","first-bloods","heroes","map-and-mode-matrix","map-mode-matrix","mode-splits","players"}
 def safe(href):
     u=urlsplit(urljoin(BASE,href))
     if u.scheme!="https" or u.netloc!=urlsplit(BASE).netloc or u.fragment:return None
@@ -19,6 +19,7 @@ def safe(href):
     if len(p)==3 and p[2]=="players":
         q=parse_qs(u.query)
         if set(q)=={"page"} and len(q["page"])==1 and re.fullmatch(r"[1-9][0-9]{0,5}",q["page"][0]):return u.path+"?"+urlencode({"page":q["page"][0]})
+    if len(p)==4 and p[2] in RESEARCH and p[3] in ("all-events","top-tier") and not u.query:return u.path
     if len(p)==4 and p[2]=="players" and not u.query:return u.path
     return None
 def priority(p):
@@ -86,6 +87,7 @@ def test():
     assert safe("/leagues/cs2/players/a?account=1") is None
     assert safe("/leagues/cs2/players?page=2")=="/leagues/cs2/players?page=2"
     assert safe("https://evil.example/leagues/cs2/players") is None
+    assert safe("/leagues/cs2/headshots/all-events")=="/leagues/cs2/headshots/all-events"
     assert safe("/leagues/cs2/players/fixture")=="/leagues/cs2/players/fixture"
     d=extract('<a href="/leagues/cs2/players/fixture">Player</a><a href="/account">Account</a><table><tr><th>Stat</th></tr><tr><td>2</td></tr></table>',"/leagues/cs2/players")
     assert d["links"]==["/leagues/cs2/players/fixture"] and d["summary"]["rows"]==2

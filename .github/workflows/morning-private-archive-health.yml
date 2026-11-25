@@ -18,6 +18,7 @@ on:
       timezone: America/Los_Angeles
 permissions:
   contents: read
+  actions: read
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -37,5 +38,6 @@ jobs:
           persist-credentials: false
       - name: Verify public immutable morning evidence
         env:
+          GH_TOKEN: ${{ github.token }}
           SLOT: ${{ github.event.schedule == '20 10 * * *' && '09:00' || inputs.slot || '06:00' }}
         run: node scripts/pickfinder-public-morning-audit.cjs . "$SLOT"

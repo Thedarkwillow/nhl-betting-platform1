@@ -60,3 +60,5 @@ test("player history reader recognizes displayed three-month main-line window",(
  try{global.document={querySelectorAll:()=>[{innerText:"Lines from the past 3 months. Only main lines are shown (no goblins or demons).",nextElementSibling:{children:[{innerText:"11/23 Line: 4.5 Actual: 6",querySelectorAll:()=>[]}]}}]};const fields=readSections({tab:"Prop History",origin:"prop_history",observedAt,context:{}});assert.equal(fields.length,1);assert.equal(fields[0].window,"past 3 months, main lines");assert.match(fields[0].value,/4.5/);}
  finally{global.document=old;}
 });
+
+test("tier-only line is separate from actionable offers and public summary",()=>{const x=input(),r=x.pages[0].rows[0];r.apps=[];r.appEvidence=[{book:"prizepicks",icons:["prizepicks","goblin"],tier:"goblin",line:28.5}];const y=normalize(x,{now});assert.equal(y.offers.length,0);assert.equal(y.unpricedTierObservations.length,1);assert.equal(y.unpricedTierObservations[0].side,null);assert.equal(y.unpricedTierObservations[0].displayedPrice,null);assert.equal(y.unpricedTierObservations[0].eligibleForLockedModel,false);assert.equal(y.health.unresolvedRows,1);});

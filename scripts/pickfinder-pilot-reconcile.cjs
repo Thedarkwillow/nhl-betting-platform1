@@ -74,5 +74,23 @@ function loadVerifiedAttempt(root,sha){
  if(crypto.createHash('sha256').update(raw).digest('hex')!==n.sourceDigest)throw Error('digest mismatch');
  return JSON.parse(raw);});
 }
-module.exports={audit,loadPilot,compare,inputAudit,missingDisposition,loadVerifiedAttempt};
-if(require.main===module){try{const root=fs.realpathSync(process.argv[2]);const file=path.join(root,relative);const data=JSON.parse(zlib.gunzipSync(Buffer.from(fs.readFileSync(file,'utf8'),'base64')));console.log(JSON.stringify(audit(data)));}catch{console.error('Private pilot audit failed');process.exitCode=1;}}
+// Count-only re-audit of an already committed attempt; no source requests.
+function auditCommitted(root,sha,expected){
+ const cp=require('node:child_process'),crypto=require('node:crypto');
+ const run=args=>cp.execFileSync('git',['-C',root,...args],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']});
+ if(!/^[a-f0-9]{40}$/.test(sha)||!Number.isInteger(expected)||expected<1||expected>28)throw Error('audit arguments');
+ run(['merge-base','--is-ancestor',sha,'HEAD']);
+ const paths=run(['diff-tree','--no-commit-id','--name-only','-r',sha]).toString().trim().split('\n').filter(p=>/^research\/pickfinder-premium\/\d{4}-\d\d-\d\d\/manual\/[a-z-]+\/[a-z0-9-]+\/[a-z0-9-]+\/source\.json$/.test(p));
+ if(paths.length!==expected)throw Error('partition count mismatch');
+ const batches=[],normalized=[];
+ for(const p of paths){
+  const raw=run(['show',sha+':'+p]),n=JSON.parse(run(['show',sha+':'+p.replace(/source\.json$/,'normalized.json')]));
+  if(crypto.createHash('sha256').update(raw).digest('hex')!==n.sourceDigest)throw Error('source digest mismatch');
+  const b=JSON.parse(raw);if(b.book!==n.book||b.sport!==n.sport||b.localDay!==n.localDay)throw Error('partition mismatch');
+  batches.push(b);normalized.push(n);
+ }
+ const pilot=loadPilot(root);
+ return {state:'committed_archive_digest_audit',sha,partitions:paths.length,remoteDigestVerified:true,comparison:compare(pilot,batches),disposition:missingDisposition(pilot,batches),inputs:inputAudit(normalized),rawRowsPublished:0,paidEndpointsCalled:0};
+}
+module.exports={audit,loadPilot,compare,inputAudit,missingDisposition,loadVerifiedAttempt,auditCommitted};
+if(require.main===module){try{const root=fs.realpathSync(process.argv[2]);if(process.argv[3]==='audit-committed'){console.log(JSON.stringify(auditCommitted(root,process.argv[4],Number(process.argv[5]))));return;}const file=path.join(root,relative);const data=JSON.parse(zlib.gunzipSync(Buffer.from(fs.readFileSync(file,'utf8'),'base64')));console.log(JSON.stringify(audit(data)));}catch{console.error('Private pilot audit failed');process.exitCode=1;}}

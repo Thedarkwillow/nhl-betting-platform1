@@ -183,8 +183,8 @@ async function main(env=process.env){
   await stage('private_archive_ancestry',()=>git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']));
   await stage('private_archive_remote_readback',()=>{
    for(const b of batches){const base=prefix+'/'+b.book+'/'+b.sport+'/'+attempt;
-    const raw=execFileSync('git',['-C',root,'show','FETCH_HEAD:'+base+'/source.json'],{maxBuffer:32*1024*1024,stdio:['ignore','pipe','pipe']});
-    const n=JSON.parse(execFileSync('git',['-C',root,'show','FETCH_HEAD:'+base+'/normalized.json'],{maxBuffer:32*1024*1024,stdio:['ignore','pipe','pipe']}));
+    const raw=execFileSync('git',['-C',root,'show','FETCH_HEAD:'+base+'/source.json'],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']});
+    const n=JSON.parse(execFileSync('git',['-C',root,'show','FETCH_HEAD:'+base+'/normalized.json'],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']}));
     if(crypto.createHash('sha256').update(raw).digest('hex')!==n.sourceDigest||raw.toString()!==JSON.stringify(b))throw Error('archive mismatch');
    }
   });

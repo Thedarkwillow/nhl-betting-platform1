@@ -18,12 +18,13 @@ function readSections({tab,origin,observedAt,context}) {
   }
   for(const table of document.querySelectorAll('table')){
     if(!table.getClientRects().length)continue;
+    // Only capture visible tables in the selected sporting profile; label the actual tab.
     const headers=[...table.querySelectorAll('thead th')].map(e=>e.innerText.trim());
     const header=headers.join(' | ');
     const isMovement=headers.includes('App')&&headers.includes('Time')&&headers.includes('Line');
     if(origin==='line_movement'&&!isMovement)continue;
     if(origin==='prop_history'&&!headers.some(h=>/line|result/i.test(h))||origin==='prop_history'&&isMovement)continue;
-    if(origin==='profile'&&(isMovement||tab!=='Player overview'))continue;
+    if(origin==='profile'&&isMovement)continue;
     if(!header.trim())continue;
     let i=0;
     for(const tr of table.querySelectorAll('tbody tr')){

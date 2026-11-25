@@ -1,0 +1,35 @@
+name: PickFinder committed archive verification
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/pickfinder-committed-archive-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    if: github.repository == 'Thedarkwillow/nhl-betting-platform1' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public-source
+          persist-credentials: false
+      - name: Verify private archive visibility
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .visibility)" = private
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: private-archive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exact previously uploaded source digests and aggregate inputs
+        run: node public-source/scripts/pickfinder-pilot-reconcile.cjs private-archive audit-committed aef07d2aecb75388c6757c9cc5844b2113d6a0ac 27

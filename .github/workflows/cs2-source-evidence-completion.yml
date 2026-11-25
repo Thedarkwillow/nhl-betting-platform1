@@ -1,0 +1,75 @@
+name: CS2 bounded source and conflict evidence
+on:
+  pull_request:
+    paths: ['scripts/flash_cs2_keyless_evaluation.py','scripts/cs2_conflict_profile_audit.py','test/test_cs2_source_evidence_completion.py','.github/workflows/cs2-source-evidence-completion.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/flash_cs2_keyless_evaluation.py','scripts/cs2_conflict_profile_audit.py','.github/workflows/cs2-source-evidence-completion.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cs2-source-evidence-completion
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python -m unittest discover -s test -p test_cs2_source_evidence_completion.py
+  evidence:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: One keyless evaluation of public sample
+        run: python scripts/flash_cs2_keyless_evaluation.py
+      - name: Verify private destination
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/kashrock-source-captures
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: restricted
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/datasportsapi-esports-history
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: registry
+          persist-credentials: false
+      - name: Review conflict aliases and professional-profile claims
+        run: |
+          umask 077
+          python scripts/cs2_conflict_profile_audit.py registry/research/esports-identity-registry/snapshot-45539564986-1.json restricted/research/kashrock-source-captures/hltv-steam-secondary-profile-review-v2-20261125.json "$RUNNER_TEMP/conflict-review.json"
+      - name: Preserve private review
+        working-directory: restricted
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          dest="research/kashrock-source-captures/cs2-conflict-review-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.json"
+          test ! -e "$dest"
+          install -m 600 "$RUNNER_TEMP/conflict-review.json" "$dest"
+          git add -f "$dest"
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Archive CS2 conflict review evidence'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:refs/heads/research/kashrock-source-captures
+          test "$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin refs/heads/research/kashrock-source-captures | cut -f1)" = "$(git rev-parse HEAD)"
+          echo 'Private conflict review committed.'

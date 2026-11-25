@@ -1,5 +1,8 @@
 name: PickFinder Premium public orchestration
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/pickfinder-premium-hosted.yml']
   workflow_dispatch:
     inputs:
       mode:
@@ -18,8 +21,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   run:
-    if: github.repository == 'Thedarkwillow/nhl-betting-platform1' && github.ref == 'refs/heads/main' && (inputs.mode == 'audit_pilot' || (vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1' && (github.event_name == 'workflow_dispatch' || (vars.PICKFINDER_SCHEDULE_ENABLED == '1' && vars.PICKFINDER_HOSTED_AUTH_VERIFIED == '1' && vars.PICKFINDER_HOSTED_CAPTURE_VERIFIED == '1'))))
-    runs-on: ubuntu-latest
+    if: github.repository == 'Thedarkwillow/nhl-betting-platform1' && github.ref == 'refs/heads/main' && (inputs.mode == 'audit_pilot' || (vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-probe]')) || (github.event_name == 'schedule' && vars.PICKFINDER_SCHEDULE_ENABLED == '1' && vars.PICKFINDER_HOSTED_AUTH_VERIFIED == '1' && vars.PICKFINDER_HOSTED_CAPTURE_VERIFIED == '1'))))
+    runs-on: ubuntu-24.04
     timeout-minutes: 65
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +65,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
-          REQUESTED_MODE: ${{ inputs.mode }}
+          REQUESTED_MODE: ${{ github.event_name == 'push' && 'probe_now' || inputs.mode }}
           PICKFINDER_AUTOMATION_AUTHORIZED: ${{ vars.PICKFINDER_AUTOMATION_AUTHORIZED }}
           PICKFINDER_SCHEDULE_ENABLED: ${{ vars.PICKFINDER_SCHEDULE_ENABLED }}
           PICKFINDER_HOSTED_AUTH_VERIFIED: ${{ vars.PICKFINDER_HOSTED_AUTH_VERIFIED }}

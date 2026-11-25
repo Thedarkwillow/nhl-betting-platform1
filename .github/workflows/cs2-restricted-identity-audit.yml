@@ -1,0 +1,93 @@
+name: CS2 restricted cross-source identity audit
+on:
+  pull_request:
+    paths: ['scripts/cs2_cross_source_identity.py','scripts/cs2_team_identity.py','scripts/cs2_ektarr_wide_history.py','test/test_cs2_cross_source_identity.py','.github/workflows/cs2-restricted-identity-audit.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cs2-restricted-identity-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: datasportsapi-esports-preflight
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s test -p test_cs2_cross_source_identity.py
+  audit:
+    needs: validate
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check restricted archive destination
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/datasportsapi-esports-history
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: restricted
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/esports-diagnostic-capture-20261124
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: reviewed
+          persist-credentials: false
+      - name: Audit exact overlapping matches without public raw data
+        env:
+          CS2_RESTRICTED_CROSSWALK_DIR: restricted/research/datasportsapi-esports-history
+          CS2_RESTRICTED_STEAM_REVIEW: reviewed/esports-diagnostic-capture-20261124/identity-review.json
+          CS2_RESTRICTED_CAPTURE: reviewed/esports-diagnostic-capture-20261124/normalized.json
+          CS2_RESTRICTED_OUTPUT: ${{ runner.temp }}/cs2-identity-audit.json
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$RUNNER_TEMP/cs2-identity-audit.log"
+          trap 'rm -f "$log"' EXIT
+          python3 scripts/cs2_ektarr_wide_history.py >"$log" 2>&1 || { echo 'Restricted identity audit failed'; exit 1; }
+          python3 - "$log" <<'PY'
+          import json,sys
+          rows=[json.loads(x) for x in open(sys.argv[1]) if x.startswith('{"kind"')]
+          assert len([x for x in rows if x.get("kind")=="cs2_cross_source_identity_audit_v1"])==1
+          for x in rows:
+              assert x.get("rawRowsPublished")==0
+              print(json.dumps(x))
+          PY
+      - name: Store identity evidence only in private archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          file="$RUNNER_TEMP/cs2-identity-audit.json"
+          trap 'rm -f "$file"' EXIT
+          test -f "$file"
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          cd restricted
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config core.hooksPath /dev/null
+          mkdir -p research/cs2-cross-source-identity
+          dest="research/cs2-cross-source-identity/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
+          test ! -e "$dest"
+          install -m 600 "$file" "$dest"
+          git add "$dest"
+          git commit -qm 'Archive restricted CS2 cross-source identity evidence'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:refs/heads/research/datasportsapi-esports-history
+          test "$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin refs/heads/research/datasportsapi-esports-history | cut -f1)" = "$(git rev-parse HEAD)"
+          echo 'Restricted CS2 identity evidence committed and verified.'

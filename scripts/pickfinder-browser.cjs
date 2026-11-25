@@ -60,7 +60,7 @@ function readBoard({book, code, sport, observedAt}) {
   return {authenticated,rows,number:Number(pages?.[1]),total:Number(pages?.[2]),
     empty:table?.innerText.includes('No props found')===true};
 }
-async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldContinue=()=>true}) {
+async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldContinue=()=>true,onPage=async()=>{}}) {
   if(!['prizepicks','underdog'].includes(book)||!(maxPages===Infinity||Number.isSafeInteger(maxPages)&&maxPages>=1))throw Error('invalid partition');
   const sport=aliases[code]||code.toLowerCase();
   const startedAt=new Date().toISOString();
@@ -104,11 +104,12 @@ async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldCon
         await new Promise(resolve=>setTimeout(resolve,250));
       }
       if(!ready){result.failure=result.failure||'page_not_stable_or_scope_mismatch';
-        if(result.failure==='selected_book_badge_absent'&&snapshot?.rows?.length){result.displayedPageCount=snapshot.total;result.pages.push({number:n,rows:snapshot.rows});}
+        if(result.failure==='selected_book_badge_absent'&&snapshot?.rows?.length){result.displayedPageCount=snapshot.total;result.pages.push({number:n,rows:snapshot.rows});await onPage({book,sport,startedAt,displayedPageCount:snapshot.total,page:result.pages.at(-1),accepted:false});}
         break;}
       if(n===1&&stableEmpty>=4&&snapshot.rows.length===0){result.boardState='empty';result.explicitEmpty=true;result.lastPageReached=true;break;}
       result.displayedPageCount=snapshot.total;
       result.pages.push({number:n,rows:snapshot.rows});
+      await onPage({book,sport,startedAt,displayedPageCount:snapshot.total,page:result.pages.at(-1),accepted:true});
       previous=signature(snapshot.rows);
       if(n===snapshot.total){result.lastPageReached=true;result.boardState=snapshot.empty&&n===1?'empty':'populated';break;}
       if(n<maxPages&&shouldContinue())await button('Next page').click();

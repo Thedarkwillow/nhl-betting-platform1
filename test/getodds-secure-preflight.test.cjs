@@ -57,3 +57,17 @@ test("quota refresh rejects reset, missing values, or unexplained charges",()=>{
  assert.equal(quotaTransition(before,{used:11,remaining:89,last:0}),true);
  for(const after of [{used:0,remaining:100,last:0},{used:12,remaining:88,last:0},{used:null,remaining:null,last:0}])assert.equal(quotaTransition(before,after),false);
 });
+
+test("targeted Underdog NHL request uses one data call and preserves strict quota stop",async()=>{
+ let calls=0;const urls=[];
+ const mock=async u=>{urls.push(u);if(u.endsWith("/v4/sports"))return new Response("[]",{headers:{"x-requests-used":String(calls?12:10),"x-requests-remaining":String(calls?88:90),"x-requests-last":"0"}});calls++;return new Response(JSON.stringify({data:[]}));};
+ const result=await run({GETODDSAPI:"synthetic",GETODDS_FREE_PLAN_CONFIRMED:"1",GETODDS_TARGET_SOURCE:"underdog",GETODDS_TARGET_LEAGUE:"NHL"},mock);
+ assert.equal(calls,1);assert.equal(urls[1],"https://getoddsapi.com/api/v1/markets?source=underdog&limit=5&league=NHL");
+ assert.equal(result.stoppedAfterSource,"underdog");assert.equal(result.sources.underdog.quotaRefreshVerified,false);
+ assert.equal(result.sources.prizepicks,undefined);
+});
+test("invalid target makes no market requests",async()=>{
+ const urls=[];const mock=async u=>{urls.push(u);return new Response("[]",{headers:{"x-requests-used":"0","x-requests-remaining":"100","x-requests-last":"0"}});};
+ const result=await run({GETODDSAPI:"synthetic",GETODDS_FREE_PLAN_CONFIRMED:"1",GETODDS_TARGET_SOURCE:"underdog",GETODDS_TARGET_LEAGUE:"unexpected"},mock);
+ assert.equal(urls.length,1);assert.equal(result.status,"invalid_target_no_data_requests");
+});

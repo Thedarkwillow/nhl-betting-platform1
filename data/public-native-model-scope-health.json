@@ -1,6 +1,6 @@
 {
   "kind": "public_native_model_scope_validation_v1",
-  "generatedAt": "2026-11-25T14:05:44.744489+00:00",
+  "generatedAt": "2026-11-25T23:49:39.350993+00:00",
   "nfl": {
     "inputPlayerGames": 47962,
     "conflictingPlayerGames": 0,
@@ -351,78 +351,78 @@
   },
   "identity": {
     "nba": {
-      "eventCandidates": 9,
+      "eventCandidates": 8,
       "playerCandidates": 125,
       "sourceContextCorroborated": 0,
       "missingSourceEventClock": 126,
-      "missingTeam": 126,
-      "missingOpponent": 126,
-      "ambiguousEvent": 0,
+      "missingTeam": 0,
+      "missingOpponent": 0,
+      "ambiguousEvent": 13,
       "ambiguousPlayer": 1
     },
     "nfl": {
       "eventCandidates": 5,
-      "playerCandidates": 230,
+      "playerCandidates": 234,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 517,
-      "missingTeam": 517,
-      "missingOpponent": 517,
-      "ambiguousEvent": 279,
-      "ambiguousPlayer": 287
+      "missingSourceEventClock": 522,
+      "missingTeam": 0,
+      "missingOpponent": 0,
+      "ambiguousEvent": 280,
+      "ambiguousPlayer": 288
     },
     "nhl": {
       "eventCandidates": 14,
-      "playerCandidates": 548,
+      "playerCandidates": 568,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 566,
-      "missingTeam": 566,
-      "missingOpponent": 566,
+      "missingSourceEventClock": 587,
+      "missingTeam": 0,
+      "missingOpponent": 0,
       "ambiguousEvent": 0,
-      "ambiguousPlayer": 18
+      "ambiguousPlayer": 19
     },
     "college-football": {
-      "eventCandidates": 14,
-      "playerCandidates": 276,
+      "eventCandidates": 20,
+      "playerCandidates": 399,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 1288,
-      "missingTeam": 1288,
-      "missingOpponent": 1288,
-      "ambiguousEvent": 969,
-      "ambiguousPlayer": 1012
+      "missingSourceEventClock": 1293,
+      "missingTeam": 26,
+      "missingOpponent": 26,
+      "ambiguousEvent": 834,
+      "ambiguousPlayer": 894
     },
     "college-basketball": {
-      "eventCandidates": 5,
-      "playerCandidates": 57,
+      "eventCandidates": 1,
+      "playerCandidates": 28,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 77,
-      "missingTeam": 77,
-      "missingOpponent": 77,
-      "ambiguousEvent": 32,
-      "ambiguousPlayer": 20
+      "missingSourceEventClock": 102,
+      "missingTeam": 6,
+      "missingOpponent": 6,
+      "ambiguousEvent": 93,
+      "ambiguousPlayer": 74
     },
     "tennis": {
       "eventCandidates": 0,
       "playerCandidates": 0,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 75,
-      "missingTeam": 75,
+      "missingSourceEventClock": 65,
+      "missingTeam": 65,
       "missingOpponent": 0,
-      "ambiguousEvent": 75,
-      "ambiguousPlayer": 75
+      "ambiguousEvent": 65,
+      "ambiguousPlayer": 65
     },
     "soccer": {
       "eventCandidates": 0,
       "playerCandidates": 0,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 1484,
-      "missingTeam": 1484,
-      "missingOpponent": 1484,
-      "ambiguousEvent": 1484,
-      "ambiguousPlayer": 1484
+      "missingSourceEventClock": 1573,
+      "missingTeam": 0,
+      "missingOpponent": 0,
+      "ambiguousEvent": 1573,
+      "ambiguousPlayer": 1573
     }
   },
   "dota": {
-    "deduplicatedNativeMapsWithTenPlayersAndSeriesId": 6,
+    "deduplicatedNativeMapsWithTenPlayersAndSeriesId": 7,
     "conflictingMaps": 0,
     "chronologicalSeriesCandidates": 2,
     "independentMapOrdinalVerified": 0,

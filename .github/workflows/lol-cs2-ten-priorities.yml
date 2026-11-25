@@ -1,0 +1,83 @@
+name: LoL CS2 ten-priority specialist research
+on:
+  pull_request:
+    paths: ['scripts/lol_specialist_research.py','scripts/cs2_csapi_identity_preflight.py','test/test_lol_specialist_research.py','.github/workflows/lol-cs2-ten-priorities.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/lol-cs2-ten-priorities.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m py_compile scripts/lol_specialist_research.py scripts/cs2_csapi_identity_preflight.py
+      - run: python3 -m unittest discover -s test -p test_lol_specialist_research.py
+      - run: python3 -m unittest discover -s test -p test_esports_result_contract.py
+      - run: python3 -m unittest discover -s test -p test_cs2_independent_steam_audit.py
+  lol:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyarrow==19.0.1
+      - run: python scripts/lol_specialist_research.py
+  cs2:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/datasportsapi-esports-history
+          path: registry
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyarrow==19.0.1
+      - run: python scripts/cs2_csapi_identity_preflight.py registry
+      - run: python scripts/public-opencs2-map-baseline.py
+  offers:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/esports-diagnostic-capture-20261124
+          path: capture
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - run: node scripts/public-eight-evidence.cjs esports archive
+      - run: python3 scripts/esports_restricted_final_audit.py capture/esports-diagnostic-capture-20261124

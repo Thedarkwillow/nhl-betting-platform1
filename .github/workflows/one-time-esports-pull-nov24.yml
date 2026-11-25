@@ -1,0 +1,44 @@
+name: One-time November 24 independent esports pull
+on:
+  pull_request:
+    paths: ['scripts/one-time-esports-pull-nov24.cjs','.github/workflows/one-time-esports-pull-nov24.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/one-time-esports-pull-nov24.yml']
+permissions:
+  contents: read
+concurrency:
+  group: one-time-esports-pull-nov24
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check scripts/one-time-esports-pull-nov24.cjs && node --test test/independent-provider-export-v1.test.cjs test/esports-zero-credit-coverage.test.cjs
+  capture:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.event.created == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Bounded authorized capture with aggregate-only output
+        env:
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+          UNDERDOG_API_KEY: ${{ secrets.UNDERDOG_API_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          trap 'rm -f "$RUNNER_TEMP/esports-one-time.json"' EXIT
+          node scripts/one-time-esports-pull-nov24.cjs "$RUNNER_TEMP/esports-one-time.json"

@@ -1,0 +1,46 @@
+name: Additional free esports historical diagnostics
+on:
+  pull_request:
+    paths: ['scripts/public-eight-free-history.py','scripts/public-six-esports-history.py','scripts/public_cod_wiki_history.py','scripts/cs2_headshot_history.py','.github/workflows/additional-free-esports-diagnostics.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/additional-free-esports-diagnostics.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m py_compile scripts/public-eight-free-history.py scripts/public-six-esports-history.py scripts/public_cod_wiki_history.py scripts/cs2_headshot_history.py
+      - run: python3 -m unittest discover -s test -p test_esports_context_models.py
+      - run: python3 -m unittest discover -s test -p test_cs2_headshot_history.py
+  lol:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          PYTHONPATH=scripts python3 - <<'PY'
+          import importlib.util,json
+          s=importlib.util.spec_from_file_location("free","scripts/public-eight-free-history.py")
+          m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+          print(json.dumps({"kind":"lol_complete_context_audit_v1","result":m.lol(),"rawRowsPublished":0,"paidRequests":0,"modelPromoted":False}))
+          PY
+  cod:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 scripts/public_cod_wiki_history.py 2026 03

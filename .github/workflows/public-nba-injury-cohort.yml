@@ -75,6 +75,10 @@ jobs:
           git config user.name 'Research archive automation'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git config core.hooksPath /dev/null
+          if git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote --exit-code --heads origin refs/heads/research/nba-pending-identity-review-20261124 >/dev/null; then
+            echo "Existing restricted review preserved; no overwrite."
+            exit 0
+          fi
           git switch -c research/nba-pending-identity-review-20261124
           mkdir -p research/nba-pending-identity-review-20261124
           install -m 600 "$file" research/nba-pending-identity-review-20261124/pending.json

@@ -10,7 +10,7 @@ function audit(root,pinned){
  const count=(r,p,re)=>fs.existsSync(path.join(r,p))?fs.readdirSync(path.join(r,p)).filter(n=>re.test(n)).length:0;
  const git=(r,a)=>execFileSync("git",a,{cwd:r,encoding:"utf8",timeout:20000,maxBuffer:32*1024*1024,stdio:["ignore","pipe","pipe"]}).trim();
  const history=read(root,"outputs/history/players.json"),frames=originalFrames();
- const s=shadowFrames(frames,history,{mode:"original_precommitted_only"});console.log(JSON.stringify(evaluate(s.rows)));
+ const s=shadowFrames(frames,history,{mode:"original_precommitted_only"});console.log(JSON.stringify(evaluate(s.rows)));console.log(JSON.stringify(require("../src/nhl-original-pair-dependence-research.cjs").assess(s.rows)));
  const dep=nhlProxy(history);console.log(JSON.stringify({kind:"nhl_dependence_proxy_aggregate_v1",...dep,modelPromoted:false,paidRequests:0,rawRowsPublished:0}));
  const paperPath="outputs/health/nhl-validation-and-paper-audit-latest.json";
  if(fs.existsSync(path.join(root,paperPath))){

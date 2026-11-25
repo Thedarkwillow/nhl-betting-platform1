@@ -88,7 +88,11 @@ def audit(kaggle,demos,evidence_out=None):
                     elif alias in other or other in alias:
                         counts["substring_conflict"]+=1
                         short,long=sorted((alias,other),key=len)
-                        if len(short)>=3 and re.search(r"(?<![a-z0-9])"+re.escape(short)+r"(?![a-z0-9])",long):counts["token_boundary_substring_conflict"]+=1
+                        if len(short)>=3 and re.search(r"(?<![a-z0-9])"+re.escape(short)+r"(?![a-z0-9])",long):
+                            counts["token_boundary_substring_conflict"]+=1
+                            remainder=norm(long.replace(short,"",1));teams={norm(p.get("teamLabel")),norm(q.get("sourceTeamLabel"))}-{""}
+                            if remainder and remainder in teams:counts["exact_team_label_affix_diagnostic"]+=1
+                            else:counts["unexplained_token_affix_diagnostic"]+=1
                         else:counts["embedded_substring_conflict"]+=1
                     else:counts["distinct_alias_conflict"]+=1
                     continue

@@ -1,13 +1,13 @@
 {
   "kind": "public_multi_sport_sprint_evidence_v1",
-  "asOf": "2026-11-25T03:11:02Z",
+  "asOf": "2026-11-25T03:16:25Z",
   "rawRowsPublished": 0,
   "paidRequests": 0,
   "modelPromoted": false,
   "items": [
     {
       "sport": "NHL",
-      "description": "Exact-line paired audit: 1,243 decided rows, 99 games, 14 dates; champion 50.04%, distribution challenger 50.36%, always Lower 53.82%. Distribution Brier 0.271436 vs 0.272355; no qualified challenger.",
+      "description": "Exact-line paired audit: 1,243 decided rows, 99 games, 14 dates; champion 50.04%, distribution challenger 50.36%, always Lower 53.82%. Distribution Brier 0.271436 vs 0.272355; no qualified challenger. Posthoc fixed specialist blend: SOG 244/496 vs champion 243/496, always Lower 285/496; Brier improved 0.273384 to 0.271444. No promotion.",
       "historicalRows": 1054,
       "prospectiveRows": 247,
       "prospectiveWins": 116
@@ -31,7 +31,7 @@
     },
     {
       "sport": "Valorant",
-      "description": "73,950 player-map rows; map-conditioned test on 11,857 matched observations per market improved all three statistical errors.",
+      "description": "73,950 map rows with agent, team, opponent and round count; 70,530 opening-kill/death rows and 60,680 patch rows. Agent-conditioned kills MAE 4.10569 vs 4.12247 (12,718 matched); duration challenger not approved.",
       "historicalRows": 73950
     },
     {
@@ -41,12 +41,12 @@
     },
     {
       "sport": "Dota 2",
-      "description": "3,000 professional matches, 156 dates. Hero-conditioned historical error improved on 3,135 matched observations per market.",
+      "description": "3,000 professional matches, 156 dates. Hero-conditioned historical error improved on 3,135 matched observations per market. Prior-only duration blend marginally improved assists MAE 5.535 to 5.520 (4,628); other markets did not improve.",
       "historicalRows": 30000
     },
     {
       "sport": "Call of Duty",
-      "description": "Separate March 2026 bounded sample: 187 complete maps, 1,496 valid player-map rows across 13 dates. Mode-conditioned kills MAE 5.65 vs last-20 8.59; deaths MAE 5.01 vs 8.26, 388 matched observations per market. Prior cohorts remain separate.",
+      "description": "Separate March 2026 bounded sample: 187 complete maps, 1,496 valid player-map rows across 13 dates. Mode-conditioned kills MAE 5.65 vs last-20 8.59; deaths MAE 5.01 vs 8.26, 388 matched observations per market. Prior cohorts remain separate. June 2026 adds 187 maps / 1,496 rows; mode-conditioned kills MAE 6.315 vs 9.389 and deaths 5.988 vs 9.252 on 480 matched observations each. September returned zero. Cohorts not pooled.",
       "historicalRows": 1496
     },
     {
@@ -126,6 +126,22 @@
         "n": 388,
         "baselineMAE": 8.263765298125033,
         "contextMAE": 5.006725203845396
+      },
+      {
+        "sport": "Call of Duty",
+        "cohort": "June 2026",
+        "metric": "kills",
+        "n": 480,
+        "baselineMAE": 9.389486209140093,
+        "contextMAE": 6.314686152420531
+      },
+      {
+        "sport": "Call of Duty",
+        "cohort": "June 2026",
+        "metric": "deaths",
+        "n": 480,
+        "baselineMAE": 9.252049780804134,
+        "contextMAE": 5.988394448445958
       }
     ],
     "independentCoverage": {
@@ -200,6 +216,10 @@
     "cs2Context": 45532260719,
     "nhlLag": 45532337668,
     "cs2Registry": 45536754858,
-    "codMarch": 45536754897
+    "codMarch": 45536754897,
+    "codJune": 45538478781,
+    "specialist": 45538708363,
+    "exposure": 45538478739,
+    "restrictedFinal": 45538478728
   }
 }

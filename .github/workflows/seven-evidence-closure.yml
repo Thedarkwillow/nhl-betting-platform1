@@ -1,0 +1,118 @@
+name: Seven outstanding evidence closure
+on:
+  pull_request:
+    paths: ['scripts/nba_primary_pdf_cohort_audit.py','test/test_nba_primary_pdf_cohort.py','src/nhl-original-pair-dependence-research.cjs','test/nhl-original-pair-dependence-research.test.cjs','.github/workflows/seven-evidence-closure.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/seven-evidence-closure.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python3 -m py_compile scripts/nba_primary_pdf_cohort_audit.py scripts/reconcile-nba-dated-injury-cohort.py scripts/esports_restricted_final_audit.py scripts/esports_exposure_research.py scripts/public-six-esports-history.py
+      - run: python3 -m unittest discover -s test -p test_nba_primary_pdf_cohort.py
+      - run: python3 -m unittest discover -s test -p test_nba_dated_injury_cohort.py
+      - run: python3 -m unittest discover -s test -p test_cs2_independent_steam_audit.py
+      - run: python3 -m unittest discover -s test -p test_esports_exposure_research.py
+      - run: node --test test/nhl-original-pair-dependence-research.test.cjs test/nhl-specialist-blend-research.test.cjs test/nba-fixed-holdout-gate-v1.test.cjs
+  nba:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: d02aa363ebbfbf5619411cf46a01efcd5ddc6299
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyarrow==19.0.1 pdfplumber==0.11.7
+      - name: Reconstruct cohort and check dated first-party NBA reports
+        env:
+          NBA_RESTRICTED_ALL_UNMAPPED: ${{ runner.temp }}/all-nba-reconstructed.json
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$RUNNER_TEMP/private-nba.log"
+          trap 'rm -f "$log" "$NBA_RESTRICTED_ALL_UNMAPPED"' EXIT
+          python public/scripts/reconcile-nba-dated-injury-cohort.py archive/outputs/nba/research/pinnacle-2026-10-24-to-31-nba.csv >"$log" 2>&1 || { echo "Reconstruction failed closed"; exit 1; }
+          python public/scripts/nba_primary_pdf_cohort_audit.py "$NBA_RESTRICTED_ALL_UNMAPPED" "$RUNNER_TEMP/nba-primary-pdf-evidence.json" >"$log" 2>&1 || { echo "Primary source audit failed closed"; exit 1; }
+          python - "$RUNNER_TEMP/nba-primary-pdf-evidence.json" <<'PY'
+          import json,sys
+          x=json.load(open(sys.argv[1]))["summary"]
+          assert x["kind"]=="nba_primary_pdf_reconstructed_cohort_v1" and x["reconstructedRows"]==135 and x["rawRowsPublished"]==0 and x["freezeApproved"] is False
+          print(json.dumps(x))
+          PY
+      - name: Retain source hashes and row-verification statuses in restricted archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          file="$RUNNER_TEMP/nba-primary-pdf-evidence.json"
+          trap 'rm -f "$file"' EXIT
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          cd archive
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config core.hooksPath /dev/null
+          branch="research/nba-primary-pdf-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git switch -c "$branch"
+          mkdir -p research/nba-primary-pdf-evidence
+          install -m 600 "$file" research/nba-primary-pdf-evidence/verification.json
+          git add research/nba-primary-pdf-evidence/verification.json
+          git commit -qm 'Preserve dated primary NBA report verification evidence'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin "HEAD:refs/heads/$branch"
+          remote="$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin "refs/heads/$branch" | cut -f1)"
+          test "$remote" = "$(git rev-parse HEAD)"
+          echo 'Restricted primary NBA report evidence committed and verified.'
+  original-research:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Original-line pair dependence audit
+        run: |
+          export RESEARCH_ARCHIVE_ROOT="$GITHUB_WORKSPACE/archive"
+          node - <<'NODE'
+          const fs=require("fs"),path=require("path"),root=process.env.RESEARCH_ARCHIVE_ROOT;
+          const {originalFrames}=require("./public/scripts/report-nhl-standard-triple-challengers.cjs");
+          const {shadowFrames}=require("./public/src/nhl-standard-triple-challenger-grader.cjs");
+          const h=JSON.parse(fs.readFileSync(path.join(root,"outputs/history/players.json"),"utf8"));
+          const s=shadowFrames(originalFrames(),h,{mode:"original_precommitted_only"});
+          console.log(JSON.stringify(require("./public/src/nhl-original-pair-dependence-research.cjs").assess(s.rows)));
+          NODE

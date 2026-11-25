@@ -3,7 +3,7 @@
 // no public stdout individual data. Readback is not independent chronology proof.
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),crypto=require('node:crypto');
 const {retain}=require('./prizepicks-restricted-forecast-storage.cjs');
-const REPO='Thedarkwillow/betting-forecast-vault',BASE='https://api.github.com/repos/'+REPO;
+const REPO='Thedarkwillow/betting-forecast-vault.',BASE='https://api.github.com/repos/'+REPO;
 const GRANT='authorized_individual_forecast_retention_v1';
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 function makeVault({token,grant,checkout,client=fetch,clock=()=>new Date().toISOString()}={}){
@@ -14,7 +14,7 @@ function makeVault({token,grant,checkout,client=fetch,clock=()=>new Date().toISO
   if(!response.ok)throw Error('vault_http_failure');
   return response.json();
  }
- async function privateRepo(){const d=await request('GET','');if(d.full_name?.toLowerCase()!==REPO.toLowerCase()||d.private!==true||d.visibility!=='private'||d.default_branch!=='main'||d.archived!==false||d.disabled===true)throw Error('vault_privacy_or_branch');}
+ async function privateRepo(){const d=await request('GET','');if(d.id!==1472152822||d.full_name?.toLowerCase()!==REPO.toLowerCase()||d.private!==true||d.visibility!=='private'||d.default_branch!=='main'||d.archived!==false||d.disabled===true)throw Error('vault_privacy_or_branch');}
  async function append(prefix,bytes){
   if(bytes.length>900000)throw Error('vault_payload_bound');
   const digest=hash(bytes),name=prefix+'/'+digest+'.json';

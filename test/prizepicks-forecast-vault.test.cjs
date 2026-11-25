@@ -6,7 +6,7 @@ function fixture({publicRepo=false,corrupt=false}={}){
  const client=async(url,o)=>{
   a.ok(url.startsWith('https://api.github.com/repos/'+REPO));a.equal(o.redirect,'error');calls.push(o.method);
   const u=new URL(url),p=u.pathname.split('/contents/')[1];
-  if(!p)return Response.json({full_name:REPO,private:!publicRepo,visibility:publicRepo?'public':'private',default_branch:'main',archived:false});
+  if(!p)return Response.json({id:1472152822,full_name:REPO,private:!publicRepo,visibility:publicRepo?'public':'private',default_branch:'main',archived:false});
   if(o.method==='PUT'){const d=JSON.parse(o.body);a.equal(d.sha,undefined);a.equal(d.branch,'main');a.ok(!files.has(p));files.set(p,d.content);return Response.json({commit:{sha:revision},content:{path:p}});}
   a.equal(u.searchParams.get('ref'),revision);
   return Response.json({type:'file',path:p,encoding:'base64',content:corrupt?'YQ==':files.get(p)});

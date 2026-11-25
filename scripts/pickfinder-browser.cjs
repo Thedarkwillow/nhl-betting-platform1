@@ -60,8 +60,8 @@ function readBoard({book, code, sport, observedAt}) {
   return {authenticated,rows,number:Number(pages?.[1]),total:Number(pages?.[2]),
     empty:table?.innerText.includes('No props found')===true};
 }
-async function collect(page,{book,code,slot='manual',maxPages=500,shouldContinue=()=>true}) {
-  if(!['prizepicks','underdog'].includes(book)||!Number.isInteger(maxPages)||maxPages<1||maxPages>500)throw Error('invalid partition');
+async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldContinue=()=>true}) {
+  if(!['prizepicks','underdog'].includes(book)||!(maxPages===Infinity||Number.isSafeInteger(maxPages)&&maxPages>=1))throw Error('invalid partition');
   const sport=aliases[code]||code.toLowerCase();
   const startedAt=new Date().toISOString();
   const localDay=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(startedAt));
@@ -91,7 +91,7 @@ async function collect(page,{book,code,slot='manual',maxPages=500,shouldContinue
         if(!snapshot.authenticated){result.failure='session_expired';break;}
         stableEmpty=snapshot.empty?stableEmpty+1:0;
         const first=snapshot.rows[0]?.detailId;
-        if((snapshot.number===n && first && first!==previous && snapshot.rows.every(r=>r.sport===sport)) || (n===1&&stableEmpty>=4&&snapshot.rows.length===0)){ready=true;break;}
+        if((snapshot.number===n && Number.isSafeInteger(snapshot.total) && snapshot.total>=n && first && first!==previous && snapshot.rows.every(r=>r.sport===sport)) || (n===1&&stableEmpty>=4&&snapshot.rows.length===0)){ready=true;break;}
         await new Promise(resolve=>setTimeout(resolve,250));
       }
       if(!ready)break;

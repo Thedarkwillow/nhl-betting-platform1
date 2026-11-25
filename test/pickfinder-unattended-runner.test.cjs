@@ -8,6 +8,8 @@ test('authorization and opt-in fail closed; probe separate',()=>{
  assert.throws(()=>plan({...env,PICKFINDER_AUTOMATION_AUTHORIZED:'0'},now),/authorization/);
  assert.equal(plan({...env,PICKFINDER_SCHEDULE_ENABLED:'0'},now).allowed,false);
  assert.deepEqual(plan({...env,GITHUB_EVENT_NAME:'workflow_dispatch',REQUESTED_MODE:'probe_now'},now),{probe:true});
+ assert.deepEqual(plan({...env,GITHUB_EVENT_NAME:'push',REQUESTED_MODE:'probe_now'},now),{probe:true});
+ assert.throws(()=>plan({...env,GITHUB_EVENT_NAME:'push',REQUESTED_MODE:'capture_0600'},now));
  assert.equal(plan({...env,GITHUB_EVENT_NAME:'workflow_dispatch',REQUESTED_MODE:'reconcile_now'},now).expected,'manual');
 });
 test('6 and 9 Pacific schedules are distinct, including summer time',()=>{

@@ -22,7 +22,7 @@ def finished_score(a,b):
     w,l=max(a,b),min(a,b)
     return w==13 and l<=11 or w>=16 and (w-16)%3==0 and 2<=w-l<=4
 def parse(reader):
-    groups={};seen=Counter();excluded=Counter();raw=0;days=set();identity_names=defaultdict(set)
+    groups={};seen=Counter();excluded=Counter();flags=Counter();raw=0;days=set()
     for r in reader:
         raw+=1
         if raw>30000:raise ValueError("row_cap")
@@ -31,9 +31,12 @@ def parse(reader):
             if not "2023-09-27"<=day<"2026-11-25":excluded["outside_cs2_history"]+=1;continue
             days.add(day)
             flag=str(r.get("is_total","")).strip().lower()
+            flags[flag if flag in ("0","0.0","false","1","1.0","true","") else "other"]+=1
             if flag not in ("0","0.0","false"):
                 excluded["series_summary_or_unknown_flag"]+=1;continue
-            mid=ident(r["match_id"]);gid=ident(r["game_id"]);key=(mid,gid);seen[key]+=1
+            mid=ident(r["match_id"]);gid=r["game_id"].strip();
+            if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,100}",gid):raise ValueError("game_id")
+            key=(mid,gid);seen[key]+=1
             mp=r["map_name"].strip()
             if not mp or not ident(r["map_id"]):raise ValueError("map")
             teams=[ident(r["team1_id"]),ident(r["team2_id"])]
@@ -46,17 +49,16 @@ def parse(reader):
                     p=f"team{side}_player{i}"
                     pid=ident(r[p+"_id"])
                     vals={m:integer(r[p+"_"+m]) for m in MARKETS}
-                    if vals["kills"]>a+b or vals["deaths"]>a+b:raise ValueError("round_counts")
+                    if vals["kills"]>5*(a+b) or vals["deaths"]>a+b:raise ValueError("round_counts")
                     name=r[p].strip()
                     if not name:raise ValueError("name")
                     batch.append(dict(event=mid+"|"+gid,player="ektarr:"+pid,date=day,map=mp,team=teams[side-1],rounds=a+b,**vals))
-                    identity_names[pid].add(name.casefold())
             if len({x["player"] for x in batch})!=10:raise ValueError("duplicate_player")
             groups[key]=batch
         except (ValueError,KeyError,AttributeError,TypeError):excluded["invalid_map_row"]+=1
     rows=[r for key,b in groups.items() if seen[key]==1 for r in b]
     dates=sorted({r["date"] for r in rows})
-    return rows,{"sourceRows":raw,"completeMaps":len(rows)//10,"playerMapRows":len(rows),"distinctSourcePlayers":len({r["player"] for r in rows}),"dates":len(dates),"dateMin":dates[0] if dates else None,"dateMax":dates[-1] if dates else None,"excluded":dict(excluded),"duplicateMapKeys":sum(n>1 for n in seen.values()),"sourceLocalIdsOnly":True,"mapOrdinalVerified":False,"headshotCountsAvailable":False}
+    return rows,{"sourceRows":raw,"completeMaps":len(rows)//10,"playerMapRows":len(rows),"distinctSourcePlayers":len({r["player"] for r in rows}),"dates":len(dates),"dateMin":dates[0] if dates else None,"dateMax":dates[-1] if dates else None,"excluded":dict(excluded),"totalFlagCounts":dict(flags),"duplicateMapKeys":sum(n>1 for n in seen.values()),"sourceLocalIdsOnly":True,"mapOrdinalVerified":False,"headshotCountsAvailable":False}
 def main():
     try:
         req=urllib.request.Request(URL,headers={"User-Agent":"CS2ResearchDataAudit/1.0"})

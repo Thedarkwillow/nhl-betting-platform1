@@ -1,4 +1,5 @@
 name: NBA conditional real-line retrospective replay
+# Recheck the pinned genuine-line baseline alongside the multisport archive reconnection.
 on:
   pull_request:
     paths: ['scripts/nba-conditional-real-line-replay.cjs','test/nba-conditional-real-line-replay.test.cjs','.github/workflows/nba-conditional-real-line-replay.yml']

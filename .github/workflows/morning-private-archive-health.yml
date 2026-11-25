@@ -6,7 +6,9 @@ on:
     branches: [main]
     paths: ['scripts/morning-private-archive-health.cjs','test/morning-private-archive-health.test.cjs','.github/workflows/morning-private-archive-health.yml']
   schedule:
-    - cron: '20 7,10 * * *'
+    - cron: '20 7 * * *'
+      timezone: America/Los_Angeles
+    - cron: '20 10 * * *'
       timezone: America/Los_Angeles
   workflow_dispatch:
     inputs:
@@ -59,15 +61,16 @@ jobs:
       - name: Read immutable archive and emit count-only evidence
         env:
           EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
           AUDIT_DAY: ${{ inputs.day }}
           AUDIT_SLOT: ${{ inputs.slot }}
         run: |
           set -euo pipefail
           if [ "$EVENT_NAME" = schedule ]; then
             AUDIT_DAY="$(TZ=America/Los_Angeles date +%F)"
-            case "$(TZ=America/Los_Angeles date +%H)" in
-              07) AUDIT_SLOT=06:00 ;;
-              10) AUDIT_SLOT=09:00 ;;
+            case "$EVENT_SCHEDULE:$(TZ=America/Los_Angeles date +%H)" in
+              "20 7 * * *:07") AUDIT_SLOT=06:00 ;;
+              "20 10 * * *:10") AUDIT_SLOT=09:00 ;;
               *) echo 'Scheduled health check delayed outside audit hour; no slot inferred'; exit 1 ;;
             esac
           fi

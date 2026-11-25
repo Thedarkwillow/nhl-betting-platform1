@@ -28,4 +28,21 @@ class Tests(unittest.TestCase):
   a=review_claims(r,p,target,c);self.assertEqual(a["targetProfileCoverage"],1);self.assertEqual(a["conflictsWithArchivedAccountClaims"],1);self.assertFalse(a["productionEligible"])
   with self.assertRaises(ValueError):review_claims(r,p,target,dict(c,rows=[]))
   with self.assertRaises(ValueError):review_claims(r,dict(p,candidates=p["candidates"]*2),target,c)
+ def test_paired_thresholds_keep_open_close_and_reported_outcome_separate(self):
+  raw=b"player,event_id,stat,opening_line,closing_line,outcome,actual\np,e,kills_on_map_1,10.5,12.5,under,11\nq,e,kills_on_map_1,10,10,push,10\nr,e,kills_on_map_1,8,9,over,7\n"
+  a=graded(raw)["pairedThresholdAudit"]
+  self.assertEqual(a["validDistinctPairs"],3)
+  self.assertEqual(a["changedThresholds"],2)
+  self.assertEqual(a["changedNumericOutcomes"],1)
+  self.assertEqual(a["reportedMatchesOpening"],1)
+  self.assertEqual(a["reportedMatchesClosing"],2)
+  self.assertEqual(a["reportedMatchesNeither"],1)
+  self.assertFalse(a["providerOutcomePhaseVerified"])
+  self.assertFalse(a["sourceTimestampVerified"])
+  self.assertEqual(a["derivedNumericOutcomes"]["opening"],{"Higher":1,"Push":1,"Lower":1})
+ def test_paired_conflicting_rows_rejected(self):
+  raw=b"player,event_id,stat,opening_line,closing_line,outcome,actual\np,e,kills,10,11,over,12\np,e,kills,10,12,over,12\n"
+  a=graded(raw)["pairedThresholdAudit"]
+  self.assertEqual(a["conflictingPairs"],1)
+  self.assertEqual(a["validDistinctPairs"],0)
 if __name__=="__main__":unittest.main()

@@ -1,0 +1,69 @@
+name: Public migrated NHL NFL research contracts
+on:
+  pull_request:
+    paths: ['.github/workflows/public-migrated-legacy-contracts.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/public-migrated-legacy-contracts.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '23 4 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [nfl-history, nfl-specialty, nhl-watchdog, nhl-readiness, common-ml]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run public native contracts, no provider calls
+        env:
+          SUITE: ${{ matrix.suite }}
+        run: |
+          set -euo pipefail
+          case "$SUITE" in
+            nfl-history)
+              node --check src/nfl-research-sources.cjs
+              node --check scripts/collect-nfl-board.cjs
+              node --check scripts/diff-nfl-morning-boards.cjs
+              node --test test/nfl-research-history-board.test.cjs test/nfl-market-registry.test.cjs
+              python -m py_compile scripts/collect-nfl-history.py
+              ;;
+            nfl-specialty)
+              node --check scripts/audit-nfl-specialty-readiness.cjs
+              node --check scripts/build-nfl-correlation-research.cjs
+              node --check src/nfl-market-settlement-gates.cjs
+              node --test test/nfl-specialty-research.test.cjs test/nfl-specialty-readiness.test.cjs test/nfl-context-source-matrix.test.cjs
+              ;;
+            nhl-watchdog)
+              node --check src/nhl-morning-board-monitor.cjs
+              node --check scripts/report-nhl-morning-board-watchdog.cjs
+              node --test test/nhl-morning-board-monitor.test.cjs
+              ;;
+            nhl-readiness)
+              node --check src/nhl-github-run-health.cjs
+              node --check src/nhl-seven-roadmap-readiness.cjs
+              node --check scripts/report-nhl-seven-roadmap-readiness.cjs
+              node --check scripts/report-nhl-market-model-audit.cjs
+              node --test test/nhl-seven-roadmap-readiness.test.cjs test/nhl-github-run-health.test.cjs test/nhl-paired-market-model-audit.test.cjs
+              ;;
+            common-ml)
+              node --check scripts/export-priority-component-features.cjs
+              node --check scripts/freeze-partner-nhl-pregame.cjs
+              node --test test/priority-common-ml-shadow-v1.test.cjs
+              python -m py_compile scripts/train-priority-common-ml-shadow.py
+              ;;
+            *) exit 1 ;;
+          esac

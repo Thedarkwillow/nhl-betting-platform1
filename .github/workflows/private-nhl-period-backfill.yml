@@ -120,7 +120,14 @@ jobs:
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           for command in 'npm run build:period-history' 'npm run build:period-combo-models' 'node scripts/report-nhl-combo-period-release.cjs'; do
-            if ! bash -c "$command" >"$log" 2>&1; then echo '::error::Private period model rebuild failed; source archive retained.'; exit 1; fi
+            echo "Running fixed rebuild stage: $command"
+            if bash -c "$command" >"$log" 2>&1; then echo 'Rebuild stage passed'; else
+              rc=$?
+              category=unclassified
+              if grep -qE 'ERR_MODULE_NOT_FOUND|MODULE_NOT_FOUND|Cannot find module|Missing script' "$log"; then category=missing_dependency_or_script; elif grep -q 'ENOENT' "$log"; then category=missing_file; elif grep -qE 'heap out of memory|ENOMEM' "$log"; then category=memory; elif grep -qE 'SyntaxError|TypeError|ReferenceError' "$log"; then category=code_error; fi
+              echo "::error::Private period model rebuild failed: stage=$command exit=$rc category=$category; source archive retained."
+              exit 1
+            fi
           done
           git add -f outputs/period-stats/history.json outputs/projections/nhl-period-shadow-latest.json outputs/backtests/nhl-period-walkforward-latest.json outputs/backtests/nhl-combo-structured-offer-audit-latest.json outputs/backtests/nhl-period-offer-readiness-latest.json outputs/backtests/nhl-combo-period-release-gates-latest.json
           if git diff --cached --quiet; then exit 0; fi

@@ -69,7 +69,7 @@ async function checkpoint(root,prefix,batches,attempt,p){
   const sha=await stage('private_archive_push',async()=>{
    for(let attempt=0;attempt<3;attempt++){
     git(root,['fetch','origin','main']);
-    try{git(root,['rebase','FETCH_HEAD']);}catch(e){try{git(root,['rebase','--abort']);}catch{}throw e;}
+    try{git(root,['-c','user.name=PickFinder research runner','-c','user.email=research-runner@users.noreply.github.com','rebase','FETCH_HEAD']);}catch(e){try{git(root,['rebase','--abort']);}catch{}throw e;}
     const revision=git(root,['rev-parse','HEAD']);
     if(!safeAddedFiles(git(root,['diff-tree','--no-commit-id','--name-status','-r',revision]),prefix))throw Error('rebased commit not append-only');
     try{git(root,['push','origin','HEAD:refs/heads/main']);return revision;}catch(e){const detail=String(e?.stderr||'');const category=/non-fast-forward|fetch first|failed to push some refs/i.test(detail)?'remote_rejected_or_advanced':/authentication failed|permission denied|403/i.test(detail)?'permission_or_authentication':/large files|exceeds.*limit|GH001/i.test(detail)?'file_size_rejected':'other_git_failure';console.log(JSON.stringify({state:'private_archive_push_retry',attempt:attempt+1,category,rawDataLogged:false}));if(attempt===2)throw e;await new Promise(resolve=>setTimeout(resolve,2000*(attempt+1)));}

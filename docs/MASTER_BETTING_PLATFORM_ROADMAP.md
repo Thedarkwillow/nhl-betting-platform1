@@ -1162,6 +1162,7 @@ Public baseline imported from private Git blob 7ac01dea9de441e7f577050c425c67176
 | ESP-031 | 2026-11-25 | [Dota probability test](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45549936255) | Scoped historical or third-party evidence only; no production approval |
 | ESP-032 | 2026-11-25 | [LoL Elo evaluation](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45549936255) | Scoped historical or third-party evidence only; no production approval |
 | ESP-033 | 2026-11-25 | [Private archival workflow](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45549936255) | Scoped historical or third-party evidence only; no production approval |
+| ESP-035 | 2026-11-25 | [Merged activation PR #212](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/212), [authenticated collection run](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45555996780) | Five GRID LoL fixtures privately archived; no completed maps or verified original lines |
 
 ## Roadmap change history
 

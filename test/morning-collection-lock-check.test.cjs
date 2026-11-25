@@ -24,7 +24,7 @@ test("both existing morning workflows have a pinned checkout and fail-closed gua
  const fs=require("node:fs"),path=require("node:path");
  for(const name of ["nba-authorized-research.yml","esports-prospective-private.yml"]){
   const y=fs.readFileSync(path.join(__dirname,"../.github/workflows",name),"utf8");
-  for(const s of ["cron: '35 6 * * *'","cron: '35 9 * * *'","ref: "+pin,"path: candidate","node public/scripts/morning-collection-lock-check.cjs archive candidate", 'if [ "$LOCKED_MORNING" = true ]; then code=candidate; fi','--diff-filter=CDMRTUXB','git merge-base --is-ancestor HEAD origin/main'])assert.ok(y.includes(s),name+": "+s);
+  for(const s of ["cron: '35 6 * * *'","cron: '35 9 * * *'","ref: "+pin,"path: candidate","node public/scripts/morning-collection-lock-check.cjs archive candidate", name==='nba-authorized-research.yml'?'export NBA_LOCKED_MODEL_ROOT="$GITHUB_WORKSPACE/candidate"':'if [ "$LOCKED_MORNING" = true ]; then code=candidate; fi','--diff-filter=CDMRTUXB','git merge-base --is-ancestor HEAD origin/main'])assert.ok(y.includes(s),name+": "+s);
   assert.ok(y.indexOf("Verify morning collection lock and exact revision")<y.indexOf('code=public'));
  }
  const nba=fs.readFileSync(path.join(__dirname,"../.github/workflows/nba-authorized-research.yml"),"utf8");

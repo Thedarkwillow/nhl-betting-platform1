@@ -49,34 +49,37 @@ function nativeInventory(){
  const visible=e=>e.getClientRects().length>0;
  return [...document.querySelectorAll('main select')].map((e,index)=>({
   index,label:(e.getAttribute('aria-label')||[...e.labels||[]].map(l=>l.innerText).join(' ')).trim(),
-  visible:visible(e),disabled:e.disabled,multiple:e.multiple,value:e.value,
+  visible:visible(e),disabled:e.disabled,multiple:e.multiple,value:e.multiple?[...e.selectedOptions].map(o=>o.value).sort():e.value,
   options:[...e.options].filter(o=>!o.disabled&&!o.parentElement?.disabled&&o.value!=='').map(o=>({value:o.value,label:o.text.trim()}))
  })).filter(x=>x.visible);
 }
 function eligible(inventory){
  const labels=new Map();for(const x of inventory){const k=normalize(x.label);labels.set(k,(labels.get(k)||0)+1);}
- return inventory.filter(x=>!x.disabled&&!x.multiple&&filterLabels.includes(normalize(x.label))&&labels.get(normalize(x.label))===1&&x.options.length>0&&new Set(x.options.map(o=>o.value)).size===x.options.length);
+ return inventory.filter(x=>!x.disabled&&filterLabels.includes(normalize(x.label))&&labels.get(normalize(x.label))===1&&x.options.length>0&&new Set(x.options.map(o=>o.value)).size===x.options.length);
 }
 // Walk native labeled single-select combinations. Dynamic/custom controls are inventoried, not guessed.
-async function traverseNativeFilters(page,{shouldContinue=()=>true,onState=async()=>{},read=()=>page.evaluate(nativeInventory),set=async(x,value)=>page.locator('main select').nth(x.index).selectOption({value}),maxMs=45000}={}){
+async function traverseNativeFilters(page,{shouldContinue=()=>true,onState=async()=>{},read=()=>page.evaluate(nativeInventory),set=async(x,value)=>page.locator('main select').nth(x.index).selectOption(Array.isArray(value)?value.map(v=>({value:v})):{value}),maxMs=45000}={}){
  const started=Date.now(),initial=await read(),accepted=eligible(initial),labels=accepted.map(x=>normalize(x.label)),states=new Set(),issues=new Set();
  const current=async()=>eligible(await read());
  const alive=()=>shouldContinue()&&Date.now()-started<maxMs;
- const choose=async(label,value)=>{const x=(await current()).find(y=>normalize(y.label)===label);if(!x||!x.options.some(o=>o.value===value))throw Error('unavailable filter');await set(x,value);const after=(await current()).find(y=>normalize(y.label)===label);if(!after||after.value!==value)throw Error('filter selection unverified');};
+ const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+ function* subsets(a,i=0,p=[]){if(i===a.length){yield p.slice().sort();return;}yield* subsets(a,i+1,p);yield* subsets(a,i+1,[...p,a[i]]);}
+ const choose=async(label,value)=>{const x=(await current()).find(y=>normalize(y.label)===label);if(!x||!(Array.isArray(value)?value.every(v=>x.options.some(o=>o.value===v)):x.options.some(o=>o.value===value)))throw Error('unavailable filter');await set(x,value);const after=(await current()).find(y=>normalize(y.label)===label);if(!after||!same(after.value,value))throw Error('filter selection unverified');};
  async function walk(i,selection){
   if(!alive()){issues.add('deadline');return;}
   if(i===labels.length){
    const controls=await current();
-   if(selection.some(s=>!controls.some(x=>normalize(x.label)===s.label&&x.value===s.value))){issues.add('selection_changed');return;}
+   if(selection.some(s=>!controls.some(x=>normalize(x.label)===s.label&&same(x.value,s.value)))){issues.add('selection_changed');return;}
    if(controls.some(x=>!labels.includes(normalize(x.label))))issues.add('dynamic_control');
    const key=JSON.stringify(selection);if(states.has(key))return;try{await onState(selection);states.add(key);}catch(e){if(e?.deepStage)throw e;issues.add('state_capture_failed');}return;
   }
   const label=labels[i],x=(await current()).find(y=>normalize(y.label)===label);
   if(!x){issues.add('dynamic_control');return;}
-  for(const option of x.options){if(!alive()){issues.add('deadline');break;}try{await choose(label,option.value);}catch{issues.add('selection_failed');continue;}
-   await walk(i+1,[...selection,{label,value:option.value,display:option.label}]);
+  const choices=x.multiple?subsets(x.options.map(o=>o.value)):x.options.map(o=>o.value);
+  for(const value of choices){if(!alive()){issues.add('deadline');break;}try{await choose(label,value);}catch{issues.add('selection_failed');continue;}
+   await walk(i+1,[...selection,{label,value,display:Array.isArray(value)?value.map(v=>x.options.find(o=>o.value===v)?.label):x.options.find(o=>o.value===value)?.label}]);
   }
-  if(x.options.some(o=>o.value===x.value)){try{await choose(label,x.value);}catch{issues.add('restore_failed');}}else issues.add('restore_unverified');
+  if(x.multiple?Array.isArray(x.value)&&x.value.every(v=>x.options.some(o=>o.value===v)):x.options.some(o=>o.value===x.value)){try{await choose(label,x.value);}catch{issues.add('restore_failed');}}else issues.add('restore_unverified');
  }
  if(labels.length)await walk(0,[]);
  return {version:VERSION,nativeControls:initial.length,eligibleControls:labels.length,statesObserved:states.size,issues:[...issues],nativeCombinationsExhausted:labels.length>0&&issues.size===0,allFilterCombinationsVerified:false};

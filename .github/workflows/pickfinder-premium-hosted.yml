@@ -129,3 +129,5 @@ jobs:
 # Expanded sport-specific research and native read-only filter coverage.
 
 # Read-only custom filters and capability schema; local alert rules disabled by default.
+
+# Count-only live research and board progress; final GitHub Actions job summary.

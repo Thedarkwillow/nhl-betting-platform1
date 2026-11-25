@@ -212,3 +212,15 @@ test('builder and alert navigation fails closed when no exact authorized link',a
  const p={evaluate:async()=>[],goto:async()=>{mutations++;}};
  assert.equal((await inspectTool(p,'builder',async()=>true)).state,'navigation_not_verified');assert.equal(mutations,0);
 });
+
+test('live progress counts exact scoped completions separately from legacy and partial attempts',()=>{
+ const {progressTracker,boardInventory}=require('../scripts/pickfinder-research-progress.cjs');
+ const scopes=[{key:'a',sport:'nba',book:'prizepicks'},{key:'b',sport:'nba',book:'underdog'},{key:'c',sport:'nhl',book:'prizepicks'}];
+ const boards=boardInventory([{sport:'nba',book:'prizepicks',startedAt:'2026-11-25',displayedPageCount:5,pages:[{number:1,rows:[{}]},{number:2,rows:[{},{}]}]}]);
+ const logs=[];const p=progressTracker({scopes,completed:new Set(['a','not_in_queue']),legacy:new Set(['b']),version:'v3',boards,log:x=>logs.push(JSON.parse(x)),summaryPath:''});
+ p.record({key:'b',status:'sampled',profileCollection:{coverageVersion:'v3',truncated:false},research:[{}]});
+ p.record({key:'b',status:'sampled',profileCollection:{coverageVersion:'v3',truncated:false},research:[{}]});
+ p.record({key:'c',status:'failed'});
+ p.page({name:'Games',pagination:[{page:1,total:3}]});p.page({name:'Games',pagination:[{page:2,total:3}]});p.page({name:'Popular',pagination:[]});
+ const x=p.snapshot('fixture');assert.equal(x.totalPropScopes,3);assert.equal(x.completedPropScopes,2);assert.equal(x.remainingPropScopes,1);assert.equal(x.completedThisRun,1);assert.equal(x.legacyCompletedScopes,1);assert.equal(x.bySport.nba.completed,2);assert.equal(x.byDashboard.Games.knownScopeTotal,3);assert.equal(x.byDashboard.Popular.unknownTotalScopes,1);assert.equal(x.latestBoardSnapshots[0].rowsObserved,3);assert.equal(x.allDashboardFilterPageTotalsKnown,false);assert.ok(logs.every(z=>z.rawRowsPublished===0));
+});

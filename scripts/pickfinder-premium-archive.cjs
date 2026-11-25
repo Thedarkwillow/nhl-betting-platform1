@@ -33,6 +33,7 @@ function normalize(input,{now=new Date()}={}){
  if(first>last||last>now)throw Error("attempt chronology");
  const links=new Set(),offers=new Map(),conflicts=new Set(),pageNumbers=new Set(),researchObservations=[];
  let appearances=0,unresolvedRows=0,wrongSport=0,crossHourRows=0;
+ const unresolvedEvidence={legacyNoEvidence:0,bookBadgeMissing:0,tierWithoutExplicitPrice:0,bookBadgeWithoutExplicitPrice:0,ambiguousBookGroup:0,lineMissing:0};
  for(const page of input.pages){
   if(!Number.isInteger(page.number)||page.number<1||pageNumbers.has(page.number)||!Array.isArray(page.rows)||page.rows.length>500)throw Error("page shape");
   pageNumbers.add(page.number);
@@ -56,7 +57,16 @@ function normalize(input,{now=new Date()}={}){
     if(previous&&previous.displayedPrice!==offer.displayedPrice)conflicts.add(key);
     if(!previous||offer.observedAt>previous.observedAt)offers.set(key,offer);
    }
-   if(!matched)unresolvedRows++;
+   if(!matched){
+    unresolvedRows++;
+    const evidence=row.appEvidence;
+    if(!Array.isArray(evidence))unresolvedEvidence.legacyNoEvidence++;
+    else if(!evidence.length)unresolvedEvidence.bookBadgeMissing++;
+    else if(evidence.some(e=>!e||!Array.isArray(e.icons)||e.icons.filter(i=>i===input.book).length!==1||e.icons.some(i=>![input.book,'goblin','demon'].includes(i))||e.icons.includes('goblin')&&e.icons.includes('demon')))unresolvedEvidence.ambiguousBookGroup++;
+    else if(evidence.every(e=>!finite(e.line)))unresolvedEvidence.lineMissing++;
+    else if(evidence.some(e=>e.tier==='goblin'||e.tier==='demon'))unresolvedEvidence.tierWithoutExplicitPrice++;
+    else unresolvedEvidence.bookBadgeWithoutExplicitPrice++;
+   }
   }
  }
  const declaredPages=input.displayedPageCount;
@@ -74,7 +84,7 @@ function normalize(input,{now=new Date()}={}){
  if(input.sport==="soccer"&&links.size>=9999)reasons.push("possible_display_cap_requires_partition_reconciliation");
  if(input.boardState==="empty"&&appearances!==0||input.boardState==="disabled"&&appearances!==0)reasons.push("inconsistent_board_state");
  // A mutable UI traversal is not proof of full-board completeness, even when contiguous.
- return {schema:"pickfinder-premium-normalized-v1",book:input.book,sport:input.sport,localDay:input.localDay,slot:input.slot,firstObservedAt:first.toISOString(),lastObservedAt:last.toISOString(),boardState:input.boardState,withinSlot,pageTraversalComplete,fullBoardCertified:false,originalOffersVerified:0,modelInputsApproved:false,health:{pages:pageNumbers.size,appearances,distinctDetailLinks:links.size,repeatOrUnresolvedLinks:repeatLinks,distinctOfferKeys:offers.size,priceConflictKeys:conflicts.size,wrongSport,unresolvedRows,crossHourRows,researchFields:researchObservations.length,reasons},offers:[...offers.values()],researchObservations};
+ return {schema:"pickfinder-premium-normalized-v1",book:input.book,sport:input.sport,localDay:input.localDay,slot:input.slot,firstObservedAt:first.toISOString(),lastObservedAt:last.toISOString(),boardState:input.boardState,withinSlot,pageTraversalComplete,fullBoardCertified:false,originalOffersVerified:0,modelInputsApproved:false,health:{pages:pageNumbers.size,appearances,distinctDetailLinks:links.size,repeatOrUnresolvedLinks:repeatLinks,distinctOfferKeys:offers.size,priceConflictKeys:conflicts.size,wrongSport,unresolvedRows,crossHourRows,unresolvedEvidence,researchFields:researchObservations.length,reasons},offers:[...offers.values()],researchObservations};
 }
 function archive(input,root,attemptId,opts){
  if(process.env.RESTRICTED_DESTINATION_VERIFIED!=="1"||!fs.existsSync(root+"/.git"))throw Error("verified private archive required");

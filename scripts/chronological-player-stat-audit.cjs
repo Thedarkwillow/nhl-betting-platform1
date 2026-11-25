@@ -16,12 +16,12 @@ function nbaRows(d){
  for(const x of d.rows){
   if(!Number.isInteger(x.gameId)||!Number.isInteger(x.playerId)||!/^\d{4}-\d{2}-\d{2}$/.test(x.gameDate||"")||!validDate(x.gameDate)||x.gameDate>=d.capturedAt.slice(0,10)||typeof x.team!=="string"||!NBA.every(k=>finite(x[k])))continue;
   const id=key([x.gameId,x.playerId]);if(seen.has(id))throw Error("duplicate NBA player-game");seen.add(id);
-  out.push({sport:"NBA",player:key([x.playerId,x.team]),event:String(x.gameId),date:x.gameDate,start:dt(x.gameDate),end:dt(x.gameDate),known:dt(x.gameDate),scope:"full_game",values:Object.fromEntries(NBA.map(k=>[k,x[k]]))});
+  out.push({sport:"NBA",player:key([x.playerId,x.team]),event:String(x.gameId),date:x.gameDate,start:dt(x.gameDate),end:dt(x.gameDate),known:dt(x.gameDate),scope:"full_game",opponent:typeof x.opponent==="string"?x.opponent:null,exposure:Number.isFinite(x.minutes)&&x.minutes>0?x.minutes:null,values:Object.fromEntries(NBA.map(k=>[k,x[k]]))});
  }
  return out;
 }
 function esportsRows(maps){
- return maps.map(x=>({sport:x.title,player:key([x.playerId,x.teamId,x.ruleset,x.edition||null,x.mode||null,x.mapIndex]),event:key([x.seriesId,x.mapIndex]),series:x.seriesId,date:x.startAt.slice(0,10),start:dt(x.startAt),end:dt(x.endAt),known:dt(x.observedAt),scope:"map_"+x.mapIndex,values:Object.fromEntries(TITLES[x.title].stats.filter(k=>k!=="killsPlusAssists"&&stat(x,k)!==null).map(k=>[k,stat(x,k)]))}));
+ return maps.map(x=>({sport:x.title,player:key([x.playerId,x.teamId,x.ruleset,x.edition||null,x.mode||null,x.mapIndex]),event:key([x.seriesId,x.mapIndex]),series:x.seriesId,date:x.startAt.slice(0,10),start:dt(x.startAt),end:dt(x.endAt),known:dt(x.observedAt),scope:"map_"+x.mapIndex,opponent:x.opponentId,exposure:x.exposure,values:Object.fromEntries(TITLES[x.title].stats.filter(k=>k!=="killsPlusAssists"&&stat(x,k)!==null).map(k=>[k,stat(x,k)]))}));
 }
 // CRPS for the empirical distribution: E|X-y| - 0.5 E|X-X'|.
 function empirical(a,y){
@@ -34,6 +34,28 @@ function add(a,m,b,event,date){
  a.n++;a.mae+=m.mae;a.sq+=m.sq;a.crps+=m.crps;a.covered+=m.covered;a.width+=m.width;
  a.recentMAE+=b.mae;a.recentCRPS+=b.crps;a.events.add(event);a.dates.add(date);
 }
+// Workload and per-unit productivity are estimated only from prior appearances.
+// Target exposure is not used as a predictor; it is available only for post-event scoring.
+function workload(prior,metric){
+ const a=prior.filter(p=>finite(p.values[metric])&&Number.isFinite(p.exposure)&&p.exposure>0).slice(-30);
+ if(a.length<MIN)return null;
+ const exposure=mean(a.slice(-10).map(p=>p.exposure));
+ const rate=mean(a.map(p=>p.values[metric]/p.exposure));
+ return {projection:rate*exposure,expectedExposure:exposure,n:a.length,baseline:mean(a.map(p=>p.values[metric]))};
+}
+function contextAdd(store,k,x,actual,projection,baseline){
+ if(!store.has(k))store.set(k,{n:0,mae:0,baseMAE:0,clusters:new Map(),dates:new Set()});
+ const a=store.get(k),err=Math.abs(actual-projection),base=Math.abs(actual-baseline),event=x.series||x.event;
+ a.n++;a.mae+=err;a.baseMAE+=base;a.dates.add(x.date);
+ const cluster=a.clusters.get(event)||{n:0,d:0};cluster.n++;cluster.d+=base-err;a.clusters.set(event,cluster);
+}
+function contextSummary(a){
+ const n=a.clusters.size,delta=(a.baseMAE-a.mae)/a.n;
+ // Event-cluster sandwich uncertainty, descriptive normal approximation, not independent row CI.
+ const variance=n>1?n/(n-1)*[...a.clusters.values()].reduce((s,g)=>s+(g.d-delta*g.n)**2,0)/(a.n*a.n):null;
+ const margin=n>=30&&a.dates.size>=10&&variance!==null?1.96*Math.sqrt(variance):null;
+ return {n:a.n,distinctEventClusters:n,distinctDates:a.dates.size,mae:a.mae/a.n,pairedBaselineMAE:a.baseMAE/a.n,meanMAEImprovement:delta,approximateCluster95Interval:margin===null?null:[delta-margin,delta+margin],retrospectiveOnly:true};
+}
 function correlation(a){
  if(a.length<30)return null;
  const x=mean(a.map(v=>v[0])),y=mean(a.map(v=>v[1]));let xx=0,yy=0,xy=0;
@@ -41,7 +63,7 @@ function correlation(a){
  return xx>0&&yy>0?Math.max(-1,Math.min(1,xy/Math.sqrt(xx*yy))):null;
 }
 function evaluate(rows){
- const groups=new Map(),summary=new Map(),pairs=new Map(),source={NBA:0,CS2:0,VALORANT:0,LOL:0,DOTA2:0,COD:0};let excluded=0;
+ const groups=new Map(),summary=new Map(),pairs=new Map(),context=new Map(),source={NBA:0,CS2:0,VALORANT:0,LOL:0,DOTA2:0,COD:0};let excluded=0;
  for(const x of rows){
   if(!(x.sport in source)||!Number.isFinite(x.start)||!Number.isFinite(x.end)||!Number.isFinite(x.known))continue;
   source[x.sport]++;const k=key([x.sport,x.player]);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x);
@@ -57,6 +79,10 @@ function evaluate(rows){
     const m=empirical(vals,y),recent=empirical(vals.slice(-10),y),k=key([x.sport,x.scope,metric]);
     if(!summary.has(k))summary.set(k,{n:0,mae:0,sq:0,crps:0,covered:0,width:0,recentMAE:0,recentCRPS:0,events:new Set(),dates:new Set()});
     add(summary.get(k),m,recent,x.event,x.date);residuals[metric]=m.residual;
+    const w=workload(prior,metric);
+    if(w)contextAdd(context,key([x.sport,x.scope,metric,"prior_workload_rate"]),x,y,w.projection,w.baseline);
+    const opponents=typeof x.opponent==="string"&&x.opponent?prior.filter(p=>p.opponent===x.opponent).map(p=>p.values[metric]).filter(finite).slice(-30):[];
+    if(opponents.length>=MIN)contextAdd(context,key([x.sport,x.scope,metric,"same_opponent_history"]),x,y,mean(opponents),m.mean);
    }
    const keys=Object.keys(residuals).sort();for(let j=0;j<keys.length;j++)for(let l=j+1;l<keys.length;l++){
     const a=keys[j],b=keys[l],k=key([x.sport,x.scope,a,b]);
@@ -67,7 +93,7 @@ function evaluate(rows){
  }
  const groupsOut=Object.fromEntries([...summary].map(([k,a])=>[k,{n:a.n,distinctEvents:a.events.size,distinctDates:a.dates.size,mae:a.mae/a.n,rmse:Math.sqrt(a.sq/a.n),empiricalCRPS:a.crps/a.n,recent10MAE:a.recentMAE/a.n,recent10CRPS:a.recentCRPS/a.n,nominalCentral80Coverage:a.covered/a.n,meanIntervalWidth:a.width/a.n}]));
  const correlations=Object.fromEntries([...pairs].map(([k,a])=>[k,{n:a.values.length,distinctEvents:a.events.size,distinctDates:a.dates.size,pearson:a.events.size>=10?correlation(a.values):null}]));
- return {kind:"chronological_player_stat_audit_v1",sourceRows:source,excludedMetricObservationsInsufficientHistory:excluded,groups:groupsOut,withinPlayerEventResidualCorrelations:correlations,method:"last 30 available same-context prior stats, fixed last-10 comparator; dates and observed clocks strictly prior; empirical distribution CRPS and interval coverage",retrospective:true,sourceContextMayBeRetrospective:true,untouched:false,prospective:false,calibrationApproved:false,rawRowsPublished:0,paidRequests:0};
+ return {kind:"chronological_player_stat_audit_v1",sourceRows:source,excludedMetricObservationsInsufficientHistory:excluded,groups:groupsOut,withinPlayerEventResidualCorrelations:correlations,pairedContextExperiments:Object.fromEntries([...context].map(([k,a])=>[k,contextSummary(a)])),method:"last 30 available same-context prior stats, fixed last-10 comparator; dates and observed clocks strictly prior; empirical distribution CRPS and interval coverage",retrospective:true,sourceContextMayBeRetrospective:true,untouched:false,prospective:false,calibrationApproved:false,rawRowsPublished:0,paidRequests:0};
 }
 function immutableMaps(root){
  const dir="outputs/esports/authorized-map-statistics",base=path.join(root,dir);if(!fs.existsSync(base))return [];
@@ -90,4 +116,4 @@ if(require.main===module){try{
  // Print aggregate metrics only, no player IDs, matches, offers or raw source rows.
  console.log(JSON.stringify(r));
 }catch{console.error("Chronological player stat audit failed closed");process.exitCode=1}}
-module.exports={nbaRows,esportsRows,empirical,correlation,evaluate};
+module.exports={nbaRows,esportsRows,empirical,correlation,evaluate,workload,contextSummary};

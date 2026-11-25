@@ -131,3 +131,18 @@ test('dashboard duplicate links are accepted only for one safe destination',asyn
 });
 
 test('targeted PrizePicks NFL recovery requires prior auth and is manual only',()=>{const a={...env,GITHUB_EVENT_NAME:'workflow_dispatch',REQUESTED_MODE:'nfl_reconcile_now',PICKFINDER_PRIOR_AUTH_PROOF:'1'};const p=plan(a,now);assert.equal(p.targeted,true);assert.equal(p.targetCode,'NFL');assert.equal(p.full,true);assert.equal(p.expected,'manual');assert.throws(()=>plan({...a,PICKFINDER_PRIOR_AUTH_PROOF:'0'},now));});
+
+test('deep audit deduplicates completed scope, keeps partial attempts and invalid checkpoints distinct',()=>{
+ const {scope,summarizeCheckpoints}=require('../scripts/pickfinder-deep-research.cjs');
+ const crypto=require('node:crypto');
+ const r={book:'prizepicks',sport:'nba',player:'fixture',market:'points',eventId:'e',detailId:'/players/nba/p?prop=a:b:c'};
+ const key=crypto.createHash('sha256').update(JSON.stringify(scope(r.book,r))).digest('hex');
+ const doc=records=>({schema:'pickfinder-deep-v1',seed:'aef07d2aecb75388c6757c9cc5844b2113d6a0ac',records,dashboardSnapshots:[]});
+ const full={...r,key,status:'sampled',profileCollection:{truncated:false},research:[{value:'fixture'}]};
+ const {done,attempts,summary}=summarizeCheckpoints([doc([full]),doc([full]),doc([{...full,status:'failed'}]),null]);
+ assert.equal(done.size,1);assert.equal(attempts.get(key),3);assert.equal(summary.completeScopes,1);assert.equal(summary.failedAttempts,1);assert.equal(summary.invalidCheckpointsOrRecords,1);
+});
+test('sanitized deep failure propagates substage without raw error text',async()=>{
+ const {DeepFailure}=require('../scripts/pickfinder-deep-research.cjs');
+ await assert.rejects(stage('deep_research',()=>{throw new DeepFailure('checkpoint_rebase');}),/deep_research_checkpoint_rebase/);
+});

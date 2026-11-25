@@ -1124,6 +1124,8 @@ Public baseline imported from private Git blob 7ac01dea9de441e7f577050c425c67176
 
 - [ ] **[ESP-053]** Independent chronological player-stat distribution evaluation on pinned NBA historical appearances and immutable authorized esports map archives. Fixed same-context last-30 and last-10 comparators; strict prior date/observation cutoffs and no same-series leakage; report MAE/RMSE/CRPS, nominal central 80% interval coverage and within-player event residual correlations (minimum 30 pairs/10 events). Aggregate output only; no offer directions, payout or wager outputs. Retrospective contextual evaluation, not untouched or prospective; CI, merge and actual archive run pending. Empty source coverage is explicitly zero. No new paid endpoints.
 
+- [ ] **[ESP-054]** Transfer reusable NHL research standards to NBA and all five esports titles; see [parity acceptance matrix](NBA_ESPORTS_NHL_RESEARCH_PARITY.md). Scoped implementation: paired prior-only workload/rate and same-opponent historical statistical comparisons, event/series-cluster uncertainty with minimum 30 clusters and ten dates. No target-game exposure leakage. CI, merge, and real historical evaluation pending; broad parity, current-source completeness, official final grading, calibrated and untouched prospective acceptance remain separate and open.
+
 ## Verified completion log — mark tasks here as they are actually finished
 
 **Original 13 legacy checkmarks** are carried forward as evidence of *implemented scoped components*, not production accreditation. Follow-up changes must supply fresh proof (link to code change, passing CI/workflow, and a representative accepted output) **in the same PR/commit as checking a box**. A task that has not passed its acceptance gate stays `[ ]`.
@@ -1677,3 +1679,8 @@ The initial **derived comparison report** is corrected in Git with explicit `cor
 
 - [ESP-049] PR #231 merged at 891871f0f276dc828efdfeea4f418aa2374162bc with applicable tests passing. Independently confirmed private branch research/nov24-source-refresh-20261125 contains the November 24 official grade archive (blob 3e5f22eb565292e877c170d4f43f238e4435e0c9) and player-stat archive (blob 602b0bb101cf3949b8503c433a5c1e3b13baba74); report generated 2026-11-25T07:17:09.435Z, one official game, 68 decided, 40 correct/28 incorrect. Grade archival scoped evidence confirmed; broader fresh capture and official NBA verification remain open.
 - [ESP-052] [PR #232](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/232) merged at c463b7e5206575e8a19765187e36afbf0593cdb4; [audit CI](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45566919151) and all applicable regressions passed. Scheduled audit acceptance still pending; no future morning evidence is inferred.
+
+### November 25 UTC — NHL research parity
+
+- [ESP-053] [PR #233](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/233) merged at 9523e3a49899e55a9bcc6e0f68d9b46acbe823e4; [CI 45567653894](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45567653894) and applicable regressions passed. Actual historical archive run still requires verification. No prospective approval.
+- [ESP-054] Owner requires NBA and esports to follow the reusable NHL research and validation standards. Record this in AGENTS.md and the parity matrix; preserve the NHL/MLB implementations and existing source access restrictions.

@@ -1,9 +1,14 @@
 name: Fast direct PrizePicksAPI capture
 on:
   pull_request:
-    paths: ['.github/workflows/prizepicks-direct-fast-manual.yml']
+    paths: ['.github/workflows/prizepicks-direct-fast-manual.yml','scripts/prizepicks-forecast-vault.cjs','scripts/prizepicks-one-time-nov25.cjs','test/prizepicks-forecast-vault.test.cjs']
   workflow_dispatch:
     inputs:
+      verify_vault_only:
+        description: 'Verify the private vault with synthetic data only (no provider requests)'
+        required: true
+        default: true
+        type: boolean
       approve_requests:
         description: 'Authorize one coverage check and at most three projection requests; preserve 100 remaining requests'
         required: true
@@ -24,10 +29,28 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test test/prizepicks-one-time-nov25.test.cjs test/independent-provider-export-v1.test.cjs test/prizepicks-direct-model-bridge.test.cjs test/esports-zero-credit-coverage.test.cjs
+      - run: node --test test/prizepicks-one-time-nov25.test.cjs test/independent-provider-export-v1.test.cjs test/prizepicks-direct-model-bridge.test.cjs test/esports-zero-credit-coverage.test.cjs test/prizepicks-forecast-vault.test.cjs
+  vault_preflight:
+    needs: test
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.verify_vault_only
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify dedicated private forecast vault without provider access
+        env:
+          PRIZEPICKS_FORECAST_VAULT_TOKEN: ${{ secrets.PRIZEPICKS_FORECAST_VAULT_TOKEN }}
+          PRIZEPICKS_FORECAST_STORAGE_GRANT: ${{ vars.PRIZEPICKS_FORECAST_STORAGE_GRANT }}
+        run: |
+          node -e 'const {makeVault}=require("./scripts/prizepicks-forecast-vault.cjs"); Promise.resolve().then(()=>makeVault({token:process.env.PRIZEPICKS_FORECAST_VAULT_TOKEN,grant:process.env.PRIZEPICKS_FORECAST_STORAGE_GRANT,checkout:process.cwd()}).preflight()).then(x=>console.log(JSON.stringify(x))).catch(()=>{console.error("Vault preflight failed closed");process.exitCode=1})'
   capture:
     needs: test
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.approve_requests && github.run_attempt == 1
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && !inputs.verify_vault_only && inputs.approve_requests && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -45,6 +68,9 @@ jobs:
       - name: Dated manual authorization, NBA context and reserve enforcement
         env:
           PRIZEPICKS_ONE_TIME_APPROVED: '2026-11-25'
+          PRIZEPICKS_REQUIRE_VAULT: '1'
+          PRIZEPICKS_FORECAST_VAULT_TOKEN: ${{ secrets.PRIZEPICKS_FORECAST_VAULT_TOKEN }}
+          PRIZEPICKS_FORECAST_STORAGE_GRANT: ${{ vars.PRIZEPICKS_FORECAST_STORAGE_GRANT }}
           PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
         run: |
           set -euo pipefail

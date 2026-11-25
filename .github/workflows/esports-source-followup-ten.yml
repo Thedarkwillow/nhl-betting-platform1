@@ -1,0 +1,73 @@
+name: Esports source and model followup ten priorities
+on:
+  pull_request:
+    paths: ['.github/workflows/esports-source-followup-ten.yml','src/esports-lol-count-challenger.cjs','scripts/esports-2024-dota-valorant-followup.py','scripts/cs2_static_hltv_research.py']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/esports-source-followup-ten.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/esports-lol-count-challenger.test.cjs test/esports-prospective-archive.test.cjs test/esports-research-v1.test.cjs
+      - run: python3 -m unittest discover -s test -p test_cs2_static_hltv_research.py
+      - run: python3 -m py_compile scripts/esports-2024-dota-valorant-followup.py
+  history:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install duckdb==1.2.2
+      - run: python scripts/esports-2024-dota-valorant-followup.py
+  cs2:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 scripts/cs2_static_hltv_research.py
+  cod:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 scripts/public_cod_wiki_history.py 2026 05
+  archive:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - run: node public/scripts/esports-prospective-archive.cjs archive audit

@@ -67,7 +67,7 @@ function build(offers,maps,previous,now,rev){
  return {kind:"esports_prospective_frozen_v2",generatedAt:now,modelRevision:rev,rows,excluded,researchOnly:true,platformSettlementVerified:false,modelPromoted:false};
 }
 function grade(files,maps){
- const group={},seen=new Set(),counts={registered:0,decided:0,pending:0,push:0,lateOrInvalid:0,duplicate:0};let totalBrier=0;
+ const group={},seen=new Set(),counts={registered:0,decided:0,pending:0,push:0,lateOrInvalid:0,duplicate:0};let totalBrier=0;const challenger={};
  for(const f of files){
   const d=f.doc;if(d?.kind!=="esports_prospective_frozen_v2"||!Array.isArray(d.rows)||!Number.isFinite(at(d.generatedAt))||at(d.generatedAt)>at(f.first)||!/^[a-f0-9]{40}$/.test(d.modelRevision||""))continue;
   for(const r of d.rows){
@@ -81,10 +81,11 @@ function grade(files,maps){
    const den=p.higher+p.lower;if(!den){counts.pending++;g.pending++;continue;}
    const y=Number(final.outcome==="Higher"),q=p.higher/den;
    counts.decided++;g.decided++;g.higher+=y;g.wins+=Number(Number(q>.5)===y);g.brierSum+=(q-y)**2;totalBrier+=(q-y)**2;g.series.add(o.seriesId);g.dates.add(o.seriesStartAt.slice(0,10));
+   const alt=r.forecast.lolCountChallenger;if(o.title==="LOL"&&alt&&[alt.higher,alt.lower,alt.push].every(x=>Number.isFinite(x)&&x>=0&&x<=1)&&Math.abs(alt.higher+alt.lower+alt.push-1)<1e-8&&alt.higher+alt.lower>0){const v=alt.higher/(alt.higher+alt.lower),z=challenger[k]??={n:0,baselineBrierSum:0,countBrierSum:0,baselineWins:0,countWins:0};z.n++;z.baselineBrierSum+=(q-y)**2;z.countBrierSum+=(v-y)**2;z.baselineWins+=Number(Number(q>.5)===y);z.countWins+=Number(Number(v>.5)===y);}
   }
  }
  // Only groups by market/platform/scope; no players, offers, or private IDs.
- return {counts,brier:counts.decided?totalBrier/counts.decided:null,groups:Object.fromEntries(Object.entries(group).map(([k,g])=>[k,{registered:g.registered,pending:g.pending,push:g.push,decided:g.decided,wins:g.wins,hitRate:g.decided?g.wins/g.decided:null,alwaysHigher:g.decided?g.higher/g.decided:null,alwaysLower:g.decided?1-g.higher/g.decided:null,brier:g.decided?g.brierSum/g.decided:null,distinctSeries:g.series.size,dates:g.dates.size,evidenceMinimumMet:g.decided>=100&&g.series.size>=30&&g.dates.size>=10,approved:false}]))};
+ return {counts,lolCountMatched:Object.fromEntries(Object.entries(challenger).map(([k,z])=>[k,{n:z.n,baselineBrier:z.baselineBrierSum/z.n,countBrier:z.countBrierSum/z.n,baselineWins:z.baselineWins,countWins:z.countWins,approved:false}])),brier:counts.decided?totalBrier/counts.decided:null,groups:Object.fromEntries(Object.entries(group).map(([k,g])=>[k,{registered:g.registered,pending:g.pending,push:g.push,decided:g.decided,wins:g.wins,hitRate:g.decided?g.wins/g.decided:null,alwaysHigher:g.decided?g.higher/g.decided:null,alwaysLower:g.decided?1-g.higher/g.decided:null,brier:g.decided?g.brierSum/g.decided:null,distinctSeries:g.series.size,dates:g.dates.size,evidenceMinimumMet:g.decided>=100&&g.series.size>=30&&g.dates.size>=10,approved:false}]))};
 }
 function main(){
  const [rootArg,mode]=process.argv.slice(2),root=fs.realpathSync(rootArg);

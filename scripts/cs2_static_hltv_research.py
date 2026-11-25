@@ -50,7 +50,7 @@ def fingerprints(rows):
         ix[(a[0]["date"],mp(a[0]["map"]),sig)].append(a)
     return ix
 def compare(a,b,require_hltv_id=False):
-    x,y=fingerprints(a),fingerprints(b);agree=defaultdict(set);bad=set();c=Counter();links=defaultdict(set);rev=defaultdict(set)
+    x,y=fingerprints(a),fingerprints(b);agree=defaultdict(set);series=defaultdict(set);bad=set();c=Counter();links=defaultdict(set);rev=defaultdict(set)
     for k,aa in x.items():
         bb=y.get(k,[])
         if len(aa)!=1 or len(bb)!=1:continue
@@ -60,10 +60,10 @@ def compare(a,b,require_hltv_id=False):
             h=[q for q in bb[0] if q["teamScore"]==r["teamScore"] and q["kills"]==r["kills"] and q["deaths"]==r["deaths"]]
             if len(h)!=1 or sum(q["teamScore"]==r["teamScore"] and q["kills"]==r["kills"] and q["deaths"]==r["deaths"] for q in aa[0])!=1:continue
             q=h[0];p=(r["player"],q["player"]);links[p[0]].add(p[1]);rev[p[1]].add(p[0])
-            if norm(r["alias"]) and norm(r["alias"])==norm(q["alias"]):agree[p].add((r["event"],q["event"]));c["exact_alias_kd_candidates"]+=1
+            if norm(r["alias"]) and norm(r["alias"])==norm(q["alias"]):agree[p].add((r["event"],q["event"]));series[p].add((r["event"].split("|")[0],q["event"].split("|")[0]));c["exact_alias_kd_candidates"]+=1
             else:bad.add(p);c["alias_conflict_observations"]+=1
     good={p for p,v in agree.items() if p not in bad and len(links[p[0]])==len(rev[p[1]])==1}
-    return {"mapMatches":c["exact_unique_full_map"],"aliasCandidateObservations":c["exact_alias_kd_candidates"],"aliasConflictObservations":c["alias_conflict_observations"],"oneToOneCandidates":len(good),"repeatedMapCandidates":sum(len(agree[p])>=2 for p in good),"authoritativeLinksAdded":0}
+    return {"mapMatches":c["exact_unique_full_map"],"aliasCandidateObservations":c["exact_alias_kd_candidates"],"aliasConflictObservations":c["alias_conflict_observations"],"oneToOneCandidates":len(good),"repeatedMapCandidates":sum(len(agree[p])>=2 for p in good),"distinctSeriesPairCandidates":sum(len({x[0] for x in series[p]})>=2 and len({x[1] for x in series[p]})>=2 for p in good),"authoritativeLinksAdded":0}
 def run(demos=None):
     t={n:read(n) for n in FILES};rows,ex=parse(t);days=sorted({r["date"] for r in rows});a,_=load_pinned_history()
     # Demo teams have native slots, scores reconstructed separately. Exact

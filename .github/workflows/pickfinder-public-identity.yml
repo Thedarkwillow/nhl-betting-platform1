@@ -1,0 +1,65 @@
+name: Public independent sports identity and final evidence
+on:
+  pull_request:
+    paths: ['scripts/pickfinder-public-identity.cjs','test/pickfinder-public-identity.test.cjs','.github/workflows/pickfinder-public-identity.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/pickfinder-public-identity.cjs','.github/workflows/pickfinder-public-identity.yml']
+  schedule:
+    - cron: '18 5,7,10,14,20 * * *'
+      timezone: America/Los_Angeles
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: public-identity-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/pickfinder-public-identity.test.cjs
+  reconcile:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Collect independent public sports identities and final evidence
+        env:
+          PANDASCORE_API_KEY: ${{ secrets.PANDASCORE_API_KEY }}
+          PANDASCORE_BETTING_DATA_AUTHORIZED: ${{ vars.PANDASCORE_BETTING_DATA_AUTHORIZED }}
+          PANDASCORE_NO_CHARGE_CONFIRMED: ${{ vars.PANDASCORE_NO_CHARGE_CONFIRMED }}
+        run: node scripts/pickfinder-public-identity.cjs .
+      - name: Append public source receipts and candidate review queue
+        run: |
+          set -euo pipefail
+          git add -f data/pickfinder-public-identity-health.json
+          if test -d research/pickfinder-public-identity-v1; then git add -f research/pickfinder-public-identity-v1; fi
+          git diff --cached --quiet && exit 0
+          test -z "$(git diff --cached --name-only --diff-filter=CDRTUXB)"
+          git config user.name 'Public identity research'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Archive independent public identity and final evidence'
+          for i in 1 2 3 4 5 6; do
+            git fetch --quiet origin main
+            git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
+            if git push --quiet origin HEAD:main; then
+              git fetch --quiet origin main
+              git merge-base --is-ancestor HEAD FETCH_HEAD
+              exit 0
+            fi
+            sleep "$((2*i))"
+          done
+          exit 1

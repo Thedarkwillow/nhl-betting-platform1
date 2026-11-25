@@ -19,6 +19,7 @@ jobs:
         with:
           persist-credentials: false
       - run: python3 -m unittest discover -s test -p test_cs2_cross_source_identity.py
+      - run: python3 -m unittest discover -s test -p test_datasportsapi_archive_model_readiness.py
   audit:
     needs: validate
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

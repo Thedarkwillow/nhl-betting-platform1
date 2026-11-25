@@ -1,0 +1,80 @@
+name: PickFinder public specialist directory collection
+on:
+  pull_request:
+    paths: ['scripts/pickfinder-public-directory.py','.github/workflows/pickfinder-public-directory.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/pickfinder-public-directory.py','.github/workflows/pickfinder-public-directory.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '22 5,8,11,14,17,20 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: pickfinder-public-directory
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python scripts/pickfinder-public-directory.py --test
+  collect:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Verify restricted destination
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Resume linked public research pages
+        env:
+          RESTRICTED_DESTINATION_VERIFIED: '1'
+        run: python public/scripts/pickfinder-public-directory.py archive
+      - name: Preserve immutable directory evidence
+        working-directory: archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -d research/pickfinder-public-directory-v2 || exit 0
+          git add -f research/pickfinder-public-directory-v2
+          git diff --cached --quiet && exit 0
+          test -z "$(git diff --cached --name-only --diff-filter=CDMRTUXB)"
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Archive linked public research directory evidence'
+          for i in 1 2 3 4 5 6; do
+            git -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch --quiet origin main
+            git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
+            if git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:main; then
+              git -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch --quiet origin main
+              git merge-base --is-ancestor HEAD FETCH_HEAD
+              while IFS= read -r p; do
+                test "$(git rev-parse "HEAD:$p")" = "$(git rev-parse "FETCH_HEAD:$p")"
+              done < <(git diff-tree --no-commit-id --name-only -r HEAD)
+              echo 'Public directory evidence remote digest verified.'
+              exit 0
+            fi
+            sleep "$((i*2))"
+          done
+          exit 1

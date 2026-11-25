@@ -5,7 +5,7 @@ const {execFileSync}=require('node:child_process');
 const SEED='aef07d2aecb75388c6757c9cc5844b2113d6a0ac';
 const ROOT='research/pickfinder-premium-deep';
 const {traverseDashboardFilters,inspectCapabilities,verifiedNavigation}=require('./pickfinder-dashboard-research.cjs');
-const {VERSION}=require('./pickfinder-research-coverage.cjs');
+const {VERSION,common,sports:requiredFeatures}=require('./pickfinder-research-coverage.cjs');
 const {boardInventory,progressTracker}=require('./pickfinder-research-progress.cjs');
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const git=(root,args)=>execFileSync('git',['-C',root,...args],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']});
@@ -68,7 +68,8 @@ function summarizeCheckpoints(checkpoints){
   }
  }
  const bySport={};for(const [key,sport] of scopes){const b=bySport[sport]??={attemptedScopes:0,completeScopes:0};b.attemptedScopes++;if(done.has(key))b.completeScopes++;}
- return {done,expandedDone,attempts,expandedAttempts,summary:{expandedCompleteScopes:expandedDone.size,expandedAttemptedScopes:expandedAttempts.size,featureObservedScopeCounts:Object.fromEntries([...featureScopes].map(([k,v])=>[k,v.size])),checkpointFiles:files,invalidCheckpointsOrRecords:invalid,profileAttempts:records,uniqueAttemptedScopes:attempts.size,completeScopes:done.size,incompleteScopes:attempts.size-done.size,failedAttempts,partialAttempts,completeAttemptFields:fields,dashboardSnapshots,summaryFiles,bySport,rawRowsPublished:0,modelInputsApproved:false}};
+ const featureMatrix=Object.fromEntries(Object.keys(requiredFeatures).map(sport=>[sport,Object.fromEntries(Object.keys({...common,...requiredFeatures[sport]}).map(feature=>[feature,{observedScopes:featureScopes.get(sport+':'+feature)?.size||0,state:featureScopes.has(sport+':'+feature)?'observed_label_only':'not_observed',modelApproved:false}]))]));
+ return {done,expandedDone,attempts,expandedAttempts,summary:{featureMatrix,expandedCompleteScopes:expandedDone.size,expandedAttemptedScopes:expandedAttempts.size,featureObservedScopeCounts:Object.fromEntries([...featureScopes].map(([k,v])=>[k,v.size])),checkpointFiles:files,invalidCheckpointsOrRecords:invalid,profileAttempts:records,uniqueAttemptedScopes:attempts.size,completeScopes:done.size,incompleteScopes:attempts.size-done.size,failedAttempts,partialAttempts,completeAttemptFields:fields,dashboardSnapshots,summaryFiles,bySport,rawRowsPublished:0,modelInputsApproved:false}};
 }
 function priorDone(root,ref='HEAD'){
  if(!['HEAD','FETCH_HEAD'].includes(ref))throw Error('invalid archive ref');

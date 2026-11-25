@@ -34,7 +34,7 @@ function readBoard({book, code, sport, observedAt}) {
       const display=group?.innerText.trim().slice(0,400)||'';
       appEvidence.push({book,icons,tier,display,line:Number.isFinite(line)?line:null,
         state:Number.isFinite(line)?'book_badge_observed':'line_missing'});
-      if(!Number.isFinite(line)||icons.includes('goblin')&&icons.includes('demon'))continue;
+      if(!Number.isFinite(line)||icons.filter(i=>i===book).length!==1||icons.some(i=>![book,'goblin','demon'].includes(i))||icons.includes('goblin')&&icons.includes('demon'))continue;
       // Parse explicit side+price from a book-isolated group, including split text nodes.
       const matches=[...display.matchAll(/(?:^|\s)(O|U|Higher|Lower|Over|Under)\s*([+-]\d{2,4})(?=\s|$)/gi)];
       for(const m of matches){

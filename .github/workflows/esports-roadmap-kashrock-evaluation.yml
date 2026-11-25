@@ -4,7 +4,7 @@ on:
     paths: ['AGENTS.md','docs/EXECUTION_ROADMAP.md','scripts/validate-execution-roadmap.cjs','test/execution-roadmap.test.cjs','scripts/kashrock-sandbox-prop-check.cjs','test/kashrock-sandbox-prop-check.test.cjs','.github/workflows/esports-roadmap-kashrock-evaluation.yml']
   push:
     branches: [main]
-    paths: ['.github/workflows/esports-roadmap-kashrock-evaluation.yml']
+    paths: ['.github/workflows/esports-roadmap-kashrock-evaluation.yml','scripts/kashrock-sandbox-prop-check.cjs']
   workflow_dispatch:
 permissions:
   contents: read

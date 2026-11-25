@@ -14,6 +14,7 @@ Owner requirement (2026-11-24 Pacific): reconcile and check off completed tasks 
 - [x] **[ESP-011]** LoL patch/role historical challenger evaluated (failed improvement, all four MAEs worsened); retain prior baseline.
 - [x] **[ESP-012]** Valorant prior-history agent prediction evaluated: 4,635/14,363 correct; all three matched MAEs worsened; retain prior baseline.
 - [x] **[ESP-013]** Authenticated zero-credit coverage recheck: 205 CS2 offers reported by independent PrizePicks source, not individual lines; Underdog 49 remaining credits and no fresh nonzero coverage.
+- [x] **[ESP-027]** Authenticate KashRock free Sandbox key and receive first bounded grouped evaluation page (100 groups; 3,843 reported total, not a verified individual prop inventory).
 ## Open acceptance criteria — nine-priority sprint
 - [ ] **[ESP-014]** Independently verify Dota series completeness and map ordinal with authoritative second source. Native chronology alone is not sufficient.
 - [ ] **[ESP-015]** Validate Dota hero/position/opponent challengers, with verified position rather than side; retain only independently validated improvements.
@@ -44,5 +45,7 @@ Owner requirement (2026-11-24 Pacific): reconcile and check off completed tasks 
 | ESP-011 | 2026-11-25 | [Negative challenger result](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45548604774) |
 | ESP-012 | 2026-11-25 | [Negative challenger result](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45548604774) |
 | ESP-013 | 2026-11-25 | [Coverage receipt](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45548604774) |
+| ESP-027 | 2026-11-25 | [Sandbox authentication and response](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45549247598) |
 ## Roadmap change history
 - 2026-11-25 UTC: establish public execution ledger and mandatory evidence policy; 13 scoped completed milestones, 13 open acceptance criteria. Preserve legacy roadmap and broader unfinished parent tasks. Key owner-added; Sandbox meta + one bounded CS2 evaluation call only after plan check.
+- 2026-11-25 UTC: ESP-027 checked after successful authenticated response; ESP-022 remains open until grouped individual quote parser is verified. One additional 5-credit free Sandbox evaluation allowed; no paid plan call or public raw output.

@@ -1,0 +1,34 @@
+name: Free esports results and CS2 dataset metadata
+on:
+  pull_request:
+    paths: ['scripts/free_dota_completed_games.py','scripts/free_cs2_kaggle_metadata.py','test/test_free_dota_completed_games.py','.github/workflows/free-dota-completed-games.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/free_dota_completed_games.py','.github/workflows/free-dota-completed-games.yml']
+  schedule:
+    - cron: '20 16 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s test -p test_free_dota_completed_games.py
+  sample:
+    needs: validate
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 scripts/free_dota_completed_games.py
+      - name: Check public CS2 dataset metadata (no dataset downloads)
+        if: github.event_name != 'schedule'
+        run: python3 scripts/free_cs2_kaggle_metadata.py

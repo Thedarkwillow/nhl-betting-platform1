@@ -1,10 +1,10 @@
 name: Public NBA alternate history and native identity audit
 on:
   pull_request:
-    paths: ['scripts/public-nba-alternate-history-audit.py','scripts/public-nba-mirror-model-evaluation.cjs','scripts/public-nba-offer-history-candidate-audit.cjs','test/public-nba-offer-history-candidate-audit.test.cjs','test/public-nba-mirror-model-evaluation.test.cjs','test/test_public_nba_alternate_history_audit.py','.github/workflows/public-nba-alternate-history-audit.yml']
+    paths: ['scripts/public-nba-alternate-history-audit.py','scripts/public-nba-mirror-model-evaluation.cjs','scripts/public-nba-mirror-prospective-bridge.cjs','test/public-nba-mirror-prospective-bridge.test.cjs','scripts/public-nba-offer-history-candidate-audit.cjs','test/public-nba-offer-history-candidate-audit.test.cjs','test/public-nba-mirror-model-evaluation.test.cjs','test/test_public_nba_alternate_history_audit.py','.github/workflows/public-nba-alternate-history-audit.yml']
   push:
     branches: [main]
-    paths: ['scripts/public-nba-alternate-history-audit.py','scripts/public-nba-mirror-model-evaluation.cjs','scripts/public-nba-offer-history-candidate-audit.cjs','test/public-nba-offer-history-candidate-audit.test.cjs','test/public-nba-mirror-model-evaluation.test.cjs','.github/workflows/public-nba-alternate-history-audit.yml']
+    paths: ['scripts/public-nba-alternate-history-audit.py','scripts/public-nba-mirror-model-evaluation.cjs','scripts/public-nba-mirror-prospective-bridge.cjs','test/public-nba-mirror-prospective-bridge.test.cjs','scripts/public-nba-offer-history-candidate-audit.cjs','test/public-nba-offer-history-candidate-audit.test.cjs','test/public-nba-mirror-model-evaluation.test.cjs','.github/workflows/public-nba-alternate-history-audit.yml']
   schedule:
     - cron: '50 5,10,17 * * *'
       timezone: America/Los_Angeles
@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test test/public-nba-mirror-model-evaluation.test.cjs test/public-nba-offer-history-candidate-audit.test.cjs
+      - run: node --test test/public-nba-mirror-model-evaluation.test.cjs test/public-nba-offer-history-candidate-audit.test.cjs test/public-nba-mirror-prospective-bridge.test.cjs
       - run: python -m unittest discover -s test -p test_public_nba_alternate_history_audit.py
   audit:
     needs: test
@@ -46,18 +46,36 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install 'pyarrow>=19,<24'
       - run: python scripts/public-nba-alternate-history-audit.py
-      - name: Publish only aggregate research evidence
+      - name: Publish aggregate research evidence and eligible immutable paper forecasts
         run: |
           set -euo pipefail
           git add -f data/pickfinder-public-nba-alternate-health.json
           git diff --cached --quiet && exit 0
-          test "$(git diff --cached --name-only)" = data/pickfinder-public-nba-alternate-health.json
+          forecast="$(node -p "require('./data/pickfinder-public-nba-alternate-health.json').prospectiveBridge?.forecastDigest || ''")"
+          if [[ -n "$forecast" ]]; then
+            [[ "$forecast" =~ ^[a-f0-9]{64}$ ]]
+            file="research/pickfinder-public-validation-v1/nba-forecasts/$forecast.json"
+            test -f "$file"
+            test "$(sha256sum "$file" | cut -d' ' -f1)" = "$forecast"
+            git add -f "$file"
+            test "$(git diff --cached --diff-filter=A --name-only -- "$file")" = "$file"
+          fi
+          while IFS= read -r file; do
+            [[ "$file" == data/pickfinder-public-nba-alternate-health.json || ( -n "$forecast" && "$file" == "research/pickfinder-public-validation-v1/nba-forecasts/$forecast.json" ) ]] || exit 1
+          done < <(git diff --cached --name-only)
+          check_clock() {
+            if [[ -n "$forecast" ]]; then
+              node -e 'const d=require("./data/pickfinder-public-nba-alternate-health.json");if(!(Date.parse(d.prospectiveBridge.earliestGameStartAt)>Date.now()+900000))process.exit(1)'
+            fi
+          }
+          check_clock
           git config user.name 'Public NBA history audit'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -qm 'Publish NBA alternate historical coverage and native ID counts'
           for i in 1 2 3 4 5 6; do
             git fetch --quiet origin main
             git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
+            check_clock
             if git push --quiet origin HEAD:main; then
               git fetch --quiet origin main
               git merge-base --is-ancestor HEAD FETCH_HEAD

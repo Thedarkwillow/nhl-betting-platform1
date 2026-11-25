@@ -1,0 +1,100 @@
+name: NBA and esports pre-pull research candidate lock
+on:
+  pull_request:
+    paths: ['scripts/nba-esports-prepull-candidate-lock.cjs','test/nba-esports-prepull-candidate-lock.test.cjs','.github/workflows/nba-esports-prepull-candidate-lock.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/nba-esports-prepull-candidate-lock.cjs','test/nba-esports-prepull-candidate-lock.test.cjs','.github/workflows/nba-esports-prepull-candidate-lock.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '15 5 * * *'
+      timezone: America/Los_Angeles
+    - cron: '15 8 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: nba-esports-pre-pull-candidate-lock
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/nba-esports-prepull-candidate-lock.test.cjs test/nba-research-pipeline-v1.test.cjs test/esports-prospective-archive.test.cjs
+  preflight:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform1
+          ref: f063be9e64f19028c59efbdcaf5b28f35210ea3d
+          path: candidate
+          persist-credentials: false
+      - name: Verify authorized private archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: archive
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Check exact slot and pin candidate
+        id: lock
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          NBA_DIRECT_SOURCE_AUTHORIZED: ${{ vars.NBA_DIRECT_SOURCE_AUTHORIZED }}
+        run: |
+          set -euo pipefail
+          umask 077
+          slot=""
+          case "$SCHEDULE" in
+            '15 5 * * *') slot=06:00 ;;
+            '15 8 * * *') slot=09:00 ;;
+          esac
+          if test -z "$slot"; then
+            node scripts/nba-esports-prepull-candidate-lock.cjs candidate archive "" diagnostic
+          elif ! node -e 'if(!require("./scripts/nba-esports-prepull-candidate-lock.cjs").window(new Date().toISOString(),process.argv[1]))process.exit(1)' "$slot"; then
+            echo 'Late scheduled job: no certified pre-pull lock.'
+          else
+            node scripts/nba-esports-prepull-candidate-lock.cjs candidate archive "$slot" lock "$RUNNER_TEMP/prepull-lock.json"
+            echo "slot=$slot" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Append-only private lock, never backdated
+        if: steps.lock.outputs.slot != ''
+        working-directory: archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          SLOT: ${{ steps.lock.outputs.slot }}
+        run: |
+          set -euo pipefail
+          node -e 'if(!require("../scripts/nba-esports-prepull-candidate-lock.cjs").window(new Date().toISOString(),process.env.SLOT))process.exit(1)'
+          day="$(node -p 'require(process.argv[1]).pacificDate' "$RUNNER_TEMP/prepull-lock.json")"
+          dir="research/nba-esports-prepull-locks/$day"
+          dest="$dir/${SLOT/:/}.json"
+          mkdir -p "$dir"
+          test ! -e "$dest"
+          install -m 600 "$RUNNER_TEMP/prepull-lock.json" "$dest"
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$dest"
+          git commit -qm 'Archive pre-pull research candidate lock'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:main
+          node -e 'if(!require("../scripts/nba-esports-prepull-candidate-lock.cjs").window(new Date().toISOString(),process.env.SLOT))process.exit(1)'
+          test "$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin refs/heads/main | cut -f1)" = "$(git rev-parse HEAD)"
+          echo 'Pre-pull candidate lock archived and verified before slot.'

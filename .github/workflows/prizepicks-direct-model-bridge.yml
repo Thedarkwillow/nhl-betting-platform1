@@ -1,0 +1,42 @@
+name: Direct PrizePicks model bridge zero-metered validation
+on:
+  pull_request:
+    paths: ['scripts/prizepicks-direct-model-bridge.cjs','scripts/prizepicks-one-time-nov25.cjs','scripts/prepare-prizepicks-direct-model-context.py','test/prizepicks-direct-model-bridge.test.cjs','.github/workflows/prizepicks-direct-model-bridge.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/prizepicks-direct-model-bridge.cjs','scripts/prizepicks-one-time-nov25.cjs','scripts/prepare-prizepicks-direct-model-context.py','test/prizepicks-direct-model-bridge.test.cjs','.github/workflows/prizepicks-direct-model-bridge.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/prizepicks-direct-model-bridge.test.cjs test/prizepicks-one-time-nov25.test.cjs test/independent-provider-export-v1.test.cjs test/public-nba-mirror-prospective-bridge.test.cjs
+      - run: python3 -m py_compile scripts/prepare-prizepicks-direct-model-context.py
+  context:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'pyarrow>=19,<24'
+      - name: Validate free history and independent identity context without API secrets
+        run: |
+          set -euo pipefail
+          python scripts/prepare-prizepicks-direct-model-context.py | node scripts/prizepicks-direct-model-bridge.cjs

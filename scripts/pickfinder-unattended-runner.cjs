@@ -15,6 +15,7 @@ const scheduledResearchPilot=env=>env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFI
 function plan(env,now=new Date()){
  if(env.PICKFINDER_AUTOMATION_AUTHORIZED!=='1')throw Error('authorization_required');
  if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='probe_now')return {probe:true};
+ if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='deep_research_now'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')return {allowed:true,reconcile:true,deep:true,expected:'manual',clock:pacific(now)};
  if((env.GITHUB_EVENT_NAME==='workflow_dispatch'||env.GITHUB_EVENT_NAME==='push'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')&&['reconcile_now','full_reconcile_now'].includes(env.REQUESTED_MODE))return {allowed:true,reconcile:true,full:env.REQUESTED_MODE==='full_reconcile_now',expected:'manual',clock:pacific(now)};
  if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_SCHEDULE_ENABLED!=='1'&&!scheduledResearchPilot(env))return {allowed:false,state:'schedule_disabled'};
  return decide({eventName:env.GITHUB_EVENT_NAME,mode:env.REQUESTED_MODE,schedule:env.GITHUB_EVENT_SCHEDULE,now});
@@ -135,6 +136,12 @@ async function main(env=process.env){
  }else{
   if(!receiptValid(receipt,env.RUNNER_NAME))throw Error('recent runner probe required');
   if(env.GITHUB_EVENT_NAME==='schedule'&&!receipt.captureVerifiedAt)throw Error('manual in-window remote archive proof required');
+ }
+ if(p.deep){
+  const {context,page}=await open();
+  const until=Date.now()+15*60000;
+  try{console.log(JSON.stringify(await stage('deep_research',()=>require('./pickfinder-deep-research.cjs').run({root,context,page,enrich,collect,limit:20,shouldContinue:()=>Date.now()<until}))));}
+  finally{await context.close();}return;
  }
  const prefix='research/pickfinder-premium/'+p.clock.day+'/'+p.expected.replace(':','');
  const deadline=Date.now()+(p.full?40:20)*60000;

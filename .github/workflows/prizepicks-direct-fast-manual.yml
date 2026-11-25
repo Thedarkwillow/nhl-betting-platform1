@@ -1,0 +1,44 @@
+name: Fast direct PrizePicksAPI capture
+on:
+  pull_request:
+    paths: ['.github/workflows/prizepicks-direct-fast-manual.yml']
+  workflow_dispatch:
+    inputs:
+      approve_requests:
+        description: 'Authorize one coverage check and at most three projection requests; preserve 100 remaining requests'
+        required: true
+        default: false
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: prizepicks-one-time-nov25
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/prizepicks-one-time-nov25.test.cjs test/independent-provider-export-v1.test.cjs test/prizepicks-direct-model-bridge.test.cjs test/esports-zero-credit-coverage.test.cjs
+  capture:
+    needs: test
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.approve_requests && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Dated manual authorization and reserve enforcement
+        env:
+          PRIZEPICKS_ONE_TIME_APPROVED: '2026-11-25'
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+        run: node scripts/prizepicks-one-time-nov25.cjs

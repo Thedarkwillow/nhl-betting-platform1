@@ -57,7 +57,7 @@ def parse(reader):
                     if vals["kills"]>5*(a+b) or vals["deaths"]>a+b:raise ValueError("round_counts")
                     name=r[p].strip()
                     if not name:raise ValueError("name")
-                    batch.append(dict(event=mid+"|"+gid,player="ektarr:"+pid,alias=name,date=day,map=mp,team=teams[side-1],opponent=teams[2-side],rounds=a+b,**vals))
+                    batch.append(dict(event=mid+"|"+gid,player="ektarr:"+pid,alias=name,date=day,map=mp,team=teams[side-1],teamLabel=str(r.get(f"team{side}") or "").strip(),opponent=teams[2-side],opponentLabel=str(r.get(f"team{3-side}") or "").strip(),teamScore=(a,b)[side-1],rounds=a+b,**vals))
             if len({x["player"] for x in batch})!=10:raise ValueError("duplicate_player")
             groups[key]=batch
         except (ValueError,KeyError,AttributeError,TypeError):excluded["invalid_map_row"]+=1
@@ -73,10 +73,16 @@ def main():
             matches=[x for x in z.infolist() if x.filename.split("/")[-1]=="cs2_all_tiers_games.csv"]
             if len(matches)!=1 or matches[0].file_size>80_000_000:raise ValueError("archive_contract")
             with z.open(matches[0]) as f:rows,report=parse(csv.DictReader(io.TextIOWrapper(f,encoding="utf-8-sig",newline="")))
+        from cs2_team_identity import reconcile as team_reconcile
+        repaired,team_report=team_reconcile(rows)
         from importlib.util import spec_from_file_location,module_from_spec
         from pathlib import Path
         spec=spec_from_file_location("free",Path(__file__).with_name("public-eight-free-history.py"));mod=module_from_spec(spec);spec.loader.exec_module(mod)
-        print(json.dumps({"kind":"cs2_ektarr_wide_history_v1","sourceSha256":SHA,"declaredLicense":"CC BY-SA 4.0","underlyingRightsIndependentlyVerified":False,**report,"baseline":mod.baseline(rows),"context":evaluate(rows,MARKETS,["map"]),"teamMapChallenger":challenger(rows),"actualPropLines":0,"modelPromoted":False,"paidRequests":0,"rawRowsPublished":0}))
+        import os
+        if os.environ.get("CS2_RESTRICTED_CROSSWALK_DIR"):
+            from cs2_cross_source_identity import run_restricted
+            run_restricted(rows,os.environ["CS2_RESTRICTED_CROSSWALK_DIR"])
+        print(json.dumps({"kind":"cs2_ektarr_wide_history_v1","sourceSha256":SHA,"declaredLicense":"CC BY-SA 4.0","underlyingRightsIndependentlyVerified":False,**report,"baseline":mod.baseline(rows),"context":evaluate(rows,MARKETS,["map"]),"teamMapChallenger":challenger(rows),"teamIdentityRepair":team_report,"repairedTeamContextChallenger":challenger(repaired),"actualPropLines":0,"modelPromoted":False,"paidRequests":0,"rawRowsPublished":0}))
     except Exception as e:
         print(json.dumps({"kind":"cs2_ektarr_wide_history_v1","status":"unavailable","reason":str(e) if isinstance(e,ValueError) and str(e) in ("pinned_source_changed","archive_contract","row_cap") else type(e).__name__,"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
 if __name__=="__main__":main()

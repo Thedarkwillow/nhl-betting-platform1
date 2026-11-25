@@ -6,6 +6,7 @@ const SEED='aef07d2aecb75388c6757c9cc5844b2113d6a0ac';
 const ROOT='research/pickfinder-premium-deep';
 const {traverseDashboardFilters,inspectCapabilities,verifiedNavigation}=require('./pickfinder-dashboard-research.cjs');
 const {VERSION,common,sports:requiredFeatures}=require('./pickfinder-research-coverage.cjs');
+const {checkpointBuffer}=require('./pickfinder-checkpoint-buffer.cjs');
 const {boardInventory,progressTracker}=require('./pickfinder-research-progress.cjs');
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const git=(root,args)=>execFileSync('git',['-C',root,...args],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']});
@@ -141,10 +142,11 @@ async function run({root,context,page,enrich,collect,evidence={},limit=Infinity,
  const policy=require('./season-aware-collection.cjs');
  const core=new Set(['nba','nhl','nfl']),active=new Set(Object.entries(policy.registry).filter(([c,s])=>['CS2','DOTA2','VAL','LOL','COD'].includes(c)&&policy.scheduleStatus(evidence[c])==='competition_scheduled').map(([c,s])=>s));
  const tier=x=>core.has(x.sport)?0:active.has(x.sport)?1:2;
- const queues=[0,1,2].map(n=>q.pending.filter(x=>tier(x)===n).sort((a,b)=>(attempts.get(a.key)||0)-(attempts.get(b.key)||0)));
- q.pending=[];while(queues.some(q=>q.length))for(const n of [0,0,0,1,1,2])if(queues[n].length)q.pending.push(queues[n].shift());
+ const queues=[0,1,2].map(n=>q.pending.filter(x=>tier(x)===n).sort((a,b)=>Number(legacy.has(a.key))-Number(legacy.has(b.key))||(attempts.get(a.key)||0)-(attempts.get(b.key)||0)));
+ const offsets=[0,0,0];q.pending=[];while(queues.some((q,i)=>offsets[i]<q.length))for(const n of [0,0,0,1,1,2])if(offsets[n]<queues[n].length)q.pending.push(queues[n][offsets[n]++]);
  const startedAt=new Date().toISOString(),records=[],diagnostics={};
  let persistedProfiles=0,persistedComplete=0,phase='dashboard_inventory';
+ const buffer=checkpointBuffer({write:rows=>persist(root,{schema:'pickfinder-deep-v1',seed:SEED,startedAt,finishedAt:new Date().toISOString(),diagnostics:{},dashboardSnapshots:[],records:rows,modelInputsApproved:false,originalOffersVerified:false}),onVerified:r=>{progress.record(r);persistedProfiles++;if(r.status==='sampled'&&r.profileCollection?.truncated===false)persistedComplete++;}});
  try{
  const premium=async p=>p.evaluate(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium')&&!!document.querySelector('button[aria-label="Open user menu"]'));
  diagnostics.controls=await page.evaluate(inventory);
@@ -197,12 +199,11 @@ async function run({root,context,page,enrich,collect,evidence={},limit=Infinity,
    records.push({...item,status:row.research.length?'sampled':'empty',profileCollection:row.profileCollection,research:row.research});
   }catch{records.push({...item,status:'failed',profileCollection:row.profileCollection,research:row.research});}
   phase='profile_checkpoint';
-  await persist(root,{schema:'pickfinder-deep-v1',seed:SEED,startedAt,finishedAt:new Date().toISOString(),diagnostics:{},dashboardSnapshots:[],records:[records.at(-1)],modelInputsApproved:false,originalOffersVerified:false});
-  progress.record(records.at(-1));
-  persistedProfiles++;if(records.at(-1).status==='sampled'&&records.at(-1).profileCollection?.truncated===false)persistedComplete++;
-  if(persistedProfiles%10===0)console.log(JSON.stringify({state:'deep_profile_progress',persistedProfiles,persistedComplete,rawRowsPublished:0}));
+  await buffer.add(records.at(-1));
+  console.log(JSON.stringify({state:'deep_profile_buffered',attemptedThisRun:records.length,remotelyVerified:persistedProfiles,pendingCheckpoint:buffer.size(),rawRowsPublished:0}));
   phase='profile_session';if(!await premium(detail).catch(()=>false))throw new DeepFailure('profile_session_unverified');
  }
+ phase='profile_checkpoint_flush';await buffer.flush();
  phase='summary_checkpoint';
  const finishedAt=new Date().toISOString();
  const data={schema:'pickfinder-deep-v1',seed:SEED,startedAt,finishedAt,diagnostics,dashboardSnapshots:[],records:[],modelInputsApproved:false,originalOffersVerified:false};
@@ -210,7 +211,7 @@ async function run({root,context,page,enrich,collect,evidence={},limit=Infinity,
  progress.report('finished',true);
  const sampled=records.filter(r=>r.status==='sampled').length,complete=records.filter(r=>r.status==='sampled'&&r.profileCollection?.truncated===false).length;
  return {state:'deep_research_verified',sha,queueTotal:q.total,priorSampled:done.size,attempted:records.length,sampled,completeUntruncatedProfiles:complete,remaining:q.pending.length-complete,diagnostics,rawRowsPublished:0,modelInputsApproved:false};
- }catch(e){const stage=e instanceof DeepFailure?e.deepStage:phase;progress.report('partial',true);console.log(JSON.stringify({state:'deep_research_partial',stage,persistedProfiles,persistedComplete,remaining:q.pending.length-persistedComplete,rawRowsPublished:0,modelInputsApproved:false}));throw new DeepFailure(stage);}
+ }catch(e){let stage=e instanceof DeepFailure?e.deepStage:phase;if(!buffer.failed()){try{await buffer.flush();}catch(err){stage=err instanceof DeepFailure?err.deepStage:'profile_checkpoint_flush';}}progress.report('partial',true);console.log(JSON.stringify({state:'deep_research_partial',stage,persistedProfiles,persistedComplete,remaining:q.pending.length-persistedComplete,rawRowsPublished:0,modelInputsApproved:false}));throw new DeepFailure(stage);}
 }
 module.exports={scope,queue,inventory,run,allBatches,persist,priorDone,summarizeCheckpoints,DeepFailure};
 if(require.main===module){try{const root=fs.realpathSync(process.argv[2]);const ref=process.argv[3]||'HEAD';const {summary}=priorDone(root,ref);console.log(JSON.stringify({state:'deep_archive_count_audit',...summary}));if(summary.invalidCheckpointsOrRecords)process.exitCode=1;}catch{console.error(JSON.stringify({state:'deep_archive_audit_failed',rawRowsPublished:0}));process.exitCode=1;}}

@@ -55,7 +55,7 @@ jobs:
         run: |
           set -euo pipefail
           cd public-source
-          node --test test/pickfinder-combinations.test.cjs test/pickfinder-quote-features.test.cjs test/season-aware-collection.test.cjs test/pickfinder-unattended-runner.test.cjs test/pickfinder-browser.test.cjs test/pickfinder-premium-archive.test.cjs test/pickfinder-pilot-reconcile.test.cjs scripts/test-pacific-morning-capture-gate.cjs
+          node --test test/pickfinder-checkpoint-buffer.test.cjs test/pickfinder-combinations.test.cjs test/pickfinder-quote-features.test.cjs test/season-aware-collection.test.cjs test/pickfinder-unattended-runner.test.cjs test/pickfinder-browser.test.cjs test/pickfinder-premium-archive.test.cjs test/pickfinder-pilot-reconcile.test.cjs scripts/test-pacific-morning-capture-gate.cjs
           node scripts/pickfinder-pilot-reconcile.cjs ../private-archive
           node scripts/pickfinder-deep-research.cjs ../private-archive HEAD
           node scripts/pickfinder-local-line-alerts.cjs ../private-archive config/pickfinder-local-alert-rules.json

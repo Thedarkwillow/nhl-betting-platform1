@@ -175,7 +175,8 @@ async function main(env=process.env){
  }
  if(p.deep){
   const {context,page}=await open();
-  const until=Date.now()+15*60000;
+  // Preserve upcoming morning slots; manual runs within the preceding hour stay short.
+  const clock=pacific(new Date());const until=Date.now()+([5,6,8,9].includes(clock.hour)?15:40)*60000;
   try{const evidence=await discover({env});console.log(JSON.stringify(await stage('deep_research',()=>require('./pickfinder-deep-research.cjs').run({root,context,page,enrich,collect,evidence,limit:Infinity,shouldContinue:()=>Date.now()<until}))));}
   finally{await context.close();}return;
  }

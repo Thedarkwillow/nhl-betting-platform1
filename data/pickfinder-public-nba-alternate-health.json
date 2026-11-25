@@ -1,6 +1,6 @@
 {
   "kind": "public_nba_alternate_history_audit_v1",
-  "generatedAt": "2026-11-25T14:10:08.659999+00:00",
+  "generatedAt": "2026-11-25T14:16:47.075879+00:00",
   "seasons": {
     "2024": {
       "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/nba_stats_player_game_logs/player_game_logs_2024.parquet",
@@ -2357,6 +2357,139 @@
         }
       }
     }
+  },
+  "pickfinderOfferHistoryAudit": {
+    "kind": "nba_pickfinder_offer_history_candidate_audit_v1",
+    "status": "observed",
+    "archiveInvalidManifests": 0,
+    "totalOffers": 4399,
+    "historyCandidates": 2488,
+    "sourceContextCorroborated": 0,
+    "byBook": {
+      "underdog": {
+        "offers": 1941,
+        "historyCandidates": 1316,
+        "sourceContextCorroborated": 0,
+        "excluded": {
+          "unsupported_market_scope": 383,
+          "missing_or_unverified_offer_context": 1316,
+          "insufficient_prior_history": 233,
+          "ambiguous_player_or_event": 9
+        },
+        "byMarket": {
+          "steals": {
+            "historyCandidates": 102,
+            "sourceContextCorroborated": 0
+          },
+          "threePointersMade": {
+            "historyCandidates": 194,
+            "sourceContextCorroborated": 0
+          },
+          "points": {
+            "historyCandidates": 204,
+            "sourceContextCorroborated": 0
+          },
+          "pointsReboundsAssists": {
+            "historyCandidates": 208,
+            "sourceContextCorroborated": 0
+          },
+          "assists": {
+            "historyCandidates": 124,
+            "sourceContextCorroborated": 0
+          },
+          "reboundsAssists": {
+            "historyCandidates": 118,
+            "sourceContextCorroborated": 0
+          },
+          "rebounds": {
+            "historyCandidates": 202,
+            "sourceContextCorroborated": 0
+          },
+          "pointsAssists": {
+            "historyCandidates": 66,
+            "sourceContextCorroborated": 0
+          },
+          "pointsRebounds": {
+            "historyCandidates": 90,
+            "sourceContextCorroborated": 0
+          },
+          "blocks": {
+            "historyCandidates": 8,
+            "sourceContextCorroborated": 0
+          }
+        }
+      },
+      "prizepicks": {
+        "offers": 2458,
+        "historyCandidates": 1172,
+        "sourceContextCorroborated": 0,
+        "excluded": {
+          "unsupported_market_scope": 1066,
+          "missing_or_unverified_offer_context": 1172,
+          "insufficient_prior_history": 212,
+          "ambiguous_player_or_event": 8
+        },
+        "byMarket": {
+          "points": {
+            "historyCandidates": 201,
+            "sourceContextCorroborated": 0
+          },
+          "threePointersMade": {
+            "historyCandidates": 56,
+            "sourceContextCorroborated": 0
+          },
+          "reboundsAssists": {
+            "historyCandidates": 110,
+            "sourceContextCorroborated": 0
+          },
+          "turnovers": {
+            "historyCandidates": 50,
+            "sourceContextCorroborated": 0
+          },
+          "rebounds": {
+            "historyCandidates": 128,
+            "sourceContextCorroborated": 0
+          },
+          "assists": {
+            "historyCandidates": 81,
+            "sourceContextCorroborated": 0
+          },
+          "pointsAssists": {
+            "historyCandidates": 147,
+            "sourceContextCorroborated": 0
+          },
+          "pointsRebounds": {
+            "historyCandidates": 171,
+            "sourceContextCorroborated": 0
+          },
+          "pointsReboundsAssists": {
+            "historyCandidates": 198,
+            "sourceContextCorroborated": 0
+          },
+          "steals": {
+            "historyCandidates": 16,
+            "sourceContextCorroborated": 0
+          },
+          "blocks": {
+            "historyCandidates": 14,
+            "sourceContextCorroborated": 0
+          }
+        }
+      }
+    },
+    "independentlyReviewedPickfinderCrosswalks": 0,
+    "originalPlatformVerified": false,
+    "modelApproved": false,
+    "rawRowsPublished": 0
+  },
+  "attribution": {
+    "original": "NBA.com/stats and ESPN (native crosswalk)",
+    "mirror": "SportsDataverse / hoopR",
+    "source": "https://github.com/sportsdataverse/sportsdataverse-data",
+    "mirrorDataLicense": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "normalized and filtered rows; aggregate retrospective and candidate audit",
+    "upstreamTerms": "https://www.nba.com/termsofuse",
+    "upstreamPermissionDocumentInspected": false
   },
   "rawRowsPublished": 0,
   "officialFinalClockVerified": false,

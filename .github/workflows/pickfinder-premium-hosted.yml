@@ -58,6 +58,7 @@ jobs:
           node --test test/season-aware-collection.test.cjs test/pickfinder-unattended-runner.test.cjs test/pickfinder-browser.test.cjs test/pickfinder-premium-archive.test.cjs test/pickfinder-pilot-reconcile.test.cjs scripts/test-pacific-morning-capture-gate.cjs
           node scripts/pickfinder-pilot-reconcile.cjs ../private-archive
           node scripts/pickfinder-deep-research.cjs ../private-archive HEAD
+          node scripts/pickfinder-local-line-alerts.cjs ../private-archive config/pickfinder-local-alert-rules.json
       - name: Install pinned browser dependency before injecting credentials
         if: inputs.mode != 'audit_pilot'
         run: |
@@ -126,3 +127,5 @@ jobs:
 # Live verification of source-reported last-page traversal after removal of artificial ceiling.
 
 # Expanded sport-specific research and native read-only filter coverage.
+
+# Read-only custom filters and capability schema; local alert rules disabled by default.

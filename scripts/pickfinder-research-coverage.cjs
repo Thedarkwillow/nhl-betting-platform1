@@ -1,6 +1,6 @@
 'use strict';
 // Only observed sporting research, no inferred quotes, no account mutation.
-const VERSION='sport-filter-v2';
+const VERSION='sport-filter-v3';
 const common={
  game_logs:['game log','gamelog','game logs','player stats'],
  historical_lines:['historical line','prop history'],
@@ -71,4 +71,4 @@ async function traverseNativeFilters(page,{shouldContinue=()=>true,onState=async
  if(labels.length)await walk(0,[]);
  return {version:VERSION,nativeControls:initial.length,eligibleControls:labels.length,statesObserved:states.size,issues:[...issues],nativeCombinationsExhausted:labels.length>0&&issues.size===0,allFilterCombinationsVerified:false};
 }
-module.exports={VERSION,common,sports,tabs,coverage,nativeInventory,eligible,traverseNativeFilters};
+module.exports={VERSION,common,sports,tabs,coverage,nativeInventory,eligible,traverseNativeFilters,filterLabels};

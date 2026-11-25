@@ -149,7 +149,7 @@ test('sanitized deep failure propagates substage without raw error text',async()
 
 test('sport coverage needs nonempty observed values and does not treat unrelated labels as verified',()=>{
  const {coverage,VERSION,eligible}=require('../scripts/pickfinder-research-coverage.cjs');
- assert.equal(VERSION,'sport-filter-v2');
+ assert.equal(VERSION,'sport-filter-v3');
  const c=coverage('nhl',[{tab:'Shot Attempts',value:'4'},{tab:'Goalie Matchup',value:null},{tab:'Line Combinations',value:'fixture'}]);
  assert.equal(c.shot_attempts.state,'observed_label_and_value');assert.equal(c.goalie_matchups.state,'not_observed');assert.equal(c.line_combinations.observations,1);
  assert.equal(eligible([{label:'Account',options:[{value:'1'}]},{label:'Map',options:[{value:'1'}]},{label:'Map',options:[{value:'2'}]}]).length,0);
@@ -167,7 +167,7 @@ test('legacy checkpoint is not complete for expanded research version',()=>{
  const p={...r,key,status:'sampled',profileCollection:{truncated:false},research:[{value:'fixture'}]};
  const doc=records=>({schema:'pickfinder-deep-v1',seed:'aef07d2aecb75388c6757c9cc5844b2113d6a0ac',records});
  assert.equal(summarizeCheckpoints([doc([p])]).expandedDone.size,0);
- assert.equal(summarizeCheckpoints([doc([{...p,profileCollection:{truncated:false,coverageVersion:'sport-filter-v2'}}])]).expandedDone.size,1);
+ assert.equal(summarizeCheckpoints([doc([{...p,profileCollection:{truncated:false,coverageVersion:'sport-filter-v3'}}])]).expandedDone.size,1);
 });
 
 test('deep append uses fresh remote tree without rebasing or losing other writers',async()=>{
@@ -185,4 +185,30 @@ test('deep append uses fresh remote tree without rebasing or losing other writer
   assert.match(g(a,'diff-tree','--no-commit-id','--name-status','-r',sha),/^A\tresearch\/pickfinder-premium-deep\/.+\/research\.json$/);
   assert.equal(g(a,'status','--porcelain'),'');
  }finally{fs.rmSync(temp,{recursive:true,force:true});}
+});
+
+test('custom filter permits only explicit unique sporting labels and safe research routes',()=>{
+ const {approvedControls,safeRoute}=require('../scripts/pickfinder-custom-filters.cjs');
+ assert.deepEqual(approvedControls([{label:'Map',id:'map'},{label:'Account',id:'acct'},{label:'Sport',id:'dup'},{label:'Sport',id:'dupe'}]).map(x=>x.label),['Map']);
+ assert.equal(safeRoute('https://www.pickfinder.app/players/nba/x'),true);assert.equal(safeRoute('https://www.pickfinder.app/alerts'),false);
+});
+test('custom listbox verifies choices and restores original without claiming all combinations',async()=>{
+ const {traverseCustomFilters}=require('../scripts/pickfinder-custom-filters.cjs');let current='A';const saved=[];
+ const result=await traverseCustomFilters({url:()=> 'https://www.pickfinder.app/games'},{read:async()=>[{label:'Map',id:'map'}],open:async()=>{},close:async()=>{},options:async()=>({multiple:false,options:['A','B'].map(label=>({label,selected:current===label}))}),choose:async(_,label)=>{current=label;},onState:async s=>saved.push(s[0].display)});
+ assert.deepEqual(saved,['A','B']);assert.equal(current,'A');assert.equal(result.allFilterCombinationsVerified,false);
+});
+test('local alerts use exact scope and fresh explicit price; never send notifications',()=>{
+ const {evaluateRules}=require('../scripts/pickfinder-local-line-alerts.cjs');
+ const scope={book:'prizepicks',sport:'nba',player:'fixture',market:'points',eventId:'event',detailId:'/players/nba/p?prop=x',tier:'standard',side:'Higher'};
+ const r={...scope,id:'fixture',enabled:true,condition:'cross_up',target:10};const now=Date.parse('2026-11-25T12:00:00Z');
+ const row=(line,observedAt,extra={})=>({...scope,line,observedAt,explicitPrice:true,...extra});
+ const a=[row(9,'2026-11-25T11:50:00Z'),row(10,'2026-11-25T11:55:00Z'),row(99,'2026-11-25T11:59:00Z',{book:'underdog'})];
+ assert.equal(evaluateRules([r],a,{now})[0].state,'condition_met');assert.equal(evaluateRules([r],a,{now})[0].notificationSent,false);
+ assert.equal(evaluateRules([r],a.map(x=>({...x,explicitPrice:false})),{now})[0].state,'no_fresh_evidence');
+ assert.equal(evaluateRules([r],[...a,row(11,'2026-11-25T11:55:00Z')],{now})[0].state,'ambiguous_latest');
+});
+test('builder and alert navigation fails closed when no exact authorized link',async()=>{
+ const {inspectTool}=require('../scripts/pickfinder-tool-schema.cjs');let mutations=0;
+ const p={evaluate:async()=>[],goto:async()=>{mutations++;}};
+ assert.equal((await inspectTool(p,'builder',async()=>true)).state,'navigation_not_verified');assert.equal(mutations,0);
 });

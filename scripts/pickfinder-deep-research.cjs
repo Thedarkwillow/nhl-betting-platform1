@@ -165,18 +165,13 @@ async function run({root,context,page,enrich,collect,evidence={},limit=Infinity,
 
   }catch(e){if(e instanceof DeepFailure)throw e;diagnostics.dashboards[name]={state:'unverified'};await page.goto('https://www.pickfinder.app/props',{timeout:20000});await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:15000});if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
  }
- // Inspect only same-origin read-only navigation links; do not add picks, save alerts or submit forms.
- for(const name of ['Pick Builder','Line Alerts','Alerts']){
+ // Discover static builder/alert schema, never mutate account state.
+ const {inspectTool}=require('./pickfinder-tool-schema.cjs');
+ for(const kind of ['builder','alerts']){
   if(!shouldContinue())break;
-  try{
-   await page.goto('https://www.pickfinder.app/props',{timeout:15000});
-   const href=await verifiedNavigation(page,name,name==='Pick Builder'?['/pick-builder','/builder']:['/alerts','/line-alerts']);
-   if(!href){diagnostics[name]={state:'navigation_not_verified'};continue;}
-   const u=new URL(href);
-   await page.goto(u.href,{timeout:15000});await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});
-   if(!await premium(page))throw Error('session unavailable');
-   diagnostics[name]={state:'read_only_capabilities_observed',route:u.pathname,labels:await inspectCapabilities(page),mutations:0};
-  }catch{diagnostics[name]={state:'unverified',mutations:0};}
+  try{await page.goto('https://www.pickfinder.app/props',{timeout:15000});diagnostics[kind]=await inspectTool(page,kind,premium);}
+  catch{diagnostics[kind]={state:'unverified',mutations:0};}
+  await persist(root,{schema:'pickfinder-deep-v1',seed:SEED,startedAt,finishedAt:new Date().toISOString(),diagnostics:{[kind]:diagnostics[kind]},dashboardSnapshots:[],records:[],modelInputsApproved:false,originalOffersVerified:false});
  }
  for(const code of ['DOTA2','SOCCER']){
   if(!shouldContinue())break;

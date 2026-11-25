@@ -14,7 +14,7 @@ class Test(unittest.TestCase):
   class Page:
    def __init__(self,lines):self.lines=lines
    def extract_text(self):return "Injury Report: 10/24/26 06:30 PM"
-   def extract_words(self):
+   def extract_words(self,**kwargs):
     return [dict(text=word,x0=x,top=y*12) for y,line in enumerate(self.lines) for x,word in line]
   a=Page([[(100,"Matchup"),(200,"Team"),(300,"Player"),(400,"Current"),(500,"Reason")],[(10,"10/24/2026"),(100,"BKN@CLE"),(200,"Cleveland"),(230,"Cavaliers"),(300,"First"),(340,"Player"),(400,"Out")]])
   b=Page([[(200,"Injury"),(240,"Report:"),(300,"10/24/26")],[(300,"Second"),(340,"Player"),(400,"Out")]])

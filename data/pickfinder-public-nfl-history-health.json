@@ -1,0 +1,34 @@
+{
+  "kind": "public_nfl_native_history_health_v1",
+  "generatedAt": "2026-11-25T13:51:45.746353Z",
+  "seasons": {
+    "2024": {
+      "status": "observed",
+      "games": 272,
+      "playerRows": 18112,
+      "rosterIds": 32641,
+      "completeHistoricalSeason": true,
+      "archiveDigest": "4e468af29f7eb1c35ce6f38d79900d499f02e4716386af686def51e0347bc3a1"
+    },
+    "2025": {
+      "status": "observed",
+      "games": 272,
+      "playerRows": 18522,
+      "rosterIds": 35291,
+      "completeHistoricalSeason": true,
+      "archiveDigest": "93024c47c1e6b6227f5ebfa3a3f40418bc18b0de352567071133f3daaa1be23a"
+    },
+    "2026": {
+      "status": "observed",
+      "games": 272,
+      "playerRows": 11328,
+      "rosterIds": 21962,
+      "completeHistoricalSeason": false,
+      "archiveDigest": "81cd42e6b05b0a5f7bdc7057974826a89c117e9b362857d69d36de9b894c3e22"
+    }
+  },
+  "espnGsisCandidateRows": 0,
+  "paidRequests": 0,
+  "privateRepoUsed": false,
+  "modelApproved": false
+}

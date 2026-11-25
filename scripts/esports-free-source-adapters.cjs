@@ -158,21 +158,41 @@ async function collectPanda(env,client=fetch){
  report.fixtures=data.fixtures.length;report.providerReportedFinals=data.fixtures.filter(f=>f.providerReportedFinal).length;report.status=report.fixtures?"fixtures_collected":"no_verified_fixtures";
  return {report,data};
 }
-async function collectGrid(env,client=fetch){
+// Official title IDs: https://grid.helpjuice.com/what-are-the-ids-that-we-can-use-for-the-test-loop-series
+const gridTitles=[["CS2","28"],["DOTA2","2"],["VALORANT","6"],["LOL","3"]];
+function gridHistoryPlan(root,now){
+ let last=null;const done=new Set(),attempted=new Set();
+ if(root){
+  const dir=path.join(root,"research/esports-free-providers");
+  if(fs.existsSync(dir))for(const name of fs.readdirSync(dir).filter(s=>/^\d+-\d+\.json$/.test(s)).sort((a,b)=>{const [ar,aa]=a.split("-").map(parseFloat),[br,ba]=b.split("-").map(parseFloat);return ar-br||aa-ba;}).slice(-90)){
+   try{const file=path.join(dir,name);if(fs.lstatSync(file).isSymbolicLink()||fs.statSync(file).size>8_000_000)continue;
+    const x=JSON.parse(fs.readFileSync(file,"utf8"));if(x.kind!=="restricted_esports_free_provider_observations_v1")continue;
+    const g=x.grid||{},p=g.queryPlan;
+    if(p&&gridTitles.some(([t,i])=>t===p.title&&i===p.titleId)&&Number.isInteger(p.week)&&p.week>=0&&p.week<52)last=p;
+    for(const f of g.finals||[])if(f.providerReportedSeriesFinal===true&&text(f.fixture?.providerSeriesId))done.add(f.fixture.providerSeriesId);
+    for(const s of g.attemptedSeriesIds||[])if(text(s))attempted.add(s);
+   }catch{}
+  }
+ }
+ const pos=last?gridTitles.findIndex(([t])=>t===last.title):-1,next=(pos+1)%gridTitles.length,week=last?(next===0?(last.week+1)%52:last.week):0,[title,titleId]=gridTitles[next],end=now-6*3600000-week*7*86400000;
+ return {queryPlan:{title,titleId,week,from:iso(end-7*86400000),to:iso(end)},done,attempted};
+}
+async function collectGrid(env,client=fetch,root=null){
  const key=env.GRID_API_KEY||env.RIOT_GRID_API_KEY||env.GRID,allowed=env.GRID_BETTING_DATA_AUTHORIZED==="1"&&env.GRID_NO_CHARGE_CONFIRMED==="1";
  const report={provider:"GRID",credentialConfigured:!!key,authorizedNoCharge:allowed,requests:0,fixtures:0,finalSeries:0,playerGameRows:0,providerFinalMaps:0,bySport:{},status:"not_called"},data={fixtures:[],finals:[],sourceDigests:[]};
  if(!key||!allowed){report.status=!key?"missing_credential":"awaiting_permitted_no_charge_access";return {report,data};}
  const headers={"x-api-key":key,"Content-Type":"application/json",Accept:"application/json"};
  const query=async (url,query)=>{report.requests++;const q=await request(url,{method:"POST",headers,body:JSON.stringify({query})},client);if(q.data?.errors?.length||!q.data?.data)throw Error("graphql");return {data:q.data.data,digest:q.digest};};
  try{
-  const now=Date.now(),from=iso(now-86400000),to=iso(now+86400000);
-  const q=await query("https://api-op.grid.gg/central-data/graphql",`query { allSeries(first:20,filter:{startTimeScheduled:{gte:"${from}",lte:"${to}"}},orderBy:StartTimeScheduled){ edges { node { id startTimeScheduled title { id nameShortened } teams { baseInfo { id name } } tournament { id name } } } } }`);
+  const now=Date.now(),{queryPlan,done,attempted}=gridHistoryPlan(root,now),{titleId,from,to}=queryPlan;
+  data.queryPlan=queryPlan;data.attemptedSeriesIds=[];report.queryPlan=queryPlan;
+  const q=await query("https://api-op.grid.gg/central-data/graphql",`query { allSeries(first:20,filter:{titleId:"${titleId}",startTimeScheduled:{gte:"${from}",lte:"${to}"}},orderBy:StartTimeScheduled){ edges { node { id startTimeScheduled title { id nameShortened } teams { baseInfo { id name } } tournament { id name } } } } }`);
   if(!Array.isArray(q.data.allSeries?.edges)||q.data.allSeries.edges.length>20)throw Error("fixture list");
-  const seen=new Set();for(const e of q.data.allSeries.edges){const f=gridSeries(e.node);if(f&&!seen.has(f.providerSeriesId)){seen.add(f.providerSeriesId);data.fixtures.push(f);}}
+  const seen=new Set();for(const e of q.data.allSeries.edges){const f=gridSeries(e.node);if(f&&f.title===queryPlan.title&&f.providerTitleId===titleId&&f.providerSeriesId!==titleId&&at(f.scheduledStartAt)>=at(from)&&at(f.scheduledStartAt)<=at(to)&&!seen.has(f.providerSeriesId)){seen.add(f.providerSeriesId);data.fixtures.push(f);}}
   data.sourceDigests.push({endpoint:"central-data",sha256:q.digest});
-  const past=data.fixtures.filter(x=>Date.parse(x.scheduledStartAt)<now-3600000).sort((a,b)=>Date.parse(b.scheduledStartAt)-Date.parse(a.scheduledStartAt));
-  const first=past[0],second=first&&(past.find(x=>x.title!==first.title)||past[1]);
-  for(const f of [first,second].filter(Boolean)){
+  const past=data.fixtures.filter(x=>!done.has(x.providerSeriesId)).sort((a,b)=>Number(attempted.has(a.providerSeriesId))-Number(attempted.has(b.providerSeriesId))||Date.parse(b.scheduledStartAt)-Date.parse(a.scheduledStartAt));
+  for(const f of past.slice(0,2)){
+   data.attemptedSeriesIds.push(f.providerSeriesId);
    await pause();
    const s=await query("https://api-op.grid.gg/live-data-feed/series-state/graphql",`query { seriesState(id:${JSON.stringify(f.providerSeriesId)}) { id valid started finished teams { id name won } games { id sequenceNumber started finished teams { id won players { id name kills deaths } } } } }`);
    if(s.data.seriesState?.finished!==true)continue;
@@ -187,10 +207,10 @@ async function main(){
  const root=fs.realpathSync(process.argv[2]),dest=process.argv[3];
  if(root===path.resolve(__dirname,"..")||!fs.existsSync(path.join(root,".git"))||process.env.RESTRICTED_DESTINATION_VERIFIED!=="1"||!dest||path.dirname(path.resolve(dest))!==path.resolve(process.env.RUNNER_TEMP||"."))throw Error("private destination required");
  // Independent providers may run concurrently; each provider retains its own bounded rate and refusal gates.
- const [d,p,g]=await Promise.all([collectDota(root),collectPanda(process.env),collectGrid(process.env)]);
+ const [d,p,g]=await Promise.all([collectDota(root),collectPanda(process.env),collectGrid(process.env,fetch,root)]);
  const report={kind:"esports_free_provider_collection_v1",observedAt:iso(Date.now()),providers:[d.report,p.report,g.report],paidProviderEndpointsCalled:0,rawRowsPublished:0,originalOffersVerified:0,platformSettlementVerified:false,modelPromoted:false};
- if(d.data.index.length||p.data.fixtures.length||g.data.fixtures.length)fs.writeFileSync(dest,JSON.stringify({kind:"restricted_esports_free_provider_observations_v1",observedAt:report.observedAt,opendota:d.data,pandascore:p.data,grid:g.data,independentReviewVerified:false,propGradeEligible:false,publicationRightsVerified:false})+"\n",{flag:"wx",mode:0o600});
+ if(d.data.index.length||p.data.fixtures.length||g.data.fixtures.length||g.data.queryPlan)fs.writeFileSync(dest,JSON.stringify({kind:"restricted_esports_free_provider_observations_v1",observedAt:report.observedAt,opendota:d.data,pandascore:p.data,grid:g.data,independentReviewVerified:false,propGradeEligible:false,publicationRightsVerified:false})+"\n",{flag:"wx",mode:0o600});
  console.log(JSON.stringify(report));
 }
 if(require.main===module)main().catch(()=>{console.error("Free provider research failed closed");process.exitCode=1;});
-module.exports={dotaIndex,dotaDetail,pandaFixture,gridSeries,gridState,collectPanda,collectGrid};
+module.exports={dotaIndex,dotaDetail,pandaFixture,gridSeries,gridState,collectPanda,collectGrid,gridHistoryPlan};

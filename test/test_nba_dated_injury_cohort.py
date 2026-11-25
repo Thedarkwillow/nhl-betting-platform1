@@ -10,3 +10,11 @@ class Tests(unittest.TestCase):
  def test_empty_cohort_never_claims_resolution(self):
   x=m.reconcile([],[],[],[],[],[],[])
   self.assertFalse(x["originalAggregateReproduced"]);self.assertFalse(x["original135RowLevelReconciliationVerified"]);self.assertEqual(x["newCandidateMappings"],0)
+
+ def test_supplemental_roster_requires_dated_coverage(self):
+  from datetime import datetime, timezone
+  cutoff=datetime(2026,10,25,tzinfo=timezone.utc)
+  row=dict(league="nba",season=2027,team_abbr="BOS",player_id=123,player_name="Fixture Player",valid_from="2026-10-20T00:00:00Z",valid_to=None,last_seen="2026-10-26T00:00:00Z")
+  self.assertEqual(m.supplemental_espn_ids([row],m.names("Fixture Player"),"BOS",cutoff),{"123"})
+  self.assertEqual(m.supplemental_espn_ids([{**row,"valid_from":"2026-10-26T00:00:00Z"}],m.names("Fixture Player"),"BOS",cutoff),set())
+  self.assertEqual(m.supplemental_espn_ids([{**row,"last_seen":"2026-10-24T00:00:00Z"}],m.names("Fixture Player"),"BOS",cutoff),set())

@@ -6,7 +6,7 @@ const {collect,ORIGIN}=require('./pickfinder-browser.cjs');
 const {enrich}=require('./pickfinder-player-research.cjs');
 const {archive,normalize}=require('./pickfinder-premium-archive.cjs');
 const {loadPilot,compare,inputAudit,missingDisposition,loadVerifiedAttempt}=require('./pickfinder-pilot-reconcile.cjs');
-const {registry,classify,orderedPartitions}=require('./season-aware-collection.cjs');
+const {registry,classify,orderedPartitions,lifecycle}=require('./season-aware-collection.cjs');
 const {discover}=require('./season-aware-discovery.cjs');
 const SPORTS=['NBA','CS2','VAL','LOL','DOTA2','COD','NHL','NFL'];
 const BOOKS=['prizepicks','underdog'];
@@ -140,7 +140,9 @@ async function main(env=process.env){
  const deadline=Date.now()+(p.full?40:20)*60000;
  const remaining=()=>{const t=pacific(new Date());return p.reconcile?Date.now()<deadline&&t.day===p.clock.day:t.day===p.clock.day&&t.hour===p.clock.hour&&t.minute<55;};
  const evidence=await discover({env});
- const preferredTargets=orderedPartitions(SPORTS,BOOKS,evidence);
+ const decisions=Object.fromEntries(Object.keys(registry).map(code=>[code,lifecycle(code,evidence[code])]));
+ const preferredTargets=orderedPartitions(SPORTS,BOOKS,evidence).filter(({code})=>p.reconcile||decisions[code].liveResearchAllowed);
+ console.log(JSON.stringify({state:'season_collection_policy',sports:decisions,paidEndpointsCalled:0}));
  const optionalCodes=Object.keys(registry).filter(code=>!SPORTS.includes(code));
  const targets=p.reconcile?[...['NBA','NFL','NHL'].map(code=>({book:'prizepicks',code})),...preferredTargets.filter(p=>p.book!=='prizepicks'||!['NBA','NFL','NHL'].includes(p.code))]:preferredTargets;
  console.log(JSON.stringify({state:'competition_discovery',sports:Object.fromEntries(Object.keys(registry).map(code=>[code,{source:evidence[code]?.source,status:evidence[code]?.status,upcoming:evidence[code]?.upcoming}])),paidEndpointsCalled:0}));
@@ -151,7 +153,8 @@ async function main(env=process.env){
  try{
   const detail=await context.newPage();detail.setDefaultTimeout(5000);
   // Probe optional league controls only after verified authentication. Missing optional sports are not proof of an offseason.
-  for(const code of optionalCodes){const b=page.getByRole('button',{name:code,exact:true});if(await b.count()===1&&await b.isVisible())targets.push(...BOOKS.map(book=>({code,book})));else console.log(JSON.stringify({state:'optional_board_not_exposed',code,competition:'unknown'}));}
+  for(const code of optionalCodes){if(!p.reconcile&&!decisions[code].liveResearchAllowed)continue;const b=page.getByRole('button',{name:code,exact:true});if(await b.count()===1&&await b.isVisible())targets.push(...BOOKS.map(book=>({code,book})));else console.log(JSON.stringify({state:'optional_board_not_exposed',code,competition:'unknown'}));}
+  if(!targets.length){console.log(JSON.stringify({state:'no_active_partitions',rawRowsPublished:0}));return;}
   for(const {book,code} of targets){
    if(!remaining()){failed=true;break;}
    try{

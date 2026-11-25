@@ -46,7 +46,7 @@ jobs:
           node --test test/priority-common-ml-shadow-v1.test.cjs test/expanded-common-ml-grade.test.cjs >"$log" 2>&1 || { echo "::error::Private research regression failed"; exit 1; }
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4 5; do
             git fetch -q origin main
             git reset --hard -q origin/main
             node scripts/report-expanded-common-ml-forward.cjs >"$log" 2>&1 || { echo "::error::Private grading failed; prior report preserved"; exit 1; }
@@ -55,9 +55,12 @@ jobs:
           if(d.kind!=="expanded_common_ml_first_git_grade_v1"||d.researchOnly!==true||d.calibrated!==false||d.modelPromoted!==false||d.platformSettlementVerified!==false||Object.values(d.markets).some(x=>x.decided+x.pending!==x.registered||x.correct>x.decided))throw Error("Invalid forward evidence");
           NODE
             git add -f outputs/health/expanded-common-ml-forward-latest.json
-            git diff --cached --quiet && exit 0
+            if git diff --cached --quiet; then echo "PASS: archive already matches current evidence"; exit 0; fi
             git commit -qm 'research: refresh original expanded ML first-Git grading'
-            if git push -q origin HEAD:main; then echo "PASS: private original-only grades archived"; exit 0; fi
-            sleep "$attempt"
+            if git push -q origin HEAD:main; then
+              git fetch -q origin main
+              if git merge-base --is-ancestor HEAD origin/main; then echo "PASS: private original-only grades archived and remote commit verified"; exit 0; fi
+            fi
+            sleep "$((attempt * 3))"
           done
           exit 1

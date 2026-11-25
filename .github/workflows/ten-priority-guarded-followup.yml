@@ -1,0 +1,56 @@
+name: Ten-priority guarded research followup
+on:
+  pull_request:
+    paths: ['scripts/cs2_independent_steam_audit.py','scripts/cs2_headshot_history.py','scripts/esports_context_models.py','scripts/public_cod_wiki_history.py','.github/workflows/publish.yml','.github/workflows/private-expanded-ml-forward-grade.yml','.github/workflows/ten-priority-guarded-followup.yml','test/test_cs2*.py']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/ten-priority-guarded-followup.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python3 -m py_compile scripts/cs2_independent_steam_audit.py scripts/cs2_headshot_history.py scripts/esports_context_models.py scripts/public_cod_wiki_history.py
+      - run: python3 -m unittest discover -s test -p 'test_cs2*.py'
+      - run: python3 -m unittest discover -s test -p test_esports_context_models.py
+      - run: python3 -m unittest discover -s test -p test_nba_dated_injury_cohort.py
+      - run: node --test test/nhl-standard-rolling-calibration-research.test.cjs test/nhl-standard-forward-scoreboard.test.cjs
+      - run: node scripts/public-workflow-migration-inventory.cjs
+  archive:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Original NHL paired evidence
+        run: RESEARCH_ARCHIVE_ROOT="$GITHUB_WORKSPACE/archive" node public/scripts/public-nhl-original-paired-audit.cjs
+      - name: Verify private ML report
+        run: |
+          node - <<'NODE'
+          const d=require("./archive/outputs/health/expanded-common-ml-forward-latest.json");
+          if(d.researchOnly!==true||d.calibrated!==false||d.modelPromoted!==false||d.platformSettlementVerified!==false||Object.values(d.markets).some(x=>x.decided+x.pending!==x.registered||x.correct>x.decided))throw Error("Invalid archive evidence");
+          console.log(JSON.stringify({kind:"ml_archive_verified_counts",markets:Object.fromEntries(Object.entries(d.markets).map(([k,v])=>[k,{registered:v.registered,decided:v.decided,correct:v.correct,pending:v.pending}])),modelPromoted:false}));
+          NODE

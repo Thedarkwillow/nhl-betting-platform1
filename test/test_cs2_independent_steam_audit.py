@@ -19,3 +19,10 @@ class Tests(unittest.TestCase):
     self.assertEqual(audit(rows(),d)["uniqueStatIdentityCandidates"],9)
     d[0]["kills"]+=1
     self.assertEqual(audit(rows(),d)["uniqueStatIdentityCandidates"],0)
+
+ def test_adjacent_date_is_diagnostic_only(self):
+    d=[dict(r,date="2026-04-02") for r in rows(True)]
+    r=audit(rows(),d)
+    self.assertEqual(r["counts"]["unique_adjacent_date_boxscore_diagnostic"],1)
+    self.assertEqual(r["uniqueStatIdentityCandidates"],0)
+    self.assertFalse(r["verifiedAuthoritativeCrosswalk"])

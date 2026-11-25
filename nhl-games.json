@@ -4,15 +4,17 @@
   "source": "NHL Web API",
   "endpoint": "https://api-web.nhle.com/v1/score/2026-11-24",
   "pacificDate": "2026-11-24",
-  "observedAtUTC": "2026-11-24T23:26:54.724Z",
+  "observedAtUTC": "2026-11-25T01:23:26.792Z",
   "note": "Public NHL scores only. No player props, model predictions or platform settlements.",
   "games": [
     {
       "gameId": 2026020385,
       "startTimeUTC": "2026-11-25T01:00:00Z",
-      "state": "FUT",
+      "state": "LIVE",
       "away": "VGK",
-      "home": "EDM"
+      "home": "EDM",
+      "awayScore": 1,
+      "homeScore": 0
     }
   ]
 }

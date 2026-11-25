@@ -4,7 +4,12 @@ checked separately. No raw source rows or identity pairs are published.
 """
 from collections import defaultdict,Counter
 from cs2_cross_source_identity import norm,mapname,one_to_one
-from cs2_ektarr_wide_history import load_pinned_history
+from cs2_ektarr_wide_history import load_pinned_history,SHA
+import os,re,unicodedata,json
+from pathlib import Path
+from esports_identity_registry import build,write_exclusive
+DEMO_REV='912a363098feec3f220e41d68634d2f71676c28b'
+def compact_alias(s):return ''.join(c for c in unicodedata.normalize('NFKD',s).casefold() if c.isalnum())
 
 MARKETS=("kills","deaths","assists")
 def kda(r):
@@ -38,7 +43,8 @@ def group_maps(rows,demo):
         counts["valid_regulation_maps"]+=1
     return index,counts
 
-def audit(kaggle,demos):
+def audit(kaggle,demos,evidence_out=None):
+    if evidence_out is None:evidence_out=[]
     ki,kc=group_maps(kaggle,False);di,dc=group_maps(demos,True)
     pairs=set();alias_pairs=set();links=defaultdict(set);counts=Counter();headshots=0
     for key,ds in di.items():
@@ -54,8 +60,15 @@ def audit(kaggle,demos):
                 if len(hits)!=1 or sum(kda(q)==kda(p) for q in a)!=1:continue
                 q=hits[0];pair=(p["player"],q["player"])
                 alias=norm(p.get("alias"));other=norm(q.get("sourceAlias"))
-                if alias and other and alias!=other:
-                    counts["explicit_alias_conflict"]+=1;continue
+                method="exact_demo_boxscore_alias" if alias and alias==other else "explicit_alias_conflict" if alias and other else "exact_demo_boxscore_missing_alias"
+                if re.fullmatch(r"\d{17}",str(q["player"])) and p["player"].startswith("ektarr:"):
+                    evidence_out.append({"left":{"sport":"CS2","namespace":"ektarr","id":p["player"].split(":",1)[1]},"right":{"sport":"CS2","namespace":"steam64","id":q["player"]},"method":method,"eventDate":key[0],"sourceEvents":[hid,did],"sourceRevisions":[SHA,DEMO_REV]})
+                if method=="explicit_alias_conflict":
+                    counts["explicit_alias_conflict"]+=1
+                    if compact_alias(alias)==compact_alias(other):counts["format_only_conflict"]+=1
+                    elif alias in other or other in alias:counts["substring_conflict"]+=1
+                    else:counts["distinct_alias_conflict"]+=1
+                    continue
                 pairs.add(pair);links[pair].add((hid,did))
                 if alias and other and alias==other:alias_pairs.add(pair)
                 if type(q.get("headshots"))is int and 0<=q["headshots"]<=q["kills"]:headshots+=1
@@ -71,4 +84,12 @@ def audit(kaggle,demos):
 def run(demos):
     import json
     rows,_=load_pinned_history()
-    print(json.dumps(audit(rows,demos)),flush=True)
+    ev=[];report=audit(rows,demos,ev)
+    print(json.dumps(report),flush=True)
+    dest=os.environ.get("ESPORTS_IDENTITY_EVIDENCE_OUTPUT")
+    if dest:
+        p=Path(dest).resolve()
+        if p.parent!=Path(os.environ["RUNNER_TEMP"]).resolve():raise ValueError("restricted_output")
+        write_exclusive(p,{"kind":"esports_identity_evidence_v1","evidence":ev,"sourceRevisions":[SHA,DEMO_REV]})
+        r=build([{"kind":"esports_identity_evidence_v1","evidence":ev}])
+        print(json.dumps({k:v for k,v in r.items() if k!="links"}),flush=True)

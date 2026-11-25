@@ -1,18 +1,18 @@
 {
   "kind": "public_pickfinder_identity_health_v1",
-  "generatedAt": "2026-11-25T20:49:36.049Z",
-  "archiveRevision": "1dccfa99030a0a4ab8c256d10fe2972c1d92b1e3",
+  "generatedAt": "2026-11-25T23:11:34.793Z",
+  "archiveRevision": "79a6bdce14466d79fa272d6ca783edf710e23be0",
   "sourceEvents": 240,
   "sources": {
     "nba": {
       "state": "observed",
       "source": "espn:nba",
       "events": 25,
-      "upcoming": 25,
-      "rosterPlayers": 494,
+      "upcoming": 24,
+      "rosterPlayers": 529,
       "failedTeams": 0,
       "sourceEvents": 9,
-      "uniqueEventCandidates": 9,
+      "uniqueEventCandidates": 8,
       "uniquePlayerCandidates": 125,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
@@ -22,7 +22,7 @@
       "source": "espn:nfl",
       "events": 5,
       "upcoming": 5,
-      "rosterPlayers": 792,
+      "rosterPlayers": 793,
       "failedTeams": 0,
       "sourceEvents": 16,
       "uniqueEventCandidates": 5,
@@ -66,12 +66,12 @@
       "state": "observed",
       "source": "espn:college-basketball",
       "events": 101,
-      "upcoming": 98,
-      "rosterPlayers": 604,
+      "upcoming": 95,
+      "rosterPlayers": 605,
       "failedTeams": 0,
       "sourceEvents": 15,
-      "uniqueEventCandidates": 4,
-      "uniquePlayerCandidates": 50,
+      "uniqueEventCandidates": 2,
+      "uniquePlayerCandidates": 35,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -130,7 +130,7 @@
   "nativeHistory": {
     "nhl": {
       "finalGames": 36,
-      "playerAppearances": 938,
+      "playerAppearances": 935,
       "completeHistoricalSeasons": false
     },
     "dota2": {
@@ -141,7 +141,7 @@
   },
   "independentlyReviewedCrosswalks": 0,
   "paidRequests": 0,
-  "publicRequests": 226,
+  "publicRequests": 228,
   "privateRepoUsed": false,
   "modelApproved": false
 }

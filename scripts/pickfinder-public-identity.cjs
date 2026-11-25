@@ -10,8 +10,9 @@ const day=x=>new Date(x).toISOString().slice(0,10);
 const pause=()=>new Promise(r=>setTimeout(r,350));
 const validTime=x=>typeof x==='string'&&/(?:Z|[+-]\d\d:\d\d)$/.test(x)&&Number.isFinite(dt(x));
 // Select distinct, uncollected verified-final schedule candidates; never reuse a
-// conflicting event or exceed the existing twelve boxscore calls per run.
-function selectNhlFinals(events,known,clock){
+// conflicting event; cap expanded history collection at 36 boxscore calls.
+function selectNhlFinals(events,known,clock,limit=12){
+ if(!Number.isInteger(limit)||limit<1||limit>36)throw Error('history_limit');
  const at=dt(clock),byId=new Map(),conflicts=new Set();
  if(!Number.isFinite(at))throw Error('history_clock');
  for(const g of events){
@@ -20,7 +21,7 @@ function selectNhlFinals(events,known,clock){
   if(old&&(dt(old.startAt)!==dt(g.startAt)||JSON.stringify(old.teams)!==JSON.stringify(g.teams)))conflicts.add(g.eventId);
   else byId.set(g.eventId,g);
  }
- return [...byId.values()].filter(g=>!conflicts.has(g.eventId)).sort((a,b)=>dt(b.startAt)-dt(a.startAt)).slice(0,12);
+ return [...byId.values()].filter(g=>!conflicts.has(g.eventId)).sort((a,b)=>dt(b.startAt)-dt(a.startAt)).slice(0,limit);
 }
 function save(root,kind,doc){const raw=JSON.stringify(doc)+'\n',digest=sha(raw),d=path.join(root,OUT,kind);fs.mkdirSync(d,{recursive:true});const file=path.join(d,digest+'.json');if(!fs.existsSync(file))fs.writeFileSync(file,raw,{flag:'wx'});return digest;}
 async function request(url,headers={},client=fetch){
@@ -134,15 +135,15 @@ async function main(root){
    }
    if(official){
     let finalEvents=[...events];
-    // Expand historical discovery without increasing the per-run boxscore budget.
+    // Expand historical discovery and use a bounded free-source boxscore budget.
     // Skip only verified, committed final evidence, not mere schedule observations.
     const prior=require('./prizepicks-native-context-readiness.cjs').receipts(root,OUT+'/nhl-final-stat-facts','nhl_official_recent_final_stats_v1',now());
     const known=new Set(prior.flatMap(h=>(h.doc.games||[]).filter(g=>g.event?.completed===true&&g.event?.status==='post'&&Number.isFinite(dt(g.observedAt))&&dt(g.event.startAt)<dt(g.observedAt)&&dt(g.observedAt)<=dt(h.first)+999&&/^[a-f0-9]{64}$/.test(g.sourceDigest||'')&&Array.isArray(g.rows)&&g.rows.some(r=>r.appeared===true)).map(g=>g.event.eventId)));
-    for(const offset of [7,14,21]){
+    for(const offset of [7,14,21,28,35,42,49,56]){
      try{const prev=await get('https://api-web.nhle.com/v1/schedule/'+day(Date.now()-offset*86400000));proofs.push({url:prev.url,digest:prev.sourceDigest,observedAt:prev.observedAt});finalEvents.push(...nhlEvents(prev.data));}catch(e){if([401,403,429].includes(e.status))break;}
      await pause();
     }
-    finalEvents=selectNhlFinals(finalEvents,known,at);
+    finalEvents=selectNhlFinals(finalEvents,known,at,36);
     const finals=[];for(const g of finalEvents){try{const d=await get('https://api-web.nhle.com/v1/gamecenter/'+g.eventId+'/boxscore');finals.push({event:g,observedAt:d.observedAt,sourceDigest:d.sourceDigest,rows:nhlFinal(d.data,g)});}catch(e){if([401,403,429].includes(e.status))break;}await pause();}
     if(finals.length)save(root,'nhl-final-stat-facts',{kind:'nhl_official_recent_final_stats_v1',observedAt:now(),games:finals,originalPlatformSettlementVerified:false});
     nativeHistory.nhl={finalGames:finals.length,playerAppearances:finals.reduce((s,x)=>s+x.rows.length,0),completeHistoricalSeasons:false};

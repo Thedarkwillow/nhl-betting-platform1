@@ -11,6 +11,7 @@ const partitions=()=>SPORTS.flatMap(code=>BOOKS.map(book=>({code,book})));
 function plan(env,now=new Date()){
  if(env.PICKFINDER_AUTOMATION_AUTHORIZED!=='1')throw Error('authorization_required');
  if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&env.REQUESTED_MODE==='probe_now')return {probe:true};
+ if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&env.REQUESTED_MODE==='reconcile_now')return {allowed:true,reconcile:true,expected:'manual',clock:pacific(now)};
  if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_SCHEDULE_ENABLED!=='1')return {allowed:false,state:'schedule_disabled'};
  return decide({eventName:env.GITHUB_EVENT_NAME,mode:env.REQUESTED_MODE,schedule:env.GITHUB_EVENT_SCHEDULE,now});
 }
@@ -90,18 +91,20 @@ async function main(env=process.env){
   if(env.GITHUB_EVENT_NAME==='schedule'&&!receipt.captureVerifiedAt)throw Error('manual in-window remote archive proof required');
  }
  const prefix='research/pickfinder-premium/'+p.clock.day+'/'+p.expected.replace(':','');
- const remaining=()=>{const t=pacific(new Date());return t.day===p.clock.day&&t.hour===p.clock.hour&&t.minute<55;};
+ const deadline=Date.now()+20*60000;
+ const remaining=()=>{const t=pacific(new Date());return p.reconcile?Date.now()<deadline&&t.day===p.clock.day:t.day===p.clock.day&&t.hour===p.clock.hour&&t.minute<55;};
+ const targets=p.reconcile?['NBA','NFL','NHL'].map(code=>({book:'prizepicks',code})):partitions();
  const attempt=crypto.randomUUID();
  const counts=[];let failed=false;
  process.env.RESTRICTED_DESTINATION_VERIFIED='1';
  const {context,page}=await open();
  try{
   const detail=await context.newPage();detail.setDefaultTimeout(5000);
-  for(const {book,code} of partitions()){
+  for(const {book,code} of targets){
    if(!remaining()){failed=true;break;}
    try{
     await page.goto(ORIGIN+'/props',{timeout:20000});
-    const batch=await collect(page,{book,code,slot:p.expected,maxPages:100,shouldContinue:remaining});
+    const batch=await collect(page,{book,code,slot:p.expected,maxPages:p.reconcile?2:100,shouldContinue:remaining});
     // A bounded profile sample preserves board coverage. Separate deep research is still required.
     const sample=batch.pages.flatMap(pg=>pg.rows).find(r=>r.apps.length);
     if(sample&&remaining())try{await enrich(detail,sample,{navigate:url=>detail.goto(url,{timeout:8000})});}catch{sample.profileCollection={status:'unavailable'};}
@@ -109,7 +112,7 @@ async function main(env=process.env){
     const summary=archive(batch,root,attempt);
     counts.push({book,code,boardState:summary.boardState,withinSlot:summary.withinSlot,offers:summary.health.distinctOfferKeys,unresolved:summary.health.unresolvedRows,pages:summary.health.pages,traversal:summary.pageTraversalComplete});
     if(batch.failure==='session_expired'){failed=true;break;}
-    if(!summary.withinSlot||summary.boardState==='partial'||summary.health.unresolvedRows||summary.health.priceConflictKeys||summary.health.repeatOrUnresolvedLinks)failed=true;
+    if(!p.reconcile&&!summary.withinSlot||summary.boardState==='partial'||summary.health.unresolvedRows||summary.health.priceConflictKeys||summary.health.repeatOrUnresolvedLinks)failed=true;
    }catch{counts.push({book,code,state:'partition_failed'});failed=true;}
   }
  }finally{await context.close();}
@@ -121,12 +124,12 @@ async function main(env=process.env){
   git(root,['push','origin','HEAD:refs/heads/main']);
   git(root,['fetch','origin','main']);
   git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']);
-  if(!hosted&&counts.length===partitions().length&&counts.every(c=>c.withinSlot===true)&&counts.some(c=>c.offers>0)){
+  if(!p.reconcile&&!hosted&&counts.length===partitions().length&&counts.every(c=>c.withinSlot===true)&&counts.some(c=>c.offers>0)){
    fs.writeFileSync(receiptPath,JSON.stringify({...receipt,captureVerifiedAt:new Date().toISOString(),archiveSha:sha}),{mode:0o600});
   }
-  console.log(JSON.stringify({state:'remote_archive_verified',sha,slot:p.expected,partitions:counts,allPartitionsAttempted:counts.length===partitions().length,fullBoardCertified:false,modelInputsApproved:false}));
+  console.log(JSON.stringify({state:'remote_archive_verified',sha,slot:p.expected,partitions:counts,allPartitionsAttempted:counts.length===targets.length,fullBoardCertified:false,modelInputsApproved:false}));
  }else failed=true;
- if(failed||counts.length!==partitions().length)process.exitCode=1;
+ if(failed||counts.length!==targets.length)process.exitCode=1;
 }
 module.exports={plan,receiptValid,safeAddedFiles,partitions};
 if(require.main===module)main().catch(()=>{console.error('Private PickFinder runner failed; inspect runner provisioning, session, clock or archive access. No raw data logged.');process.exitCode=1;});

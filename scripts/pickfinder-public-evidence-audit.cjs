@@ -81,7 +81,11 @@ function analyze(archive,now=new Date().toISOString()){
 function coverage(root){
  const profiles=list(root,'profiles').flatMap(d=>read(root,'profiles',d).records||[]),dashboards=list(root,'dashboards').map(d=>read(root,'dashboards',d));
  const done=new Set(profiles.filter(r=>r.status==='sampled'&&r.coverageVersion===VERSION&&!r.truncated&&r.research?.length).map(r=>r.key));
- const byDashboard={};for(const d of dashboards)byDashboard[d.name]=(byDashboard[d.name]||0)+1;
- return {profileAttempts:profiles.length,uniqueCompletedCurrentVersion:done.size,dashboardSnapshots:dashboards.length,byDashboard,allFiltersVerified:false};
+ const byDashboard={},gameDialogBySport={};let gameDialogReceipts=0,gameDialogObservations=0,namedDashboardSnapshots=0,unclassifiedDashboardFiles=0;
+ for(const d of dashboards){
+  if(d.schema==='pickfinder-public-game-dialog-v1'&&Array.isArray(d.records)){gameDialogReceipts++;for(const r of d.records){if(typeof r.sport!=='string'||!r.sport||typeof r.eventId!=='string'||!r.eventId)continue;gameDialogObservations++;gameDialogBySport[r.sport]=(gameDialogBySport[r.sport]||0)+1;}continue;}
+  if(['Games','Discrepancies','Popular'].includes(d.name)){namedDashboardSnapshots++;byDashboard[d.name]=(byDashboard[d.name]||0)+1;}else unclassifiedDashboardFiles++;
+ }
+ return {profileAttempts:profiles.length,uniqueCompletedCurrentVersion:done.size,dashboardSnapshots:dashboards.length,namedDashboardSnapshots,byDashboard,gameDialogReceipts,gameDialogObservations,gameDialogBySport,unclassifiedDashboardFiles,allFiltersVerified:false};
 }
 module.exports={load,analyze,coverage,features,quotes,scope,read,list,git};

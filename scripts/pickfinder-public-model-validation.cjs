@@ -40,12 +40,26 @@ function modelRows({features,h,schedule,reviewed:crosswalk,clock,revision}){
   rows.push({...p,sourceManifestDigest:x.manifestDigest,sourceEventId:o.eventId,sourceDetailId:o.detailId,book:o.book,tier:o.tier,sourceObservedAt:o.observedAt,reviewCommit:id.reviewCommit,rawSelectedEstimate:o.side==='Higher'?pred.higher:1-pred.higher,baselineSelectedEstimate:o.side==='Higher'?pred.baselineHigher:1-pred.baselineHigher,projection:pred.projection,probabilityConditionalOnDecided:true,features:x.features,quoteBenchmarks:x.quotes.filter(q=>dt(q.observedAt)<=dt(clock)&&dt(clock)-dt(q.observedAt)<=300000),modelRevision:revision,researchOnly:true,originalPlatformVerified:false,modelApproved:false});
  }return rows;
 }
+function gradingQueue(frames,prior,clock){
+ const games=new Map(),selected=[],seen=new Set();let archived=0,pendingNotDue=0,alreadyGraded=0,invalid=0;
+ for(const f of [...frames].sort((a,b)=>dt(a.first)-dt(b.first)||a.digest.localeCompare(b.digest)))for(const p of f.doc.rows||[]){
+  const revision=f.doc.modelRevision||p.modelRevision;
+  const id=JSON.stringify([revision,p.book,p.gameId,p.playerId,p.market,p.line,p.offeredSide,p.tier]);
+  const legacyId=JSON.stringify([f.doc.modelRevision,p.book,p.gameId,p.playerId,p.market,p.line,p.offeredSide,p.tier]);
+  if(!revision||![f.doc.generatedAt,f.first,p.gameStartAt,clock].every(t=>Number.isFinite(dt(t)))||dt(f.doc.generatedAt)>dt(f.first)+999||dt(f.first)>dt(clock)||dt(f.first)+900000>=dt(p.gameStartAt)){invalid++;continue;}
+  if(seen.has(id))continue;seen.add(id);archived++;
+  if(prior.has(id)||prior.has(legacyId)){alreadyGraded++;continue;}
+  if(dt(clock)-dt(p.gameStartAt)<3*3600000){pendingNotDue++;continue;}
+  games.set(p.gameId,p.gameStartAt);selected.push({p,id,forecastDigest:f.digest});
+ }
+ return {games,selected,archived,pendingNotDue,alreadyGraded,invalid};
+}
 async function grade(root,clock){
- const frames=history(root,'nba-forecasts').sort((a,b)=>dt(a.first)-dt(b.first)||a.digest.localeCompare(b.digest)),prior=new Set(history(root,'nba-grades').flatMap(x=>(x.doc.rows||[]).map(y=>y.id))),games=new Map(),selected=[];
- for(const f of frames)for(const p of f.doc.rows||[]){const id=JSON.stringify([f.doc.modelRevision,p.book,p.gameId,p.playerId,p.market,p.line,p.offeredSide,p.tier]);if(prior.has(id)||dt(f.doc.generatedAt)>dt(f.first)+999||dt(f.first)+900000>=dt(p.gameStartAt)||dt(clock)-dt(p.gameStartAt)<3*3600000)continue;games.set(p.gameId,p.gameStartAt);selected.push({p,id,forecastDigest:f.digest});}
+ const frames=history(root,'nba-forecasts'),prior=new Set(history(root,'nba-grades').flatMap(x=>(x.doc.rows||[]).map(y=>y.id)));
+ const {games,selected,archived,pendingNotDue,alreadyGraded,invalid}=gradingQueue(frames,prior,clock);
  const finals=new Map();let calls=0;for(const [id,start] of [...games].slice(0,12))try{calls++;const d=await get('https://cdn.nba.com/static/json/liveData/boxscore/boxscore_'+String(id).padStart(10,'0')+'.json'),at=now(),rows=official(d.doc,id,start,at);if(rows)finals.set(id,{rows,observedAt:at,digest:d.digest});}catch{}
  const rows=[],seen=new Set();for(const x of selected){if(seen.has(x.id))continue;seen.add(x.id);const p=x.p,f=finals.get(p.gameId),stat=f?.rows.get(p.playerId);if(!stat||stat.team!==p.team)continue;const result=nba.gradePaper(p,stat);if(result==='pending')continue;rows.push({id:x.id,forecastDigest:x.forecastDigest,gameId:p.gameId,playerId:p.playerId,market:p.market,actual:stat[p.market],result,modelEstimate:p.rawSelectedEstimate,modelProjection:p.projection,pickfinderAverage:Number.isFinite(p.features?.['Avg L10'])?p.features['Avg L10']:null,quoteBenchmarks:p.quoteBenchmarks||[],side:p.offeredSide,officialResponseSha256:f.digest,officialObservedAt:f.observedAt});}
- if(rows.length)save(root,'nba-grades',{kind:'pickfinder_public_nba_independent_grades_v1',generatedAt:now(),rows,appSettlementVerified:false});return {registered:selected.length,newGrades:rows.length,finalGames:finals.size,calls};
+ if(rows.length)save(root,'nba-grades',{kind:'pickfinder_public_nba_independent_grades_v1',generatedAt:now(),rows,appSettlementVerified:false});return {registered:selected.length,archivedPregameRows:archived,pendingNotDue,alreadyGraded,invalidPregameRows:invalid,dueForGrade:selected.length,pendingDueAfterRun:selected.length-rows.length,newGrades:rows.length,finalGames:finals.size,calls};
 }
 function pairedStats(rows){
  const by={},seen=new Set();for(const r of rows){if(seen.has(r.id)||!['correct','incorrect'].includes(r.result)||!Number.isFinite(r.actual)||!Number.isFinite(r.modelEstimate))continue;seen.add(r.id);const a=by[r.market]??={n:0,brier:0,quoteN:0,quoteBrier:0,pairedModelBrier:0,avgN:0,avgMAE:0,pairedProjectionMAE:0};const y=Number(r.result==='correct');a.n++;a.brier+=(r.modelEstimate-y)**2;const qs=(r.quoteBenchmarks||[]).filter(q=>Number.isFinite(q.higher)&&q.higher>=0&&q.higher<=1);if(qs.length){const p=qs.reduce((s,q)=>s+(r.side==='Higher'?q.higher:1-q.higher),0)/qs.length;a.quoteN++;a.quoteBrier+=(p-y)**2;a.pairedModelBrier+=(r.modelEstimate-y)**2;}if(Number.isFinite(r.pickfinderAverage)&&Number.isFinite(r.modelProjection)){a.avgN++;a.avgMAE+=Math.abs(r.pickfinderAverage-r.actual);a.pairedProjectionMAE+=Math.abs(r.modelProjection-r.actual);}}
@@ -68,5 +82,5 @@ async function main(root){
  fs.mkdirSync(path.join(root,'data'),{recursive:true});fs.writeFileSync(path.join(root,'data/pickfinder-public-research-health.json'),JSON.stringify(a.summary,null,2)+'\n');
  console.log(JSON.stringify({state:'public_research_validation',manifests:a.summary.archiveManifests,invalid:a.summary.invalidManifests,offerRefs:a.summary.offerRefs,exactComparisons:a.summary.exactComparisons,nbaShadowRows:rows.length,nbaSources:a.summary.nbaOfficialSources,independentGrading:a.summary.independentGrading,paidRequests:0,privateRepoUsed:false}));
 }
-module.exports={candidates,modelRows,aliases,pairedStats,reviewed,history,save};
+module.exports={candidates,modelRows,aliases,pairedStats,reviewed,history,save,gradingQueue};
 if(require.main===module)main(fs.realpathSync(process.argv[2]||'.')).catch(()=>{console.error('Public research validation failed closed');process.exitCode=1;});

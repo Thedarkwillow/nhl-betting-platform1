@@ -30,6 +30,6 @@ jobs:
           persist-credentials: false
       - name: Report sanitized account metadata only unless confirmed free
         env:
-          GETODDS_API_KEY: ${{ secrets.GETODDS_API_KEY || secrets.GETODDS_API }}
+          GETODDS_API_KEY: ${{ secrets.GETODDSAPI || secrets.GETODDS_API_KEY || secrets.GETODDS_API }}
           GETODDS_FREE_PLAN_CONFIRMED: ${{ vars.GETODDS_FREE_PLAN_CONFIRMED }}
         run: node scripts/getodds-secure-preflight.cjs

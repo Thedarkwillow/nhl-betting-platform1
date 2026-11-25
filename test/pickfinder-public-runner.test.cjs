@@ -39,3 +39,13 @@ test('historical cache shadow only deduplicates explicit prior-season dated stru
  assert.equal(candidate(r,{...f,filterSelection:[{label:'season',display:'2025-26'}]},now),null);
  assert.equal(candidate(r,{...f,value:f.value.replace('2024-11-01','11/01')},now),null);
 });
+
+
+test('parallel profile trial is isolated to explicit manual deep collection',()=>{
+ const {profileWorkers}=require('../scripts/pickfinder-public-runner.cjs');
+ const env={GITHUB_EVENT_NAME:'workflow_dispatch',REQUESTED_MODE:'deep_research_now'},p={expected:'manual',deep:true};
+ assert.equal(profileWorkers(env,p),2);
+ for(const e of [{...env,GITHUB_EVENT_NAME:'schedule'},{...env,REQUESTED_MODE:'board_and_deep'},{...env,REQUESTED_MODE:'nba_context_only'}])assert.equal(profileWorkers(e,p),1);
+ assert.equal(profileWorkers(env,{...p,expected:'09:00'}),1);
+ assert.equal(profileWorkers(env,{...p,contextOnly:true}),1);
+});

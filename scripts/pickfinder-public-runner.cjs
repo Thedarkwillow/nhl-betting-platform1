@@ -13,6 +13,7 @@ function invocation(env,now=new Date()){
  if([6,9].includes(clock.hour))return {allowed:false,state:'protect_morning_hour',clock};
  return {allowed:true,expected:'manual',clock,deep:mode==='deep_research_now'||mode==='nba_context_only',contextOnly:mode==='nba_context_only',probe:mode==='probe_now'};
 }
+function profileWorkers(env,p){return env.GITHUB_EVENT_NAME==='workflow_dispatch'&&env.REQUESTED_MODE==='deep_research_now'&&p.expected==='manual'&&p.deep&&!p.contextOnly?2:1;}
 function captureOrigin(env,policy){
  const event=env.GITHUB_EVENT_NAME,runId=String(env.GITHUB_RUN_ID||''),attempt=String(env.GITHUB_RUN_ATTEMPT||''),revision=String(env.GITHUB_SHA||'');
  if(!/^[1-9][0-9]{0,19}$/.test(runId)||!/^[1-9][0-9]{0,5}$/.test(attempt)||! /^[a-f0-9]{40}$/.test(revision))return null;
@@ -148,17 +149,31 @@ async function main(root,env=process.env){
    }catch{errors++;console.log(JSON.stringify({state:'public_dashboard_pending',name}));}
   }
   const q=queue(read(root,'board-parts'),read(root,'profiles'));console.log(JSON.stringify({state:'public_deep_queue',total:q.total,completed:q.done,remaining:q.pending.length,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
-  const detail=await context.newPage();detail.setDefaultTimeout(5000);
+  // Explicit manual deep runs alone trial two isolated tabs; all archives remain serialized.
+  // Never increase parallelism in the protected morning board or scheduled collection paths.
+  const workers=profileWorkers(env,p),pages=[];
   const buffer=checkpointBuffer({write:rows=>write('profiles',{schema:'pickfinder-public-profiles-v1',observedAt:new Date().toISOString(),records:rows,modelInputsApproved:false}),onVerified:r=>{profiles++;console.log(JSON.stringify({state:'public_deep_scope_checkpoint_verified',sport:r.sport,book:r.book,status:r.status,truncated:r.truncated,verifiedThisRun:profiles}));}});
+  const deepStarted=Date.now();let attemptedProfiles=0,nontruncated=0;
   try{
-   for(const item of q.pending){if(!alive())break;const row={...item,research:[]},t=Date.now();try{await enrich(detail,row,{expanded:true,maxFields:Infinity,shouldContinue:alive,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(!await premium(detail))throw Error('session');}});}catch{row.profileCollection={truncated:true};}
-    profileMs+=Date.now()-t;await buffer.add(publicProfile(row));if(!await premium(detail).catch(()=>false))throw Error('session unavailable');
+   for(let n=0;n<workers;n++){const detail=await context.newPage();detail.setDefaultTimeout(5000);pages.push(detail);}
+   for(let i=0;i<q.pending.length&&alive();i+=workers){
+    const items=q.pending.slice(i,i+workers);
+    const results=await Promise.allSettled(items.map(async(item,n)=>{
+     const detail=pages[n],row={...item,research:[]},t=Date.now();attemptedProfiles++;
+     try{await enrich(detail,row,{expanded:true,maxFields:Infinity,shouldContinue:alive,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(!await premium(detail))throw Error('session');}});}catch{row.profileCollection={truncated:true};}
+     return {record:publicProfile(row),elapsed:Date.now()-t,authenticated:await premium(detail).catch(()=>false)};
+    }));
+    let failed=false;for(const x of results){if(x.status!=='fulfilled'){failed=true;continue;}const {record,elapsed,authenticated}=x.value;profileMs+=elapsed;await buffer.add(record);if(record.status==='sampled'&&record.truncated===false)nontruncated++;if(!authenticated)failed=true;}
+    if(failed)throw Error('session unavailable');
    }
-  }finally{if(!buffer.failed())await buffer.flush();}
+  }finally{
+   try{if(!buffer.failed())await buffer.flush();}
+   finally{await Promise.allSettled(pages.map(page=>page.close()));console.log(JSON.stringify({state:'public_deep_worker_metrics',workers,attemptedProfiles,nontruncated,verifiedProfiles:profiles,workerElapsedMs:Date.now()-deepStarted,aggregateProfileMs:profileMs,archiveMs,transactions,parallelBoardCollection:false}));}
+  }
 
  }finally{
   await context.close();console.log(JSON.stringify({state:'public_pickfinder_throughput',boards,profiles,profileMs,archiveMs,transactions,errors,elapsedMs:Date.now()-started,privateRepoUsed:false,modelInputsApproved:false}));
  }
 }
-module.exports={invocation,queue,cleanBoard,publicProfile,splitBoard,captureOrigin};
+module.exports={invocation,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers};
 if(require.main===module)main(fs.realpathSync(process.argv[2])).catch(()=>{console.error(JSON.stringify({state:'public_pickfinder_failed_closed',privateRepoUsed:false,accountDataLogged:false}));process.exitCode=1;});

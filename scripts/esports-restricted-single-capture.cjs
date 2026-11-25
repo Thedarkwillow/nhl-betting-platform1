@@ -2,6 +2,7 @@
 const fs=require("node:fs"),path=require("node:path"),assert=require("node:assert/strict"),crypto=require("node:crypto");
 const {underdog}=require("../src/independent-provider-export-v1.cjs");
 const {check}=require("./esports-zero-credit-coverage.cjs");
+const {reconcile}=require("../src/underdog-bounded-capture-reconcile.cjs");
 const host="https://underdogapi.com",limit=5;
 const txt=v=>typeof v==="string"&&v.length>0;
 async function read(r){
@@ -35,7 +36,7 @@ async function capture(out){
  const charges=[r.headers.get("X-Credits-Cost"),r.headers.get("X-Credits-Charged")].filter(x=>x!==null).map(int);
  const charged=charges.length&&charges.every(x=>x===charges[0])?charges[0]:null,remaining=int(r.headers.get("X-Credits-Remaining"));
  const report={kind:"restricted_esports_capture_v1",provider:"UnderdogAPI",league:"CS",projectionRequests:1,http:r.status,chargedCredits:charged,remainingCredits:remaining,accepted:0,originalOffersVerified:0,rawRowsPublished:0,modelPromoted:false};
- let rows=[],digest=null;
+ let rows=[],observations=[],digest=null;
  if(r.ok){
   try{
    const d=await read(r);digest=crypto.createHash("sha256").update(JSON.stringify(d)).digest("hex");
@@ -45,11 +46,11 @@ async function capture(out){
    report.expectedSource=d.data.filter(x=>x.source==="underdog").length;
    report.active=d.data.filter(x=>x.status==="active").length;
    if(charged!==3||remaining===null||remaining<30)throw Error("cost gate");
-   const normalized=underdog(d,new Date().toISOString());
-   rows=normalized.rows.filter(x=>x.sport==="CS2"&&x.providerEventId&&x.providerPlayerId);report.accepted=rows.length;report.excluded=normalized.excluded;report.completePage=normalized.completePage;report.status="processed";
+   const normalized=reconcile(d,new Date().toISOString());
+   rows=normalized.rows;observations=normalized.observations;Object.assign(report,normalized.report);report.status=rows.length?"processed":"quarantined_no_eligible_rows";
   }catch{report.status="contract_or_cost_rejected";}
  }else report.status="http_failure_no_retry";
- fs.writeFileSync(out,JSON.stringify({kind:"restricted_independent_esports_research_v1",report,sourceDocumentSha256:digest,rows,officialExportVerified:false,publicRedistributionAllowed:false},null,2),{flag:"wx",mode:0o600});
+ fs.writeFileSync(out,JSON.stringify({kind:"restricted_independent_esports_research_v1",report,sourceDocumentSha256:digest,rows,quarantinedSourceObservations:observations,officialExportVerified:false,publicRedistributionAllowed:false},null,2),{flag:"wx",mode:0o600});
  console.log(JSON.stringify(report));
 }
 if(require.main===module)(process.argv[2]==="preflight"?preflight():process.argv[2]==="capture"?capture(process.argv[3]):Promise.reject(Error("mode"))).catch(()=>{console.error("Capture/preflight failed closed");process.exitCode=1;});

@@ -70,3 +70,5 @@ test('unique Continue is selected even with multiple other form buttons',async()
 });
 
 test('marked push reconciliation requires verified prior authentication',()=>{assert.throws(()=>plan({...env,GITHUB_EVENT_NAME:'push',REQUESTED_MODE:'reconcile_now'},now));assert.equal(plan({...env,GITHUB_EVENT_NAME:'push',REQUESTED_MODE:'reconcile_now',PICKFINDER_PRIOR_AUTH_PROOF:'1'},now).reconcile,true);});
+
+test('scheduled research pilot needs prior proof and original Pacific slot',()=>{const a={...env,PICKFINDER_SCHEDULE_ENABLED:'0',PICKFINDER_SCHEDULE_RESEARCH_PILOT:'1'};assert.equal(plan(a,now).allowed,false);assert.equal(plan({...a,PICKFINDER_PRIOR_AUTH_PROOF:'1'},now).allowed,true);assert.equal(plan({...a,PICKFINDER_PRIOR_AUTH_PROOF:'1'},new Date('2026-11-25T17:07:00Z')).allowed,false);assert.equal(plan({...a,GITHUB_EVENT_NAME:'push',REQUESTED_MODE:'full_reconcile_now',PICKFINDER_PRIOR_AUTH_PROOF:'1'},now).full,true);});

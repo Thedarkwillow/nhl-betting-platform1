@@ -1,64 +1,64 @@
 {
   "schemaVersion": 1,
   "kind": "public_six_priority_accuracy_platform_evidence_desk_v1",
-  "generatedAt": "2026-11-24T04:01:49.959Z",
-  "lastOfficialSlateDate": "2026-11-22",
-  "lastOfficialGradePublishedAt": "2026-11-24T03:08:06.807Z",
+  "generatedAt": "2026-11-25T02:43:05.044Z",
+  "lastOfficialSlateDate": "2026-11-23",
+  "lastOfficialGradePublishedAt": "2026-11-25T01:02:44.499Z",
   "cumulativeNhlTiers": {
     "Standard": {
-      "decided": 1222,
-      "correct": 612,
-      "incorrect": 610,
-      "rate": 0.5008183306055647,
-      "distinctGames": 100,
+      "decided": 1296,
+      "correct": 649,
+      "incorrect": 647,
+      "rate": 0.5007716049382716,
+      "distinctGames": 107,
       "originalCohortHigherOnly": false
     },
     "Goblin": {
-      "decided": 2277,
-      "correct": 1581,
-      "incorrect": 696,
-      "rate": 0.69433465085639,
-      "distinctGames": 101,
+      "decided": 2392,
+      "correct": 1649,
+      "incorrect": 743,
+      "rate": 0.68938127090301,
+      "distinctGames": 108,
       "originalCohortHigherOnly": true
     },
     "Demon": {
-      "decided": 677,
-      "correct": 274,
-      "incorrect": 403,
-      "rate": 0.40472673559822747,
-      "distinctGames": 100,
+      "decided": 711,
+      "correct": 289,
+      "incorrect": 422,
+      "rate": 0.40646976090014064,
+      "distinctGames": 106,
       "originalCohortHigherOnly": true
     }
   },
   "dailyNhl": {
-    "games": 5,
+    "games": 7,
     "all": {
-      "registered": 196,
-      "decided": 192,
-      "correct": 114,
-      "incorrect": 78,
+      "registered": 225,
+      "decided": 223,
+      "correct": 120,
+      "incorrect": 103,
       "push": 0,
-      "pending": 4,
-      "rate": 0.59375
+      "pending": 2,
+      "rate": 0.5381165919282511
     },
     "tiers": {
       "Standard": {
-        "registered": 68,
-        "decided": 65,
-        "correct": 30,
-        "incorrect": 35,
+        "registered": 74,
+        "decided": 74,
+        "correct": 37,
+        "incorrect": 37,
         "push": 0,
-        "pending": 3,
-        "rate": 0.46153846153846156
+        "pending": 0,
+        "rate": 0.5
       },
       "Goblin": {
-        "registered": 94,
-        "decided": 93,
-        "correct": 69,
-        "incorrect": 24,
+        "registered": 117,
+        "decided": 115,
+        "correct": 68,
+        "incorrect": 47,
         "push": 0,
-        "pending": 1,
-        "rate": 0.7419354838709677
+        "pending": 2,
+        "rate": 0.591304347826087
       },
       "Demon": {
         "registered": 34,
@@ -72,115 +72,124 @@
     },
     "standardMarkets": {
       "assists": {
-        "registered": 9,
-        "decided": 9,
-        "correct": 6,
-        "incorrect": 3,
+        "registered": 13,
+        "decided": 13,
+        "correct": 8,
+        "incorrect": 5,
         "push": 0,
         "pending": 0,
-        "rate": 0.6666666666666666
+        "rate": 0.6153846153846154
       },
       "blockedShots": {
-        "registered": 12,
-        "decided": 12,
-        "correct": 5,
-        "incorrect": 7,
+        "registered": 3,
+        "decided": 3,
+        "correct": 1,
+        "incorrect": 2,
         "push": 0,
         "pending": 0,
-        "rate": 0.4166666666666667
+        "rate": 0.3333333333333333
+      },
+      "goals": {
+        "registered": 2,
+        "decided": 2,
+        "correct": 1,
+        "incorrect": 1,
+        "push": 0,
+        "pending": 0,
+        "rate": 0.5
       },
       "points": {
-        "registered": 24,
-        "decided": 22,
+        "registered": 23,
+        "decided": 23,
         "correct": 7,
-        "incorrect": 15,
+        "incorrect": 16,
         "push": 0,
-        "pending": 2,
-        "rate": 0.3181818181818182
+        "pending": 0,
+        "rate": 0.30434782608695654
       },
       "shotsOnGoal": {
-        "registered": 23,
-        "decided": 22,
-        "correct": 12,
-        "incorrect": 10,
+        "registered": 33,
+        "decided": 33,
+        "correct": 20,
+        "incorrect": 13,
         "push": 0,
-        "pending": 1,
-        "rate": 0.5454545454545454
+        "pending": 0,
+        "rate": 0.6060606060606061
       }
     },
     "standardSameLineBaseline": {
-      "decided": 65,
-      "model": 0.46153846153846156,
-      "alwaysHigher": 0.5692307692307692,
-      "alwaysLower": 0.4307692307692308
+      "decided": 74,
+      "model": 0.5,
+      "alwaysHigher": 0.4189189189189189,
+      "alwaysLower": 0.581081081081081
     },
     "confirmedNoAppearance": null,
     "outstandingAppearanceReconciliation": null,
-    "originalPendingImmutable": 4,
+    "originalPendingImmutable": 2,
     "originalOfficialStatsNotPlatformSettlements": true
   },
   "dailyNfl": {
-    "games": 11,
+    "games": 1,
     "all": {
-      "registered": 3669,
-      "decided": 3519,
-      "correct": 1858,
-      "incorrect": 1661,
-      "push": 4,
-      "pending": 146,
-      "rate": 0.5279909065075306
+      "registered": 469,
+      "decided": 462,
+      "correct": 217,
+      "incorrect": 245,
+      "push": 2,
+      "pending": 5,
+      "rate": 0.4696969696969697
     },
     "sameLineBaseline": {
-      "model": 0.5279909065075306,
-      "alwaysHigher": 0.48962773515203184,
-      "alwaysLower": 0.5103722648479682
+      "model": 0.4696969696969697,
+      "alwaysHigher": 0.5151515151515151,
+      "alwaysLower": 0.48484848484848486
     },
     "firstDistinctThreshold": {
-      "registered": 1228,
-      "decided": 1161,
-      "correct": 617,
-      "incorrect": 544,
-      "push": 2,
-      "pending": 65,
-      "rate": 0.5314384151593454,
-      "alwaysHigher": 0.49956933677863913,
-      "alwaysLower": 0.5004306632213609
+      "registered": 105,
+      "decided": 101,
+      "correct": 44,
+      "incorrect": 57,
+      "push": 1,
+      "pending": 3,
+      "rate": 0.43564356435643564,
+      "alwaysHigher": 0.49504950495049505,
+      "alwaysLower": 0.504950495049505
     },
     "researchOnly": true
   },
   "newProspectiveTrial": {
     "policyFrom": "2026-11-21T00:00:00Z",
     "reported": true,
-    "nhlDecided": 45,
-    "nhlDistinctGames": 16,
-    "nhlDistinctDates": 2,
-    "nflDecided": 239,
-    "nflDistinctGames": 10,
+    "nhlDecided": 49,
+    "nhlDistinctGames": 19,
+    "nhlDistinctDates": 3,
+    "nflDecided": 261,
+    "nflDistinctGames": 11,
     "independentlyBetterThanSimpleStrategies": false,
     "calibrated": false,
     "modelPromoted": false
   },
   "collection": {
-    "pacificDate": "2026-11-23",
+    "pacificDate": "2026-11-24",
     "slots": {
       "06:00": {
         "status": "privately_archived_complete",
-        "observedAt": "2026-11-23T14:05:54.475Z",
-        "nhlOffers": 1997,
-        "nflOffers": 2549,
+        "observedAt": "2026-11-24T14:05:54.323Z",
+        "nhlOffers": 337,
+        "nflOffers": 5002,
         "complete": true
       },
       "09:00": {
         "status": "privately_archived_complete",
-        "observedAt": "2026-11-23T17:05:43.966Z",
-        "nhlOffers": 2160,
-        "nflOffers": 2898,
+        "observedAt": "2026-11-24T17:05:59.383Z",
+        "nhlOffers": 364,
+        "nflOffers": 5546,
         "complete": true
       }
     },
     "firstGitFreezeVerified": true,
-    "firstGitCapturedNhl": 2160,
-    "firstGitCapturedNfl": 2898,
+    "firstGitCapturedNhl": 364,
+    "firstGitCapturedNfl": 5546,
     "comparableSixNineDeltaVerified": true,
     "originalPrizePicksAppQuoteVerified": false,
     "note": "A successful workflow is not proof that each Pacific 6 AM/9 AM original source board was captured."

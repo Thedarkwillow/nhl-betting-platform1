@@ -74,7 +74,7 @@ def map_rows(m,reason=None,verified_regulation=False):
         values=player_total(by[pid],n)
         if values is None:return reject("player_total_conflict_or_missing")
         i,person,team=identities[pid]
-        batch.append({"event":str(mid)+"|"+str(mp),"player":pid,"date":day,"map":m.get("map_name") or x.get("map_name") or x.get("map"),"sourceTeamSlot":i,"sourceAlias":person.get("name") if isinstance(person.get("name"),str) else None,"sourceTeamLabel":team.get("name") if isinstance(team.get("name"),str) else None,"rounds":n,"regulationScorePair":sorted(regulation_team_score(m)) if verified_regulation else None,"teamScore":regulation_team_score(m)[i] if verified_regulation else None,**dict(zip(METRICS,values))})
+        batch.append({"event":str(mid)+"|"+str(mp),"player":pid,"date":day,"map":m.get("map_name") or x.get("map_name") or x.get("map"),"sourceTeamSlot":i,"sourceAlias":person.get("name") if isinstance(person.get("name"),str) else None,"sourceTeamLabel":team.get("name") if isinstance(team.get("name"),str) else None,"rounds":n,"regulationScorePair":sorted(regulation_team_score(m)) if verified_regulation else None,"teamScore":regulation_team_score(m)[int(str(team.get("side_start")).lower()=="t")] if verified_regulation and str(team.get("side_start")).lower() in ("ct","t") and {str(t.get("side_start")).lower() for t in teams}=={"ct","t"} else None,**dict(zip(METRICS,values))})
     return batch
 def evaluate(rows):
     # chronological prior-date-only holdout; all maps on a day withheld together

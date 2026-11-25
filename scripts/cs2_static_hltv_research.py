@@ -49,11 +49,12 @@ def fingerprints(rows):
         if sig[0]==sig[1]:continue
         ix[(a[0]["date"],mp(a[0]["map"]),sig)].append(a)
     return ix
-def compare(a,b):
+def compare(a,b,require_hltv_id=False):
     x,y=fingerprints(a),fingerprints(b);agree=defaultdict(set);bad=set();c=Counter();links=defaultdict(set);rev=defaultdict(set)
     for k,aa in x.items():
         bb=y.get(k,[])
         if len(aa)!=1 or len(bb)!=1:continue
+        if require_hltv_id and aa[0][0].get("matchId")!=bb[0][0].get("matchId"):continue
         c["exact_unique_full_map"]+=1
         for r in aa[0]:
             h=[q for q in bb[0] if q["teamScore"]==r["teamScore"] and q["kills"]==r["kills"] and q["deaths"]==r["deaths"]]
@@ -72,8 +73,8 @@ def run(demos=None):
         slot=r.get("sourceTeamSlot");scores=r.get("regulationScorePair")
         # Cannot recover which slot owns each sorted score without unsorted score evidence.
         if type(r.get("teamScore")) is not int:continue
-        d.append({**r,"team":str(slot),"alias":r.get("sourceAlias"),"teamScore":r["teamScore"]})
-    out={"kind":"cs2_static_hltv_research_v1","sourceRevision":REV,"rows":len(rows),"completeMaps":len(rows)//10,"players":len({r["player"] for r in rows}),"dates":len(days),"dateMin":days[0] if days else None,"dateMax":days[-1] if days else None,"excluded":ex,"kaggleOverlap":compare(rows,a),"steamOverlap":compare(rows,d),"opponentRoundModel":evaluate(rows,("kills","deaths"),"rounds"),"headshotsAvailable":False,"mapOrdinalVerified":False,"sourceRightsIndependentlyVerified":False,"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}
+        d.append({**r,"matchId":r["event"].rsplit("|",1)[0],"team":str(slot),"alias":r.get("sourceAlias"),"teamScore":r["teamScore"]})
+    out={"kind":"cs2_static_hltv_research_v1","sourceRevision":REV,"rows":len(rows),"completeMaps":len(rows)//10,"players":len({r["player"] for r in rows}),"dates":len(days),"dateMin":days[0] if days else None,"dateMax":days[-1] if days else None,"excluded":ex,"kaggleOverlap":compare(rows,a),"steamOverlap":compare(rows,d,require_hltv_id=True),"opponentRoundModel":evaluate(rows,("kills","deaths"),"rounds"),"headshotsAvailable":False,"mapOrdinalVerified":False,"sourceRightsIndependentlyVerified":False,"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}
     print(json.dumps(out),flush=True)
     return out
 if __name__=="__main__":run()

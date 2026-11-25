@@ -41,6 +41,23 @@ jobs:
         env:
           CS2_STATIC_HLTV_RESEARCH: '1'
         run: python scripts/public-opencs2-map-baseline.py
+      - name: Check latest metadata revision separately
+        run: |
+          set -euo pipefail
+          rev="$(python3 - <<'PY'
+          import json,re,urllib.request
+          u="https://huggingface.co/api/datasets/blanchon/opencs2_dataset_demo/revision/main"
+          with urllib.request.urlopen(u,timeout=20) as f:raw=f.read(1000001)
+          d=json.loads(raw);s=d.get("sha","")
+          if re.fullmatch(r"[0-9a-f]{40}",s):print(s)
+          PY
+          )" || { echo 'Latest metadata revision unavailable'; exit 0; }
+          if test -z "$rev" || test "$rev" = 912a363098feec3f220e41d68634d2f71676c28b; then
+            echo 'No new pinned metadata revision available'
+          else
+            echo "Separate source revision: $rev"
+            CS2_DEMO_METADATA_REV="$rev" python scripts/public-opencs2-map-baseline.py
+          fi
   lol:
     needs: test
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

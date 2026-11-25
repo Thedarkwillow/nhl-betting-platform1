@@ -55,6 +55,7 @@ async function collect(page,{book,code,slot='manual',maxPages=500,shouldContinue
   const startedAt=new Date().toISOString();
   const localDay=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(startedAt));
   const result={schema:'pickfinder-premium-export-v1',book,sport,slot,localDay,startedAt,pages:[],boardState:'partial',lastPageReached:false};
+  if(!shouldContinue())return result;
   const initial=await page.evaluate(readBoard,{book,code,sport,observedAt:startedAt});
   if(!initial.authenticated)throw Error('premium_session_unavailable');
   const button=(name)=>page.getByRole('button',{name,exact:true});

@@ -162,6 +162,7 @@ def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,hist
         if ts:by[(d,h,a)].append((ts,r))
     metrics=Counter()
     methods=Counter()
+    unresolved_diagnostics=Counter()
     for e,n,h,a,archive_tip,schedule_tip in games:
         day=schedule_tip.astimezone(EAST).date().isoformat()
         cutoff=archive_tip-timedelta(minutes=60)
@@ -216,6 +217,10 @@ def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,hist
                         else:
                             methods["missingOrAmbiguousDatedRoster"]+=1
                             if report_id is None:methods["unresolvedMissingReportId"]+=1
+                            unresolved_diagnostics["missing_report_id" if report_id is None else "present_report_id"]+=1
+                            unresolved_diagnostics["historical_name_pair_absent" if not historical_pairs else "historical_name_pair_ambiguous" if len(historical_pairs)>1 else "historical_pair_conflicts_with_current_ids"]+=1
+                            if len(ei)!=1:unresolved_diagnostics["espn_roster_missing_or_ambiguous"]+=1
+                            if len(ni)!=1:unresolved_diagnostics["nba_roster_missing_or_ambiguous"]+=1
                     continue
                 eid,nid=next(iter(ei)),next(iter(ni))
                 if report_id and report_id!=nid:methods["reportIdConflict"]+=1;continue
@@ -226,7 +231,7 @@ def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,hist
                 methods["dualDatedRosterCandidate"]+=1
     original={"games":57,"teamSlots":114,"freshSubmitted":109,"teamsWithExplicitOut":104,"explicitOutRows":362,"oldExactMapped":227,"oldUnmapped":135}
     reconstructed=len(games)==original["games"] and all(metrics[k]==v for k,v in original.items() if k!="games")
-    return {"kind":"nba_original_injury_cohort_reconciliation_v1","archiveGames":len(gameoffers),"matchedGames":len(games),"unmatchedGames":unmatched,"reconstructedCounts":dict(metrics),"originalAggregateCounts":original,"originalAggregateReproduced":reconstructed,"candidateMethods":dict(methods),"newCandidateMappings":methods["dualDatedRosterCandidate"]+methods["priorDatedIdentityCandidate"]+methods["priorSeasonDualNamespaceIdentityCandidate"],"original135RowLevelReconciliationVerified":False,"reason":"Prior audit contains aggregate counts, not immutable row identities; same-game roster evidence is retrospective, not pregame status proof.","freezeApproved":False,"paidRequests":0,"rawRowsPublished":0}
+    return {"kind":"nba_original_injury_cohort_reconciliation_v1","archiveGames":len(gameoffers),"matchedGames":len(games),"unmatchedGames":unmatched,"reconstructedCounts":dict(metrics),"originalAggregateCounts":original,"originalAggregateReproduced":reconstructed,"candidateMethods":dict(methods),"unresolvedDiagnostics":dict(unresolved_diagnostics),"newCandidateMappings":methods["dualDatedRosterCandidate"]+methods["priorDatedIdentityCandidate"]+methods["priorSeasonDualNamespaceIdentityCandidate"],"original135RowLevelReconciliationVerified":False,"reason":"Prior audit contains aggregate counts, not immutable row identities; same-game roster evidence is retrospective, not pregame status proof.","freezeApproved":False,"paidRequests":0,"rawRowsPublished":0}
 def main():
     t=load()
     historical=historical_index(*historical_inputs())

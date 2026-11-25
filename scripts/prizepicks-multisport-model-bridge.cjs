@@ -96,4 +96,15 @@ function nflResidualChallenger(history,line,{nonnegative=false}={}){
  const n=errors.length;
  return {higher:higher/n,lower:lower/n,push:push/n,residualObservations:n,method:'rolling_shrunk_last5_residual_v0',calibrated:false,modelApproved:false};
 }
-module.exports={evaluateOther,mapPeriod,crosscheck,nflResidualChallenger};
+// Prior-only empirical research baseline, not a calibrated forecast.
+// Jeffreys smoothing over possible outcomes; half-lines cannot push.
+// Callers must supply independently verified, chronologically eligible appearances.
+function nflEmpiricalBaseline(history,line){
+ if(!Array.isArray(history)||history.length<15||!history.every(Number.isSafeInteger)||!Number.isFinite(line))return null;
+ const canPush=Number.isInteger(line);
+ let higher=0,lower=0,push=0;
+ for(const v of history){if(v>line)higher++;else if(v<line)lower++;else push++;}
+ const n=history.length,den=n+(canPush?1.5:1);
+ return {higher:(higher+0.5)/den,lower:(lower+0.5)/den,push:canPush?(push+0.5)/den:0,priorObservations:n,method:'empirical_jeffreys_v0',calibrated:false,modelApproved:false};
+}
+module.exports={evaluateOther,mapPeriod,crosscheck,nflResidualChallenger,nflEmpiricalBaseline};

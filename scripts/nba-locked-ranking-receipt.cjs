@@ -20,8 +20,9 @@ function create(root,candidate,schedule,observedAt){
  for(const rel of files){
   if(!/^outputs\/nba\/rankings\/\d{8}T\d{9}Z\.json$/.test(rel))throw Error("unexpected ranking path");
   const p=path.join(root,rel),st=fs.lstatSync(p);if(st.isSymbolicLink()||!st.isFile()||st.size>8e6)throw Error("unsafe ranking file");
-  const raw=fs.readFileSync(p),doc=JSON.parse(raw);if(!validateRanking(doc,scope,observedAt))throw Error("ranking scope");
-  const receipt={kind:"nba_locked_ranking_receipt_v1",rankingPath:rel,rankingSha256:sha(raw),generatedAt:observedAt,pacificDate:scope.day,slot:scope.slot,modelRevision:proof.revision,candidateTree:proof.tree,lockFirstGitAt:proof.lockFirstGitAt,originalAppAvailabilityVerified:false,calibrationApproved:false,forecastFreezeVerified:false};
+  const raw=fs.readFileSync(p),doc=JSON.parse(raw);if(!validateRanking(doc,scope,observedAt)||doc.modelCoreOnlyLock!==true||doc.modelCoreRevision!==proof.revision||doc.modelCoreTree!==proof.tree||!(/^[a-f0-9]{40}$/).test(doc.collectorRevision||""))throw Error("ranking scope or executed model core");
+  const collectorRoot=path.resolve(__dirname,'..');if(git(collectorRoot,['rev-parse','HEAD'])!==doc.collectorRevision||git(collectorRoot,['status','--porcelain','--untracked-files=all']))throw Error('collector provenance');
+  const receipt={kind:"nba_locked_ranking_receipt_v1",rankingPath:rel,rankingSha256:sha(raw),generatedAt:observedAt,pacificDate:scope.day,slot:scope.slot,modelRevision:proof.revision,candidateTree:proof.tree,lockFirstGitAt:proof.lockFirstGitAt,modelCoreOnlyLock:true,collectorRevision:doc.collectorRevision,originalAppAvailabilityVerified:false,calibrationApproved:false,forecastFreezeVerified:false};
   const dest=path.join(root,"outputs/nba/ranking-provenance");fs.mkdirSync(dest,{recursive:true,mode:0o700});
   fs.writeFileSync(path.join(dest,path.basename(rel)),JSON.stringify(receipt)+"\n",{flag:"wx",mode:0o600});written++;
  }

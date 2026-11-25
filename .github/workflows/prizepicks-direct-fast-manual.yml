@@ -29,16 +29,27 @@ jobs:
     needs: test
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.approve_requests && github.run_attempt == 1
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Dated manual authorization and reserve enforcement
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'pyarrow>=19,<24'
+      - name: Dated manual authorization, NBA context and reserve enforcement
         env:
           PRIZEPICKS_ONE_TIME_APPROVED: '2026-11-25'
           PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
-        run: node scripts/prizepicks-one-time-nov25.cjs
+        run: |
+          set -euo pipefail
+          umask 077
+          context=$(mktemp "$RUNNER_TEMP/prizepicks-context.XXXXXXXX")
+          trap 'rm -f "$context"' EXIT
+          python scripts/prepare-prizepicks-direct-model-context.py > "$context"
+          PRIZEPICKS_MODEL_CONTEXT_FILE="$context" node scripts/prizepicks-one-time-nov25.cjs

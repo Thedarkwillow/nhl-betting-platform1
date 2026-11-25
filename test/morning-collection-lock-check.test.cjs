@@ -19,3 +19,14 @@ test("reject missing, late, diagnostic, wrong revision and wrong tree",()=>{
  const v={scope,lock,revision:pin,tree,at};
  for(const bad of [{lock:null},{lock:{...lock,first:"2026-11-25T13:55:00Z"}},{lock:{...lock,doc:{...doc,diagnosticOnly:true}}},{revision:"a".repeat(40)},{tree:"b".repeat(40)},{at:"2026-11-25T17:00:00Z"}])assert.throws(()=>check({...v,...bad}));
 });
+
+test("both existing morning workflows have a pinned checkout and fail-closed guard before execution",()=>{
+ const fs=require("node:fs"),path=require("node:path");
+ for(const name of ["nba-authorized-research.yml","esports-prospective-private.yml"]){
+  const y=fs.readFileSync(path.join(__dirname,"../.github/workflows",name),"utf8");
+  for(const s of ["cron: '35 6 * * *'","cron: '35 9 * * *'","ref: "+pin,"path: candidate","node public/scripts/morning-collection-lock-check.cjs archive candidate", 'if [ "$LOCKED_MORNING" = true ]; then code=candidate; fi','--diff-filter=CDMRTUXB','git merge-base --is-ancestor HEAD origin/main'])assert.ok(y.includes(s),name+": "+s);
+  assert.ok(y.indexOf("Verify morning collection lock and exact revision")<y.indexOf('code=public'));
+ }
+ const nba=fs.readFileSync(path.join(__dirname,"../.github/workflows/nba-authorized-research.yml"),"utf8");
+ assert.ok(nba.indexOf("Preserve completed grade files before collection")<nba.indexOf("Verify morning collection lock and exact revision"));
+});

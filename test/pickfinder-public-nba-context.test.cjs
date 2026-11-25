@@ -1,0 +1,8 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),{queue,normalize}=require('../scripts/pickfinder-public-nba-context.cjs');
+const at='2026-11-25T15:10:00Z',start='2026-11-25T23:00:00Z';
+const o={sport:'nba',player:'Fixture',eventId:'e',market:'player_points',detailId:'/players/nba/abc?prop=x%3Aplayer_points%3Ae%3A5'};
+const archive={latest:[{offers:[o,{...o,detailId:o.detailId.replace(/5$/,'6')}]},{offers:[o]}]};
+test('deduplicates player event across lines and books',()=>{const q=queue(archive,[],at);assert.equal(q.total,1);assert.equal(q.offerReferences,3);assert.equal(q.pending.length,1)});
+test('explicit context only with labeled player route, distinct teams and timezone-aware future game clock',()=>{const target=queue(archive,[],at).pending[0];const s={routeVerified:true,playerLabelVerified:true,entries:[{label:'Team',value:'BOS'},{label:'Opponent',value:'NYK'}],clocks:[{label:'Game start',value:start}]};const x=normalize(target,s,at);assert.equal(x.state,'explicit_context_observed');assert.equal(x.independentReviewVerified,false);assert.equal(queue(archive,[{schema:'pickfinder-public-nba-context-v1',records:[x]}],at).pending.length,0);assert.equal(normalize(target,{...s,clocks:[{label:'Game start',value:'7:00 PM'}]},at).state,'context_incomplete');assert.equal(normalize(target,{...s,playerLabelVerified:false},at).state,'context_incomplete')});
+test('conflicting clocks and labels remain incomplete',()=>{const t=queue(archive,[],at).pending[0];assert.equal(normalize(t,{routeVerified:true,playerLabelVerified:true,entries:[{label:'Team',value:'BOS'},{label:'Team',value:'NYK'},{label:'Opponent',value:'PHI'}],clocks:[{label:'Game time',value:start}]},at).state,'context_incomplete')});

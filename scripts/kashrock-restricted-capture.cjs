@@ -19,14 +19,20 @@ function selectionLink(r,k){
  if(k!=="prizepicks"||r.deeplink_level!=="selection"||typeof r.deeplink!=="string")return null;
  try{const u=new URL(r.deeplink);if(u.protocol!=="https:"||u.hostname!=="app.prizepicks.com")return null;const q=u.searchParams.get("projections");return /^[a-zA-Z0-9_-]{1,100}$/.test(q||"")?q:null;}catch{return null;}
 }
-function fixtureRows(doc){
+function fixtureRows(doc,diagnostics={}){
  const a=Array.isArray(doc)?doc:Array.isArray(doc.matches)?doc.matches:Array.isArray(doc.data)?doc.data:Array.isArray(doc.data?.matches)?doc.data.matches:doc.kr_match_id?[doc]:doc.data?.kr_match_id?[doc.data]:doc.match?.kr_match_id?[doc.match]:[];
  if(a.length>100)throw Error("fixture bound");
  const map=new Map(),bad=new Set();
+ const reject=k=>{diagnostics[k]=(diagnostics[k]||0)+1;};
+ if(!a.length)reject("empty_or_unrecognized_envelope");
  for(const x0 of a){
+  if(!x0||typeof x0!=="object"){reject("invalid_row");continue;}
   const x={...x0,team1:typeof x0.team1==="object"?x0.team1?.name:x0.team1,team2:typeof x0.team2==="object"?x0.team2?.name:x0.team2};
-  if(!id(x.kr_match_id,"kr_cs2_")||!str(x.team1)||!str(x.team2)||norm(x.team1)===norm(x.team2)||!Number.isFinite(at(x.event_time))||!["not_started","upcoming","scheduled"].includes(x.status))continue;
-  if(map.has(x.kr_match_id)){bad.add(x.kr_match_id);continue;}
+  if(!id(x.kr_match_id,"kr_cs2_")){reject("native_id_missing");continue;}
+  if(!Number.isFinite(at(x.event_time))){reject("start_missing_or_invalid");continue;}
+  if(!["not_started","upcoming","scheduled"].includes(x.status)){reject("not_verified_upcoming");continue;}
+  if(!str(x.team1)||!str(x.team2)||norm(x.team1)===norm(x.team2)){reject("team_pair_missing_or_invalid");continue;}
+  if(map.has(x.kr_match_id)){bad.add(x.kr_match_id);reject("duplicate_native_id");continue;}
   map.set(x.kr_match_id,{matchId:x.kr_match_id,team1:x.team1,team2:x.team2,team1Id:id(x.team1_id,"kr_tm_")?x.team1_id:null,team2Id:id(x.team2_id,"kr_tm_")?x.team2_id:null,startAt:x.event_time,bestOf:Number.isInteger(x.best_of)?x.best_of:null});
  }
  for(const k of bad)map.delete(k);return map;
@@ -64,8 +70,8 @@ async function main(){
   report.metaRequests++;const m=await read("/v7/meta",key);
   if(String(m.doc.plan?.name??m.doc.plan).toLowerCase()!=="sandbox"){report.status="sandbox_not_verified";console.log(JSON.stringify(report));return;}
   const digests=[],rows=[];let fixtures=new Map(),refused=false;
-  report.matchRequests++;report.documentedSandboxCredits+=2;
-  try{const q=await read("/v7/cs2/matches?status=upcoming&limit=100",key);fixtures=fixtureRows(q.doc);digests.push({endpoint:"matches",sha256:q.digest});}catch(e){report.fixtureError=e.status??"contract";if([401,402,403,429].includes(e.status)){console.log(JSON.stringify(report));return;}}
+  report.matchRequests++;report.documentedSandboxCredits+=2;report.fixtureSchemaReasons={};
+  try{const q=await read("/v7/cs2/matches?status=upcoming&limit=100",key);fixtures=fixtureRows(q.doc,report.fixtureSchemaReasons);digests.push({endpoint:"matches",sha256:q.digest});}catch(e){report.fixtureError=e.status??"contract";if([401,402,403,429].includes(e.status)){console.log(JSON.stringify(report));return;}}
   report.fixtureRows=fixtures.size;
   for(const k of ["prizepicks","underdog"]){
    await new Promise(r=>setTimeout(r,6500));report.propRequests++;report.documentedSandboxCredits+=5;
@@ -80,7 +86,7 @@ async function main(){
    await new Promise(r=>setTimeout(r,6500));report.detailRequests++;report.documentedSandboxCredits+=2;
    try{
     const q=await read("/v7/cs2/matches/"+encodeURIComponent(mid),key);
-    const f=fixtureRows(q.doc).get(mid);
+    const f=fixtureRows(q.doc,report.fixtureSchemaReasons).get(mid);
     digests.push({endpoint:"match_detail",sha256:q.digest});
     if(f)fixtures.set(mid,f);else {report.detailErrors.schema=(report.detailErrors.schema||0)+1;continue;}
    }catch(e){const k=e.status??"contract";report.detailErrors[k]=(report.detailErrors[k]||0)+1;if([401,402,403,429].includes(e.status))break;}

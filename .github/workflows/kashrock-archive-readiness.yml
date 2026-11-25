@@ -1,0 +1,39 @@
+name: KashRock archived evidence offline audit
+on:
+  pull_request:
+    paths: ['scripts/kashrock-archive-readiness.cjs','test/kashrock-archive-readiness.test.cjs','.github/workflows/kashrock-archive-readiness.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/kashrock-archive-readiness.cjs','test/kashrock-archive-readiness.test.cjs','.github/workflows/kashrock-archive-readiness.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/kashrock-archive-readiness.test.cjs
+  audit:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Confirm restricted archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/kashrock-source-captures
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: restricted
+          fetch-depth: 0
+          persist-credentials: false
+      - run: node scripts/kashrock-archive-readiness.cjs restricted

@@ -4,7 +4,7 @@ on:
     paths: ['scripts/cs2_independent_steam_audit.py','scripts/esports_identity_registry.py','test/test_esports_identity_registry.py','scripts/public-opencs2-map-baseline.py','scripts/cs2_ektarr_wide_history.py','test/test_cs2_independent_steam_audit.py','.github/workflows/cs2-independent-steam-audit.yml']
   push:
     branches: [main]
-    paths: ['.github/workflows/cs2-independent-steam-audit.yml']
+    paths: ['.github/workflows/cs2-independent-steam-audit.yml','scripts/cs2_independent_steam_audit.py']
   workflow_dispatch:
 permissions:
   contents: read

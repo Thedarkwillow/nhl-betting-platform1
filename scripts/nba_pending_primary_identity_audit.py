@@ -29,10 +29,22 @@ def players(doc,team):
 def report(pending,candidates,fetch=get):
     if pending.get("kind")!="nba_reconstructed_pending_identity_review_v1" or candidates.get("kind")!="nba_reconstructed_manual_identity_candidates_v1":raise ValueError("archive contract")
     rows=pending.get("rows",[]);links=candidates.get("rows",[])
-    byhash={x["reconstructedIdentitySha256"]:x for x in links}
+    byhash=defaultdict(list)
+    for x in links:byhash[x["reconstructedIdentitySha256"]].append(x)
+    pending_counts=Counter(x["reconstructedIdentitySha256"] for x in rows)
+    native=defaultdict(set);reverse=defaultdict(set)
+    for x in links:
+        if x.get("nbaPlayerId") and x.get("espnAthleteId"):
+            native[x["nbaPlayerId"]].add(x["espnAthleteId"])
+            reverse[x["espnAthleteId"]].add(x["nbaPlayerId"])
     counts=Counter();cache={}
     for r in rows:
-        x=byhash.get(r["reconstructedIdentitySha256"])
+        h=r["reconstructedIdentitySha256"]
+        if pending_counts[h]!=1 or len(byhash.get(h,[]))!=1:
+            counts["duplicate_or_missing_identity_binding"]+=1;continue
+        x=byhash[h][0]
+        if not x.get("nbaPlayerId") or not x.get("espnAthleteId") or len(native[x["nbaPlayerId"]])!=1 or len(reverse[x["espnAthleteId"]])!=1:
+            counts["cross_namespace_identity_conflict"]+=1;continue
         if not x or x.get("team")!=r.get("team") or x.get("nbaGameId")!=r.get("nbaGameId") or (r.get("nbaReportId") and r["nbaReportId"]!=x.get("nbaPlayerId")):counts["binding_mismatch"]+=1;continue
         team=r["team"]
         if team not in cache:

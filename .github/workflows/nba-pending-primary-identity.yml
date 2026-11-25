@@ -4,7 +4,7 @@ on:
     paths: ['scripts/nba_pending_primary_identity_audit.py','test/test_nba_pending_primary_identity_audit.py','.github/workflows/nba-pending-primary-identity.yml']
   push:
     branches: [main]
-    paths: ['.github/workflows/nba-pending-primary-identity.yml']
+    paths: ['.github/workflows/nba-pending-primary-identity.yml','scripts/nba_pending_primary_identity_audit.py']
   workflow_dispatch:
 permissions:
   contents: read

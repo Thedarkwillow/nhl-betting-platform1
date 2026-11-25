@@ -62,7 +62,7 @@ function providerSummary(doc){
  const out=Object.fromEntries(titles.map(t=>[t,{nativeFixtures:0,nativeCompletedMaps:0,nativePlayerRows:0,originalOffersVerified:0,independentlyVerifiedMapRows:0}]));
  for(const f of [...(doc.pandascore?.fixtures||[]),...(doc.grid?.fixtures||[])])if(out[f.title])out[f.title].nativeFixtures++;
  for(const g of doc.opendota?.games||[]){out.DOTA2.nativeCompletedMaps++;out.DOTA2.nativePlayerRows+=Array.isArray(g.players)?g.players.length:0;}
- for(const s of doc.grid?.states||[]){const t=s.fixture?.title;if(!out[t])continue;for(const g of s.games||[]){out[t].nativeCompletedMaps++;out[t].nativePlayerRows+=Array.isArray(g.players)?g.players.length:0;}}
+ for(const s of doc.grid?.finals||[]){const t=s.fixture?.title;if(!out[t])continue;for(const g of s.games||[]){if(g.providerReportedGameFinal!==true)continue;out[t].nativeCompletedMaps++;out[t].nativePlayerRows+=Array.isArray(g.players)?g.players.length:0;}}
  return out;
 }
 function providerArchive(root){

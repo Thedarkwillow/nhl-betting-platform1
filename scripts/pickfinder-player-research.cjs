@@ -49,31 +49,27 @@ function readSections({tab,origin,observedAt,context}) {
   return fields;
 }
 async function enrich(page,row,{navigate,maxFields=500}){
-  if(!Number.isInteger(maxFields)||maxFields<1||maxFields>2000)throw Error('invalid profile field budget');
+  if(!(maxFields===Infinity||Number.isInteger(maxFields)&&maxFields>=1&&maxFields<=2000))throw Error('invalid profile field budget');
   const url=new URL(row.detailId,'https://www.pickfinder.app');
   if(url.origin!=='https://www.pickfinder.app'||!url.pathname.startsWith('/players/'))throw Error('invalid profile');
   await navigate(url.href);
   await page.getByRole('button',{name:'Line Movement',exact:true}).waitFor({state:'visible'});
   const groups=[],tabAudit=[];
+  const update=()=>{const remaining=Math.max(0,maxFields-initial.length),nonempty=groups.filter(g=>g.length),limit=Math.floor(remaining/Math.max(1,nonempty.length));row.research=[...initial,...nonempty.flatMap(g=>g.slice(0,limit))];row.profileCollection={observationsAvailable:groups.reduce((n,g)=>n+g.length,0),panels:groups.length,tabAudit:[...tabAudit],truncated:groups.some(g=>g.length>limit)||tabAudit.some(t=>t.state==='failed')};};
+  const initial=[...row.research];
   const context={period:row.period,mapRange:row.mapRange,gameMode:row.gameMode};
-  const collect=async(tab,origin)=>{const fields=await page.evaluate(readSections,{tab,origin,observedAt:new Date().toISOString(),context});groups.push(fields);tabAudit.push({tab,origin,fields:fields.length,state:fields.length?'observed':'empty'});};
+  const collect=async(tab,origin)=>{const fields=await page.evaluate(readSections,{tab,origin,observedAt:new Date().toISOString(),context});groups.push(fields);tabAudit.push({tab,origin,fields:fields.length,state:fields.length?'observed':'empty'});update();};
   await collect('Player overview','profile');
   for(const name of ['Matchup','Defense','Shooting','Similar','Rankings','Injuries','Player Stats','Maps','Team Form',...(maxFields>500?['Depth Chart','Lineups','Home/Away','Splits','Season','Teammates','Modes','Agents','Champions','Heroes']:[])]){
     const target=page.getByRole('tab',{name,exact:true}).or(page.getByRole('button',{name,exact:true})).first();
     if(await target.isVisible()){
-      await target.click();
-      await collect(name,'profile');
+      try{await target.click();await collect(name,'profile');}catch{tabAudit.push({tab:name,origin:'profile',state:'failed',fields:0});update();}
     }else tabAudit.push({tab:name,origin:'profile',state:'not_visible',fields:0});
   }
   for(const [name,origin] of [['Line Movement','line_movement'],['Prop History','prop_history']]){
     const target=page.getByRole('button',{name,exact:true});
-    if(await target.isVisible()){await target.click();await collect(name,origin);}else tabAudit.push({tab:name,origin,state:'not_visible',fields:0});
+    if(await target.isVisible()){try{await target.click();await collect(name,origin);}catch{tabAudit.push({tab:name,origin,state:'failed',fields:0});update();}}else tabAudit.push({tab:name,origin,state:'not_visible',fields:0});
   }
-  // Allocate across panels so a long game log cannot crowd out history or injury data.
-  const remaining=Math.max(0,maxFields-row.research.length);
-  const nonempty=groups.filter(g=>g.length);
-  const limit=Math.floor(remaining/Math.max(1,nonempty.length));
-  row.profileCollection={observationsAvailable:groups.reduce((n,g)=>n+g.length,0),panels:groups.length,tabAudit,truncated:groups.some(g=>g.length>limit)};
-  for(const group of nonempty)row.research.push(...group.slice(0,limit));
+  update();
 }
 module.exports={enrich,readSections};

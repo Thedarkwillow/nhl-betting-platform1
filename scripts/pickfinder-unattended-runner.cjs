@@ -19,6 +19,11 @@ function plan(env,now=new Date()){
  if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='cs2_reconcile_now'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')return {allowed:true,reconcile:true,full:true,targeted:true,expected:'manual',clock:pacific(now)};
  if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='deep_research_now'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')return {allowed:true,reconcile:true,deep:true,expected:'manual',clock:pacific(now)};
  if((env.GITHUB_EVENT_NAME==='workflow_dispatch'||env.GITHUB_EVENT_NAME==='push'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')&&['reconcile_now','full_reconcile_now'].includes(env.REQUESTED_MODE))return {allowed:true,reconcile:true,full:env.REQUESTED_MODE==='full_reconcile_now',expected:'manual',clock:pacific(now)};
+ if(env.GITHUB_EVENT_NAME==='schedule'&&['7 12 * * *','7 16 * * *'].includes(env.GITHUB_EVENT_SCHEDULE)){
+  const clock=pacific(now),hour=Number(env.GITHUB_EVENT_SCHEDULE.split(' ')[1]);
+  if(env.PICKFINDER_SCHEDULE_ENABLED!=='1'||env.PICKFINDER_PRIOR_AUTH_PROOF!=='1'||clock.hour!==hour||clock.minute>35)return {allowed:false,state:'deep_schedule_not_eligible'};
+  return {allowed:true,reconcile:true,deep:true,expected:'manual',clock};
+ }
  if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_SCHEDULE_ENABLED!=='1'&&!scheduledResearchPilot(env))return {allowed:false,state:'schedule_disabled'};
  return decide({eventName:env.GITHUB_EVENT_NAME,mode:env.REQUESTED_MODE,schedule:env.GITHUB_EVENT_SCHEDULE,now});
 }
@@ -162,7 +167,7 @@ async function main(env=process.env){
  const receipt=hosted?null:JSON.parse(fs.readFileSync(receiptPath,'utf8'));
  if(hosted){
   if(env.PICKFINDER_HOSTED_AUTH_VERIFIED!=='1'&&!((p.reconcile||pilotSchedule)&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1'))throw Error('fresh hosted probe required');
-  if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_HOSTED_CAPTURE_VERIFIED!=='1'&&!pilotSchedule)throw Error('manual capture proof required');
+  if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_HOSTED_CAPTURE_VERIFIED!=='1'&&!pilotSchedule&&!(p.deep&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1'))throw Error('manual capture proof required');
  }else{
   if(!receiptValid(receipt,env.RUNNER_NAME))throw Error('recent runner probe required');
   if(env.GITHUB_EVENT_NAME==='schedule'&&!receipt.captureVerifiedAt)throw Error('manual in-window remote archive proof required');
@@ -170,7 +175,7 @@ async function main(env=process.env){
  if(p.deep){
   const {context,page}=await open();
   const until=Date.now()+15*60000;
-  try{console.log(JSON.stringify(await stage('deep_research',()=>require('./pickfinder-deep-research.cjs').run({root,context,page,enrich,collect,limit:20,shouldContinue:()=>Date.now()<until}))));}
+  try{console.log(JSON.stringify(await stage('deep_research',()=>require('./pickfinder-deep-research.cjs').run({root,context,page,enrich,collect,limit:Infinity,shouldContinue:()=>Date.now()<until}))));}
   finally{await context.close();}return;
  }
  const prefix='research/pickfinder-premium/'+p.clock.day+'/'+p.expected.replace(':','');

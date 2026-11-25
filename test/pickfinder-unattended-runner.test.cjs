@@ -149,7 +149,7 @@ test('sanitized deep failure propagates substage without raw error text',async()
 
 test('sport coverage needs nonempty observed values and does not treat unrelated labels as verified',()=>{
  const {coverage,VERSION,eligible}=require('../scripts/pickfinder-research-coverage.cjs');
- assert.equal(VERSION,'sport-filter-v3');
+ assert.equal(VERSION,'sport-filter-v4');
  const c=coverage('nhl',[{tab:'Shot Attempts',value:'4'},{tab:'Goalie Matchup',value:null},{tab:'Line Combinations',value:'fixture'}]);
  assert.equal(c.shot_attempts.state,'observed_label_and_value');assert.equal(c.goalie_matchups.state,'not_observed');assert.equal(c.line_combinations.observations,1);
  assert.equal(eligible([{label:'Account',options:[{value:'1'}]},{label:'Map',options:[{value:'1'}]},{label:'Map',options:[{value:'2'}]}]).length,0);
@@ -167,7 +167,7 @@ test('legacy checkpoint is not complete for expanded research version',()=>{
  const p={...r,key,status:'sampled',profileCollection:{truncated:false},research:[{value:'fixture'}]};
  const doc=records=>({schema:'pickfinder-deep-v1',seed:'aef07d2aecb75388c6757c9cc5844b2113d6a0ac',records});
  assert.equal(summarizeCheckpoints([doc([p])]).expandedDone.size,0);
- assert.equal(summarizeCheckpoints([doc([{...p,profileCollection:{truncated:false,coverageVersion:'sport-filter-v3'}}])]).expandedDone.size,1);
+ assert.equal(summarizeCheckpoints([doc([{...p,profileCollection:{truncated:false,coverageVersion:'sport-filter-v4'}}])]).expandedDone.size,1);
 });
 
 test('deep append uses fresh remote tree without rebasing or losing other writers',async()=>{

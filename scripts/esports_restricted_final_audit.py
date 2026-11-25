@@ -18,7 +18,10 @@ def main(root):
         if len(matches)!=1:counts["identity_pending"]+=1;continue
         f=matches[0];s=scope(r,f["sport"])
         links=[x for x in review.get("playerEventLinks",[]) if x.get("sourceOfferId")==r.get("id") and x.get("providerPlayerId")==r.get("player",{}).get("id") and x.get("matchEvidenceId")==f["matchEvidenceId"] and x.get("steamIdIndependentlyVerified") is True]
-        if len(links)!=1 or not s:counts["identity_pending"]+=1;continue
+        if len(links)!=1 or not s or max(s[1])>f.get("bestOf",0):counts["identity_pending"]+=1;continue
+        from esports_independent_crosswalk import norm
+        link=links[0]
+        if link.get("market")!=s[0] or link.get("maps")!=s[1] or norm(link.get("alias"))!=norm(r.get("player",{}).get("name")) or not link.get("steamIdCandidate"):counts["identity_scope_binding_pending"]+=1;continue
         final=[x for x in finals if x.get("matchEvidenceId")==f["matchEvidenceId"] and x.get("sport")==f["sport"]]
         if len(final)!=1:counts["official_final_pending"]+=1;continue
         o={"sport":f["sport"],"stat":s[0],"maps":s[1],"matchEvidenceId":f["matchEvidenceId"],"verifiedPlayerId":links[0]["steamIdCandidate"],"identityVerified":True,"scoringVerified":links[0].get("scoringContractIndependentlyVerified") is True,"line":r.get("line")}

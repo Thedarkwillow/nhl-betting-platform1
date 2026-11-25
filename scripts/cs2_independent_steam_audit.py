@@ -50,12 +50,21 @@ def audit(kaggle,demos,evidence_out=None):
     # Date-free fingerprints diagnose timezone offsets only, never create links.
     from datetime import date
     datefree=defaultdict(list)
+    demo_datefree=Counter(k[1:] for k,events in di.items() for _ in events)
     for k,events in ki.items():
         if len(events)==1:datefree[k[1:]].append(k)
     for key,events in di.items():
         if key in ki or len(events)!=1:continue
         adjacent=[k for k in datefree[key[1:]] if abs((date.fromisoformat(k[0])-date.fromisoformat(key[0])).days)==1]
-        if len(adjacent)==1 and len(datefree[key[1:]])==1:counts["unique_adjacent_date_boxscore_diagnostic"]+=1
+        if len(adjacent)==1 and len(datefree[key[1:]])==1 and demo_datefree[key[1:]]==1:
+            counts["unique_adjacent_date_boxscore_diagnostic"]+=1
+            _,ha=ki[adjacent[0]][0];_,da=events[0]
+            for (_,a),(_,b) in zip(ha,da):
+                for p in a:
+                    hits=[q for q in b if kda(q)==kda(p)]
+                    if len(hits)!=1 or sum(kda(q)==kda(p) for q in a)!=1:continue
+                    alias=norm(p.get("alias"));other=norm(hits[0].get("sourceAlias"))
+                    counts["adjacent_date_exact_alias_candidates" if alias and alias==other else "adjacent_date_nonexact_alias_candidates"]+=1
         elif adjacent:counts["ambiguous_adjacent_date_boxscore_diagnostic"]+=1
     for key,ds in di.items():
         hs=ki.get(key,[])

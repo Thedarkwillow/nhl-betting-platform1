@@ -4,3 +4,10 @@ const at='2026-11-25T13:00:00Z',start='2026-11-25T22:00:00Z',teams=[{id:'A',abbr
 t('explicit source clock and exact team context are corroborated but not independent review',()=>{const x=match(group,events,rosters,at);a.equal(x.possibleEvents.length,1);a.equal(x.players[0].sourceContextCorroborated,true);a.equal(x.independentReviewVerified,false);});
 t('missing time and ambiguous identity fail closed',()=>{a.equal(match({...group,startTimes:[]},events,rosters,at).players[0].sourceContextCorroborated,false);a.equal(match(group,events,[...rosters,{...rosters[0],playerId:'3'}],at).possibleEvents.length,0);});
 t('roster response must identify exact team',()=>{a.throws(()=>espnRoster({team:{id:'B'},athletes:[]},teams[0]));});
+
+t('NHL history advances over committed games, deduplicates and keeps a bounded request budget',()=>{
+ const {selectNhlFinals}=require('../scripts/pickfinder-public-identity.cjs');
+ const rows=Array.from({length:20},(_,i)=>({namespace:'nhl:official',eventId:String(i),completed:true,status:'post',startAt:new Date(Date.parse(at)-(i+1)*86400000).toISOString(),teams}));
+ const known=new Set(['0','1','2']);const chosen=selectNhlFinals([...rows,rows[3],{...rows[4],startAt:rows[5].startAt},{...rows[0],eventId:'future',startAt:start}],known,at);
+ a.equal(chosen.length,12);a.equal(chosen[0].eventId,'3');a.ok(!chosen.some(x=>known.has(x.eventId)||x.eventId==='4'||x.eventId==='future'));a.equal(new Set(chosen.map(x=>x.eventId)).size,12);
+});

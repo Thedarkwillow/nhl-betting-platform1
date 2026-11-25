@@ -137,6 +137,17 @@ async function main(root,env=process.env){
   if(alive()){
    try{await page.goto(ORIGIN+'/props',{timeout:15000});if(await premium(page)){const labels=await inspectCapabilities(page);await write('capabilities',{schema:'pickfinder-public-capabilities-v1',labels,observedAt:new Date().toISOString(),accountMutations:0});}}catch{errors++;console.log(JSON.stringify({state:'public_capability_probe_pending'}));}
   }
+  // Existing tool inspector was imported but never invoked by the public runner.
+  for(const kind of ['builder','alerts']){
+   if(!alive())break;
+   try{
+    await page.goto(ORIGIN+'/props',{timeout:15000});
+    if(!await premium(page))throw Error('session unavailable');
+    const result=await inspectTool(page,kind,premium);
+    await write('capabilities',{schema:'pickfinder-public-tool-schema-v1',kind,observedAt:new Date().toISOString(),...result});
+    console.log(JSON.stringify({state:'public_tool_schema_pass',kind,result:result.state,mutations:0}));
+   }catch{errors++;console.log(JSON.stringify({state:'public_tool_schema_pending',kind}));}
+  }
   for(const name of ['Games','Discrepancies','Popular']){
    if(!alive())break;
    const stop=Date.now()+90000,featureAlive=()=>alive()&&Date.now()<stop;

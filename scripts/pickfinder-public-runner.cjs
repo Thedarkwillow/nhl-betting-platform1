@@ -102,7 +102,8 @@ async function main(root,env=process.env){
       await detail.goto(ORIGIN+item.detailId,{timeout:10000});
       await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});
       if(!await premium(detail))throw Error('session unavailable');
-      await detail.getByRole('button',{name:'Line Movement',exact:true}).waitFor({timeout:5000});
+      // The game header can render independently of market-history controls.
+      await detail.getByText(item.player,{exact:true}).first().waitFor({state:'visible',timeout:5000}).catch(()=>{});
       snap=await detail.evaluate(gameContext.readVisible,{player:item.player,detailId:item.detailId});
      }catch{if(!await premium(detail).catch(()=>false))throw Error('session unavailable');}
      await buffer.add(gameContext.normalize(item,snap,new Date().toISOString()));

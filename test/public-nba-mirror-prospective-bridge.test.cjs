@@ -6,3 +6,24 @@ const input={archive:{invalid:[],latest:[]},historyRows:rows,reviewRows:[],sched
 test('no reviewed identity, no forecast',()=>{assert.equal(choose(input).reason,'no_independently_reviewed_crosswalk');assert.equal(choose(input).rows.length,0)});
 test('stale schedule rejected',()=>assert.equal(choose({...input,schedule:{...input.schedule,capturedAt:'2026-11-25T12:00:00Z'}}).reason,'no_fresh_committed_official_schedule'));
 test('invalid manifest or missing source digest fails closed',()=>{assert.throws(()=>choose({...input,archive:{invalid:['bad'],latest:[]}}));assert.throws(()=>choose({...input,digests:[]}))});
+
+test('review receipt derives exact full-game scope but cannot supply missing board clock',()=>{
+ const {reviewedScopes}=require('../scripts/public-nba-mirror-prospective-bridge.cjs');
+ const eventId='pf1',playerPath='/players/nba/p1',detailId=playerPath+'?prop=abc%3Aplayer_points%3Apf1%3A20.5';
+ const offer={sport:'nba',player:'Fixture',eventId,detailId,market:'player_points',line:20.5,side:'Higher',book:'prizepicks',observedAt:'2026-11-25T13:50:00Z',startAt:null};
+ const game={eventId,sourceUrl:'https://www.pickfinder.app/game-lines?game=pf1',nbaGameId:'0000000001',espnGameId:'10',home:'BOS',away:'NYK',displayedClock:'Wed 11/25, 3:00 PM',observedAt:'2026-11-25T13:10:00Z',scheduleStartAt:start};
+ const player={eventId,player:'Fixture',playerPath,sourceUrl:'https://www.pickfinder.app'+detailId,nbaPlayerId:'7',espnPlayerId:'8',team:'BOS',opponent:'NYK',displayedMatchup:'BOS vs NYK',independentRosterVerified:true,observedAt:'2026-11-25T13:11:00Z'};
+ const doc={schema:'pickfinder-independent-nba-matchup-review-v1',clockComparisonZone:'America/Los_Angeles',games:[game],records:[player]};
+ const receipt={doc,digest:'c'.repeat(64),commit:'d'.repeat(40),first:'2026-11-25T13:30:00Z'};
+ const archive={invalid:[],manifests:[],latest:[{m:{sport:'nba',book:'prizepicks',health:{unresolvedRows:0},lastObservedAt:offer.observedAt},offers:[offer],unpricedTierObservations:[],sportsbookQuotes:[],researchObservations:[],first:'2026-11-25T13:55:00Z',digest:'e'.repeat(64)}]};
+ const args={archive,schedule:input.schedule,clock,receipts:[receipt]};
+ const derived=reviewedScopes(args);assert.equal(derived.length,1);assert.equal(derived[0].nativePlayerId,7);assert.equal(derived[0].identityEvidenceSha256,receipt.digest);
+ assert.equal(reviewedScopes({...args,receipts:[{...receipt,doc:{...doc,records:[{...player,independentRosterVerified:false}]}}]}).length,0);
+ assert.equal(reviewedScopes({...args,receipts:[receipt,{...receipt,doc:{...doc,records:[{...player,nbaPlayerId:'9'}]}}]}).length,0);
+ assert.equal(reviewedScopes({...args,schedule:{...input.schedule,games:[{...input.schedule.games[0],startAt:'2026-11-25T23:30:00Z'}]}}).length,0);
+ assert.equal(reviewedScopes({...args,explicit:derived}).length,0);
+ assert.equal(choose({...input,archive,reviewRows:derived}).rows.length,0);
+ const ready={...archive,latest:[{...archive.latest[0],offers:[{...offer,startAt:start}],researchObservations:[{...offer,origin:'board',metric:'Avg L10',value:'20'}]}]};
+ const result=choose({...input,archive:ready,reviewRows:derived});assert.equal(result.rows.length,1);assert.equal(result.rows[0].identityEvidenceSha256,receipt.digest);assert.equal(result.rows[0].modelApproved,false);
+ assert.equal(choose({...input,archive:ready,reviewRows:derived,prior:result.rows}).rows.length,0);
+});

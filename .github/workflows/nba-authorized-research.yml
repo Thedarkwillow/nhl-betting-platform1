@@ -166,6 +166,11 @@ jobs:
           if(r.kind!=='nba_isolated_research_readiness_v1'||r.sharedPaidProviderRequests!==0||r.actualWagersPlaced!==0||r.highConfidenceApproved!==0)throw Error('NBA research contract');
           console.log(JSON.stringify({status:r.status,boardRows:r.boardRows,rankedRows:r.rankedRows,officialScheduleGames:r.officialScheduleGames,highConfidenceApproved:r.highConfidenceApproved}));
           NODE
+      - name: Bind new rankings to the verified morning candidate
+        if: ${{ github.event_name == 'schedule' && (github.event.schedule == '35 6 * * *' || github.event.schedule == '35 9 * * *') }}
+        env:
+          SOURCE_SCHEDULE: ${{ github.event.schedule }}
+        run: node public/scripts/nba-locked-ranking-receipt.cjs archive candidate "$SOURCE_SCHEDULE"
       - name: Preserve private NBA outputs only
         working-directory: archive
         run: |

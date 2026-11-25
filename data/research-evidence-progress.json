@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-25T03:37:24.421Z",
+  "generatedAt": "2026-11-25T03:39:07.439Z",
   "sourceReportAt": "2026-11-25T01:45:40.077Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -147,12 +147,12 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-25T03:33:25.848Z",
+    "sourceReportAt": "2026-11-25T03:37:53.453Z",
     "nhl": {
       "sourceEligible": true,
-      "examined": 0,
+      "examined": 3,
       "newCandidates": 0,
-      "newAbstentions": 0,
+      "newAbstentions": 3,
       "archivedFirstGit": 1400,
       "duplicatesQuarantined": 108,
       "selectivePolicyRequiresNewSource": false,
@@ -307,8 +307,8 @@
       },
       "conditionalGSIS": {
         "kind": "public_nfl_conditional_gsis_research_counts_v1",
-        "priorRosterCandidates": 430,
-        "sourcePlayers": 492,
+        "priorRosterCandidates": 431,
+        "sourcePlayers": 493,
         "ambiguous": 0,
         "insufficientPriorWeeks": 4,
         "missingRoster": 58,
@@ -342,12 +342,12 @@
       },
       "identityInjuryOverlap": {
         "kind": "public_nfl_conditional_gsis_official_injury_overlap_v1",
-        "provisionalPlayers": 430,
+        "provisionalPlayers": 431,
         "officialInjuryGSISCorroborations": 3,
         "outExcluded": 0,
         "questionableHeld": 3,
         "doubtfulHeld": 0,
-        "unknownStatus": 427,
+        "unknownStatus": 428,
         "identityConflicts": 0,
         "verifiedPrizePicksGSIS": 0,
         "gameDayActiveConfirmed": 0,

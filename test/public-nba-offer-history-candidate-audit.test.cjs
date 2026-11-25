@@ -53,7 +53,7 @@ test('game dialog receipt is not counted as a complete named dashboard',()=>{
  const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'pf-coverage-'));
  try{
   const dir=path.join(tmp,ROOT,'dashboards');fs.mkdirSync(dir,{recursive:true});
-  for(const d of [{schema:'pickfinder-public-game-dialog-v1',records:[{sport:'NHL',eventId:'1'},{sport:'NBA',eventId:'2'}]},{name:'Games'}]){
+  for(const d of [{schema:'pickfinder-public-game-dialog-v1',records:[{sport:'NHL',sourceUrl:'https://www.pickfinder.app/game-lines?game=1'},{sport:'NBA',eventId:'2'},{sport:'NFL',eventId:'3',sourceUrl:'https://www.pickfinder.app/game-lines?game=wrong'},{sport:'VAL',sourceUrl:'https://example.com/game-lines?game=4'}]},{name:'Games'}]){
    const raw=JSON.stringify(d);fs.writeFileSync(path.join(dir,sha(raw)+'.json'),raw);
   }
   const a=coverage(tmp);

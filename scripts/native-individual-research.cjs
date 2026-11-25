@@ -7,6 +7,7 @@ const {read}=require('./pickfinder-public-archive.cjs');
 const {target,key:contextKey,localMatchup}=require('./pickfinder-public-nba-context.cjs');
 const {project}=require('./prizepicks-multisport-model-bridge.cjs');
 const nhl=require('../src/projections.cjs');
+const clockRepair=require('./pickfinder-clock-reconciliation.cjs');
 const fs=require('node:fs');
 const norm=x=>typeof x==='string'?x.trim().toLowerCase():'';
 // Legacy browser collector emits null for an isolated ordinary book badge.
@@ -95,6 +96,9 @@ function candidateOffers(ctx,reconciliation){
 }
 function generate(ctx,receipts=[]){
  const reconciliation=reconcileArchive(ctx,receipts);
+ const clockRecovery=clockRepair.recover(ctx,receipts);
+ reconciliation.clockRecovery=clockRecovery.summary;
+ reconciliation.clockRecoveredRows=clockRecovery.rows;
  const contexts=new Map();for(const doc of receipts.filter(x=>x.schema==='pickfinder-public-nba-context-v1'))for(const r of doc.records||[]){if(r.state!=='explicit_context_observed'||r.routeVerified!==true||r.playerLabelVerified!==true||!r.team||!r.opponent||!Number.isFinite(Date.parse(r.startAt))||!Number.isFinite(Date.parse(r.observedAt))||Date.parse(r.observedAt)>Date.parse(ctx.preparedAt)||Date.parse(r.startAt)<=Date.parse(ctx.preparedAt)+900000)continue;const k=contextKey(r),a=contexts.get(k)||[];a.push(r);contexts.set(k,a);}
 
  const clock=ctx.preparedAt,at=Date.parse(clock),native=[],rows=[],excluded={};
@@ -137,4 +141,4 @@ function generate(ctx,receipts=[]){
  return {kind:'native_individual_research_v1',generatedAt:clock,modelRevision:ctx.revision,native,rows,excluded,reconciliation,candidateOffers:candidateOffers(ctx,reconciliation),paidRequests:0,modelApproved:false};
 }
 module.exports={generate,researchTier,reconcileLocal,reconcileArchive,candidateOffers,reconcileIdentityOnly,clockAudit};
-if(require.main===module){const root=process.cwd(),clock=new Date().toISOString(),out=generate(fromArchive(root,clock,git(root,['rev-parse','HEAD'])),read(root,'directory'));fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,candidateOfferReferences:out.candidateOffers.length,excluded:out.excluded,reconciliation:{...out.reconciliation,rows:undefined,identityOnlyRows:undefined}}));}
+if(require.main===module){const root=process.cwd(),clock=new Date().toISOString(),out=generate(fromArchive(root,clock,git(root,['rev-parse','HEAD'])),read(root,'directory'));fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,candidateOfferReferences:out.candidateOffers.length,excluded:out.excluded,reconciliation:{...out.reconciliation,rows:undefined,identityOnlyRows:undefined,clockRecoveredRows:undefined}}));}

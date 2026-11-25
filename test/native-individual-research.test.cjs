@@ -1,0 +1,12 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const {generate}=require('../scripts/native-individual-research.cjs');
+const {nflEmpiricalBaseline}=require('../scripts/prizepicks-multisport-model-bridge.cjs');
+test('native NHL individual projection uses existing five game minimum',()=>{
+ const history={playerId:1,name:'Example',team:'ABC',type:'skater',games:Array.from({length:5},(_,i)=>({gameId:i+1,gameDate:'2026-11-0'+(i+1),shotsOnGoal:2}))};
+ const s={sport:'NHL',name:'Example',playerId:1,gameId:9,team:'ABC',opponent:'XYZ',startAt:'2026-11-26T01:00:00Z',history,historyDigests:[]};
+ const ctx={preparedAt:'2026-11-25T19:00:00Z',revision:'a'.repeat(40),scopes:[s],archive:{latest:[]}};
+ const r=generate(ctx);assert.equal(r.native.length,1);assert.equal(r.native[0].projection,2);assert.equal(r.native[0].modelApproved,false);assert.equal(r.rows.length,0);
+ history.games.pop();assert.equal(generate(ctx).native.length,0);
+});
+test('NFL research baseline abstains below fifteen and preserves push mass',()=>{assert.equal(nflEmpiricalBaseline(Array(14).fill(2),2),null);const p=nflEmpiricalBaseline(Array(15).fill(2),2);assert.ok(Math.abs(p.higher+p.lower+p.push-1)<1e-9);assert.equal(p.modelApproved,false);});

@@ -10,7 +10,7 @@ def col(cols,names):
     for n in names:
         if n in cols:return n
     raise ValueError("missing documented field")
-def vct():
+def vct(calendar_year=None):
     import duckdb
     raw=free.download("https://vct-reference.com/dataset/vct.duckdb",32_000_000)
     with tempfile.TemporaryDirectory() as d:
@@ -59,6 +59,7 @@ def vct():
             except (TypeError,ValueError):continue
         for batch in maps.values():
             if len(batch)==10 and len({x["player"] for x in batch})==10:rows.extend(batch)
+        if calendar_year is not None:rows=[r for r in rows if r["date"].startswith(str(calendar_year)+"-")]
         if not rows:raise ValueError("no complete map rows")
         db.close()
     from esports_context_models import evaluate as context_eval

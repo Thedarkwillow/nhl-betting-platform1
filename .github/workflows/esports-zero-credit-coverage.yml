@@ -8,6 +8,7 @@ on:
   push:
     branches: [main]
     paths: ['.github/workflows/esports-zero-credit-coverage.yml', 'scripts/esports-zero-credit-coverage.cjs']
+    # Only documented metadata endpoints; no individual metered prop calls.
   workflow_dispatch:
   schedule:
     - cron: '40 6,9 * * *'

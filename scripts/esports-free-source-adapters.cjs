@@ -176,7 +176,8 @@ async function collectGrid(env,client=fetch){
 async function main(){
  const root=fs.realpathSync(process.argv[2]),dest=process.argv[3];
  if(root===path.resolve(__dirname,"..")||!fs.existsSync(path.join(root,".git"))||process.env.RESTRICTED_DESTINATION_VERIFIED!=="1"||!dest||path.dirname(path.resolve(dest))!==path.resolve(process.env.RUNNER_TEMP||"."))throw Error("private destination required");
- const d=await collectDota(root),p=await collectPanda(process.env),g=await collectGrid(process.env);
+ // Independent providers may run concurrently; each provider retains its own bounded rate and refusal gates.
+ const [d,p,g]=await Promise.all([collectDota(root),collectPanda(process.env),collectGrid(process.env)]);
  const report={kind:"esports_free_provider_collection_v1",observedAt:iso(Date.now()),providers:[d.report,p.report,g.report],paidProviderEndpointsCalled:0,rawRowsPublished:0,originalOffersVerified:0,platformSettlementVerified:false,modelPromoted:false};
  if(d.data.index.length||p.data.fixtures.length||g.data.fixtures.length)fs.writeFileSync(dest,JSON.stringify({kind:"restricted_esports_free_provider_observations_v1",observedAt:report.observedAt,opendota:d.data,pandascore:p.data,grid:g.data,independentReviewVerified:false,propGradeEligible:false,publicationRightsVerified:false})+"\n",{flag:"wx",mode:0o600});
  console.log(JSON.stringify(report));

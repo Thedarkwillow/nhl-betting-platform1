@@ -45,11 +45,25 @@ function reconcileIdentityOnly(r,ctx){
  if(matched.length!==1||matched[0].homeAway!==c.localMatchup.homeAway)return null;
  return {...c,state:'native_roster_only_candidate',nativeNamespace:matched[0].nativeNamespace,historyVerified:false};
 }
+// Diagnostic offset evidence only: compare local weekday/time with independent native UTC.
+// A common offset is not a verified display timezone or an exact source timestamp.
+function clockAudit(rows){
+ const events=new Map();
+ for(const r of rows){const local=r.localMatchup,d=new Date(r.nativeStartAt),day=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(local?.weekday);if(day<0||!Number.isFinite(d.getTime())||!Number.isInteger(local.hour)||!Number.isInteger(local.minute))continue;
+  const localMinute=day*1440+(local.hour%12+(local.dayPeriod==='PM'?12:0))*60+local.minute,utcMinute=d.getUTCDay()*1440+d.getUTCHours()*60+d.getUTCMinutes();
+  const offset=((localMinute-utcMinute+5040+10080)%10080)-5040;
+  const k=r.sport+'/'+r.eventId,a=events.get(k)||new Set();a.add(offset);events.set(k,a);
+ }
+ const histogram={};let conflicts=0,outsideRange=0;
+ for(const a of events.values()){if(a.size!==1){conflicts++;continue;}const v=[...a][0];if(v< -720||v>840){outsideRange++;continue;}histogram[v]=(histogram[v]||0)+1;}
+ return {distinctEvents:events.size,conflictingEvents:conflicts,outsideRange,offsetMinutesByEvent:histogram,sourceClockVerified:false};
+}
 function reconcileArchive(ctx,receipts){
- const identityOnly=[],reasons={},groups=new Map(),counts={attempts:0,candidates:0,unresolved:0,conflicting:0};
+ const bySport={},identityOnly=[],reasons={},groups=new Map(),counts={attempts:0,candidates:0,unresolved:0,conflicting:0};
  for(const doc of receipts.filter(x=>x.schema==='pickfinder-public-nba-context-v1'))for(const r of doc.records||[]){
-  counts.attempts++;let c=null;try{c=reconcileLocal(r,ctx,k=>{reasons[k]=(reasons[k]||0)+1;})}catch{reasons.invalid_record=(reasons.invalid_record||0)+1;}
-  if(!c){counts.unresolved++;try{const identity=reconcileIdentityOnly(r,ctx);if(identity)identityOnly.push(identity);}catch{}continue;}
+  counts.attempts++;const sport=['nba','nhl','nfl'].includes(r.sport)?r.sport:'other',st=bySport[sport]||={attempts:0,historyCandidateAttempts:0,rosterOnlyAttempts:0,neitherAttempts:0,reasons:{}};st.attempts++;const reject=k=>{reasons[k]=(reasons[k]||0)+1;st.reasons[k]=(st.reasons[k]||0)+1;};let c=null;try{c=reconcileLocal(r,ctx,reject)}catch{reject('invalid_record');}
+  if(!c){counts.unresolved++;let identity=null;try{identity=reconcileIdentityOnly(r,ctx);}catch{}if(identity){identityOnly.push(identity);st.rosterOnlyAttempts++;}else st.neitherAttempts++;continue;}
+  st.historyCandidateAttempts++;
   const k=contextKey(r),a=groups.get(k)||[];a.push(c);groups.set(k,a);
  }
  const rows=[];
@@ -62,7 +76,7 @@ function reconcileArchive(ctx,receipts){
  const candidates=rows.filter(r=>eventMap.get(r.sport+'/'+r.eventId).size===1);
  const identityEvents=new Map();for(const r of [...candidates,...identityOnly]){const k=r.sport+'/'+r.eventId,a=identityEvents.get(k)||new Set();a.add(r.nativeStartAt);identityEvents.set(k,a);}
  const identityRows=[...new Map(identityOnly.filter(r=>identityEvents.get(r.sport+'/'+r.eventId).size===1).map(r=>[contextKey(r),r])).values()];
- return {counts,reasons,identityOnlyAttempts:identityOnly.length,identityOnlyUnique:identityRows.length,identityOnlyRows:identityRows,uniqueCandidates:candidates.length,eventConflicts:rows.length-candidates.length,rows:candidates,sourceClockVerified:false};
+ return {counts,reasons,bySport,clockAudit:clockAudit([...candidates,...identityRows]),identityOnlyAttempts:identityOnly.length,identityOnlyUnique:identityRows.length,identityOnlyRows:identityRows,uniqueCandidates:candidates.length,eventConflicts:rows.length-candidates.length,rows:candidates,sourceClockVerified:false};
 }
 
 // Join exact archived offer references to candidate identities for diagnostics only.
@@ -122,5 +136,5 @@ function generate(ctx,receipts=[]){
  }
  return {kind:'native_individual_research_v1',generatedAt:clock,modelRevision:ctx.revision,native,rows,excluded,reconciliation,candidateOffers:candidateOffers(ctx,reconciliation),paidRequests:0,modelApproved:false};
 }
-module.exports={generate,researchTier,reconcileLocal,reconcileArchive,candidateOffers,reconcileIdentityOnly};
+module.exports={generate,researchTier,reconcileLocal,reconcileArchive,candidateOffers,reconcileIdentityOnly,clockAudit};
 if(require.main===module){const root=process.cwd(),clock=new Date().toISOString(),out=generate(fromArchive(root,clock,git(root,['rev-parse','HEAD'])),read(root,'directory'));fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,candidateOfferReferences:out.candidateOffers.length,excluded:out.excluded,reconciliation:{...out.reconciliation,rows:undefined,identityOnlyRows:undefined}}));}

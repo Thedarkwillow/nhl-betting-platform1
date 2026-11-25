@@ -43,34 +43,49 @@ async function openBoard(chromium,profile){
   return {context,page};
  }catch(e){await context.close();throw e;}
 }
+class RunnerStageError extends Error {
+ constructor(stage){super(stage);this.stage=stage;}
+}
+async function stage(name,fn){try{return await fn();}catch(e){if(e instanceof RunnerStageError)throw e;throw new RunnerStageError(name);}}
+async function passwordLogin(page,env){
+ if(!env.PICKFINDER_EMAIL||!env.PICKFINDER_PASSWORD)throw new RunnerStageError('login_secrets_missing');
+ await stage('login_page_navigation',()=>page.goto(ORIGIN+'/sign-in',{timeout:20000}));
+ const sameOrigin=()=>new URL(page.url()).origin===ORIGIN;
+ if(!sameOrigin())throw new RunnerStageError('login_origin_not_supported');
+ const email=page.locator('input[type=email]:visible, input[name=identifier]:visible, input[autocomplete=username]:visible');
+ const password=page.locator('input[type=password]:visible');
+ await stage('email_field_not_visible',()=>email.waitFor({state:'visible',timeout:20000}));
+ if(!sameOrigin())throw new RunnerStageError('login_origin_not_supported');
+ await stage('email_field_fill',()=>email.fill(env.PICKFINDER_EMAIL));
+ const submit=page.getByRole('button',{name:/^(sign in|log in|continue|next)(?:\s*→)?$/i,exact:true});
+ if(!await password.isVisible()){
+  await stage('identifier_submit',async()=>{await submit.waitFor({state:'visible',timeout:10000});await submit.click();});
+  await stage('password_step_unavailable_or_verification_required',()=>password.waitFor({state:'visible',timeout:20000}));
+ }
+ if(!sameOrigin())throw new RunnerStageError('login_origin_not_supported');
+ await stage('password_field_fill',()=>password.fill(env.PICKFINDER_PASSWORD));
+ await stage('password_submit',async()=>{await submit.waitFor({state:'visible',timeout:10000});await submit.click();});
+ // No retry or alternate verification path. The provider may require an interactive challenge.
+ await stage('login_completion_not_verified',()=>page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:25000}));
+}
 async function openHostedBoard(chromium,env){
- const browser=await chromium.launch({headless:true});
+ const browser=await stage('browser_launch',()=>chromium.launch({headless:true}));
  try{
   const state=env.PICKFINDER_STORAGE_STATE;
-  const context=await browser.newContext(state?{storageState:JSON.parse(state)}:{});
-  const page=await context.newPage();page.setDefaultTimeout(8000);
-  if(!state){
-   if(!env.PICKFINDER_EMAIL||!env.PICKFINDER_PASSWORD)throw Error('authorized login secret required');
-   await page.goto(ORIGIN+'/sign-in',{timeout:20000});
-   if(new URL(page.url()).origin!==ORIGIN)throw Error('unexpected login origin');
-   const email=page.locator('input[type=email]'),password=page.locator('input[type=password]');
-   const submit=page.getByRole('button',{name:/^(sign in|log in|continue)$/i});
-   if(await email.count()!==1||await password.count()!==1||await submit.count()!==1)throw Error('normal password login unavailable');
-   await email.fill(env.PICKFINDER_EMAIL);await password.fill(env.PICKFINDER_PASSWORD);
-   await submit.click();
-   await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:20000});
-  }
-  await page.goto(ORIGIN+'/props',{timeout:20000});
-  await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:15000});
-  if(!await page.evaluate(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium')))throw Error('premium session unavailable');
+  const context=await stage('browser_context_creation',()=>browser.newContext(state?{storageState:JSON.parse(state)}:{}));
+  const page=await stage('browser_page_creation',()=>context.newPage());page.setDefaultTimeout(8000);
+  if(!state)await passwordLogin(page,env);
+  await stage('premium_board_navigation',()=>page.goto(ORIGIN+'/props',{timeout:20000}));
+  await stage('premium_user_menu_unavailable',()=>page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:15000}));
+  await stage('premium_badge_unavailable',()=>page.waitForFunction(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium'),null,{timeout:15000}));
   return {page,context:{newPage:()=>context.newPage(),close:()=>browser.close()}};
  }catch(e){await browser.close();throw e;}
 }
 async function main(env=process.env){
- const p=plan(env);
+ const p=await stage('invocation_gate',()=>plan(env));
  if(!p.probe&&!p.allowed){console.log(JSON.stringify(p));return;}
- const {root,profile}=destination(env);
- const {chromium}=require('playwright');
+ const {root,profile}=await stage('private_destination_validation',()=>destination(env));
+ const {chromium}=await stage('playwright_module_load',()=>require('playwright'));
  const hosted=env.PICKFINDER_HOSTED==='1';
  const open=()=>hosted?openHostedBoard(chromium,env):openBoard(chromium,profile);
  const receiptPath=path.join(profile,'.pickfinder-automation-probe.json');
@@ -131,5 +146,5 @@ async function main(env=process.env){
  }else failed=true;
  if(failed||counts.length!==targets.length)process.exitCode=1;
 }
-module.exports={plan,receiptValid,safeAddedFiles,partitions};
-if(require.main===module)main().catch(()=>{console.error('Private PickFinder runner failed; inspect runner provisioning, session, clock or archive access. No raw data logged.');process.exitCode=1;});
+module.exports={plan,receiptValid,safeAddedFiles,partitions,passwordLogin,stage,RunnerStageError};
+if(require.main===module)main().catch(e=>{console.error(JSON.stringify({state:'runner_failed',stage:e instanceof RunnerStageError?e.stage:'unclassified',rawDataLogged:false}));process.exitCode=1;});

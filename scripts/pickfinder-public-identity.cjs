@@ -47,12 +47,12 @@ function nhlRoster(d,team){
 function groupOffers(archive){
  const groups=new Map();
  for(const b of archive.latest){
-  const meta=new Map();for(const f of b.researchObservations||[]){if(f.origin!=='board'||!['Team','Opponent','Matchup'].includes(f.metric)||typeof f.value!=='string'||f.value.length>100)continue;const k=JSON.stringify([f.detailId,f.observedAt]),a=meta.get(k)||{};if(a[f.metric]&&a[f.metric]!==f.value)a.conflict=true;else a[f.metric]=f.value;meta.set(k,a);}
+  const meta=new Map();for(const f of b.researchObservations||[]){if(f.origin!=='board'||typeof f.value!=='string'||f.value.length>100||!['Team','Opponent','Matchup'].includes(f.metric)&&!validTime(f.startAt))continue;const k=JSON.stringify([f.detailId,f.observedAt]),a=meta.get(k)||{};if(a[f.metric]&&a[f.metric]!==f.value)a.conflict=true;else a[f.metric]=f.value;if(validTime(f.startAt)){const t=new Date(f.startAt).toISOString();if(a.startAt&&a.startAt!==t)a.conflict=true;else a.startAt=t;}meta.set(k,a);}
   for(const o of [...b.offers,...b.unpricedTierObservations]){
    if(!o.eventId||!name(o.player)||!o.detailId)continue;const k=JSON.stringify([o.sport,o.eventId]),g=groups.get(k)||{sport:o.sport,eventId:o.eventId,players:new Map(),startTimes:new Set(),observations:0,manifestDigests:new Set()};
    const p=g.players.get(o.player)||{name:o.player,sourceTeams:new Set(),sourceOpponents:new Set(),detailIds:new Set()};
    p.detailIds.add(o.detailId);const m=meta.get(JSON.stringify([o.detailId,o.observedAt]));
-   if(m&&!m.conflict){if(m.Team)p.sourceTeams.add(name(m.Team));if(m.Opponent)p.sourceOpponents.add(name(m.Opponent));}
+   if(m&&!m.conflict){if(m.Team)p.sourceTeams.add(name(m.Team));if(m.Opponent)p.sourceOpponents.add(name(m.Opponent));if(m.startAt)g.startTimes.add(m.startAt);}
    if(validTime(o.startAt))g.startTimes.add(new Date(o.startAt).toISOString());g.players.set(o.player,p);g.observations++;g.manifestDigests.add(b.digest);groups.set(k,g);
   }
  }

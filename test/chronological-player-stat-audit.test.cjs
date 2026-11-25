@@ -51,3 +51,9 @@ test("event-cluster confidence interval requires 30 clusters and ten dates",()=>
  assert.deepEqual(contextSummary(a).approximateCluster95Interval,[1,1]);
  assert.equal(contextSummary({...a,dates:new Set(["one"])}).approximateCluster95Interval,null);
 });
+
+test("recovered historical seasons remain distinct inputs and unknown seasons reject",()=>{
+ const row={gameId:1,playerId:2,team:"AAA",gameDate:"2023-11-01",points:10,rebounds:2,assists:3,threePointersMade:1,steals:0,blocks:0,turnovers:1};
+ for(const season of ["2023-24","2024-25","2025-26","2026-27"])assert.equal(nbaRows({season,capturedAt:"2026-11-24T18:20:18Z",rows:[row]}).length,1);
+ assert.throws(()=>nbaRows({season:"2022-23",capturedAt:"2026-11-24T18:20:18Z",rows:[row]}));
+});

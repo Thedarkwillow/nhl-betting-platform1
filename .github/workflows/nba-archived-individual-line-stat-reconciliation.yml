@@ -1,0 +1,87 @@
+name: NBA individual archived prop and final-stat reconciliation
+on:
+  pull_request:
+    paths: ['scripts/nba-archived-individual-line-stat-reconciliation.cjs','test/nba-archived-individual-line-stat-reconciliation.test.cjs','.github/workflows/nba-archived-individual-line-stat-reconciliation.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/nba-archived-individual-line-stat-reconciliation.cjs','test/nba-archived-individual-line-stat-reconciliation.test.cjs','.github/workflows/nba-archived-individual-line-stat-reconciliation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nba-individual-final-stat-reconciliation
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/nba-archived-individual-line-stat-reconciliation.test.cjs test/nba-archived-three-source-crosswalk.test.cjs
+  evidence:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify private destination
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 402d4fceb29a2ec2f3d3b09d06ede8ba2dd4ef9a
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: official
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 74300400cf6afcad3ed8338b74705a257ef5cc98
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: provider
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/nba-final-stat-reconciliation
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: archive
+          persist-credentials: false
+      - name: Match original archived observations to final stat sources
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/nba-archived-individual-line-stat-reconciliation.cjs \
+            official/outputs/nba/schedule/20261124T182019390Z.json 1b418d636215d5027acf5f918880157d00e30686 \
+            provider/outputs/nba/authorized-providers/bdl-schedule/20261124T185847327Z.json e7ffbdae237fa4af09f37e6e0e7093de19e8f473 \
+            official/outputs/nba/boards/20261124T182019940Z.json 246fa2b96c0bb9ec08cd92d95d797102b3aa74d9 \
+            official/outputs/nba/history/2026-27/20261124T182018692Z.json 52c36e5efb547b3c4a3170a713afcd3de0e2a909 \
+            "$RUNNER_TEMP/nba-reconciliation.json"
+      - name: Preserve matched evidence privately
+        working-directory: archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          mkdir -p research/nba-final-stat-reconciliation
+          dest="research/nba-final-stat-reconciliation/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.json"
+          test ! -e "$dest"
+          install -m 600 "$RUNNER_TEMP/nba-reconciliation.json" "$dest"
+          git add -f "$dest"
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Archive retrospective individual NBA line and stat matches'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:refs/heads/research/nba-final-stat-reconciliation
+          test "$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin refs/heads/research/nba-final-stat-reconciliation | cut -f1)" = "$(git rev-parse HEAD)"
+          echo 'Private NBA reconciliation archive verified.'

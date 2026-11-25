@@ -89,3 +89,21 @@ test('deep queue deduplicates exact scopes and rotates sports, excludes unpriced
 });
 
 test('targeted CS2 recovery is authorized and never a morning capture',()=>{const x=plan({...env,GITHUB_EVENT_NAME:'workflow_dispatch',REQUESTED_MODE:'cs2_reconcile_now',PICKFINDER_PRIOR_AUTH_PROOF:'1'},now);assert.equal(x.targeted,true);assert.equal(x.expected,'manual');assert.equal(x.full,true);assert.throws(()=>plan({...env,GITHUB_EVENT_NAME:'workflow_dispatch',REQUESTED_MODE:'cs2_reconcile_now'},now));});
+
+test('separate afternoon research schedule requires authorization, prior proof and exact hour',()=>{
+ const e={...env,GITHUB_EVENT_SCHEDULE:'7 12 * * *',PICKFINDER_PRIOR_AUTH_PROOF:'1'},t=new Date('2026-11-25T20:07:00Z');
+ assert.equal(plan(e,t).deep,true);assert.equal(plan(e,t).expected,'manual');
+ assert.equal(plan({...e,PICKFINDER_SCHEDULE_ENABLED:'0'},t).allowed,false);
+ assert.equal(plan({...e,PICKFINDER_PRIOR_AUTH_PROOF:'0'},t).allowed,false);
+ assert.equal(plan(e,now).allowed,false);
+});
+test('full profile collection preserves visible observations and flags failed tabs',async()=>{
+ const {enrich}=require('../scripts/pickfinder-player-research.cjs');
+ const visible=new Set(['Line Movement','Prop History','Matchup','Defense']);
+ const page={getByRole:(role,{name})=>{const x={isVisible:async()=>visible.has(name),waitFor:async()=>{},click:async()=>{if(name==='Defense')throw Error('fixture');}};x.or=()=>x;x.first=()=>x;return x;},evaluate:async(fn,args)=>Array.from({length:900},()=>({tab:args.tab,value:'fixture'}))};
+ const row={detailId:'/players/nba/example?prop=a:b:c',research:[]};
+ await enrich(page,row,{navigate:async()=>{},maxFields:Infinity});
+ assert.equal(row.research.length,3600);
+ assert.equal(row.profileCollection.truncated,true);
+ assert.ok(row.profileCollection.tabAudit.some(t=>t.tab==='Defense'&&t.state==='failed'));
+});

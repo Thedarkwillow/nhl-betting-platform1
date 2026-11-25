@@ -90,8 +90,12 @@ jobs:
           git diff --cached --quiet && exit 0
           git config user.name 'Research archive automation'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          test -z "$(git diff --cached --name-only --diff-filter=CDMRTUXB)"
           git commit -qm 'Archive esports research forecasts before start'
           git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:main
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch --quiet origin main
+          git merge-base --is-ancestor HEAD origin/main
+          echo 'Private esports archive commit verified on remote.'
       - name: Independent private archive audit
         if: always() && !cancelled() && steps.private_destination.outcome == 'success'
         run: node public/scripts/esports-prospective-archive.cjs archive audit

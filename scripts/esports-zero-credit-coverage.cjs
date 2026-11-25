@@ -35,6 +35,16 @@ async function check(platform,key,client=fetch){
   return {platform,configured:true,status:"authenticated_independent_metadata",checkedAt,chargedCredits:charge==="0"?0:null,quota:quota(r.headers),rows,originalAppAvailabilityVerified:false};
  }catch{return {platform,configured:true,status:"coverage_contract_unavailable"};}
 }
-async function main(){const results=[];for(const [p,c] of Object.entries(providers))results.push(await check(p,process.env[c.key]));console.log(JSON.stringify({kind:"esports_independent_zero_credit_coverage_v1",results,documentedMeteredEndpointsCalled:0,originalOffersVerified:0,rawRowsPublished:0}));if(results.some(x=>x.status==="unexpected_nonzero_charge"))process.exitCode=1;}
+// Planning only: no scheduled paid collection before live contracts and retention are approved.
+function capturePlan(result,now){
+ const at=Date.parse(now),seen=Date.parse(result?.checkedAt),reset=Date.parse(result?.quota?.resetAt);
+ const balance=result?.quota?.remainingCredits;
+ const valid=result?.platform==="Underdog"&&result.status==="authenticated_independent_metadata"&&result.chargedCredits===0&&Number.isSafeInteger(balance)&&balance>=0&&Number.isFinite(reset)&&reset>at&&Number.isFinite(seen)&&seen<=at&&at-seen<=60000;
+ const days=valid?Math.max(1,Math.ceil((reset-at)/86400000)):null;
+ const spendable=valid?Math.max(0,balance-30):0;
+ const fresh=valid?result.rows.filter(r=>r.freshnessVerified&&r.offers>0).map(r=>r.title):[];
+ return {kind:"esports_credit_budget_plan_v1",verifiedBalance:valid?balance:null,protectedReserve:30,spendable,dailyCreditCap:valid?Math.floor(spendable/days):0,freshLeagues:fresh,actualMeteredCalls:0,automaticPaidCollectionEnabled:false,reason:"Require validated provider contracts, approved storage and frozen identity evidence before activating paid schedule."};
+}
+async function main(){const results=[];for(const [p,c] of Object.entries(providers))results.push(await check(p,process.env[c.key]));console.log(JSON.stringify({kind:"esports_independent_zero_credit_coverage_v1",results,documentedMeteredEndpointsCalled:0,originalOffersVerified:0,rawRowsPublished:0,budgetPlan:capturePlan(results.find(r=>r.platform==='Underdog'),new Date().toISOString())}));if(results.some(x=>x.status==="unexpected_nonzero_charge"))process.exitCode=1;}
 if(require.main===module)main().catch(()=>{console.error("Coverage failed closed");process.exitCode=1});
-module.exports={summary,check,quota};
+module.exports={summary,check,quota,capturePlan};

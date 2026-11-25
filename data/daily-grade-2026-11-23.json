@@ -1,14 +1,14 @@
 {
   "kind": "public_original_daily_grade_v1",
   "slateDate": "2026-11-23",
-  "generatedAt": "2026-11-24T23:32:47.895Z",
+  "generatedAt": "2026-11-25T01:02:44.499Z",
   "nhl": {
     "status": "official_final_slate_graded",
     "scheduledGames": 7,
     "finalGames": 7,
     "officialPlayerRows": 280,
-    "statsFetchedAt": "2026-11-24T20:38:50.955Z",
-    "ledgerBuiltAt": "2026-11-24T20:40:35.365Z",
+    "statsFetchedAt": "2026-11-25T00:52:53.677Z",
+    "ledgerBuiltAt": "2026-11-25T00:55:23.809Z",
     "all": {
       "registered": 225,
       "correct": 120,
@@ -307,9 +307,15 @@
     "originalIdsReconciled": true,
     "sourceReportGeneratedAt": "2026-11-24T23:16:27.778Z",
     "appearanceReconciliation": {
-      "status": "awaiting_exact_id_evidence",
-      "sourceGradeReconciled": false,
+      "status": "identity_diagnostic_archived",
+      "sourceGradeReconciled": true,
       "originalUnresolved": 5,
+      "distinctThresholds": 3,
+      "distinctPlayerGames": 1,
+      "genericReasonCounts": {
+        "positive_snaps_weekly_stats_missing": 5
+      },
+      "otherUnclassifiedCount": 0,
       "gradeChanged": 0,
       "platformVoidsAuthenticated": false
     }

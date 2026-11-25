@@ -7,6 +7,14 @@ from collections import defaultdict,Counter
 from pathlib import Path
 from cs2_static_hltv_research import FILES,read,parse,fingerprints,norm
 from cs2_ektarr_wide_history import load_pinned_history
+from esports_context_models import evaluate
+
+def target_backtest(rows,targets):
+    selected=[r for r in rows if r['player'] in targets]
+    # Prior dates only, fixed last-5/last-20/blend, with retrospective team/opponent context.
+    # Target cohort was selected later, so this is NOT untouched future performance.
+    report=evaluate(selected,('kills','deaths'),('team','opponent'))
+    return {**report,'cohortSelectedRetrospectively':True,'identityNamespace':'hltv','actualOriginalLines':0,'prospectiveApproved':False}
 def audit(review,static,other):
     target={str(x["components"][0]["hltvPlayerId"]) for x in review["playerEventCandidates"] if x["subjectType"]=="individual" and len(x["components"])==1}
     if len(target)>100:raise ValueError("target bound")
@@ -26,7 +34,7 @@ def audit(review,static,other):
             series[a,b].add((p["event"].split("|")[0],q["event"].split("|")[0]))
     good={(a,b) for (a,b),v in series.items() if a in targets and (a,b) not in conflicts and len(pairs[a])==len(reverse[b])==1}
     repeated={(a,b) for a,b in good if min(len({x[0] for x in series[a,b]}),len({x[1] for x in series[a,b]}))>=2}
-    return {"kind":"restricted_cs2_target_history_overlap_v1","targets":len(targets),"targetIdsWithStaticMapHistory":len(direct),"targetStaticMapRows":sum(direct.values()),"targetsWithAtLeast12StaticMaps":sum(v>=12 for v in direct.values()),"independentDatasetOneToOneCandidates":len({a for a,b in good}),"distinctSeriesCorroboratedCandidates":len({a for a,b in repeated}),"authoritativeSteamLinksAdded":0,"modelPromoted":False,"rawRowsPublished":0,"paidRequests":0}
+    return {"kind":"restricted_cs2_target_history_overlap_v1","targets":len(targets),"targetIdsWithStaticMapHistory":len(direct),"targetStaticMapRows":sum(direct.values()),"targetsWithAtLeast12StaticMaps":sum(v>=12 for v in direct.values()),"independentDatasetOneToOneCandidates":len({a for a,b in good}),"distinctSeriesCorroboratedCandidates":len({a for a,b in repeated}),"targetHistoricalBacktest":target_backtest(static,targets),"independentCandidateBacktest":{**evaluate([r for r in other if r["player"] in {b for a,b in repeated}],("kills","deaths"),("team","opponent")),"identityNamespace":"ektarr","candidateOnly":True,"actualOriginalLines":0},"authoritativeSteamLinksAdded":0,"modelPromoted":False,"rawRowsPublished":0,"paidRequests":0}
 def main():
     review=json.loads(Path(sys.argv[1]).read_text())
     if review.get("kind")!="restricted_kashrock_hltv_identity_and_projection_candidate_review_v1":raise ValueError("review contract")

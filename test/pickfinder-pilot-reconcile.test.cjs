@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const {audit}=require('../scripts/pickfinder-pilot-reconcile.cjs');
+const {audit,compare,inputAudit}=require('../scripts/pickfinder-pilot-reconcile.cjs');
 const {readBoard}=require('../scripts/pickfinder-browser.cjs');
 test('audit distinguishes empty app evidence from missing identity and does not reconstruct offers',()=>{
  const row={sport:'nba',detailId:'fixture',player:'fixture',market:'points',apps:[]};
@@ -20,4 +20,15 @@ test('book isolated DOM evidence retains tier-only and explicit split price with
  try{let r=readBoard({book:'prizepicks',code:'NBA',sport:'nba',observedAt:'2026-11-25T14:00:00Z'}).rows[0];assert.equal(r.apps.length,0);assert.equal(r.appEvidence[0].tier,'goblin');
  a.innerText='Higher +120\nLower -150';r=readBoard({book:'prizepicks',code:'NBA',sport:'nba',observedAt:'2026-11-25T14:00:00Z'}).rows[0];assert.equal(r.apps.length,2);assert.equal(r.apps[0].displayedPrice,'+120');assert.equal(r.apps[1].side,'Lower');
  }finally{delete global.document;}
+});
+
+test('new priced observation does not backfill old missing prices',()=>{
+ const row={sport:'nba',detailId:'fixture',player:'fixture',market:'points',eventId:'event',apps:[]};
+ const s={book:'prizepicks',sport:'nba',pages:[{rows:[row,{...row,detailId:'absent'}]}]};
+ const fresh={...s,pages:[{rows:[{...row,apps:[{book:'prizepicks',line:2.5,side:'Higher',displayedPrice:'-110'}]}]}]};
+ const r=compare({partitions:[{source:s}]},[fresh]);assert.equal(r.historicalUnresolved,2);assert.equal(r.freshExplicitPrice,1);assert.equal(r.historicalRecovered,0);assert.equal(r.partitions[0].notSeen,1);
+});
+test('input audit leaves independent verification and model promotion off',()=>{
+ const r=inputAudit([{sport:'nba',book:'prizepicks',offers:[{book:'prizepicks',side:'Higher',line:2.5,displayedPrice:'-110',eventId:'event',observedAt:'2026-11-25T10:00:00Z',startAt:null}],researchObservations:[{value:null}]}]);
+ assert.equal(r.sports.nba.explicitPrices,1);assert.equal(r.sports.nba.pregameTimestampVerified,0);assert.equal(r.sports.nba.eligibleForLockedModel,0);assert.equal(r.modelInputsApproved,false);
 });

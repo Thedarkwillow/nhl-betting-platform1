@@ -45,6 +45,13 @@ def main():
     directory=fetch("/free-research")
     listed={urlsplit(urljoin(BASE,l)).path for l in directory.links if urlsplit(urljoin(BASE,l)).netloc==urlsplit(BASE).netloc}
     out={}; snapshots=[]
+    base=None
+    if '--private-root' in sys.argv:
+        root=Path(sys.argv[sys.argv.index('--private-root')+1]).resolve()
+        if os.getenv('RESTRICTED_DESTINATION_VERIFIED')!='1' or not (root/'.git').exists():raise ValueError('private root')
+        base=root/'research/pickfinder-free-research'
+        if base.is_symlink() or base.parent.is_symlink():raise ValueError('symlink')
+        base.mkdir(parents=True,exist_ok=True)
     # Discover listed sporting paths; never invent endpoints or attempt Pro-only routes.
     from collections import defaultdict,deque
     groups=defaultdict(deque)
@@ -62,15 +69,12 @@ def main():
         if rel not in listed:out[rel]={"state":"not_listed"};continue
         p=fetch(rel);out[rel]={"state":"observed",**summarize(p)}
         time.sleep(0.5)
-        snapshots.append({"path":rel,"observedAt":datetime.now(timezone.utc).isoformat(),"tables":p.tables})
-    if "--private-root" in sys.argv:
-        root=Path(sys.argv[sys.argv.index("--private-root")+1]).resolve()
-        if os.getenv("RESTRICTED_DESTINATION_VERIFIED")!="1" or not (root/".git").exists():raise ValueError("private root")
-        base=root/"research/pickfinder-free-research"
-        if base.is_symlink() or base.parent.is_symlink():raise ValueError("symlink")
-        base.mkdir(parents=True,exist_ok=True)
-        payload=json.dumps({"schema":"pickfinder_free_research_v1","snapshots":snapshots,"historicalFeaturesApproved":False},sort_keys=True).encode()
-        with (base/(hashlib.sha256(payload).hexdigest()+".json")).open("xb") as f:f.write(payload)
+        record={"path":rel,"observedAt":datetime.now(timezone.utc).isoformat(),"tables":p.tables}
+        snapshots.append(record)
+        if base is not None:
+            payload=json.dumps({'schema':'pickfinder_free_research_v1','snapshots':[record],'historicalFeaturesApproved':False},sort_keys=True).encode()
+            with (base/(hashlib.sha256(payload).hexdigest()+'.json')).open('xb') as handle:
+                handle.write(payload);handle.flush();os.fsync(handle.fileno())
     print(json.dumps({"kind":"pickfinder_public_research_probe","observedAt":datetime.now(timezone.utc).isoformat(),"pages":out,"discoveredLeagueResearchPaths":sum(1 for rel in listed if rel.startswith("/leagues/") and len(rel.strip("/").split("/"))==3),"historicalFeaturesApproved":False,"rawRowsPublished":0,"paidRequests":0}))
 if __name__=="__main__":
     try:main()

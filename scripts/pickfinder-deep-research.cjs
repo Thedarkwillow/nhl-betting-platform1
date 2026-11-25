@@ -91,8 +91,16 @@ async function run({root,context,page,enrich,collect,limit=20,shouldContinue=()=
  git(root,['add','--',file]);const staged=git(root,['diff','--cached','--name-status']).toString().trim();
  if(staged!=='A\t'+file)throw Error('append-only research required');
  git(root,['-c','user.name=PickFinder research runner','-c','user.email=research-runner@users.noreply.github.com','commit','-m','Archive bounded PickFinder deep research']);
- const sha=git(root,['rev-parse','HEAD']).toString().trim();
- git(root,['push','origin','HEAD:refs/heads/main']);git(root,['fetch','origin','main']);git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']);
+ let sha=null;
+ for(let attempt=0;attempt<3;attempt++){
+  git(root,['fetch','origin','main']);
+  try{git(root,['rebase','FETCH_HEAD']);}catch(e){try{git(root,['rebase','--abort']);}catch{}throw e;}
+  const revision=git(root,['rev-parse','HEAD']).toString().trim();
+  if(git(root,['diff-tree','--no-commit-id','--name-status','-r',revision]).toString().trim()!=='A\t'+file)throw Error('deep archive not append-only');
+  try{git(root,['push','origin','HEAD:refs/heads/main']);sha=revision;break;}catch(e){if(attempt===2)throw e;await new Promise(resolve=>setTimeout(resolve,2000*(attempt+1)));}
+ }
+ if(!sha)throw Error('deep archive push failed');
+ git(root,['fetch','origin','main']);git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']);
  if(hash(git(root,['show','FETCH_HEAD:'+file]))!==hash(raw))throw Error('deep archive digest mismatch');
  const sampled=records.filter(r=>r.status==='sampled').length;
  return {state:'deep_research_verified',sha,queueTotal:q.total,priorSampled:done.size,attempted:records.length,sampled,remaining:q.pending.length-sampled,diagnostics,rawRowsPublished:0,modelInputsApproved:false};

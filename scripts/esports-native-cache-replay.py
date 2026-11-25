@@ -17,7 +17,7 @@ def load(root,source,extension):
         m=json.loads(pinned(root,meta))
         if hashlib.sha256(raw).hexdigest()!=m["sha256"] or len(raw)!=m["bytes"]:raise ValueError("cache digest")
         yield raw,m
-def run(root,title):
+def run(root,title,dota_root=None):
     from collections import Counter
     reports=[]
     if title=="CS2":
@@ -47,8 +47,9 @@ def run(root,title):
     elif title=="DOTA2":
         # Native OpenDota archive has game clocks but not independently verified map ordinals.
         groups={};conflicts=set()
-        for p in sorted((root/"research/esports-free-providers").glob("*.json")):
-            d=json.loads(pinned(root,p))
+        source_root=dota_root or root
+        for p in sorted((source_root/"research/esports-free-providers").glob("*.json")):
+            d=json.loads(pinned(source_root,p))
             if d.get("kind")!="restricted_esports_free_provider_observations_v1":continue
             for g in d.get("opendota",{}).get("games",[]):
                 game=g.get("game",{});players=g.get("players",[]);mid=game.get("providerGameId")
@@ -67,5 +68,5 @@ def run(root,title):
     else:raise ValueError("title")
     return {"title":title,"status":"evaluated" if any(r.get("rows",0) for r in reports) else "cache_missing_or_empty","cohorts":reports,"sourceNativeOnly":True,"authoritativeCrosswalk":False,"actualPropLines":0,"prospective":False,"modelPromoted":False,"rawRowsPublished":0,"paidRequests":0}
 if __name__=="__main__":
-    try:print(json.dumps(run(Path(sys.argv[1]).resolve(),sys.argv[2]),allow_nan=False))
+    try:print(json.dumps(run(Path(sys.argv[1]).resolve(),sys.argv[2],Path(sys.argv[3]).resolve() if len(sys.argv)>3 else None),allow_nan=False))
     except Exception as e:print(json.dumps({"status":"failed_closed","title":sys.argv[2],"reason":type(e).__name__}));sys.exit(1)

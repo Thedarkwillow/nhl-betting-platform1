@@ -187,8 +187,18 @@ async function main(env=process.env){
   git(root,['add','--',prefix]);
   if(!safeAddedFiles(git(root,['diff','--cached','--name-status']),prefix))throw Error('non append-only staging refused');
   git(root,['-c','user.name=PickFinder research runner','-c','user.email=research-runner@users.noreply.github.com','commit','-m','Archive PickFinder private research '+p.clock.day+' '+p.expected]);
-  const sha=git(root,['rev-parse','HEAD']);
-  await stage('private_archive_push',()=>git(root,['push','origin','HEAD:refs/heads/main']));
+  // Other authorized archive jobs may append while a long board collection is in flight.
+  // Rebase only our append-only commit; never force-push or overwrite an existing source.
+  const sha=await stage('private_archive_push',async()=>{
+   for(let attempt=0;attempt<3;attempt++){
+    git(root,['fetch','origin','main']);
+    try{git(root,['rebase','FETCH_HEAD']);}catch(e){try{git(root,['rebase','--abort']);}catch{}throw e;}
+    const revision=git(root,['rev-parse','HEAD']);
+    if(!safeAddedFiles(git(root,['diff-tree','--no-commit-id','--name-status','-r',revision]),prefix))throw Error('rebased commit not append-only');
+    try{git(root,['push','origin','HEAD:refs/heads/main']);return revision;}catch(e){if(attempt===2)throw e;await new Promise(resolve=>setTimeout(resolve,2000*(attempt+1)));}
+   }
+   throw Error('archive push retry exhausted');
+  });
   await stage('private_archive_fetch',()=>git(root,['fetch','origin','main']));
   await stage('private_archive_ancestry',()=>git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']));
   await stage('private_archive_remote_readback',()=>{

@@ -18,7 +18,7 @@ jobs:
       - run: |
           python -m py_compile scripts/esports-native-cache-replay.py scripts/pickfinder-free-research.py
           node --check scripts/multisport-archive-evidence.cjs
-          node --test test/pickfinder-unattended-runner.test.cjs test/pickfinder-archive-comparison-history.test.cjs
+          node --test test/pickfinder-unattended-runner.test.cjs test/pickfinder-archive-comparison-history.test.cjs test/nba-low-count-accuracy-research.test.cjs
   native-history:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'Thedarkwillow/nhl-betting-platform1'
     needs: test
@@ -51,14 +51,23 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install scipy==1.15.3 duckdb==1.2.2
-      - run: python public/scripts/esports-native-cache-replay.py archive ${{ matrix.title }}
+      - uses: actions/checkout@v4
+        if: matrix.title == 'DOTA2'
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 066e2c73b5be2a8d95fdc370ddc96511b57adb8a
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: dota
+          persist-credentials: false
+          sparse-checkout: research/esports-free-providers
+      - run: python public/scripts/esports-native-cache-replay.py archive ${{ matrix.title }} dota
   nhl-nba:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'Thedarkwillow/nhl-betting-platform1'
     needs: test
     strategy:
       fail-fast: false
       matrix:
-        mode: [nhl, nba]
+        mode: [nhl, nba, nba-low-count]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -78,7 +87,10 @@ jobs:
           path: archive
           persist-credentials: false
           fetch-depth: 0
-      - run: node public/scripts/multisport-archive-evidence.cjs archive ${{ matrix.mode }}
+      - if: matrix.mode != 'nba-low-count'
+        run: node public/scripts/multisport-archive-evidence.cjs archive ${{ matrix.mode }}
+      - if: matrix.mode == 'nba-low-count'
+        run: node public/scripts/nba-low-count-accuracy-research.cjs archive
   free-research:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'Thedarkwillow/nhl-betting-platform1' && vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1'
     needs: test

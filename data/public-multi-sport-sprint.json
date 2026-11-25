@@ -335,5 +335,58 @@
     "freeProviders": 45546951253,
     "kashrockArchive": 45549936255,
     "dotaLolFollowup": 45549936255
+  },
+  "archiveReadiness": {
+    "sourceRun": "45600614339",
+    "comparisonRun": "45599578293",
+    "boardRun": "45598566636",
+    "status": "historical_research_only",
+    "nba": {
+      "historicalAppearances": 84374,
+      "uniqueNameCandidates": 124,
+      "sourceProfiles": 125,
+      "authoritativeLinks": 0
+    },
+    "nhl": {
+      "archivedLineDecisions": 222,
+      "trainingDecisions": 66,
+      "trainingGames": 8,
+      "trainingGatePassed": false
+    },
+    "esports": {
+      "CS2": {
+        "nativeRows": 102900,
+        "status": "evaluated"
+      },
+      "LOL": {
+        "nativeRows": 199990,
+        "status": "evaluated"
+      },
+      "VALORANT": {
+        "nativeRows": 0,
+        "status": "expected_cache_missing"
+      },
+      "DOTA2": {
+        "nativeRows": 0,
+        "status": "expected_cache_missing"
+      },
+      "COD": {
+        "nativeRows": 0,
+        "status": "expected_cache_missing"
+      }
+    },
+    "board": {
+      "attemptedPartitions": 28,
+      "soccerPages": 501,
+      "dotaPrizePicksCompleted": true,
+      "remoteArchiveVerified": false
+    },
+    "freeResearch": {
+      "pages": 6,
+      "tables": 24,
+      "displayedRowsIncludingHeaders": 652,
+      "remoteDigestVerified": true
+    },
+    "modelPromotionApproved": false
   }
 }

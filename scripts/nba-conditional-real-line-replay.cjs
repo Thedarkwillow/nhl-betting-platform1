@@ -31,16 +31,22 @@ function audit(sc,bdl,board,hist,grades,injury){
  const markets={},tot={n:0,wins:0,higher:0,lower:0,brier:0,baseBrier:0,logLoss:0,baseLogLoss:0},skip={conflict:0,push:0,history:0};
  const init=()=>({...tot,games:new Set(),players:new Set()});
  const add=(a,p,y,q,b)=>{a.n++;a.wins+=Number((q>.5&&y===1)||(q<.5&&y===0));a.higher+=y;a.lower+=1-y;a.brier+=(q-y)**2;a.baseBrier+=(b-y)**2;a.logLoss-=y*Math.log(q)+(1-y)*Math.log1p(-q);a.baseLogLoss-=y*Math.log(b)+(1-y)*Math.log1p(-b);a.games?.add(p.gameId);a.players?.add(p.playerId);};
- const total=init();
+ const total=init(),lowCount={};
+ const {forecast}=require('./nba-low-count-accuracy-research.cjs');
  for(const [k,{p,actual}] of actuals){
   if(bad.has(k)){skip.conflict++;continue;}if(actual===p.line){skip.push++;continue;}
   const a=core.project(h,p,day(p.gameStartAt),{opponentContext:false});
   if(!a||a.higher===.5){skip.history++;continue;}
   const y=Number(actual>p.line),m=markets[p.market]??=init();
   add(m,p,y,a.higher,a.baselineHigher);add(total,p,y,a.higher,a.baselineHigher);
+  if(['threePointersMade','blocks'].includes(p.market)){
+   const prior=(h.players.get(p.playerId)||[]).filter(r=>r.team===p.team&&r.gameDate<day(p.gameStartAt)).map(r=>({values:r,exposure:r.minutes}));
+   const f=forecast(prior,p.market,p.line);
+   if(f){const z=lowCount[p.market]??={n:0,baseline:0,workloadPoisson:0,hurdle:0,blend:0};z.n++;for(const k of ['baseline','workloadPoisson','hurdle','blend'])z[k]+=(f[k]-y)**2;}
+  }
  }
  const summarize=a=>({decisions:a.n,games:a.games.size,players:a.players.size,wins:a.wins,hitRate:a.n?a.wins/a.n:null,alwaysHigher:a.n?a.higher/a.n:null,alwaysLower:a.n?a.lower/a.n:null,brier:a.n?a.brier/a.n:null,prior30Brier:a.n?a.baseBrier/a.n:null,logLoss:a.n?a.logLoss/a.n:null,prior30LogLoss:a.n?a.baseLogLoss/a.n:null});
- return {kind:"nba_real_partner_line_conditional_replay_v1",registeredSides:offers.length,matchedSides:matched.size,distinctPlayerGameMarketThresholds:actuals.size,unmatchedDiagnostic:excluded,injurySourceObservedBeforeTip:injuryValid,excluded:skip,aggregate:summarize(total),markets:Object.fromEntries(Object.entries(markets).map(([m,a])=>[m,summarize(a)])),retrospectiveOnly:true,conditionalESPNActuals:true,sourceOperatorSettlementVerified:false,authoritativeIdentityVerified:false,prospectiveModelAccuracy:false,modelPromoted:false,rawRowsPublished:0,paidRequests:0};
+ return {kind:"nba_real_partner_line_conditional_replay_v1",registeredSides:offers.length,matchedSides:matched.size,distinctPlayerGameMarketThresholds:actuals.size,unmatchedDiagnostic:excluded,injurySourceObservedBeforeTip:injuryValid,excluded:skip,aggregate:summarize(total),markets:Object.fromEntries(Object.entries(markets).map(([m,a])=>[m,summarize(a)])),lowCountChallenger:Object.fromEntries(Object.entries(lowCount).map(([m,z])=>[m,{n:z.n,brier:Object.fromEntries(Object.entries(z).filter(([k])=>k!=='n').map(([k,v])=>[k,v/z.n]))}])),retrospectiveOnly:true,conditionalESPNActuals:true,sourceOperatorSettlementVerified:false,authoritativeIdentityVerified:false,prospectiveModelAccuracy:false,modelPromoted:false,rawRowsPublished:0,paidRequests:0};
 }
 if(require.main===module){try{const args=process.argv.slice(2);if(args.length!==12)throw Error();const docs=[];for(let i=0;i<args.length;i+=2)docs.push(readPinned(args[i],args[i+1]));console.log(JSON.stringify(audit(...docs)));}catch{console.error("Conditional real-line replay failed closed");process.exitCode=1;}}
 module.exports={audit,key};

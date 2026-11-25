@@ -63,6 +63,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Verify private destination
+        id: private_destination
         env:
           GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
         run: |
@@ -70,6 +71,7 @@ jobs:
           test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
           test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
       - uses: actions/checkout@v4
+        id: restricted_checkout
         with:
           repository: Thedarkwillow/nhl-betting-platform
           ref: research/nov24-source-refresh-20261125
@@ -102,7 +104,7 @@ jobs:
           test "$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin refs/heads/research/nov24-source-refresh-20261125 | cut -f1)" = "$(git rev-parse HEAD)"
           echo 'Private fresh capture verified.'
       - name: Collect actual November 24 NHL finals and grade immutable frozen selections
-        if: always() && !cancelled()
+        if: always() && !cancelled() && steps.private_destination.outcome == 'success' && steps.restricted_checkout.outcome == 'success'
         id: grade
         working-directory: restricted
         run: |
@@ -114,7 +116,7 @@ jobs:
           node scripts/build-nhl-private-ledger-and-labs.cjs > "$RUNNER_TEMP/nhl-ledger.log" 2>&1
           node scripts/report-nhl-2026-11-21-slate-grade.cjs 2026-11-24
       - name: Preserve official result and grade checkpoint on isolated branch
-        if: steps.grade.outcome == 'success'
+        if: always() && !cancelled() && steps.private_destination.outcome == 'success' && steps.restricted_checkout.outcome == 'success' && steps.grade.outcome == 'success'
         working-directory: restricted
         env:
           GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}

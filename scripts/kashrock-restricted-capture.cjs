@@ -63,19 +63,19 @@ async function main(){
  try{
   report.metaRequests++;const m=await read("/v7/meta",key);
   if(String(m.doc.plan?.name??m.doc.plan).toLowerCase()!=="sandbox"){report.status="sandbox_not_verified";console.log(JSON.stringify(report));return;}
-  const digests=[],rows=[];let fixtures=new Map();
+  const digests=[],rows=[];let fixtures=new Map(),refused=false;
   report.matchRequests++;report.documentedSandboxCredits+=2;
   try{const q=await read("/v7/cs2/matches?status=upcoming&limit=100",key);fixtures=fixtureRows(q.doc);digests.push({endpoint:"matches",sha256:q.digest});}catch(e){report.fixtureError=e.status??"contract";if([401,402,403,429].includes(e.status)){console.log(JSON.stringify(report));return;}}
   report.fixtureRows=fixtures.size;
   for(const k of ["prizepicks","underdog"]){
    await new Promise(r=>setTimeout(r,6500));report.propRequests++;report.documentedSandboxCredits+=5;
    try{const q=await read("/v7/cs2/props?board=dfs&view=groups&book="+k+"&limit=100",key),observedAt=new Date().toISOString(),n=normalize(q.doc,k,fixtures,observedAt);rows.push(...n.rows);digests.push({endpoint:"props",book:k,sha256:q.digest,observedAt});report.byBook[k]={raw:n.raw,accepted:n.rows.length,sourceFixtureMatched:n.rows.filter(x=>x.sourceFixtureMatched).length,selectionIdCandidates:n.rows.filter(x=>x.originalSelectionIdCandidate).length,hasMore:n.hasMore,reasons:n.reasons};}
-   catch(e){report.byBook[k]={error:e.status??"contract"};if([401,402,403,429].includes(e.status))break;}
+   catch(e){report.byBook[k]={error:e.status??"contract"};if([401,402,403,429].includes(e.status)){refused=true;break;}}
   }
   // Resolve at most six already-observed exact native match IDs when the list has no match.
   // Sandbox documented schedule endpoint; stop on any auth/quota/plan refusal.
   report.detailRequests=0;report.detailErrors={};
-  const need=[...new Set(rows.filter(x=>!x.sourceFixtureMatched&&x.providerMatchId).map(x=>x.providerMatchId))].slice(0,6);
+  const need=refused?[]:[...new Set(rows.filter(x=>!x.sourceFixtureMatched&&x.providerMatchId).map(x=>x.providerMatchId))].slice(0,6);
   for(const mid of need){
    await new Promise(r=>setTimeout(r,6500));report.detailRequests++;report.documentedSandboxCredits+=2;
    try{

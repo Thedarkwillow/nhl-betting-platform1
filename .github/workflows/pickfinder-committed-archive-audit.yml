@@ -31,5 +31,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify exact previously uploaded source digests and aggregate inputs
+      - name: Verify exact prior source digests, replay tier evidence and audit input eligibility
         run: node public-source/scripts/pickfinder-pilot-reconcile.cjs private-archive audit-committed aef07d2aecb75388c6757c9cc5844b2113d6a0ac 27

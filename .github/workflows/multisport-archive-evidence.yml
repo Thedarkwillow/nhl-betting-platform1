@@ -1,0 +1,129 @@
+name: Multisport archive reconnection and evidence
+on:
+  pull_request:
+    paths: ['scripts/esports-native-cache-replay.py','scripts/multisport-archive-evidence.cjs','scripts/pickfinder-free-research.py','.github/workflows/multisport-archive-evidence.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/multisport-archive-evidence.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          python -m py_compile scripts/esports-native-cache-replay.py scripts/pickfinder-free-research.py
+          node --check scripts/multisport-archive-evidence.cjs
+          node --test test/pickfinder-unattended-runner.test.cjs test/pickfinder-archive-comparison-history.test.cjs
+  native-history:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'Thedarkwillow/nhl-betting-platform1'
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        title: [CS2, VALORANT, LOL, DOTA2, COD]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Verify private archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .visibility)" = private
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: archive
+          persist-credentials: false
+          sparse-checkout: |
+            research/esports-native-history
+            research/esports-free-providers
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install scipy==1.15.3 duckdb==1.2.2
+      - run: python public/scripts/esports-native-cache-replay.py archive ${{ matrix.title }}
+  nhl-nba:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'Thedarkwillow/nhl-betting-platform1'
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [nhl, nba]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Verify private archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .visibility)" = private
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: archive
+          persist-credentials: false
+          fetch-depth: 0
+      - run: node public/scripts/multisport-archive-evidence.cjs archive ${{ matrix.mode }}
+  free-research:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'Thedarkwillow/nhl-betting-platform1' && vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1'
+    needs: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Verify private archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .visibility)" = private
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: archive
+          fetch-depth: 0
+      - name: Collect public research privately
+        env:
+          RESTRICTED_DESTINATION_VERIFIED: '1'
+        run: python public/scripts/pickfinder-free-research.py --authorized --private-root archive
+      - name: Archive append-only and verify remote digest
+        working-directory: archive
+        run: |
+          set -euo pipefail
+          git add -- research/pickfinder-free-research
+          files="$(git diff --cached --name-status)"
+          test "$(printf '%s\n' "$files" | wc -l)" = 1
+          printf '%s\n' "$files" | grep -Eq '^A[[:space:]]research/pickfinder-free-research/[a-f0-9]{64}\.json$'
+          p="$(git diff --cached --name-only)"
+          expected="$(basename "$p" .json)"
+          test "$(sha256sum "$p" | cut -d' ' -f1)" = "$expected"
+          git -c user.name=research-runner -c user.email=research-runner@users.noreply.github.com commit -m 'Archive dated public PickFinder research'
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then
+              git fetch -q origin main
+              test "$(git show "FETCH_HEAD:$p" | sha256sum | cut -d' ' -f1)" = "$expected"
+              echo 'Private research snapshot remote digest verified'
+              exit 0
+            fi
+          done
+          exit 1

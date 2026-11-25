@@ -37,3 +37,5 @@ test('key-free discovery is bounded and esports credentials require no-charge an
  const bad=await discover({env:{},now,client:async()=>{throw Error('network')}});
  assert.equal(scheduleStatus(bad.NBA,now),'unknown');
 });
+
+test('official NHL fallback supplies positive dated evidence only',async()=>{const r=await discover({env:{},now,client:async url=>url.includes('api-web.nhle.com')?new Response(JSON.stringify({gameWeek:[{games:[{id:123,gameState:'FUT',startTimeUTC:'2026-11-25T18:00:00Z'}]}]})):new Response('',{status:403})});assert.equal(r.NHL.upcoming,1);assert.equal(r.NHL.source,'nhl:official_week');assert.equal(r.NBA.failure,'http_403');assert.equal(scheduleStatus(r.NHL,now),'competition_scheduled');});

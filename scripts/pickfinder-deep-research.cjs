@@ -84,27 +84,48 @@ function inventory(){
  return Object.fromEntries(names.map(n=>[n,controls.filter(e=>{const v=(e.getAttribute('aria-label')||e.innerText||'').trim();return v===n||v.startsWith(n+' ');}).length]));
 }
 async function persist(root,data){
- const prefix=ROOT+'/'+SEED+'/'+crypto.randomUUID();
- const target=path.join(root,prefix);
- fs.mkdirSync(target,{recursive:true,mode:0o700});
- const file=prefix+'/research.json',raw=JSON.stringify(data);
+ const file=ROOT+'/'+SEED+'/'+crypto.randomUUID()+'/research.json',raw=JSON.stringify(data);
  if(Buffer.byteLength(raw)>8_000_000)throw new DeepFailure('checkpoint_size_limit');
- await checked('checkpoint_write',()=>fs.writeFileSync(path.join(root,file),raw,{flag:'wx',mode:0o600}));
- await checked('checkpoint_stage',()=>git(root,['add','--',file]));const staged=git(root,['diff','--cached','--name-status']).toString().trim();
- if(staged!=='A\t'+file)throw new DeepFailure('checkpoint_not_append_only');
- await checked('checkpoint_commit',()=>git(root,['-c','user.name=PickFinder research runner','-c','user.email=research-runner@users.noreply.github.com','commit','-m','Archive bounded PickFinder deep research']));
- let sha=null;
- for(let attempt=0;attempt<6;attempt++){
-  await checked('checkpoint_fetch',()=>git(root,['fetch','origin','main']));
-  try{git(root,['rebase','FETCH_HEAD']);}catch(e){try{git(root,['rebase','--abort']);}catch{}throw new DeepFailure('checkpoint_rebase');}
-  const revision=git(root,['rev-parse','HEAD']).toString().trim();
-  if(git(root,['diff-tree','--no-commit-id','--name-status','-r',revision]).toString().trim()!=='A\t'+file)throw new DeepFailure('checkpoint_rebase_not_append_only');
-  try{git(root,['push','origin','HEAD:refs/heads/main']);sha=revision;break;}catch(e){const detail=String(e?.stderr||'');const category=/non-fast-forward|fetch first|failed to push some refs/i.test(detail)?'remote_advanced_or_rejected':/403|permission denied|authentication failed/i.test(detail)?'permission_or_authentication':/large files|exceeds.*limit|GH001/i.test(detail)?'size_rejected':'other';console.log(JSON.stringify({state:'deep_checkpoint_push_retry',attempt:attempt+1,category,rawDataLogged:false}));if(attempt===5||category==='permission_or_authentication'||category==='size_rejected')throw new DeepFailure('checkpoint_push_'+category);await new Promise(resolve=>setTimeout(resolve,2000*(attempt+1)));}
- }
- if(!sha)throw new DeepFailure('checkpoint_push_exhausted');
- await checked('checkpoint_remote_verification',()=>{git(root,['fetch','origin','main']);git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']);if(hash(git(root,['show','FETCH_HEAD:'+file]))!==hash(raw))throw Error('digest mismatch');});
-
- return sha;
+ if(git(root,['status','--porcelain']).toString().trim())throw new DeepFailure('checkpoint_worktree_not_clean');
+ // Build one append-only commit from the latest remote tree in a temporary index.
+ // No rebasing, no destructive resets, no force push, no changes to other writers' files.
+ const tmp=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'pickfinder-index-'));
+ const indexEnv={...process.env,GIT_INDEX_FILE:path.join(tmp,'index')};
+ const indexed=args=>execFileSync('git',['-C',root,...args],{env:indexEnv,maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']}).toString().trim();
+ try{
+  const blob=await checked('checkpoint_blob',()=>execFileSync('git',['-C',root,'hash-object','-w','--stdin'],{input:raw,stdio:['pipe','pipe','pipe']}).toString().trim());
+  for(let attempt=0;attempt<6;attempt++){
+   await checked('checkpoint_fetch',()=>git(root,['fetch','origin','main']));
+   const parent=git(root,['rev-parse','FETCH_HEAD']).toString().trim();
+   const existing=git(root,['ls-tree',parent,'--',file]).toString().trim();
+   if(existing)throw new DeepFailure('checkpoint_path_collision');
+   const revision=await checked('checkpoint_tree_commit',()=>{
+    indexed(['read-tree',parent]);indexed(['update-index','--add','--cacheinfo','100644,'+blob+','+file]);
+    const tree=indexed(['write-tree']);
+    return git(root,['-c','user.name=PickFinder research runner','-c','user.email=research-runner@users.noreply.github.com','commit-tree',tree,'-p',parent,'-m','Archive bounded PickFinder deep research']).toString().trim();
+   });
+   if(git(root,['diff-tree','--no-commit-id','--name-status','-r',revision]).toString().trim()!=='A\t'+file)throw new DeepFailure('checkpoint_not_append_only');
+   try{git(root,['push','origin',revision+':refs/heads/main']);}
+   catch(e){
+    // A lost acknowledgement can still mean the remote accepted the commit.
+    await checked('checkpoint_retry_fetch',()=>git(root,['fetch','origin','main']));
+    let accepted=false;try{git(root,['merge-base','--is-ancestor',revision,'FETCH_HEAD']);accepted=true;}catch{}
+    if(!accepted){
+     const detail=String(e?.stderr||'');const category=/403|permission denied|authentication failed/i.test(detail)?'permission_or_authentication':/large files|exceeds.*limit|GH001/i.test(detail)?'size_rejected':/non-fast-forward|fetch first|failed to push some refs/i.test(detail)?'remote_advanced_or_rejected':'other';
+     console.log(JSON.stringify({state:'deep_checkpoint_push_retry',attempt:attempt+1,category,rawDataLogged:false}));
+     if(attempt===5||category==='permission_or_authentication'||category==='size_rejected')throw new DeepFailure('checkpoint_push_'+category);
+     await new Promise(resolve=>setTimeout(resolve,2000*(attempt+1)));continue;
+    }
+   }
+   await checked('checkpoint_remote_verification',()=>{
+    git(root,['fetch','origin','main']);git(root,['merge-base','--is-ancestor',revision,'FETCH_HEAD']);
+    if(hash(git(root,['show','FETCH_HEAD:'+file]))!==hash(raw))throw Error('digest mismatch');
+   });
+   await checked('checkpoint_local_fast_forward',()=>git(root,['merge','--ff-only','FETCH_HEAD']));
+   return revision;
+  }
+  throw new DeepFailure('checkpoint_push_exhausted');
+ }finally{fs.rmSync(tmp,{recursive:true,force:true});}
 }
 async function run({root,context,page,enrich,collect,evidence={},limit=Infinity,shouldContinue=()=>true}){
  if(!(limit===Infinity||Number.isInteger(limit)&&limit>0))throw Error('profile budget');

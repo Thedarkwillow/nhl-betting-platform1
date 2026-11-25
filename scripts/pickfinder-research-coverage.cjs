@@ -59,7 +59,7 @@ async function traverseNativeFilters(page,{shouldContinue=()=>true,onState=async
    const controls=await current();
    if(selection.some(s=>!controls.some(x=>normalize(x.label)===s.label&&x.value===s.value))){issues.add('selection_changed');return;}
    if(controls.some(x=>!labels.includes(normalize(x.label))))issues.add('dynamic_control');
-   const key=JSON.stringify(selection);if(states.has(key))return;try{await onState(selection);states.add(key);}catch{issues.add('state_capture_failed');}return;
+   const key=JSON.stringify(selection);if(states.has(key))return;try{await onState(selection);states.add(key);}catch(e){if(e?.deepStage)throw e;issues.add('state_capture_failed');}return;
   }
   const label=labels[i],x=(await current()).find(y=>normalize(y.label)===label);
   if(!x){issues.add('dynamic_control');return;}

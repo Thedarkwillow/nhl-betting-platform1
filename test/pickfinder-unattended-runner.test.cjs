@@ -169,3 +169,20 @@ test('legacy checkpoint is not complete for expanded research version',()=>{
  assert.equal(summarizeCheckpoints([doc([p])]).expandedDone.size,0);
  assert.equal(summarizeCheckpoints([doc([{...p,profileCollection:{truncated:false,coverageVersion:'sport-filter-v2'}}])]).expandedDone.size,1);
 });
+
+test('deep append uses fresh remote tree without rebasing or losing other writers',async()=>{
+ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{execFileSync}=require('node:child_process');
+ const {persist}=require('../scripts/pickfinder-deep-research.cjs');
+ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'deep-append-fixture-'));
+ const g=(dir,...args)=>execFileSync('git',['-C',dir,...args],{stdio:['ignore','pipe','pipe']}).toString().trim();
+ try{
+  g(temp,'init','--bare','--initial-branch=main','remote.git');
+  const remote=path.join(temp,'remote.git'),a=path.join(temp,'a'),b=path.join(temp,'b');
+  g(temp,'clone',remote,'a');g(a,'-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','--allow-empty','-m','base');g(a,'push','origin','HEAD:main');
+  g(temp,'clone',remote,'b');fs.writeFileSync(path.join(b,'other.txt'),'other writer');g(b,'add','other.txt');g(b,'-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-m','concurrent writer');g(b,'push','origin','HEAD:main');
+  const sha=await persist(a,{fixture:true});
+  assert.equal(g(a,'rev-parse','HEAD'),sha);assert.equal(g(a,'show','HEAD:other.txt'),'other writer');
+  assert.match(g(a,'diff-tree','--no-commit-id','--name-status','-r',sha),/^A\tresearch\/pickfinder-premium-deep\/.+\/research\.json$/);
+  assert.equal(g(a,'status','--porcelain'),'');
+ }finally{fs.rmSync(temp,{recursive:true,force:true});}
+});

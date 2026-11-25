@@ -22,3 +22,11 @@ class Test(unittest.TestCase):
   self.assertEqual(x["qualified"],0)
   self.assertFalse(x["modelPromoted"])
   self.assertEqual(x["excluded"]["steam_identity_not_corroborated"],1)
+
+ def test_explicit_scope_candidates_for_other_games(self):
+  for league,sport,stat in [("VAL","VALORANT","kills_on_maps_1_2"),("DOTA","DOTA2","last_hits_on_games_1_2"),("LOL","LOL","creep_score_on_game_1"),("COD","COD","deaths_on_map_1")]:
+   row={**self.r,"league":league,"market":{"stat":stat,"period":"full_game"}}
+   self.assertIsNotNone(scope(row,sport))
+   self.assertIsNone(scope({**row,"market":{"stat":"kills","period":"full_game"}},sport))
+  self.assertIsNone(scope({**self.r,"market":{"stat":"kills_on_maps_1_3","period":"full_game"}},"CS2"))
+  self.assertIsNone(scope({**self.r,"market":{"stat":"kills_on_maps_1_2","period":"map 1"}},"CS2"))

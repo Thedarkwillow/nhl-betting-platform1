@@ -30,3 +30,12 @@ test("existing GETODDSAPI alias authenticates without printing the key",async()=
  const r=await run({GETODDSAPI:"synthetic"},async(u,o)=>{calls.push(u);assert.equal(o.headers.Authorization,"Bearer synthetic");return new Response("",{status:401});});
  assert.equal(r.credentialConfigured,true);assert.equal(r.status,"invalid_or_revoked_key");assert.equal(r.dataRequests,0);assert.equal(calls.length,1);assert.equal(JSON.stringify(r).includes("synthetic"),false);
 });
+
+test("stop after first sample if the returned charge or daily allowance changes",async()=>{
+ for(const q of [{"x-requests-used":"2","x-requests-remaining":"98","x-requests-last":"2"},{"x-requests-used":"1","x-requests-remaining":"999","x-requests-last":"1"}]){
+  let calls=0;
+  const mock=async(u)=>{if(u.endsWith("/v4/sports"))return new Response("[]",{headers:{"x-requests-used":"0","x-requests-remaining":"100","x-requests-last":"0"}});if(u.endsWith("/api/mcp"))return new Response("",{status:403});calls++;return new Response(JSON.stringify({data:[]}),{headers:q});};
+  const result=await run({GETODDSAPI:"synthetic",GETODDS_FREE_PLAN_CONFIRMED:"1"},mock);
+  assert.equal(calls,1);assert.equal(result.stoppedAfterSource,"prizepicks");
+ }
+});

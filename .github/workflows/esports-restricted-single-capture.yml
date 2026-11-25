@@ -1,0 +1,102 @@
+name: One bounded restricted esports capture
+on:
+  pull_request:
+    paths: ['scripts/esports-restricted-single-capture.cjs','.github/workflows/esports-restricted-single-capture.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/esports-restricted-single-capture.yml']
+permissions:
+  contents: read
+concurrency:
+  group: esports-restricted-single-capture-20261124
+  cancel-in-progress: false
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/independent-provider-export-v1.test.cjs test/esports-zero-credit-coverage.test.cjs
+      - run: node scripts/esports-restricted-single-capture.cjs preflight
+  capture:
+    needs: preflight
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      RESTRICTED_BRANCH: research/esports-single-capture-20261124
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify destination is private before checkout
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          ref: main
+          path: restricted-archive
+          persist-credentials: false
+      - name: Reserve single attempt and verify private write
+        id: storage
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          cd restricted-archive
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config core.hooksPath /dev/null
+          git switch -c "$RESTRICTED_BRANCH"
+          mkdir esports-single-capture-20261124
+          printf '{"kind":"synthetic_storage_reservation","runId":"%s","paidRequests":0}\n' "$GITHUB_RUN_ID" > esports-single-capture-20261124/reservation.json
+          git add esports-single-capture-20261124/reservation.json
+          git commit -qm 'Reserve one restricted research capture'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet --force-with-lease="refs/heads/$RESTRICTED_BRANCH:" origin "HEAD:refs/heads/$RESTRICTED_BRANCH"
+          remote="$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin "refs/heads/$RESTRICTED_BRANCH" | cut -f1)"
+          test "$remote" = "$(git rev-parse HEAD)"
+          echo "verified=true" >> "$GITHUB_OUTPUT"
+          echo 'Private storage reservation verified.'
+      - name: Single authenticated full-page request
+        if: steps.storage.outputs.verified == 'true'
+        env:
+          UNDERDOG_API_KEY: ${{ secrets.UNDERDOG_API_KEY }}
+          RESTRICTED_STORAGE_PREFLIGHT: verified
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/esports-restricted-single-capture.cjs capture "$RUNNER_TEMP/restricted-esports.json"
+      - name: Persist normalized observations and verify private readback
+        if: steps.storage.outputs.verified == 'true' && always()
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          trap 'rm -f "$RUNNER_TEMP/restricted-esports.json"' EXIT
+          if test ! -f "$RUNNER_TEMP/restricted-esports.json"; then echo 'No capture file; no records stored.'; exit 0; fi
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          cd restricted-archive
+          install -m 600 "$RUNNER_TEMP/restricted-esports.json" esports-single-capture-20261124/normalized.json
+          git add esports-single-capture-20261124/normalized.json
+          git commit -qm 'Store bounded independent research observations'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin "HEAD:refs/heads/$RESTRICTED_BRANCH"
+          remote="$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin "refs/heads/$RESTRICTED_BRANCH" | cut -f1)"
+          test "$remote" = "$(git rev-parse HEAD)"
+          echo 'Restricted normalized capture committed and verified.'

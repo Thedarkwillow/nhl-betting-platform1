@@ -17,6 +17,7 @@ async function nbaSources(root,clock){
   }catch{status[season]='pending';if(prev)out.push(prev.doc);}
  }
  let schedule=null;for(const url of ['https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json','https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json'])try{calls++;const d=await get(url);schedule=nba.schedule(d.doc,now());schedule.sourceResponseSha256=d.digest;save(root,'nba-schedule',schedule);break;}catch{}
+ if(!schedule){try{const at=now(),client=async(...args)=>{calls++;return fetch(...args);};schedule=await require('./nba-official-preview-schedule.cjs').collect(et(at),at,client);save(root,'nba-schedule',schedule);}catch{}}
  return {histories:out,schedule,status,calls};
 }
 function candidates(events,h,schedule,clock){
@@ -52,7 +53,7 @@ function pairedStats(rows){
 }
 async function main(root){
  const clock=now(),revision=git(root,['rev-parse','HEAD']),archive=load(root),a=analyze(archive,clock);a.summary.researchCoverage=coverage(root);
- const src=await nbaSources(root,clock);a.summary.nbaOfficialSources={history:src.status,schedule:!!src.schedule,requests:src.calls};
+ const src=await nbaSources(root,clock);a.summary.nbaOfficialSources={history:src.status,schedule:!!src.schedule,scheduleSource:src.schedule?.source||null,requests:src.calls};
  let rows=[];if(src.histories.length&&src.schedule){const h=nba.indexHistory(src.histories),at=now(),c=candidates(a.events,h,src.schedule,at);save(root,'nba-identity-candidates',{kind:'public_nba_identity_candidates_v1',generatedAt:at,rows:c});a.summary.nbaIdentityCandidates={events:c.length,exactNameCandidates:c.reduce((s,x)=>s+x.exactNameCandidates,0),uniqueScheduleCandidates:c.filter(x=>x.possibleGames.length===1).length,reviewed:false};
  // Historical walk-forward evaluation of existing model only; not a new feature qualification.
  a.summary.nbaRetrospective=nba.backtest(h);

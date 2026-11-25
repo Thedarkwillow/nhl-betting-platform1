@@ -52,9 +52,10 @@ jobs:
           git config user.name 'Public identity research'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -qm 'Archive independent public identity and final evidence'
+          original_commit=$(git rev-parse HEAD)
           for i in 1 2 3 4 5 6; do
             git fetch --quiet origin main
-            git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
+            git rebase --quiet FETCH_HEAD || { git rebase --abort; break; }
             if git push --quiet origin HEAD:main; then
               git fetch --quiet origin main
               git merge-base --is-ancestor HEAD FETCH_HEAD
@@ -62,4 +63,11 @@ jobs:
             fi
             sleep "$((2*i))"
           done
+          # Preserve the original authorized public evidence when main is contended.
+          # Do not force-push or report a main archive as successful.
+          recovery_ref="refs/heads/recovery/public-identity-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git push --quiet origin "$original_commit:$recovery_ref"
+          remote_sha=$(git ls-remote origin "$recovery_ref" | cut -f1)
+          test "$remote_sha" = "$original_commit"
+          echo "Public evidence preserved at $recovery_ref ($original_commit); main reconciliation still required" >> "$GITHUB_STEP_SUMMARY"
           exit 1

@@ -1,0 +1,49 @@
+name: Pinned NBA opening and closing line research
+on:
+  pull_request:
+    paths: ['scripts/nba_pinned_open_close_audit.py','test/test_nba_pinned_open_close_audit.py','.github/workflows/nba-pinned-open-close-audit.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/nba_pinned_open_close_audit.py','test/test_nba_pinned_open_close_audit.py','.github/workflows/nba-pinned-open-close-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s test -p test_nba_pinned_open_close_audit.py
+  replay:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: d02aa363ebbfbf5619411cf46a01efcd5ddc6299
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: restricted
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyarrow==19.0.1
+      - name: Run pinned retrospective evaluation, aggregate results only
+        run: |
+          umask 077
+          log="$RUNNER_TEMP/nba-open-close.log"
+          python scripts/nba_pinned_open_close_audit.py restricted/outputs/nba/research/pinnacle-2026-10-24-to-31-nba.csv > "$log" 2>&1 || { echo 'Pinned evaluation failed closed; raw diagnostics withheld'; exit 1; }
+          python - "$log" <<'PY'
+          import json,sys
+          x=json.load(open(sys.argv[1]))
+          assert x["kind"]=="nba_pinned_open_close_research_v1" and x["rawRowsPublished"]==0 and x["freezeApproved"] is False
+          print(json.dumps(x))
+          PY

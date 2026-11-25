@@ -62,7 +62,7 @@ jobs:
           assert len(m)==1, "Independent overlap audit did not complete"
           print(json.dumps(m[0]))
           for r in rows:
-              if r.get('kind')=='esports_identity_registry_v1':print(json.dumps(r))
+              if r.get('kind') in ('esports_identity_registry_v1','cs2_native_namespace_audit_v1','cs2_native_headshot_research_v1'):print(json.dumps(r))
           PY
       - name: Commit evidence and rebuild cumulative private registry
         env:

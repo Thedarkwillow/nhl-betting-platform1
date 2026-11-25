@@ -46,10 +46,11 @@ def build(documents):
         agree=[(i,r) for i,r in rs if r["method"]=="exact_demo_boxscore_alias"]
         conflicts=[i for i,r in rs if r["method"]=="explicit_alias_conflict"]
         maps={tuple(r["sourceEvents"]) for i,r in agree}
+        independent_maps=min(len({m[0] for m in maps}),len({m[1] for m in maps}))
         # Conservative: repeated map evidence still requires independent authoritative review.
-        status="conflict" if conflicts or len(neighbors[a,b[1]])>1 or len(neighbors[b,a[1]])>1 else "multi_map_candidate" if len(maps)>=2 else "single_map_candidate" if maps else "stat_only_candidate"
+        status="conflict" if conflicts or len(neighbors[a,b[1]])>1 or len(neighbors[b,a[1]])>1 else "multi_map_candidate" if independent_maps>=2 else "single_map_candidate" if maps else "stat_only_candidate"
         counts[status]+=1
-        links.append({"left":list(a),"right":list(b),"status":status,"exactAliasMapCount":len(maps),"evidenceIds":[i for i,_ in rs],"authoritativeVerified":False,"productionEligible":False})
+        links.append({"left":list(a),"right":list(b),"status":status,"exactAliasMapCount":independent_maps,"evidenceIds":[i for i,_ in rs],"authoritativeVerified":False,"productionEligible":False})
     return {"kind":"esports_identity_registry_v1","evidenceCount":len(rows),"counts":dict(counts),"rejected":dict(rejected),"links":links,"authoritativeLinks":0,"productionEligible":False,"rawRowsPublished":0}
 def write_exclusive(path,doc):
     import os

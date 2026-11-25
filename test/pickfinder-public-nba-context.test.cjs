@@ -6,3 +6,13 @@ const archive={latest:[{offers:[o,{...o,detailId:o.detailId.replace(/5$/,'6')}]}
 test('deduplicates player event across lines and books',()=>{const q=queue(archive,[],at);assert.equal(q.total,1);assert.equal(q.offerReferences,3);assert.equal(q.pending.length,1)});
 test('explicit context only with labeled player route, distinct teams and timezone-aware future game clock',()=>{const target=queue(archive,[],at).pending[0];const s={routeVerified:true,playerLabelVerified:true,entries:[{label:'Team',value:'BOS'},{label:'Opponent',value:'NYK'}],clocks:[{label:'Game start',value:start}]};const x=normalize(target,s,at);assert.equal(x.state,'explicit_context_observed');assert.equal(x.independentReviewVerified,false);assert.equal(queue(archive,[{schema:'pickfinder-public-nba-context-v1',records:[x]}],at).pending.length,0);assert.equal(normalize(target,{...s,clocks:[{label:'Game start',value:'7:00 PM'}]},at).state,'context_incomplete');assert.equal(normalize(target,{...s,playerLabelVerified:false},at).state,'context_incomplete')});
 test('conflicting clocks and labels remain incomplete',()=>{const t=queue(archive,[],at).pending[0];assert.equal(normalize(t,{routeVerified:true,playerLabelVerified:true,entries:[{label:'Team',value:'BOS'},{label:'Team',value:'NYK'},{label:'Opponent',value:'PHI'}],clocks:[{label:'Game time',value:start}]},at).state,'context_incomplete')});
+
+test('archived local clock is preserved but never promoted to UTC',()=>{
+ const target=queue(archive,[],at).pending[0];
+ const snap={routeVerified:true,playerLabelVerified:true,entries:[{label:'Team',value:'BOS'},{label:'Opponent',value:'NYK'},{label:'Matchup',value:'BOS @ NYK • Thu @ 12:00AM'}],clocks:[]};
+ const x=normalize(target,snap,at);
+ assert.equal(x.state,'context_incomplete');assert.equal(x.startAt,null);
+ assert.equal(x.clockEvidenceState,'local_clock_zone_unverified');
+ assert.deepEqual(x.localMatchup,{team:'BOS',opponent:'NYK',homeAway:'away',weekday:'Thu',hour:12,minute:0,dayPeriod:'AM'});
+ assert.equal(normalize(target,{...snap,entries:[...snap.entries,{label:'Matchup',value:'BOS vs NYK • Wed @ 7:00PM'}]},at).localMatchup,null);
+});

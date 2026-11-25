@@ -6,6 +6,9 @@ on:
       - 'assets/public-multi-sport-sprint.js'
       - 'assets/lineup-workspace.js'
       - 'src/**'
+      - 'scripts/esports_context_models.py'
+      - 'scripts/reconcile-nba-dated-injury-cohort.py'
+      - 'scripts/public-workflow-migration-inventory.cjs'
       - 'test/**'
       - '.github/workflows/public-evidence-offline.yml'
   workflow_dispatch:
@@ -49,5 +52,10 @@ jobs:
         run: |
           node --test test/independent-provider-export-v1.test.cjs test/esports-zero-credit-coverage.test.cjs test/nhl-lineup-evidence-release-v1.test.cjs test/lineup-reference-payout-bounds.test.cjs test/nhl-lineup-slate-resampling.test.cjs test/nba-fixed-holdout-gate-v1.test.cjs
           node scripts/test-lineup-workspace.cjs
+      - name: Exercise historical esports and NBA identity diagnostics
+        run: |
+          python3 -m unittest discover -s test -p test_esports_context_models.py
+          python3 -m unittest discover -s test -p test_nba_dated_injury_cohort.py
+          node --check src/nhl-standard-forward-scoreboard.cjs
       - name: Inventory private-dependent workflows without checking out private source
         run: node scripts/public-workflow-migration-inventory.cjs

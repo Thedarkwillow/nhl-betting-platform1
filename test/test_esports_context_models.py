@@ -7,6 +7,7 @@ class Tests(unittest.TestCase):
   rows=[dict(event=str(i),player="p",date=f"2026-01-{i:02d}",mode="HP",edition="BO7",kills=i) for i in range(1,11)]
   r=evaluate(rows,["kills"],["mode"],["edition"])
   self.assertEqual(r["groups"]["mode|kills"]["n"],2)
+  self.assertAlmostEqual(r["groups"]["mode|kills"]["fixedRecentContextMAE"],3.0)
   self.assertFalse(r["prospectiveApproval"])
   rows[-1]["edition"]="BO6"
   self.assertEqual(evaluate(rows,["kills"],["mode"],["edition"])["groups"]["mode|kills"]["n"],1)

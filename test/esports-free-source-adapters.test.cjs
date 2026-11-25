@@ -48,3 +48,14 @@ test("GRID permission alone still preserves zero-charge gate",async()=>{
  const g=await collectGrid({GRID_API_KEY:"test",GRID_BETTING_DATA_AUTHORIZED:"1"},()=>{throw Error("must not call");});
  assert.equal(g.report.requests,0);assert.equal(g.report.authorizedNoCharge,false);
 });
+
+test("GRID historical title rotation and completed-ID exclusion use private archives",()=>{
+ const fs=require("node:fs"),os=require("node:os"),path=require("node:path"),{gridHistoryPlan}=require("../scripts/esports-free-source-adapters.cjs");
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),"grid-plan-")),dir=path.join(root,"research/esports-free-providers");fs.mkdirSync(dir,{recursive:true});
+ try{
+  const first=gridHistoryPlan(root,now);assert.equal(first.queryPlan.title,"CS2");assert.equal(first.queryPlan.titleId,"28");assert.ok(Date.parse(first.queryPlan.to)<now);
+  const save=(name,queryPlan)=>fs.writeFileSync(path.join(dir,name),JSON.stringify({kind:"restricted_esports_free_provider_observations_v1",grid:{queryPlan,attemptedSeriesIds:["attempt"],finals:[{providerReportedSeriesFinal:true,fixture:{providerSeriesId:"final"}}]}}));
+  save("100-1.json",first.queryPlan);const next=gridHistoryPlan(root,now);assert.equal(next.queryPlan.title,"DOTA2");assert.ok(next.done.has("final"));assert.ok(next.attempted.has("attempt"));
+  save("101-1.json",{...next.queryPlan,title:"LOL",titleId:"3"});const back=gridHistoryPlan(root,now);assert.equal(back.queryPlan.title,"CS2");assert.equal(back.queryPlan.week,1);assert.equal(back.queryPlan.to,first.queryPlan.from);
+ }finally{fs.rmSync(root,{recursive:true,force:true});}
+});

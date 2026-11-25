@@ -72,6 +72,25 @@ def load_pinned_history():
         matches=[x for x in z.infolist() if x.filename.split("/")[-1]=="cs2_all_tiers_games.csv"]
         if len(matches)!=1 or matches[0].file_size>80_000_000:raise ValueError("archive_contract")
         with z.open(matches[0]) as f:rows,report=parse(csv.DictReader(io.TextIOWrapper(f,encoding="utf-8-sig",newline="")))
+        directory=[x for x in z.infolist() if x.filename.split("/")[-1]=="players.csv"]
+        if len(directory)==1 and directory[0].file_size<=4_000_000:
+            with z.open(directory[0]) as f:
+                reader=csv.DictReader(io.TextIOWrapper(f,encoding="utf-8-sig",newline=""))
+                cols=reader.fieldnames or []
+                ps=list(reader)
+            # Inspect the source directory, not an assumed HLTV or Steam namespace.
+            # Public report has schema and aggregate overlap only.
+            id_col=next((x for x in ("player_id","id") if x in cols),None)
+            name_col=next((x for x in ("player_name","name","nickname","player") if x in cols),None)
+            native=defaultdict(set)
+            if id_col and name_col:
+                for p in ps:
+                    try:native[ident(p[id_col])].add(p[name_col].strip().casefold())
+                    except (ValueError,AttributeError,TypeError):continue
+            hist=defaultdict(set)
+            for q in rows:hist[q["player"].split(":",1)[1]].add(q["alias"].casefold())
+            explicit=[c for c in cols if re.search(r"steam|hltv|bo3|liquipedia|provider|source|url",c,re.I)]
+            report["nativeDirectoryAudit"]={"rows":len(ps),"columns":cols,"nativeIdColumn":id_col,"nativeNameColumn":name_col,"idOverlap":len(set(native)&set(hist)),"exactAliasOverlap":sum(bool(v&native.get(k,set())) for k,v in hist.items()),"explicitNamespaceColumns":explicit,"establishedProviderNamespaceVerified":False}
     return rows,report
 def main():
     try:

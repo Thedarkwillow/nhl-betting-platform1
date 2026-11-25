@@ -171,6 +171,9 @@ function study(rows){
     challengerMinusChampion:pct(modelHit-baselineHit,n),
     championBrier:champion.brier,challengerBrier:model.brier,
     championLogLoss:champion.logLoss,challengerLogLoss:model.logLoss,
+    neutralProbabilityBrier:n?0.25:null,neutralProbabilityLogLoss:n?Math.log(2):null,
+    challengerBrierSkillVsNeutral:n?Number((1-model.brier/0.25).toFixed(6)):null,
+    challengerBeatsBothConstantDirections:n?modelHit>Math.max(higher,lower):null,
     challengerHigherProbabilityReliability:reliability,
     pairedGameClusterBootstrap:bootstrap,
     changedDirectionOnlyCorrect:matched.filter(r=>

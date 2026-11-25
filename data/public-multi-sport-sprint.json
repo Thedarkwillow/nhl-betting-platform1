@@ -1,6 +1,6 @@
 {
   "kind": "public_multi_sport_sprint_evidence_v1",
-  "asOf": "2026-11-25T02:23:36Z",
+  "asOf": "2026-11-25T03:11:02Z",
   "rawRowsPublished": 0,
   "paidRequests": 0,
   "modelPromoted": false,
@@ -26,7 +26,7 @@
     },
     {
       "sport": "CS2",
-      "description": "102,900 source-local player-map records, 10,290 maps. Repaired team context yields 17,520 retrospective test observations per market; opponent-adjusted MAE improves kills, deaths and assists. Separate Steam-native headshot cohort is not added to this total. No authoritative cross-provider player link or original-line approval.",
+      "description": "102,900 source-local player-map records, 10,290 maps. Repaired team context yields 17,520 retrospective test observations per market; opponent-adjusted MAE improves kills, deaths and assists. Separate Steam-native headshot cohort is not added to this total. No authoritative cross-provider player link or original-line approval. Independent demo/Kaggle audit: 17 conflicts, 3 single-map candidates, zero authoritative links; 15 token-boundary alias conflicts and one adjacent-date map diagnostic. Regulation-only headshot fixed recent blend MAE 2.361 vs 2.375 over 324 observations; original cohort did not improve.",
       "historicalRows": 102900
     },
     {
@@ -46,7 +46,7 @@
     },
     {
       "sport": "Call of Duty",
-      "description": "Separate 2026 bounded sample: 187 complete maps, 1,496 valid player-map rows across 15 dates. Mode-conditioned kills MAE 5.56 vs last-20 8.93; deaths MAE 5.07 vs 8.64, 304 matched observations per market. 2025 cohort (125 maps) and 2019 baseline remain separate.",
+      "description": "Separate March 2026 bounded sample: 187 complete maps, 1,496 valid player-map rows across 13 dates. Mode-conditioned kills MAE 5.65 vs last-20 8.59; deaths MAE 5.01 vs 8.26, 388 matched observations per market. Prior cohorts remain separate.",
       "historicalRows": 1496
     },
     {
@@ -110,6 +110,22 @@
         "n": 304,
         "baselineMAE": 8.635056390977443,
         "contextMAE": 5.073867169721778
+      },
+      {
+        "sport": "Call of Duty",
+        "cohort": "March 2026",
+        "metric": "kills",
+        "n": 388,
+        "baselineMAE": 8.593788056912038,
+        "contextMAE": 5.645577530430977
+      },
+      {
+        "sport": "Call of Duty",
+        "cohort": "March 2026",
+        "metric": "deaths",
+        "n": 388,
+        "baselineMAE": 8.263765298125033,
+        "contextMAE": 5.006725203845396
       }
     ],
     "independentCoverage": {
@@ -167,7 +183,11 @@
       "status": "research_candidates_only",
       "authoritativeLinks": 0,
       "productionEligible": false,
-      "sourceIdsRemainSeparate": true
+      "sourceIdsRemainSeparate": true,
+      "conflicts": 17,
+      "singleMapCandidates": 3,
+      "adjacentDateMapDiagnostics": 1,
+      "tokenBoundaryConflicts": 15
     }
   },
   "validationRuns": {
@@ -175,9 +195,11 @@
     "cs2AndExport": 45511373328,
     "codAndNhl": 45511373767,
     "coverage": 45511373750,
-    "nbaPrimary": 45532337782,
+    "nbaPrimary": 45536754860,
     "apiArchive": 45532337675,
     "cs2Context": 45532260719,
-    "nhlLag": 45532337668
+    "nhlLag": 45532337668,
+    "cs2Registry": 45536754858,
+    "codMarch": 45536754897
   }
 }

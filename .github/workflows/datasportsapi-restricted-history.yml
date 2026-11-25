@@ -4,7 +4,7 @@ on:
     paths: ['scripts/datasportsapi_restricted_history.py','test/test_datasportsapi_restricted_history.py','scripts/datasportsapi_esports_preflight.py','.github/workflows/datasportsapi-restricted-history.yml']
   push:
     branches: [main]
-    paths: ['.github/workflows/datasportsapi-restricted-history.yml']
+    paths: ['.github/workflows/datasportsapi-restricted-history.yml','scripts/datasportsapi_restricted_history.py']
   schedule:
     - cron: '15 14 * * *'
   workflow_dispatch:
@@ -58,7 +58,7 @@ jobs:
         env:
           DATASPORTSAPI_API_KEY: ${{ secrets.DATASPORTSAPI || secrets.DATASPORTSAPI_API_KEY }}
           DATASPORTS_PREVIOUS_ARCHIVE: restricted/research/datasportsapi-esports-history
-          DATASPORTS_HISTORY_DAYS: ${{ github.event_name == 'schedule' && '2' || '7' }}
+          DATASPORTS_HISTORY_DAYS: ${{ github.event_name == 'workflow_dispatch' && '7' || '2' }}
           DATASPORTS_RESTRICTED_OUTPUT: ${{ runner.temp }}/datasportsapi-history.json
         run: python3 scripts/datasportsapi_restricted_history.py
       - name: Store privately without public artifacts

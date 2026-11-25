@@ -4,7 +4,7 @@ on:
     paths: ['scripts/esports-prospective-archive.cjs','test/esports-prospective-archive.test.cjs','.github/workflows/esports-prospective-private.yml']
   push:
     branches: [main]
-    paths: ['.github/workflows/esports-prospective-private.yml']
+    paths: ['.github/workflows/esports-prospective-private.yml','scripts/esports-prospective-archive.cjs','test/esports-prospective-archive.test.cjs']
   workflow_dispatch:
   schedule:
     - cron: '35 6,9,12,16 * * *'

@@ -44,6 +44,20 @@ jobs:
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           path: restricted
           persist-credentials: false
+      - name: Choose bounded research target
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = schedule ]; then
+            targets=(underdog:NHL prizepicks:NHL underdog:NFL prizepicks:NFL underdog:CS2 prizepicks:CS2 underdog:NBA prizepicks:NBA)
+            index=$(( $(date -u +%s) / 86400 % 8 ))
+            target="${targets[$index]}"
+          else
+            target=underdog:NHL
+          fi
+          echo "GETODDS_TARGET_SOURCE=${target%:*}" >> "$GITHUB_ENV"
+          echo "GETODDS_TARGET_LEAGUE=${target#*:}" >> "$GITHUB_ENV"
       - name: Report sanitized account metadata only unless confirmed free
         env:
           GETODDS_API_KEY: ${{ secrets.GETODDSAPI || secrets.GETODDS_API_KEY || secrets.GETODDS_API }}

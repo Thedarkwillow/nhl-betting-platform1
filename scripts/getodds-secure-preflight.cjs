@@ -134,11 +134,17 @@ async function run(env=process.env,fetcher=fetch,archive=null,review=null){
   report.status="data_probe_blocked_free_allowance_not_proven";
   return report;
  }
+ const targetSource=env.GETODDS_TARGET_SOURCE, targetLeague=env.GETODDS_TARGET_LEAGUE;
+ if((targetSource&&!SOURCES.includes(targetSource))||(targetLeague&&(!targetSource||!["NBA","NHL","NFL","CS2"].includes(targetLeague)))){
+  report.status="invalid_target_no_data_requests";return report;
+ }
+ const sources=targetSource?[targetSource]:SOURCES;
+ report.target={source:targetSource||null,league:targetLeague||null};
  let q=meta.quota;const rows=[];
  report.freePlanConfirmed=env.GETODDS_FREE_PLAN_CONFIRMED==="1";
- for(const source of SOURCES){
+ for(const source of sources){
   if(q.remaining===null||q.remaining<1||q.used===null||q.remaining+q.used!==100){report.sources[source]={status:"quota_guard"};break;}
-  try{const before=q;report.dataRequests++;const r=await bounded("/api/v1/markets?source="+source+"&limit=5",key,fetcher);
+  try{const before=q;report.dataRequests++;const r=await bounded("/api/v1/markets?source="+source+"&limit=5"+(targetLeague?"&league="+encodeURIComponent(targetLeague):""),key,fetcher);
    report.sources[source]={httpStatus:r.status,quota:r.quota,status:r.status===403?"source_grant_denied":r.status===401?"invalid_or_revoked_key":r.status===429?"quota_exhausted":r.status===200?"source_response_received":"source_unavailable",sample:r.status===200?summarize(source,r.body):null};
    if(r.status===200)rows.push(...observations(source,r.body));
    if(r.status===401||r.status===429||r.quota.last!==null&&r.quota.last>1){report.stoppedAfterSource=source;break;}

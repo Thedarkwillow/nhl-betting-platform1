@@ -1,0 +1,65 @@
+{
+  "kind": "public_prizepicks_model_ranking_v1",
+  "generatedAt": "2026-11-25T16:34:51.340Z",
+  "rows": [],
+  "bySport": {
+    "nba": {
+      "freshOffers": 0,
+      "archivedModelRows": 0,
+      "rankedRows": 0,
+      "reason": "no_fresh_clock_verified_offers"
+    },
+    "nhl": {
+      "freshOffers": 0,
+      "archivedModelRows": 0,
+      "rankedRows": 0,
+      "reason": "no_public_model_adapter_output"
+    },
+    "nfl": {
+      "freshOffers": 0,
+      "archivedModelRows": 0,
+      "rankedRows": 0,
+      "reason": "no_public_model_adapter_output"
+    },
+    "cs2": {
+      "freshOffers": 0,
+      "archivedModelRows": 0,
+      "rankedRows": 0,
+      "reason": "no_public_model_adapter_output"
+    },
+    "valorant": {
+      "freshOffers": 0,
+      "archivedModelRows": 0,
+      "rankedRows": 0,
+      "reason": "no_public_model_adapter_output"
+    },
+    "dota2": {
+      "freshOffers": 0,
+      "archivedModelRows": 0,
+      "rankedRows": 0,
+      "reason": "no_public_model_adapter_output"
+    },
+    "lol": {
+      "freshOffers": 0,
+      "archivedModelRows": 0,
+      "rankedRows": 0,
+      "reason": "no_public_model_adapter_output"
+    },
+    "cod": {
+      "freshOffers": 0,
+      "archivedModelRows": 0,
+      "rankedRows": 0,
+      "reason": "no_public_model_adapter_output"
+    }
+  },
+  "excluded": {},
+  "archivedForecastFrames": 1,
+  "archivedGradeFrames": 0,
+  "modelApproved": false,
+  "calibrated": false,
+  "originalPlatformVerified": false,
+  "paidRequests": 0,
+  "privateRepoUsed": false,
+  "source": "authorized PickFinder sporting evidence + existing frozen NBA model receipts",
+  "researchOnly": true
+}

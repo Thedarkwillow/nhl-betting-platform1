@@ -1,0 +1,57 @@
+name: Targeted public NBA player event context
+on:
+  pull_request:
+    paths: ['scripts/pickfinder-public-nba-context.cjs','scripts/pickfinder-public-runner.cjs','test/pickfinder-public-nba-context.test.cjs','.github/workflows/pickfinder-public-nba-context.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '5 7 * * *'
+      timezone: America/Los_Angeles
+    - cron: '5 10 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('pickfinder-nba-context-ci-{0}',github.event.pull_request.number) || 'pickfinder-hosted-capture' }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/pickfinder-public-nba-context.test.cjs test/pickfinder-public-runner.test.cjs
+  collect:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public-source
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          path: public-archive
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned browser
+        run: |
+          npm install --prefix "$RUNNER_TEMP/pickfinder-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          "$RUNNER_TEMP/pickfinder-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Capture targeted source context
+        env:
+          REQUESTED_MODE: nba_context_only
+          PICKFINDER_PUBLIC_DATA_AUTHORIZED: '1'
+          PICKFINDER_AUTOMATION_AUTHORIZED: ${{ vars.PICKFINDER_AUTOMATION_AUTHORIZED }}
+          PICKFINDER_EMAIL: ${{ secrets.PICKFINDER_EMAIL }}
+          PICKFINDER_PASSWORD: ${{ secrets.PICKFINDER_PASSWORD }}
+          PICKFINDER_STORAGE_STATE: ${{ secrets.PICKFINDER_STORAGE_STATE }}
+          NODE_PATH: ${{ runner.temp }}/pickfinder-deps/node_modules
+        run: node public-source/scripts/pickfinder-public-runner.cjs public-archive

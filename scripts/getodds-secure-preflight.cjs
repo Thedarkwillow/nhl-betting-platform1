@@ -100,6 +100,23 @@ function compareCandidates(rows,review){
 function quotaTransition(before,after){
  return freeBudget(after,true)&&before.used!==null&&before.remaining!==null&&after.used>=before.used&&after.used-before.used<=1&&before.remaining-after.remaining===after.used-before.used;
 }
+function inspectContract(doc){
+ const paths=doc?.paths;
+ if(!paths||typeof paths!=="object")return {status:"unrecognized_contract"};
+ const route=paths["/api/v1/markets"]||paths["/markets"];
+ const parameters=[...(Array.isArray(route?.parameters)?route.parameters:[]),...(Array.isArray(route?.get?.parameters)?route.get.parameters:[])];
+ const names=new Set(parameters.filter(x=>x?.in==="query").map(x=>x.name));
+ const possible=Object.keys(paths).filter(x=>/history|result|score|coverage|training/i.test(x));
+ return {status:"contract_received",gatewayDocumented:!!route?.get,leagueFilterDocumented:names.has("league"),sportFilterDocumented:names.has("sport"),historyRoutes:possible.filter(x=>/history/i.test(x)).length,resultRoutes:possible.filter(x=>/result|score/i.test(x)).length,sourceSpecificPickemHistoryRoutes:possible.filter(x=>/prizepicks|underdog/i.test(x)).length,historyEntitlementVerified:false};
+}
+async function publicContract(fetcher=fetch){
+ try{const r=await fetcher(ROOT+"/openapi.json",{headers:{Accept:"application/json"},redirect:"error",signal:AbortSignal.timeout(15000)});
+ if(!r.ok)return {status:"unavailable",httpStatus:r.status};
+ const reader=r.body.getReader(),chunks=[];let size=0;
+ try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>2000000){await reader.cancel();return {status:"contract_bound_exceeded"};}chunks.push(Buffer.from(value));}}finally{reader.releaseLock();}
+ return inspectContract(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+ }catch{return {status:"unavailable"};}
+}
 async function run(env=process.env,fetcher=fetch,archive=null,review=null){
  const key=env.GETODDSAPI||env.GETODDS_API_KEY||env.GETODDS_API;
  const report={kind:"getodds_secure_account_preflight_v1",observedAt:new Date().toISOString(),credentialConfigured:!!key,metadataRequests:0,dataRequests:0,paidRequestsAuthorized:false,originalOperatorVerified:false,rawRowsPublished:0,sources:{}};
@@ -138,7 +155,8 @@ async function run(env=process.env,fetcher=fetch,archive=null,review=null){
 if(require.main===module){
  const archive=[],dest=process.env.GETODDS_PRIVATE_REPORT_PATH,reviewPath=process.env.GETODDS_PRIVATE_CANDIDATE_PATH;
  let review=null;try{if(reviewPath)review=JSON.parse(fs.readFileSync(reviewPath,"utf8"));}catch{}
- run(process.env,fetch,archive,review).then(x=>{
+ run(process.env,fetch,archive,review).then(async x=>{
+ x.publicContract=await publicContract();
  if(dest){const payload={kind:"restricted_getodds_observations_v1",report:x,observations:archive,modelEligible:false,originalOperatorVerified:false};fs.writeFileSync(dest,JSON.stringify(payload,null,2)+"\n",{flag:"wx",mode:0o600});}
  console.log(JSON.stringify(x));}).catch(()=>{console.log(JSON.stringify({kind:"getodds_secure_account_preflight_v1",status:"unexpected_failure"}));process.exitCode=1;});}
-module.exports={quota,freeBudget,summarize,run,mcpMetadata,observations,compareCandidates,quotaTransition};
+module.exports={quota,freeBudget,summarize,run,mcpMetadata,observations,compareCandidates,quotaTransition,inspectContract};

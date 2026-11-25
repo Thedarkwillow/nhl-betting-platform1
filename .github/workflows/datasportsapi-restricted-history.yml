@@ -11,7 +11,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: datasportsapi-esports-preflight
+  group: ${{ github.event_name == 'pull_request' && format('datasportsapi-history-pr-{0}', github.event.pull_request.number) || 'datasportsapi-esports-preflight' }}
   cancel-in-progress: false
 jobs:
   test:

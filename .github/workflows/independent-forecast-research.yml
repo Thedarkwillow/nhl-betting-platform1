@@ -44,5 +44,9 @@ jobs:
           sparse-checkout: |
             outputs/nba/history
             outputs/esports/authorized-map-statistics
+            outputs/esports/authorized-original-offers
+            outputs/esports/prospective-frozen
       - name: Run aggregate historical challenger only
         run: node public/scripts/independent-chronological-challenger.cjs archive
+      - name: Audit genuine immutable esports forecasts and independent grading evidence
+        run: node public/scripts/esports-prospective-archive.cjs archive audit

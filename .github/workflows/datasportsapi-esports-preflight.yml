@@ -1,0 +1,34 @@
+name: DataSportsAPI esports connection check
+on:
+  pull_request:
+    paths: ['scripts/datasportsapi_esports_preflight.py','test/test_datasportsapi_esports_preflight.py','.github/workflows/datasportsapi-esports-preflight.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/datasportsapi_esports_preflight.py','.github/workflows/datasportsapi-esports-preflight.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: datasportsapi-esports-preflight
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s test -p test_datasportsapi_esports_preflight.py
+  preflight:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check authenticated free endpoint coverage (aggregate only)
+        env:
+          DATASPORTSAPI_API_KEY: ${{ secrets.DATASPORTSAPI_API_KEY }}
+        run: python3 scripts/datasportsapi_esports_preflight.py

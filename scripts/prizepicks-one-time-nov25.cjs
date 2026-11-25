@@ -14,7 +14,7 @@ async function capture(key,client=fetch,clock=()=>new Date().toISOString()){
   attempts++;
   try{
    const url=new URL("https://prizepicksapi.com/api/v1/projections");
-   url.search=new URLSearchParams({league,view:"compact",limit:"1000"});
+   url.search=new URLSearchParams({league,view:"compact",limit:"1000",start_after:new Date(Date.parse(clock())+900001).toISOString()});
    const response=await client(url.toString(),{headers:{Authorization:"Bearer "+key,Accept:"application/json","X-User-Request":"Owner-authorized one-time November 25 sports research capture"},redirect:"error",signal:AbortSignal.timeout(25000)});
    if(!response.ok){results.push({league,status:"http_failure",http:response.status});break;}
    const usage=quota(response.headers);
@@ -27,7 +27,7 @@ async function capture(key,client=fetch,clock=()=>new Date().toISOString()){
    if(!Array.isArray(doc.data)||doc.data.length>1000)throw Error("row_limit");
    const normalized=prizepicksCompact(doc,clock());
    const accepted=normalized.rows.filter(x=>x.sport===league).length;
-   results.push({league,status:"normalized_observations",received:doc.data.length,accepted,excluded:normalized.excluded,completeBoard:normalized.completePage,observedAt:typeof doc.meta.observed_at==="string"&&Number.isFinite(Date.parse(doc.meta.observed_at))?new Date(doc.meta.observed_at).toISOString():null,remainingRequests:remaining});
+   results.push({league,status:accepted>0?"normalized_observations":doc.data.length?"all_rows_rejected":"empty_page",received:doc.data.length,accepted,excluded:normalized.excluded,completeBoard:normalized.completePage,observedAt:typeof doc.meta.observed_at==="string"&&Number.isFinite(Date.parse(doc.meta.observed_at))?new Date(doc.meta.observed_at).toISOString():null,remainingRequests:remaining});
   }catch{results.push({league,status:"transport_or_schema_failure"});break;}
  }
  return {kind:"prizepicks_one_time_20261125",coverageCalls:1,projectionAttempts:attempts,remainingAfterLastVerifiedResponse:remaining,results,rawRowsPublished:0,rawRowsPersisted:0,originalOffersVerified:0,modelPromoted:false};

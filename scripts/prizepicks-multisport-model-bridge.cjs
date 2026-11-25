@@ -24,7 +24,7 @@ function match(row,ctx,clock){
 }
 function crosscheck(row,side,tier,s,archive,clock){
  const at=dt(clock),p=s.pickfinder;
- if(!p||!p.detailId||!p.eventId||!p.market||!p.player||p.reviewed!==true)return {pickfinderCorroborated:false,matchedSportsbooks:0,marketBenchmark:null};
+ if(!p||!p.detailId||!p.eventId||!p.market||!p.player||p.reviewed!==true||norm(p.apiStat)!==norm(row.stat)||norm(p.apiPeriod)!==norm(row.period))return {pickfinderCorroborated:false,matchedSportsbooks:0,marketBenchmark:null};
  const a=archive.latest.filter(b=>b.m.sport===row.sport.toLowerCase()&&b.m.book==='prizepicks'&&dt(b.first)<=at).flatMap(b=>(b.offers||[]).filter(o=>o.book==='prizepicks'&&o.detailId===p.detailId&&o.eventId===p.eventId&&o.player===p.player&&o.market===p.market&&(o.period??null)===(p.period??null)&&(o.mapRange??null)===(p.mapRange??null)&&(o.gameMode??null)===(p.gameMode??null)&&o.line===row.line&&o.side===side&&o.tier===tier&&dt(o.startAt)===dt(row.startsAt)&&fresh(o.observedAt,at,300000)&&Math.abs(dt(o.observedAt)-dt(row.observedAt))<=300000).map(o=>({o,b})));
  const q=a.length===1?quotes(a[0].o,a[0].b.sportsbookQuotes||[],clock):[];
  return {pickfinderCorroborated:a.length===1,matchedSportsbooks:q.length,marketBenchmark:q.length?q.reduce((n,x)=>n+(side==='Higher'?x.higher:1-x.higher),0)/q.length:null};
@@ -32,7 +32,7 @@ function crosscheck(row,side,tier,s,archive,clock){
 function project(row,s,clock){
  const cut=dt(row.observedAt);
  if(row.sport==='NHL'){
-  const metric=nhlMarkets[norm(row.stat)];if(!metric||!full(row.period)||!s.history||s.history.playerId!==s.playerId||norm(s.history.team)!==norm(s.team)||norm(s.history.name)!==norm(s.name)||!Array.isArray(s.history.games))return null;
+  const metric=nhlMarkets[norm(row.stat)];if(!metric||!full(row.period)||!s.history||s.history.playerId!==s.playerId||norm(s.history.team)!==norm(s.team)||norm(s.history.name)!==norm(s.name)||!Array.isArray(s.history.games)||!['skater','goalie'].includes(s.history.type))return null;
   // A goalie needs independently reviewed pregame starter status.
   if(metric==='saves'&&s.starterVerified!==true)return null;
   const games=s.history.games.filter(g=>g.finalVerified===true&&Number.isFinite(dt(g.knownAt))&&dt(g.knownAt)<=cut&&/^\d{4}-\d{2}-\d{2}$/.test(g.gameDate)&&g.gameDate<row.observedAt.slice(0,10)&&Number.isInteger(g.gameId)&&Number.isFinite(g[metric])&&g[metric]>=0);

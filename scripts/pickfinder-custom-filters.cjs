@@ -2,7 +2,7 @@
 // Read-only research filters: only explicitly labeled, linked ARIA listboxes on research routes.
 const {filterLabels}=require('./pickfinder-research-coverage.cjs');
 const norm=x=>String(x??'').trim().toLowerCase().replace(/\s+/g,' ');
-const safeRoute=url=>{try{const u=new URL(url);return u.origin==='https://www.pickfinder.app'&&(/^(?:\/props|\/games|\/popular|\/discrepancies)$/.test(u.pathname)||u.pathname.startsWith('/players/'));}catch{return false;}};
+const safeRoute=url=>{try{const u=new URL(url);return u.origin==='https://www.pickfinder.app'&&(/^(?:\/props|\/games|\/game-lines|\/popular|\/discrepancies)$/.test(u.pathname)||u.pathname.startsWith('/players/'));}catch{return false;}};
 function readControls(){
  const visible=e=>e.getClientRects().length>0;
  return [...document.querySelectorAll('main [role=combobox][aria-controls],main button[aria-haspopup=listbox][aria-controls]')].filter(visible).map(e=>{

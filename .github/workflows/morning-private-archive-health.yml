@@ -1,0 +1,77 @@
+name: NBA and esports morning archive health
+on:
+  pull_request:
+    paths: ['scripts/morning-private-archive-health.cjs','test/morning-private-archive-health.test.cjs','.github/workflows/morning-private-archive-health.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/morning-private-archive-health.cjs','test/morning-private-archive-health.test.cjs','.github/workflows/morning-private-archive-health.yml']
+  schedule:
+    - cron: '20 7 * * *'
+      timezone: America/Los_Angeles
+    - cron: '20 10 * * *'
+      timezone: America/Los_Angeles
+  workflow_dispatch:
+    inputs:
+      day:
+        description: Pacific date YYYY-MM-DD
+        required: true
+        type: string
+      slot:
+        description: Completed Pacific capture hour
+        required: true
+        type: choice
+        options: ['06:00','09:00']
+permissions:
+  contents: read
+concurrency:
+  group: morning-private-archive-health
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/morning-private-archive-health.test.cjs test/nba-esports-prepull-candidate-lock.test.cjs
+  audit:
+    needs: test
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Confirm authorized private archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Read immutable archive and emit count-only evidence
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
+          AUDIT_DAY: ${{ inputs.day }}
+          AUDIT_SLOT: ${{ inputs.slot }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = schedule ]; then
+            AUDIT_DAY="$(TZ=America/Los_Angeles date +%F)"
+            case "$EVENT_SCHEDULE:$(TZ=America/Los_Angeles date +%H)" in
+              "20 7 * * *:07") AUDIT_SLOT=06:00 ;;
+              "20 10 * * *:10") AUDIT_SLOT=09:00 ;;
+              *) echo 'Scheduled health check delayed outside audit hour; no slot inferred'; exit 1 ;;
+            esac
+          fi
+          node public/scripts/morning-private-archive-health.cjs archive "$AUDIT_DAY" "$AUDIT_SLOT"

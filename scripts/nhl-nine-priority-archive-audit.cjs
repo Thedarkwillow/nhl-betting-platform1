@@ -16,3 +16,11 @@ const groups={};for(const r of rows){const k=r.tier+"|"+r.market;(groups[k]??=[]
 const compact=Object.fromEntries(Object.entries(groups).map(([k,a])=>{const x=summarize(a);return [k,{registered:x.registered,resolved:x.resolved,pushes:x.pushes,rawBrier:x.rawBrier,candidateBrier:x.candidateBrier,rawLogLoss:x.rawLogLoss,candidateLogLoss:x.candidateLogLoss,distinctGames:x.distinctGames,distinctFinalDates:x.distinctFinalDates,minimumEvidence:x.minimumEvidenceSizeReached}]}));
 console.log(JSON.stringify({kind:"nhl_tier_market_original_mass_replay_v1",groups:compact,originalInputsFrozen:true,transformationOriginallyFrozen:false,modelPromoted:false,paidRequests:0,rawRowsPublished:0}));
 console.log(JSON.stringify(require("../src/nhl-original-pair-dependence-research.cjs").assess(shadow.rows)));
+
+console.log(JSON.stringify(require("../src/nhl-original-pair-no-substitution.cjs").assess(shadow.rows)));
+const paperFile=path.join(root,"outputs/health/nhl-validation-and-paper-audit-latest.json");
+if(fs.existsSync(paperFile)){
+ const d=JSON.parse(fs.readFileSync(paperFile,"utf8")),p=d.paperProspective;
+ if(d.kind!=="private_nhl_validation_and_paper_audit_v1"||d.optimizedLineupsApproved!==false||!p?.formats)throw Error("paper contract");
+ console.log(JSON.stringify({kind:"nhl_paper_nine_format_coverage_v1",sourceAt:d.generatedAt,distinctResolvedSlates:p.uniqueCalendarSlatesResolvedAcrossFormats,formats:Object.fromEntries(Object.entries(p.formats).map(([k,v])=>[k,{registered:v.registered,decided:v.decided,pending:v.pending,voidOrMissing:v.voidOrMissing,remainingToMinimum:Math.max(0,50-v.decided),pairedEntries:v.baselineComparison?.pairedEntries??0}])),calibrationApproved:false,payoutVerified:false,modelPromoted:false,paidRequests:0,rawRowsPublished:0}));
+}

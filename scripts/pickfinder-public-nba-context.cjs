@@ -23,7 +23,7 @@ function readVisible({player,detailId}){
  if(u.origin!==expected.origin||u.pathname!==expected.pathname||u.searchParams.get('prop')!==expected.searchParams.get('prop'))return {routeVerified:false};
  const visible=e=>e&&e.getClientRects().length>0,clean=s=>String(s||'').trim().replace(/\s+/g,' ').slice(0,160);
  const main=document.querySelector('main')||document.body;
- const names=[...main.querySelectorAll('h1,h2,h3,h4,[role=heading],p')].filter(e=>visible(e)&&norm(e.innerText)===norm(player));
+ const names=[...main.querySelectorAll('h1,h1 span,h2,h3,h4,[role=heading],p')].filter(e=>visible(e)&&norm(e.innerText)===norm(player));
  if(!names.length)return {routeVerified:true,playerLabelVerified:false};
  // Restrict to a small header ancestor; never traverse historical tables or all body text.
  let scope=names[0];for(let i=0;i<4;i++){const parent=scope.parentElement;if(!parent||parent===main||parent===document.body||parent.querySelector('table,[role=tabpanel]')||parent.innerText.length>1600)break;scope=parent;}
@@ -34,6 +34,12 @@ function readVisible({player,detailId}){
   const m=String(label||'').match(/^(Team|Opponent|Matchup|Game time|Game start(?: time)?|Event start|Scheduled start)\s*:\s*(.+)$/i);if(m)add(m[1],m[2]);
  }
  for(const el of scope.querySelectorAll('p,span,div'))if(visible(el)&&el.children.length===0){const m=clean(el.innerText).match(/^(Team|Opponent|Matchup|Game time|Game start(?: time)?|Event start|Scheduled start)\s*:\s*(.+)$/i);if(m)add(m[1],m[2]);}
+ // The profile's identity header precedes a separate current-matchup heading.
+ for(const el of main.querySelectorAll('h2')){
+  if(!visible(el))continue;
+  const m=clean(el.innerText).match(/^([A-Z]{2,4})\s+(?:vs\.?|@)\s+([A-Z]{2,4})\s*•\s*((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*@\s*\d{1,2}:\d{2}\s*[AP]M)$/);
+  if(m){add('Team',m[1]);add('Opponent',m[2]);add('Matchup',m[0]);}
+ }
  const clocks=[...scope.querySelectorAll('time[datetime]')].filter(visible).flatMap(t=>{const label=clean(t.getAttribute('aria-label')||t.getAttribute('title'));return /^(?:game|match|event|scheduled)\s*(?:start|time)/i.test(label)?[{label,value:clean(t.getAttribute('datetime'))}]:[];});
  return {routeVerified:true,playerLabelVerified:true,entries:[...new Map(entries.map(x=>[JSON.stringify(x),x])).values()].slice(0,30),clocks:[...new Map(clocks.map(x=>[JSON.stringify(x),x])).values()].slice(0,10)};
 }

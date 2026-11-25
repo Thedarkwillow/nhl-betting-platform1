@@ -1,10 +1,10 @@
 name: Direct PrizePicks model bridge zero-metered validation
 on:
   pull_request:
-    paths: ['scripts/prizepicks-direct-model-bridge.cjs','scripts/prizepicks-one-time-nov25.cjs','scripts/prepare-prizepicks-direct-model-context.py','test/prizepicks-direct-model-bridge.test.cjs','.github/workflows/prizepicks-direct-model-bridge.yml']
+    paths: ['scripts/prizepicks-direct-model-bridge.cjs','scripts/prizepicks-multisport-model-bridge.cjs','scripts/prizepicks-restricted-forecast-storage.cjs','test/prizepicks-multisport-model-bridge.test.cjs','scripts/prizepicks-one-time-nov25.cjs','scripts/prepare-prizepicks-direct-model-context.py','test/prizepicks-direct-model-bridge.test.cjs','.github/workflows/prizepicks-direct-model-bridge.yml']
   push:
     branches: [main]
-    paths: ['scripts/prizepicks-direct-model-bridge.cjs','scripts/prizepicks-one-time-nov25.cjs','scripts/prepare-prizepicks-direct-model-context.py','test/prizepicks-direct-model-bridge.test.cjs','.github/workflows/prizepicks-direct-model-bridge.yml']
+    paths: ['scripts/prizepicks-direct-model-bridge.cjs','scripts/prizepicks-multisport-model-bridge.cjs','scripts/prizepicks-restricted-forecast-storage.cjs','test/prizepicks-multisport-model-bridge.test.cjs','scripts/prizepicks-one-time-nov25.cjs','scripts/prepare-prizepicks-direct-model-context.py','test/prizepicks-direct-model-bridge.test.cjs','.github/workflows/prizepicks-direct-model-bridge.yml']
 permissions:
   contents: read
 jobs:
@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test test/prizepicks-direct-model-bridge.test.cjs test/prizepicks-one-time-nov25.test.cjs test/independent-provider-export-v1.test.cjs test/public-nba-mirror-prospective-bridge.test.cjs
+      - run: node --test test/prizepicks-multisport-model-bridge.test.cjs test/prizepicks-direct-model-bridge.test.cjs test/prizepicks-one-time-nov25.test.cjs test/independent-provider-export-v1.test.cjs test/public-nba-mirror-prospective-bridge.test.cjs
       - run: python3 -m py_compile scripts/prepare-prizepicks-direct-model-context.py
   context:
     needs: test

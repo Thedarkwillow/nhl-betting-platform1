@@ -2,6 +2,7 @@
 // Restricted normalized provider records are consumed in memory only.
 // Only aggregate counts may leave this module's production entry point.
 const nba=require('../src/nba-research-pipeline-v1.cjs');
+const {evaluateOther}=require('./prizepicks-multisport-model-bridge.cjs');
 const {indexReviews}=require('./pickfinder-reviewed-game-context.cjs');
 const {gameReviewReceipts}=require('./public-nba-mirror-prospective-bridge.cjs');
 const {history,aliases}=require('./pickfinder-public-model-validation.cjs');
@@ -41,7 +42,14 @@ function evaluate(rows,context,clock){
  const reject=k=>{excluded[k]=(excluded[k]||0)+1;};
  for(const row of rows){
   if(row?.provider!=='PrizePicksAPI'||row.productionEligible!==false||row.originalAppAvailabilityVerified!==false){reject('invalid_provider_provenance');continue;}
-  if(row.sport!=='NBA'){reject('sport_adapter_not_connected');continue;}
+  if(row.sport!=='NBA'){
+   // A separate independently reviewed sport context is mandatory; never use NBA history.
+   if(!context?.other){reject('sport_adapter_not_connected');continue;}
+   const other=evaluateOther([row],context.other,clock);
+   for(const [k,n] of Object.entries(other.excluded))excluded[k]=(excluded[k]||0)+n;
+   for(const p of other.predictions){const k=JSON.stringify([p.sport,p.nativePlayerId,p.nativeGameId,p.market,p.period,p.line,p.side,p.tier]);if(seen.has(k)){reject('duplicate_direction');continue;}seen.add(k);predictions.push(p);}
+   continue;
+  }
   if(!context||!fresh(context.preparedAt,at,3600000)||!fresh(context.schedule.capturedAt,at,3600000)){reject('missing_or_stale_model_context');continue;}
   if(!fresh(row.receivedAt,at,900000)||!fresh(row.observedAt,at,900000)||dt(row.observedAt)>dt(row.receivedAt)||dt(row.startsAt)<=at+900000||!Number.isFinite(dt(row.startsAt))||!full(row.period)||!Number.isFinite(row.line)||row.line<0||!row.providerOfferId||!row.player||!row.team||!row.opponent){reject('freshness_or_scope');continue;}
   const metric=nba.market(row.stat),team=nba.teams(row.team),opponent=nba.teams(row.opponent);
@@ -63,7 +71,7 @@ function evaluate(rows,context,clock){
    predictions.push({sport:'NBA',nativePlayerId:p.id,nativeGameId:p.gid,player:row.player,market:metric,line:row.line,side,tier:s.tier,projection:projection.projection,rawConditionalEstimate:side==='Higher'?projection.higher:1-projection.higher,forecastAt:clock,sourceObservedAt:row.observedAt,gameStartAt:p.start,modelRevision:context.revision,identityEvidenceSha256:p.receipt.digest,historyDigests:context.historyDigests,providerOfferId:row.providerOfferId,originalPlatformVerified:false,calibrated:false,expectedValue:null,modelApproved:false,restricted:true,pickfinderCorroborated:corroboration.length===1,matchedSportsbooks:q.length,marketBenchmark});
   }
  }
- predictions.sort((a,b)=>a.tier.localeCompare(b.tier)||b.rawConditionalEstimate-a.rawConditionalEstimate);
+ predictions.sort((a,b)=>a.tier.localeCompare(b.tier)||(b.rawConditionalEstimate??-1)-(a.rawConditionalEstimate??-1));
  return {predictions,excluded};
 }
 function summarize(result){

@@ -22,7 +22,7 @@ jobs:
       - run: python3 -m unittest discover -s test -p test_cs2_restricted_history_join.py
   audit:
     needs: test
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.event_name != 'schedule' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -61,3 +61,27 @@ jobs:
           assert matches[0]["paidRequests"]==0
           print(json.dumps(matches[0]))
           PY
+  final-evidence:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/esports-diagnostic-capture-20261124
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: restricted
+          persist-credentials: false
+      - name: Audit official final evidence without printing restricted rows
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$RUNNER_TEMP/esports-final-audit.log"
+          trap 'rm -f "$log"' EXIT
+          python3 scripts/esports_restricted_final_audit.py restricted/esports-diagnostic-capture-20261124 >"$log" 2>&1 || { echo "Final evidence audit failed closed"; exit 1; }
+          cat "$log"

@@ -47,4 +47,16 @@ async function inspectCapabilities(page){
   return [...document.querySelectorAll('main button,main a,main label,main [role=tab],nav a,nav button')].filter(visible).map(e=>(e.getAttribute('aria-label')||e.innerText||'').trim()).filter(x=>wanted.test(x)).filter((x,i,a)=>a.indexOf(x)===i);
  });
 }
-module.exports={captureDashboard,traverseDashboard,inspectCapabilities};
+// Duplicate desktop/mobile anchors to the same visible destination are not ambiguous.
+async function verifiedNavigation(page,name,allowed){
+ const candidates=await page.evaluate(({name,allowed})=>{
+  const key=s=>s.trim().replace(/\s+/g,' ').toLowerCase();
+  return [...document.querySelectorAll('a[href]')].filter(a=>a.getClientRects().length>0).flatMap(a=>{
+   const u=new URL(a.href);const label=key(a.getAttribute('aria-label')||a.innerText||'');
+   return u.origin===location.origin&&allowed.includes(u.pathname)&&!u.search&&!u.hash&&label===key(name)?[u.href]:[];
+  });
+ },{name,allowed});
+ const unique=[...new Set(candidates)].filter(s=>{try{const u=new URL(s);return u.origin==='https://www.pickfinder.app'&&allowed.includes(u.pathname)&&!u.search&&!u.hash;}catch{return false;}});
+ return unique.length===1?unique[0]:null;
+}
+module.exports={captureDashboard,traverseDashboard,inspectCapabilities,verifiedNavigation};

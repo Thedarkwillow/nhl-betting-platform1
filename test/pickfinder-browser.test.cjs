@@ -70,3 +70,9 @@ test('remote page journal survives a concurrent private write and a later browse
   await assert.rejects(j.append(page(3)),/scope/);
  }finally{if(prior===undefined)delete process.env.RESTRICTED_DESTINATION_VERIFIED;else process.env.RESTRICTED_DESTINATION_VERIFIED=prior;fs.rmSync(tmp,{recursive:true,force:true});}
 });
+
+test('stale page with a changing price is not accepted as page progress',async()=>{
+ const old={...row,apps:row.apps.map(a=>({...a,displayedPrice:'-115'}))};
+ const input=await collect(session([active,{...active,number:1,total:2,rows:[row]},{...active,number:2,total:2,rows:[old]},{...active,number:2,total:2,rows:[{...row,detailId:'new'}]}]),{book:'prizepicks',code:'NHL'});
+ assert.equal(input.pages[1].rows[0].detailId,'new');assert.equal(input.lastPageReached,true);
+});

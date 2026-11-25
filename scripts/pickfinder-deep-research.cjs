@@ -4,7 +4,7 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const {execFileSync}=require('node:child_process');
 const SEED='aef07d2aecb75388c6757c9cc5844b2113d6a0ac';
 const ROOT='research/pickfinder-premium-deep';
-const {traverseDashboard,inspectCapabilities}=require('./pickfinder-dashboard-research.cjs');
+const {traverseDashboard,inspectCapabilities,verifiedNavigation}=require('./pickfinder-dashboard-research.cjs');
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const git=(root,args)=>execFileSync('git',['-C',root,...args],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']});
 function scope(book,row){
@@ -16,7 +16,10 @@ function scope(book,row){
 function queue(batches,done=new Set()){
  const unique=new Map();
  for(const b of batches)for(const p of b.pages)for(const row of p.rows){
-  if(row.sport!==b.sport||!Array.isArray(row.apps)||!row.apps.some(a=>a.book===b.book&&Number.isFinite(a.line)&&['Higher','Lower'].includes(a.side)&&/^[+-]\d{2,4}$/.test(a.displayedPrice||'')))continue;
+  if(row.sport!==b.sport||!Array.isArray(row.apps))continue;
+  const priced=row.apps.some(a=>a.book===b.book&&Number.isFinite(a.line)&&['Higher','Lower'].includes(a.side)&&/^[+-]\d{2,4}$/.test(a.displayedPrice||''));
+  const tierEvidence=Array.isArray(row.appEvidence)&&row.appEvidence.some(e=>e?.book===b.book&&Number.isFinite(e.line)&&['goblin','demon'].includes(e.tier)&&Array.isArray(e.icons)&&e.icons.length===2&&e.icons.includes(b.book)&&e.icons.includes(e.tier));
+  if(!priced&&!tierEvidence)continue; // Profile research is not price or side verification.
   const s=scope(b.book,row);if(!s)continue;
   const key=hash(JSON.stringify(s));if(!unique.has(key))unique.set(key,{key,...s});
  }
@@ -101,11 +104,9 @@ async function run({root,context,page,enrich,collect,evidence={},limit=Infinity,
   if(!shouldContinue())break;
   try{
    await page.goto('https://www.pickfinder.app/props',{timeout:15000});
-   const links=page.getByRole('link',{name,exact:true});
-   if(await links.count()!==1||!await links.isVisible()){diagnostics.dashboards[name]={state:'link_not_verified'};continue;}
-   const href=await links.getAttribute('href'),u=new URL(href,'https://www.pickfinder.app');
-   if(!href||u.origin!=='https://www.pickfinder.app'||!['/games','/discrepancies','/popular'].includes(u.pathname)){diagnostics.dashboards[name]={state:'route_not_verified'};continue;}
-   await page.goto(u.href,{timeout:15000});
+   const href=await verifiedNavigation(page,name,['/'+name.toLowerCase()]);
+   if(!href){diagnostics.dashboards[name]={state:'link_not_verified'};continue;}
+   await page.goto(href,{timeout:15000});
    await page.waitForFunction(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium'),null,{timeout:12000});
    if(!await premium(page))throw Error('session unavailable');
    let tables=0,cards=0,clocks=0;
@@ -122,10 +123,9 @@ async function run({root,context,page,enrich,collect,evidence={},limit=Infinity,
   if(!shouldContinue())break;
   try{
    await page.goto('https://www.pickfinder.app/props',{timeout:15000});
-   const link=page.getByRole('link',{name,exact:true});
-   if(await link.count()!==1||!await link.isVisible()){diagnostics[name]={state:'navigation_not_verified'};continue;}
-   const href=await link.getAttribute('href'),u=new URL(href,'https://www.pickfinder.app');
-   if(!href||u.origin!=='https://www.pickfinder.app'||!['/pick-builder','/builder','/alerts','/line-alerts'].includes(u.pathname)){diagnostics[name]={state:'route_not_verified'};continue;}
+   const href=await verifiedNavigation(page,name,name==='Pick Builder'?['/pick-builder','/builder']:['/alerts','/line-alerts']);
+   if(!href){diagnostics[name]={state:'navigation_not_verified'};continue;}
+   const u=new URL(href);
    await page.goto(u.href,{timeout:15000});await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});
    if(!await premium(page))throw Error('session unavailable');
    diagnostics[name]={state:'read_only_capabilities_observed',route:u.pathname,labels:await inspectCapabilities(page),mutations:0};

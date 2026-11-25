@@ -27,7 +27,7 @@
     },
     {
       "sport": "CS2",
-      "description": "102,900 source-local player-map records, 10,290 maps. Repaired team context yields 17,520 retrospective test observations per market; opponent-adjusted MAE improves kills, deaths and assists. Separate Steam-native headshot cohort is not added to this total. No authoritative cross-provider player link or original-line approval. Independent demo/Kaggle audit: 17 conflicts, 3 single-map candidates, zero authoritative links; 15 token-boundary alias conflicts and one adjacent-date map diagnostic. Regulation-only headshot fixed recent blend MAE 2.361 vs 2.375 over 324 observations; original cohort did not improve.",
+      "description": "102,900 source-local player-map records, 10,290 maps. Repaired team context yields 17,520 retrospective test observations per market; opponent-adjusted MAE improves kills, deaths and assists. Separate Steam-native headshot cohort is not added to this total. No authoritative cross-provider player link or original-line approval. Independent demo/Kaggle audit: 17 conflicts, 3 single-map candidates, zero authoritative links; 15 token-boundary alias conflicts and one adjacent-date map diagnostic. Regulation-only headshot fixed recent blend MAE 2.361 vs 2.375 over 324 observations; original cohort did not improve. Separate pinned static HLTV export: 21,870 rows, 2,187 complete maps, 423 exact map overlaps, 34 repeated-map identity candidates; no authoritative links.",
       "historicalRows": 102900
     },
     {
@@ -37,7 +37,7 @@
     },
     {
       "sport": "League of Legends",
-      "description": "200,040 historical source rows; 19,999 complete validated games, 15,623 exact series/game-number bindings, 46,263 Maps 1–2 and 23,289 Maps 1–3 player-series. Team-kill MAE 6.779→6.542; kill share 2.101→2.074; assist share 3.652→3.597. Synthetic calibration worsened; no original prop validation.",
+      "description": "200,040 historical source rows; 19,999 complete validated games, 15,623 exact series/game-number bindings, 46,263 Maps 1–2 and 23,289 Maps 1–3 player-series. Team-kill MAE 6.779→6.542; kill share 2.101→2.074; assist share 3.652→3.597. Synthetic calibration worsened; no original prop validation. Advanced historical negative-binomial/Poisson challenger reduced synthetic Brier error across all 12 market/scope groups; no verified original-line or prospective calibration.",
       "historicalRows": 200040
     },
     {
@@ -216,15 +216,20 @@
         "unmatchedGames": 4376,
         "map12PlayerSeries": 46263,
         "map123PlayerSeries": 23289,
-        "calibrationApproved": false
+        "calibrationApproved": false,
+        "syntheticNegativeBinomialImprovedGroups": 12
       },
       "CS2": {
         "steamNativeRegulationRows": 11250,
         "authoritativeLinks": 0,
         "conflicts": 17,
         "csapiFailedRequests": 5,
-        "originalOffersVerified": 0
-      }
+        "originalOffersVerified": 0,
+        "staticHLTVRows": 21870,
+        "staticMatchedMaps": 423,
+        "repeatedMapCandidates": 34
+      },
+      "advancedSourceRun": 45543382743
     }
   },
   "validationRuns": {
@@ -244,6 +249,7 @@
     "restrictedFinal": 45538478728,
     "nbaPrimaryPdf": 45539564919,
     "opponentExposure": 45539565008,
-    "lolCs2Specialists": 45542340820
+    "lolCs2Specialists": 45542340820,
+    "esportsAdvanced": 45543382743
   }
 }

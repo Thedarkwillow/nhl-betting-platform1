@@ -1,0 +1,71 @@
+name: Esports private prospective evidence
+on:
+  pull_request:
+    paths: ['scripts/esports-prospective-archive.cjs','test/esports-prospective-archive.test.cjs','.github/workflows/esports-prospective-private.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/esports-prospective-private.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '35 6,9,12,16 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: esports-private-prospective
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/esports-prospective-archive.test.cjs test/esports-research-v1.test.cjs
+  archive:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Verify restricted destination
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node public/scripts/esports-prospective-archive.cjs archive freeze
+      - name: Commit only immutable private forecast files
+        working-directory: archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -d outputs/esports/prospective-frozen || exit 0
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          git add -f outputs/esports/prospective-frozen
+          git diff --cached --quiet && exit 0
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Archive esports research forecasts before start'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:main
+      - run: node public/scripts/esports-prospective-archive.cjs archive audit

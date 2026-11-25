@@ -1,7 +1,7 @@
 'use strict';
 // Public schedules and explicitly authorized no-charge fixture access only.
 // Incomplete league coverage never establishes a sport-wide offseason.
-const {registry}=require('./season-aware-collection.cjs');
+const {registry,lifecycle}=require('./season-aware-collection.cjs');
 const {pandaFixture}=require('./esports-free-source-adapters.cjs');
 const espn={NBA:'basketball/nba',NFL:'football/nfl',NHL:'hockey/nhl',MLB:'baseball/mlb',WNBA:'basketball/wnba',CFB:'football/college-football',CBB:'basketball/mens-college-basketball',TENNIS:'tennis/atp',SOCCER:'soccer/eng.1'};
 const panda={CS2:'csgo',DOTA2:'dota2',VAL:'valorant',LOL:'lol',COD:'codmw'};
@@ -17,10 +17,23 @@ async function discover({env=process.env,now=new Date(),client=fetch}={}){
  const result=Object.fromEntries(Object.keys(registry).map(code=>[code,{status:'unavailable',source:'not_configured',observedAt:at,coverageUntil:end,upcoming:0,complete:false}]));
  await Promise.all(Object.entries(espn).map(async([code,league])=>{
   try{
-   const d=await json('https://site.api.espn.com/apis/site/v2/sports/'+league+'/scoreboard?dates='+day(at)+'-'+day(end)+'&limit=100',{},client);
+   const base='https://site.api.espn.com/apis/site/v2/sports/'+league+'/scoreboard?dates=';
+   let d;
+   try{d=await json(base+day(at)+'-'+day(end)+'&limit=100',{},client);}
+   catch(err){
+    if(err.message!=='http_400'||!['NFL','MLB'].includes(code))throw err;
+    const days=[...new Set([at,new Date(+now+86400000).toISOString(),end].map(day))];
+    const documents=await Promise.all(days.map(x=>json(base+x+'&limit=100',{},client)));
+    if(documents.some(x=>!Array.isArray(x.events)))throw Error('schedule envelope');
+    d={events:documents.flatMap(x=>x.events),season:documents.every(x=>x.season?.type===documents[0].season?.type)?documents[0].season:null};
+   }
    if(!Array.isArray(d.events))throw Error('schedule envelope');
    const upcoming=d.events.filter(e=>e?.id&&Number.isFinite(Date.parse(e.date))&&Date.parse(e.date)>=+now&&Date.parse(e.date)<=Date.parse(end)&&e.status?.type?.state==='pre').length;
-   result[code]={status:'ok',source:'espn:'+league,observedAt:at,coverageUntil:end,upcoming,complete:false};
+   const type=Number(d.season?.type);
+   const phase=['NBA','NHL','NFL','MLB','WNBA','CFB','CBB'].includes(code)?({1:'preseason',2:'regular',3:'playoffs',4:'offseason'}[type]||null):null;
+   // An explicit dated league phase, not merely an empty board. Never infer offseason from missing phase.
+   const explicitOffseason=phase==='offseason'&&d.events.length===0;
+   result[code]={status:'ok',source:'espn:'+league,observedAt:at,coverageUntil:end,upcoming,phase,complete:explicitOffseason};
   }catch(e){result[code].source='espn:'+league;result[code].failure=/^http_\d{3}$/.test(e.message)?e.message:'network_or_schema';}
  }));
  // Official key-free NHL schedule fallback, only positive dated competition evidence.
@@ -30,7 +43,7 @@ async function discover({env=process.env,now=new Date(),client=fetch}={}){
    if(!Array.isArray(d.gameWeek)||!d.gameWeek.length||d.gameWeek.some(x=>!Array.isArray(x.games)))throw Error('schedule envelope');
    const games=d.gameWeek.flatMap(x=>x.games);
    const upcoming=new Set(games.filter(g=>Number.isSafeInteger(g.id)&&['FUT','PRE'].includes(g.gameState)&&Date.parse(g.startTimeUTC)>=+now&&Date.parse(g.startTimeUTC)<=Date.parse(end)).map(g=>g.id)).size;
-   result.NHL={status:'ok',source:'nhl:official_week',observedAt:at,coverageUntil:end,upcoming,complete:false};
+   if(upcoming>0||result.NHL.phase!=='offseason')result.NHL={status:'ok',source:'nhl:official_week',observedAt:at,coverageUntil:end,upcoming,complete:false};
   }catch(e){result.NHL.fallbackFailure=/^http_\d{3}$/.test(e.message)?e.message:'network_or_schema';}
  }
  const key=env.PANDASCORE_API_KEY||env.PANDASCORE_TOKEN||env.PANDASCORE;
@@ -49,4 +62,4 @@ async function discover({env=process.env,now=new Date(),client=fetch}={}){
  return result;
 }
 module.exports={discover};
-if(require.main===module)discover().then(sports=>console.log(JSON.stringify({kind:'season_discovery_v1',sports,paidEndpointsCalled:0,originalOffersVerified:false,rawRowsPublished:0}))).catch(()=>{console.error('Season discovery failed');process.exitCode=1;});
+if(require.main===module)discover().then(sports=>console.log(JSON.stringify({kind:'season_discovery_v1',sports,lifecycle:Object.fromEntries(Object.entries(sports).map(([code,e])=>[code,lifecycle(code,e)])),paidEndpointsCalled:0,originalOffersVerified:false,rawRowsPublished:0}))).catch(()=>{console.error('Season discovery failed');process.exitCode=1;});

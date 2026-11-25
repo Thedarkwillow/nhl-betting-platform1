@@ -175,6 +175,10 @@ async function collectOdds(){
 }
 async function main(){
  const status={},logs=[],started=now();
+ const {discover}=require('./season-aware-discovery.cjs');
+ const {lifecycle}=require('./season-aware-collection.cjs');
+ const seasonDecision=lifecycle('NBA',(await discover({env:{}})).NBA);
+ status.seasonLifecycle=seasonDecision;
  for(const season of ["2023-24","2024-25","2025-26","2026-27"]){
   let a=latest("history/"+season);
   if(!a||(season==="2026-27"&&Date.parse(started)-Date.parse(a.capturedAt)>20*3600000)){
@@ -187,6 +191,7 @@ async function main(){
  }
  let sc=null,b=null,inj=null,odds={status:"not_collected",rows:[]};
  for(const [k,f] of [["schedule",collectSchedule],["board",collectBoard],["injuryIndex",collectInjuryIndex],["sportsbooks",collectOdds]]){
+  if(k==='sportsbooks'&&!seasonDecision.paidLiveAllowed||k==='board'&&!seasonDecision.liveResearchAllowed){status[k]='season_gate_skipped';continue;}
   try{const x=await f();status[k]=x.status||"collected";if(k==="schedule")sc=x;if(k==="board")b=x;if(k==="injuryIndex")inj=x;if(k==="sportsbooks")odds=x;}
   catch(e){status[k]="unavailable_"+(e?.name==="TimeoutError"?"timeout":"source_or_schema");if(k==="schedule")status.scheduleDiagnostic=String(e.message).slice(0,240);}
  }

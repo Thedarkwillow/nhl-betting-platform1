@@ -56,3 +56,12 @@ test('manual board, feature, and context sessions are isolated from deep and pro
  assert.equal(b.boardsOnly,true);assert.equal(b.deep,false);assert.equal(f.featuresOnly,true);assert.equal(f.deep,true);assert.equal(c.contextOnly,true);
  for(const mode of ['boards_only','features_only','nba_context_only'])for(const hour of [13,14,16,17])assert.equal(invocation({...env,REQUESTED_MODE:mode},new Date('2026-11-25T'+hour+':01:00Z')).allowed,false);
 });
+
+test('historical cache exact lookup excludes conflicts',()=>{
+ const {buildIndex,lookup,candidate}=require('../scripts/pickfinder-public-history-cache.cjs'),{VERSION}=require('../scripts/pickfinder-research-coverage.cjs');
+ const now=new Date('2026-11-25T15:00:00Z'),f={origin:'profile',metric:'row 1',tab:'Game Log',scope:'Date | PTS',value:JSON.stringify([{value:'2024-11-01',labels:[]},{value:'12',labels:[]}]),observedAt:'2026-11-25T14:00:00Z',filterSelection:[{label:'season',display:'2024-25',value:'2024'}]};
+ const r={status:'sampled',coverageVersion:VERSION,truncated:false,sport:'nba',player:'Fixture',market:'points',detailId:'/players/nba/a?prop=x',research:[f]};
+ const k=candidate(r,f,now).key;
+ const x=buildIndex([{records:[r]}],now);assert.deepEqual(lookup(x.index,k).field,f);
+ const y=buildIndex([{records:[r,{...r,research:[{...f,value:f.value.replace('"12"','"14"')}]}]}],now);assert.equal(lookup(y.index,k),null);assert.equal(y.summary.requestsSkipped,0);
+});

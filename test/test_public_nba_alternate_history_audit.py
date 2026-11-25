@@ -6,7 +6,7 @@ class AuditTest(unittest.TestCase):
   raw=[]
   for team,opp,home,win,start in [("BOS","NYK",True,"W",1),("NYK","BOS",False,"L",11)]:
    for i in range(start,start+5):
-    raw.append(dict(season=2027,season_type="Regular Season",season_id="22026",game_id="0022600001",game_date="2026-11-01",player_id=i,player_name="Player "+str(i),team_abbreviation=team,matchup=team+(" vs. " if home else " @ ")+opp,wl=win,min=30,**{k:1 for k in m.FIELDS}))
+    raw.append(dict(season=2027,season_type="regular-season",season_id="22026",game_id="0022600001",game_date="2026-11-01",player_id=i,player_name="Player "+str(i),team_abbreviation=team,matchup=team+(" vs. " if home else " @ ")+opp,wl=win,min=30,**{k:1 for k in m.FIELDS}))
   rows,_=m.normalize(raw,2027,dt.date(2026,11,25));self.assertEqual(len(rows),10)
   with self.assertRaises(ValueError):m.normalize(raw+[raw[0]],2027,dt.date(2026,11,25))
  def test_crosswalk(self):

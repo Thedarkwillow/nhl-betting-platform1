@@ -16,12 +16,13 @@ on:
       timezone: America/Los_Angeles
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: pickfinder-hosted-capture
   cancel-in-progress: false
 jobs:
   run:
-    if: github.repository == 'Thedarkwillow/nhl-betting-platform1' && github.ref == 'refs/heads/main' && (inputs.mode == 'audit_pilot' || (vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-probe]')) || (github.event_name == 'schedule' && vars.PICKFINDER_SCHEDULE_ENABLED == '1' && vars.PICKFINDER_HOSTED_AUTH_VERIFIED == '1' && vars.PICKFINDER_HOSTED_CAPTURE_VERIFIED == '1'))))
+    if: github.repository == 'Thedarkwillow/nhl-betting-platform1' && github.ref == 'refs/heads/main' && (inputs.mode == 'audit_pilot' || (vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (contains(github.event.head_commit.message, '[pickfinder-probe]') || contains(github.event.head_commit.message, '[pickfinder-reconcile]'))) || (github.event_name == 'schedule' && vars.PICKFINDER_SCHEDULE_ENABLED == '1' && vars.PICKFINDER_HOSTED_AUTH_VERIFIED == '1' && vars.PICKFINDER_HOSTED_CAPTURE_VERIFIED == '1'))))
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     steps:
@@ -60,6 +61,39 @@ jobs:
           chmod 700 "$RUNNER_TEMP/pickfinder-profile"
           npm install --prefix "$RUNNER_TEMP/pickfinder-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2
           "$RUNNER_TEMP/pickfinder-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify prior successful hosted authentication for bounded reconciliation
+        id: prior-auth
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-reconcile]')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/Thedarkwillow/nhl-betting-platform1/actions/runs/45591219482 --jq '[.conclusion,.head_sha,.name] | @tsv' | grep -Fx 
+        if: inputs.mode != 'audit_pilot'
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
+          REQUESTED_MODE: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-reconcile]') && 'reconcile_now' || github.event_name == 'push' && 'probe_now' || inputs.mode }}
+          PICKFINDER_PRIOR_AUTH_PROOF: ${{ steps.prior-auth.outputs.verified }}
+          PICKFINDER_AUTOMATION_AUTHORIZED: ${{ vars.PICKFINDER_AUTOMATION_AUTHORIZED }}
+          PICKFINDER_SCHEDULE_ENABLED: ${{ vars.PICKFINDER_SCHEDULE_ENABLED }}
+          PICKFINDER_HOSTED_AUTH_VERIFIED: ${{ vars.PICKFINDER_HOSTED_AUTH_VERIFIED }}
+          PICKFINDER_HOSTED_CAPTURE_VERIFIED: ${{ vars.PICKFINDER_HOSTED_CAPTURE_VERIFIED }}
+          PICKFINDER_HOSTED: '1'
+          PICKFINDER_EMAIL: ${{ secrets.PICKFINDER_EMAIL }}
+          PICKFINDER_PASSWORD: ${{ secrets.PICKFINDER_PASSWORD }}
+          PICKFINDER_STORAGE_STATE: ${{ secrets.PICKFINDER_STORAGE_STATE }}
+          PICKFINDER_PROFILE_DIR: ${{ runner.temp }}/pickfinder-profile
+          PICKFINDER_PRIVATE_ROOT: ${{ github.workspace }}/private-archive
+          NODE_PATH: ${{ runner.temp }}/pickfinder-deps/node_modules
+        run: |
+          set -euo pipefail
+          node public-source/scripts/pickfinder-unattended-runner.cjs
+      - name: Remove temporary profile
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/pickfinder-profile"
+success\t55407e80b8513377b0b06c75298a7435c0f64bf9\tPickFinder Premium public orchestration'
+          echo 'verified=1' >> "$GITHUB_OUTPUT"
       - name: Authorized private research capture (scoped Continue control diagnostics)
         if: inputs.mode != 'audit_pilot'
         env:

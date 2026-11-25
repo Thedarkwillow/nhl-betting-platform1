@@ -4,14 +4,15 @@ const {execFileSync}=require('node:child_process');
 const {pacific,decide}=require('./pacific-morning-capture-gate.cjs');
 const {collect,ORIGIN}=require('./pickfinder-browser.cjs');
 const {enrich}=require('./pickfinder-player-research.cjs');
-const {archive}=require('./pickfinder-premium-archive.cjs');
+const {archive,normalize}=require('./pickfinder-premium-archive.cjs');
+const {loadPilot,compare,inputAudit}=require('./pickfinder-pilot-reconcile.cjs');
 const SPORTS=['NBA','CS2','VAL','LOL','DOTA2','COD','NHL','NFL'];
 const BOOKS=['prizepicks','underdog'];
 const partitions=()=>SPORTS.flatMap(code=>BOOKS.map(book=>({code,book})));
 function plan(env,now=new Date()){
  if(env.PICKFINDER_AUTOMATION_AUTHORIZED!=='1')throw Error('authorization_required');
  if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='probe_now')return {probe:true};
- if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&env.REQUESTED_MODE==='reconcile_now')return {allowed:true,reconcile:true,expected:'manual',clock:pacific(now)};
+ if((env.GITHUB_EVENT_NAME==='workflow_dispatch'||env.GITHUB_EVENT_NAME==='push'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')&&env.REQUESTED_MODE==='reconcile_now')return {allowed:true,reconcile:true,expected:'manual',clock:pacific(now)};
  if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_SCHEDULE_ENABLED!=='1')return {allowed:false,state:'schedule_disabled'};
  return decide({eventName:env.GITHUB_EVENT_NAME,mode:env.REQUESTED_MODE,schedule:env.GITHUB_EVENT_SCHEDULE,now});
 }
@@ -124,7 +125,7 @@ async function main(env=process.env){
  }
  const receipt=hosted?null:JSON.parse(fs.readFileSync(receiptPath,'utf8'));
  if(hosted){
-  if(env.PICKFINDER_HOSTED_AUTH_VERIFIED!=='1')throw Error('fresh hosted probe required');
+  if(env.PICKFINDER_HOSTED_AUTH_VERIFIED!=='1'&&!(p.reconcile&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1'))throw Error('fresh hosted probe required');
   if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_HOSTED_CAPTURE_VERIFIED!=='1')throw Error('manual capture proof required');
  }else{
   if(!receiptValid(receipt,env.RUNNER_NAME))throw Error('recent runner probe required');
@@ -133,9 +134,9 @@ async function main(env=process.env){
  const prefix='research/pickfinder-premium/'+p.clock.day+'/'+p.expected.replace(':','');
  const deadline=Date.now()+20*60000;
  const remaining=()=>{const t=pacific(new Date());return p.reconcile?Date.now()<deadline&&t.day===p.clock.day:t.day===p.clock.day&&t.hour===p.clock.hour&&t.minute<55;};
- const targets=p.reconcile?['NBA','NFL','NHL'].map(code=>({book:'prizepicks',code})):partitions();
+ const targets=p.reconcile?[...['NBA','NFL','NHL'].map(code=>({book:'prizepicks',code})),...partitions().filter(p=>p.book!=='prizepicks'||!['NBA','NFL','NHL'].includes(p.code))]:partitions();
  const attempt=crypto.randomUUID();
- const counts=[];let failed=false;
+ const counts=[],batches=[],normalized=[];let failed=false;
  process.env.RESTRICTED_DESTINATION_VERIFIED='1';
  const {context,page}=await open();
  try{
@@ -150,9 +151,11 @@ async function main(env=process.env){
     if(sample&&remaining())try{await enrich(detail,sample,{navigate:url=>detail.goto(url,{timeout:8000})});}catch{sample.profileCollection={status:'unavailable'};}
     batch.endedAt=new Date().toISOString();
     const summary=archive(batch,root,attempt);
+    batches.push(batch);normalized.push(normalize(batch));
     counts.push({book,code,boardState:summary.boardState,withinSlot:summary.withinSlot,offers:summary.health.distinctOfferKeys,unresolved:summary.health.unresolvedRows,unresolvedEvidence:summary.health.unresolvedEvidence,pages:summary.health.pages,traversal:summary.pageTraversalComplete});
     if(batch.failure==='session_expired'){failed=true;break;}
-    if(!p.reconcile&&!summary.withinSlot||summary.boardState==='partial'||summary.health.unresolvedRows||summary.health.priceConflictKeys||summary.health.repeatOrUnresolvedLinks)failed=true;
+    if(!p.reconcile&&(!summary.withinSlot||summary.boardState==='partial'||summary.health.unresolvedRows||summary.health.priceConflictKeys||summary.health.repeatOrUnresolvedLinks))failed=true;
+    if(p.reconcile&&summary.boardState==='partial'&&!summary.health.pages)failed=true;
    }catch{counts.push({book,code,state:'partition_failed'});failed=true;}
   }
  }finally{await context.close();}
@@ -161,14 +164,24 @@ async function main(env=process.env){
   if(!safeAddedFiles(git(root,['diff','--cached','--name-status']),prefix))throw Error('non append-only staging refused');
   git(root,['-c','user.name=PickFinder research runner','-c','user.email=research-runner@users.noreply.github.com','commit','-m','Archive PickFinder private research '+p.clock.day+' '+p.expected]);
   const sha=git(root,['rev-parse','HEAD']);
-  git(root,['push','origin','HEAD:refs/heads/main']);
-  git(root,['fetch','origin','main']);
-  git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']);
+  await stage('private_archive_push',()=>git(root,['push','origin','HEAD:refs/heads/main']));
+  await stage('private_archive_fetch',()=>git(root,['fetch','origin','main']));
+  await stage('private_archive_ancestry',()=>git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']));
+  await stage('private_archive_remote_readback',()=>{
+   for(const b of batches){const base=prefix+'/'+b.book+'/'+b.sport+'/'+attempt;
+    const raw=execFileSync('git',['-C',root,'show','FETCH_HEAD:'+base+'/source.json'],{maxBuffer:32*1024*1024,stdio:['ignore','pipe','pipe']});
+    const n=JSON.parse(execFileSync('git',['-C',root,'show','FETCH_HEAD:'+base+'/normalized.json'],{maxBuffer:32*1024*1024,stdio:['ignore','pipe','pipe']}));
+    if(crypto.createHash('sha256').update(raw).digest('hex')!==n.sourceDigest||raw.toString()!==JSON.stringify(b))throw Error('archive mismatch');
+   }
+  });
+  if(p.reconcile)console.log(JSON.stringify({state:'fresh_reconciliation',...compare(loadPilot(root),batches)}));
+  console.log(JSON.stringify({state:'nba_esports_input_audit',...inputAudit(normalized)}));
   if(!p.reconcile&&!hosted&&counts.length===partitions().length&&counts.every(c=>c.withinSlot===true)&&counts.some(c=>c.offers>0)){
    fs.writeFileSync(receiptPath,JSON.stringify({...receipt,captureVerifiedAt:new Date().toISOString(),archiveSha:sha}),{mode:0o600});
   }
-  console.log(JSON.stringify({state:'remote_archive_verified',sha,slot:p.expected,partitions:counts,allPartitionsAttempted:counts.length===targets.length,fullBoardCertified:false,modelInputsApproved:false}));
+  console.log(JSON.stringify({state:'remote_archive_verified',sha,slot:p.expected,partitions:counts,allPartitionsAttempted:counts.length===targets.length,remoteDigestVerified:true,boundedSample:p.reconcile===true,fullBoardCertified:false,modelInputsApproved:false}));
  }else failed=true;
+ if(p.reconcile&&!counts.some(c=>c.offers>0))failed=true;
  if(failed||counts.length!==targets.length)process.exitCode=1;
 }
 module.exports={plan,receiptValid,safeAddedFiles,partitions,passwordLogin,submitLoginStep,stage,RunnerStageError};

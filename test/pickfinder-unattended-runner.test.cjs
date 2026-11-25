@@ -68,3 +68,5 @@ test('unique Continue is selected even with multiple other form buttons',async()
  const f=loginFixture({twoStep:true,formControls:3,continueControls:1});await passwordLogin(f.page,{PICKFINDER_EMAIL:'fixture',PICKFINDER_PASSWORD:'fixture-secret'});assert.equal(f.submissions,2);
  const g=loginFixture({twoStep:false,continueControls:2});await assert.rejects(passwordLogin(g.page,{PICKFINDER_EMAIL:'fixture',PICKFINDER_PASSWORD:'fixture-secret'}),/password_submit_ambiguous_continue_controls/);assert.equal(g.submissions,0);
 });
+
+test('marked push reconciliation requires verified prior authentication',()=>{assert.throws(()=>plan({...env,GITHUB_EVENT_NAME:'push',REQUESTED_MODE:'reconcile_now'},now));assert.equal(plan({...env,GITHUB_EVENT_NAME:'push',REQUESTED_MODE:'reconcile_now',PICKFINDER_PRIOR_AUTH_PROOF:'1'},now).reconcile,true);});

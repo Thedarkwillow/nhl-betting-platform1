@@ -1,0 +1,52 @@
+name: Owner-authorized repaired PrizePicksAPI retest November 25
+on:
+  pull_request:
+    paths: ['.github/workflows/prizepicks-normalization-live-retest.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/prizepicks-normalization-live-retest.yml']
+permissions:
+  contents: read
+concurrency:
+  group: prizepicks-one-time-nov25
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/independent-provider-export-v1.test.cjs test/prizepicks-one-time-nov25.test.cjs test/esports-zero-credit-coverage.test.cjs test/underdog-bounded-capture-reconcile.test.cjs
+  capture:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify first introduction and dated authorization
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          test "$(date -u +%F)" = 2026-11-25
+          git cat-file -e "$BEFORE^{commit}"
+          if git cat-file -e "$BEFORE:.github/workflows/prizepicks-normalization-live-retest.yml" 2>/dev/null; then
+            echo 'Retest already introduced; no requests.'
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Repaired compact capture, one quota probe plus at most three calls
+        env:
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+          PRIZEPICKS_ONE_TIME_APPROVED: '2026-11-25'
+        run: node scripts/prizepicks-one-time-nov25.cjs

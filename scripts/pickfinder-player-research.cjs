@@ -1,4 +1,5 @@
 'use strict';
+const {VERSION,tabs,coverage,traverseNativeFilters}=require('./pickfinder-research-coverage.cjs');
 // Read only visible sporting data. Never serialize navigation, account menus or HTML.
 function readSections({tab,origin,observedAt,context}) {
   const fields=[];
@@ -48,25 +49,30 @@ function readSections({tab,origin,observedAt,context}) {
   }
   return fields;
 }
-async function enrich(page,row,{navigate,maxFields=500}){
+async function enrich(page,row,{navigate,maxFields=500,expanded=false,shouldContinue=()=>true}){
   if(!(maxFields===Infinity||Number.isInteger(maxFields)&&maxFields>=1&&maxFields<=2000))throw Error('invalid profile field budget');
   const url=new URL(row.detailId,'https://www.pickfinder.app');
   if(url.origin!=='https://www.pickfinder.app'||!url.pathname.startsWith('/players/'))throw Error('invalid profile');
   await navigate(url.href);
   await page.getByRole('button',{name:'Line Movement',exact:true}).waitFor({state:'visible'});
-  const groups=[],tabAudit=[];
-  const update=()=>{const remaining=Math.max(0,maxFields-initial.length),nonempty=groups.filter(g=>g.length),limit=Math.floor(remaining/Math.max(1,nonempty.length));row.research=[...initial,...nonempty.flatMap(g=>g.slice(0,limit))];row.profileCollection={observationsAvailable:groups.reduce((n,g)=>n+g.length,0),panels:groups.length,tabAudit:[...tabAudit],truncated:groups.some(g=>g.length>limit)||tabAudit.some(t=>t.state==='failed')};};
+  const groups=[],tabAudit=[];let filterAudit=null,deadline=false;
+  const update=()=>{const remaining=Math.max(0,maxFields-initial.length),nonempty=groups.filter(g=>g.length),limit=Math.floor(remaining/Math.max(1,nonempty.length));row.research=[...initial,...nonempty.flatMap(g=>g.slice(0,limit))];row.profileCollection={observationsAvailable:groups.reduce((n,g)=>n+g.length,0),panels:groups.length,tabAudit:[...tabAudit],truncated:groups.some(g=>g.length>limit)||tabAudit.some(t=>t.state==='failed')||deadline||(expanded&&!!filterAudit?.issues?.length),...(expanded?{coverageVersion:VERSION,featureCoverage:coverage(row.sport,row.research),filterAudit}: {})};};
   const initial=[...row.research];
   const context={period:row.period,mapRange:row.mapRange,gameMode:row.gameMode};
-  const collect=async(tab,origin)=>{const fields=await page.evaluate(readSections,{tab,origin,observedAt:new Date().toISOString(),context});groups.push(fields);tabAudit.push({tab,origin,fields:fields.length,state:fields.length?'observed':'empty'});update();};
+  const collect=async(tab,origin,selection=null)=>{const fields=await page.evaluate(readSections,{tab,origin,observedAt:new Date().toISOString(),context:{...context,...(selection?{filterSelection:selection}:{})}});groups.push(fields);tabAudit.push({tab,origin,fields:fields.length,state:fields.length?'observed':'empty'});update();};
   await collect('Player overview','profile');
-  for(const name of ['Matchup','Defense','Shooting','Similar','Rankings','Injuries','Player Stats','Maps','Team Form',...(maxFields>500?['Depth Chart','Lineups','Home/Away','Splits','Season','Teammates','Modes','Agents','Champions','Heroes']:[])]){
-    const target=page.getByRole('tab',{name,exact:true}).or(page.getByRole('button',{name,exact:true})).first();
+  if(expanded&&shouldContinue())filterAudit=await traverseNativeFilters(page,{shouldContinue,onState:selection=>collect('Player overview','profile',selection)});
+  for(const name of ['Matchup','Defense','Shooting','Similar','Rankings','Injuries','Player Stats','Maps','Team Form',...(maxFields>500?['Depth Chart','Lineups','Home/Away','Splits','Season','Teammates','Modes','Agents','Champions','Heroes']:[]),...(expanded?tabs:[])]){
+    if(!shouldContinue()){deadline=true;break;}
+    const candidate=page.getByRole('tab',{name,exact:true}).or(page.getByRole('button',{name,exact:true}));
+    if(expanded&&await candidate.count()!==1){tabAudit.push({tab:name,origin:'profile',state:await candidate.count()?'ambiguous':'not_visible',fields:0});continue;}
+    const target=candidate.first();
     if(await target.isVisible()){
       try{await target.click();await collect(name,'profile');}catch{tabAudit.push({tab:name,origin:'profile',state:'failed',fields:0});update();}
     }else tabAudit.push({tab:name,origin:'profile',state:'not_visible',fields:0});
   }
   for(const [name,origin] of [['Line Movement','line_movement'],['Prop History','prop_history']]){
+    if(!shouldContinue()){deadline=true;break;}
     const target=page.getByRole('button',{name,exact:true});
     if(await target.isVisible()){try{await target.click();await collect(name,origin);}catch{tabAudit.push({tab:name,origin,state:'failed',fields:0});update();}}else tabAudit.push({tab:name,origin,state:'not_visible',fields:0});
   }

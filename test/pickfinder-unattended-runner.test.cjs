@@ -146,3 +146,43 @@ test('sanitized deep failure propagates substage without raw error text',async()
  const {DeepFailure}=require('../scripts/pickfinder-deep-research.cjs');
  await assert.rejects(stage('deep_research',()=>{throw new DeepFailure('checkpoint_rebase');}),/deep_research_checkpoint_rebase/);
 });
+
+test('sport coverage needs nonempty observed values and does not treat unrelated labels as verified',()=>{
+ const {coverage,VERSION,eligible}=require('../scripts/pickfinder-research-coverage.cjs');
+ assert.equal(VERSION,'sport-filter-v2');
+ const c=coverage('nhl',[{tab:'Shot Attempts',value:'4'},{tab:'Goalie Matchup',value:null},{tab:'Line Combinations',value:'fixture'}]);
+ assert.equal(c.shot_attempts.state,'observed_label_and_value');assert.equal(c.goalie_matchups.state,'not_observed');assert.equal(c.line_combinations.observations,1);
+ assert.equal(eligible([{label:'Account',options:[{value:'1'}]},{label:'Map',options:[{value:'1'}]},{label:'Map',options:[{value:'2'}]}]).length,0);
+});
+test('native filters enumerate selected combinations without certifying custom UI coverage',async()=>{
+ const {traverseNativeFilters}=require('../scripts/pickfinder-research-coverage.cjs');
+ const controls=['Map','Mode'].map((label,index)=>({index,label,value:'a',options:[{value:'a',label:'A'},{value:'b',label:'B'}]}));
+ const saved=[];const r=await traverseNativeFilters(null,{read:async()=>structuredClone(controls),set:async(x,v)=>{controls[x.index].value=v;},onState:async s=>saved.push(s.map(x=>x.value).join(''))});
+ assert.deepEqual(saved,['aa','ab','ba','bb']);assert.equal(r.nativeCombinationsExhausted,true);assert.equal(r.allFilterCombinationsVerified,false);assert.deepEqual(controls.map(x=>x.value),['a','a']);
+});
+test('legacy checkpoint is not complete for expanded research version',()=>{
+ const {scope,summarizeCheckpoints}=require('../scripts/pickfinder-deep-research.cjs');
+ const r={book:'prizepicks',sport:'nba',player:'fixture',market:'points',eventId:'e',detailId:'/players/nba/p?prop=x'};
+ const key=require('node:crypto').createHash('sha256').update(JSON.stringify(scope(r.book,r))).digest('hex');
+ const p={...r,key,status:'sampled',profileCollection:{truncated:false},research:[{value:'fixture'}]};
+ const doc=records=>({schema:'pickfinder-deep-v1',seed:'aef07d2aecb75388c6757c9cc5844b2113d6a0ac',records});
+ assert.equal(summarizeCheckpoints([doc([p])]).expandedDone.size,0);
+ assert.equal(summarizeCheckpoints([doc([{...p,profileCollection:{truncated:false,coverageVersion:'sport-filter-v2'}}])]).expandedDone.size,1);
+});
+
+test('deep append uses fresh remote tree without rebasing or losing other writers',async()=>{
+ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{execFileSync}=require('node:child_process');
+ const {persist}=require('../scripts/pickfinder-deep-research.cjs');
+ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'deep-append-fixture-'));
+ const g=(dir,...args)=>execFileSync('git',['-C',dir,...args],{stdio:['ignore','pipe','pipe']}).toString().trim();
+ try{
+  g(temp,'init','--bare','--initial-branch=main','remote.git');
+  const remote=path.join(temp,'remote.git'),a=path.join(temp,'a'),b=path.join(temp,'b');
+  g(temp,'clone',remote,'a');g(a,'-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','--allow-empty','-m','base');g(a,'push','origin','HEAD:main');
+  g(temp,'clone',remote,'b');fs.writeFileSync(path.join(b,'other.txt'),'other writer');g(b,'add','other.txt');g(b,'-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-m','concurrent writer');g(b,'push','origin','HEAD:main');
+  const sha=await persist(a,{fixture:true});
+  assert.equal(g(a,'rev-parse','HEAD'),sha);assert.equal(g(a,'show','HEAD:other.txt'),'other writer');
+  assert.match(g(a,'diff-tree','--no-commit-id','--name-status','-r',sha),/^A\tresearch\/pickfinder-premium-deep\/.+\/research\.json$/);
+  assert.equal(g(a,'status','--porcelain'),'');
+ }finally{fs.rmSync(temp,{recursive:true,force:true});}
+});

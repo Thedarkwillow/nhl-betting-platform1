@@ -8,7 +8,7 @@ on:
       mode:
         required: true
         type: choice
-        options: [audit_pilot, probe_now, reconcile_now, full_reconcile_now, deep_research_now, capture_0600, capture_0900]
+        options: [audit_pilot, probe_now, reconcile_now, full_reconcile_now, cs2_reconcile_now, deep_research_now, capture_0600, capture_0900]
   schedule:
     - cron: '7 6 * * *'
       timezone: America/Los_Angeles
@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   run:
-    if: github.repository == 'Thedarkwillow/nhl-betting-platform1' && github.ref == 'refs/heads/main' && (inputs.mode == 'audit_pilot' || (vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (contains(github.event.head_commit.message, '[pickfinder-probe]') || contains(github.event.head_commit.message, '[pickfinder-reconcile]') || contains(github.event.head_commit.message, '[pickfinder-deep]'))) || (github.event_name == 'schedule'))))
+    if: github.repository == 'Thedarkwillow/nhl-betting-platform1' && github.ref == 'refs/heads/main' && (inputs.mode == 'audit_pilot' || (vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (contains(github.event.head_commit.message, '[pickfinder-probe]') || contains(github.event.head_commit.message, '[pickfinder-reconcile]') || contains(github.event.head_commit.message, '[pickfinder-deep]') || contains(github.event.head_commit.message, '[pickfinder-cs2]'))) || (github.event_name == 'schedule'))))
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     steps:
@@ -63,7 +63,7 @@ jobs:
           "$RUNNER_TEMP/pickfinder-deps/node_modules/.bin/playwright" install --with-deps chromium
       - name: Verify prior successful hosted authentication for bounded reconciliation
         id: prior-auth
-        if: github.event_name == 'schedule' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-reconcile]')) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-deep]')) || inputs.mode == 'deep_research_now' || inputs.mode == 'full_reconcile_now'
+        if: github.event_name == 'schedule' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-reconcile]')) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-deep]')) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-cs2]')) || inputs.mode == 'cs2_reconcile_now' || inputs.mode == 'deep_research_now' || inputs.mode == 'full_reconcile_now'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -78,7 +78,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
-          REQUESTED_MODE: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-deep]') && 'deep_research_now' || github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-reconcile]') && 'full_reconcile_now' || github.event_name == 'push' && 'probe_now' || inputs.mode }}
+          REQUESTED_MODE: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-cs2]') && 'cs2_reconcile_now' || github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-deep]') && 'deep_research_now' || github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-reconcile]') && 'full_reconcile_now' || github.event_name == 'push' && 'probe_now' || inputs.mode }}
           PICKFINDER_SCHEDULE_RESEARCH_PILOT: ${{ github.event_name == 'schedule' && '1' || '0' }}
           PICKFINDER_PRIOR_AUTH_PROOF: ${{ steps.prior-auth.outputs.verified }}
           PICKFINDER_AUTOMATION_AUTHORIZED: ${{ vars.PICKFINDER_AUTOMATION_AUTHORIZED }}

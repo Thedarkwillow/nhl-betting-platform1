@@ -23,5 +23,27 @@ function run(root,day,slot,now=new Date()){
  for(const {doc,first} of boards.values()){if(doc.localDay!==day||doc.slot!==slot)continue;const k=doc.sport+'/'+doc.book,r=results[k]??={verified:0,pending:0,offers:0};const state=assess({manifest:doc,first,parts,day,slot});if(state==='pending')r.pending++;else{r.verified++;r.offers+=doc.health.distinctOfferKeys;}}
  return {state:'public_pickfinder_morning_audit',day,slot,partitions:results,corePartitionsVerified:['nba','nhl','nfl'].every(s=>['prizepicks','underdog'].every(b=>results[s+'/'+b]?.verified>0)),originalPlatformAvailabilityVerified:false,modelApproved:false,privateRepoUsed:false};
 }
-module.exports={assess,run};
-if(require.main===module){try{const day=pacific(new Date()).day;console.log(JSON.stringify(run(process.argv[2],day,process.argv[3])));}catch{console.error('Public archive audit failed closed');process.exitCode=1;}}
+function scheduledRunMatches(origin,run,day,slot,first){
+ const hour=Number(slot.slice(0,2)),expected='7 '+hour+' * * *';
+ return !!origin&&origin.event==='schedule'&&origin.cron===expected&&/^[1-9][0-9]{0,19}$/.test(origin.runId)&&/^[1-9][0-9]{0,5}$/.test(origin.attempt)&&/^[a-f0-9]{40}$/.test(origin.revision)&&!!run&&String(run.id)===origin.runId&&String(run.run_attempt)===origin.attempt&&run.event==='schedule'&&run.head_sha===origin.revision&&run.head_branch==='main'&&run.repository?.full_name==='Thedarkwillow/nhl-betting-platform1'&&run.path==='.github/workflows/pickfinder-premium-hosted.yml'&&run.status==='completed'&&run.conclusion==='success'&&inHour(run.run_started_at,day,hour)&&Date.parse(run.run_started_at)<=Date.parse(first);
+}
+async function verifyScheduled(root,report,env=process.env,client=fetch){
+ if(report.state!=='public_pickfinder_morning_audit')return report;
+ const results={},cache=new Map(),boards=load(root,'boards'),parts=load(root,'board-parts');
+ for(const {doc,first} of boards.values()){
+  if(doc.localDay!==report.day||doc.slot!==report.slot||assess({manifest:doc,first,parts,day:report.day,slot:report.slot})==='pending')continue;
+  const key=doc.sport+'/'+doc.book,r=results[key]??={scheduledVerified:0,manual:0,originUnknown:0,scheduledUnverified:0};
+  const o=doc.captureOrigin;
+  if(o?.event==='workflow_dispatch'||o?.event==='push'){r.manual++;continue;}
+  if(o?.event!=='schedule'||!/^[1-9][0-9]{0,19}$/.test(o.runId)||!/^[1-9][0-9]{0,5}$/.test(o.attempt)){r.originUnknown++;continue;}
+  const k=o.runId+'/'+o.attempt;
+  if(!cache.has(k)){let data=null;try{
+    const res=await client('https://api.github.com/repos/Thedarkwillow/nhl-betting-platform1/actions/runs/'+o.runId+'/attempts/'+o.attempt,{redirect:'error',signal:AbortSignal.timeout(10000),headers:{Accept:'application/vnd.github+json',...(env.GH_TOKEN?{Authorization:'Bearer '+env.GH_TOKEN}:{})}});
+    if(res.ok)data=await res.json();
+   }catch{}cache.set(k,data);}
+  if(scheduledRunMatches(o,cache.get(k),report.day,report.slot,first))r.scheduledVerified++;else r.scheduledUnverified++;
+ }
+ return {...report,scheduledPartitions:results,scheduledCorePartitionsVerified:['nba','nhl','nfl'].every(s=>['prizepicks','underdog'].every(b=>results[s+'/'+b]?.scheduledVerified>0)),scheduledFullCoverageCertified:false};
+}
+module.exports={assess,run,scheduledRunMatches,verifyScheduled};
+if(require.main===module){(async()=>{const day=pacific(new Date()).day,root=process.argv[2],report=run(root,day,process.argv[3]);console.log(JSON.stringify(await verifyScheduled(root,report)));})().catch(()=>{console.error('Public archive audit failed closed');process.exitCode=1;});}

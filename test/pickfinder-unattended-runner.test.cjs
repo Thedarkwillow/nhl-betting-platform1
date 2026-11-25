@@ -72,3 +72,24 @@ test('unique Continue is selected even with multiple other form buttons',async()
 test('marked push reconciliation requires verified prior authentication',()=>{assert.throws(()=>plan({...env,GITHUB_EVENT_NAME:'push',REQUESTED_MODE:'reconcile_now'},now));assert.equal(plan({...env,GITHUB_EVENT_NAME:'push',REQUESTED_MODE:'reconcile_now',PICKFINDER_PRIOR_AUTH_PROOF:'1'},now).reconcile,true);});
 
 test('scheduled research pilot needs prior proof and original Pacific slot',()=>{const a={...env,PICKFINDER_SCHEDULE_ENABLED:'0',PICKFINDER_SCHEDULE_RESEARCH_PILOT:'1'};assert.equal(plan(a,now).allowed,false);assert.equal(plan({...a,PICKFINDER_PRIOR_AUTH_PROOF:'1'},now).allowed,true);assert.equal(plan({...a,PICKFINDER_PRIOR_AUTH_PROOF:'1'},new Date('2026-11-25T17:07:00Z')).allowed,false);assert.equal(plan({...a,GITHUB_EVENT_NAME:'push',REQUESTED_MODE:'full_reconcile_now',PICKFINDER_PRIOR_AUTH_PROOF:'1'},now).full,true);});
+
+
+test('streaming archive verification handles large blobs and rejects mismatches',async()=>{
+ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),crypto=require('node:crypto');
+ const {execFileSync}=require('node:child_process');
+ const {verifyRemoteBatch}=require('../scripts/pickfinder-unattended-runner.cjs');
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'pf-readback-'));
+ try{
+  const git=(...args)=>execFileSync('git',['-C',root,...args],{stdio:'ignore'});
+  git('init');const base='capture';fs.mkdirSync(path.join(root,base));
+  const batch={fixture:'x'.repeat(33*1024*1024)},raw=JSON.stringify(batch);
+  const digest=crypto.createHash('sha256').update(raw).digest('hex');
+  fs.writeFileSync(path.join(root,base,'source.json'),raw);
+  fs.writeFileSync(path.join(root,base,'normalized.json'),JSON.stringify({sourceDigest:digest}));
+  git('add','.');git('-c','user.name=Test','-c','user.email=test@example.invalid','commit','-m','fixture');
+  await verifyRemoteBatch(root,base,batch,'HEAD');
+  await assert.rejects(verifyRemoteBatch(root,base,{fixture:'wrong'},'HEAD'),/digest mismatch/);
+  fs.writeFileSync(path.join(root,base,'normalized.json'),JSON.stringify({sourceDigest:digest,modified:true}));
+  await assert.rejects(verifyRemoteBatch(root,base,batch,'HEAD'),/archive mismatch/);
+ }finally{fs.rmSync(root,{recursive:true,force:true});}
+});

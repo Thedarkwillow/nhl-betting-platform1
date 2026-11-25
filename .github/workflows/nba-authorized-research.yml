@@ -56,7 +56,7 @@ jobs:
       - name: Offline NBA source and prospective grading contracts
         run: |
           set -euo pipefail
-          node --test test/nba-research-pipeline-v1.test.cjs test/nba-frozen-research-grade-v1.test.cjs test/nba-authorized-provider-access.test.cjs test/nba-alternate-providers.test.cjs
+          node --test test/nba-official-preview-schedule.test.cjs test/nba-research-pipeline-v1.test.cjs test/nba-frozen-research-grade-v1.test.cjs test/nba-authorized-provider-access.test.cjs test/nba-alternate-providers.test.cjs
           node scripts/collect-nba-alternate-providers.cjs
           node scripts/run-nba-private-research-v1.cjs
           node scripts/grade-nba-frozen-research-v1.cjs

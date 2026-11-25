@@ -83,7 +83,8 @@ def audit(kaggle,demos,evidence_out=None):
 
 def run(demos):
     import json
-    rows,_=load_pinned_history()
+    rows,source_report=load_pinned_history()
+    print(json.dumps({"kind":"cs2_native_namespace_audit_v1","directory":source_report.get("nativeDirectoryAudit",{}),"rawRowsPublished":0,"paidRequests":0}),flush=True)
     ev=[];report=audit(rows,demos,ev)
     print(json.dumps(report),flush=True)
     dest=os.environ.get("ESPORTS_IDENTITY_EVIDENCE_OUTPUT")

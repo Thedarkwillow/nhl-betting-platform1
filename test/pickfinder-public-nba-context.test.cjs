@@ -16,3 +16,8 @@ test('archived local clock is preserved but never promoted to UTC',()=>{
  assert.deepEqual(x.localMatchup,{team:'BOS',opponent:'NYK',homeAway:'away',weekday:'Thu',hour:12,minute:0,dayPeriod:'AM'});
  assert.equal(normalize(target,{...snap,entries:[...snap.entries,{label:'Matchup',value:'BOS vs NYK • Wed @ 7:00PM'}]},at).localMatchup,null);
 });
+
+test('browser timezone evidence never verifies provider clock or changes context eligibility',()=>{
+ const target=queue(archive,[],at).pending[0];const snap={routeVerified:true,playerLabelVerified:true,entries:[{label:'Team',value:'BOS'},{label:'Opponent',value:'NYK'},{label:'Matchup',value:'BOS @ NYK • Thu @ 12:00AM'}],clocks:[],browserClock:{zone:'UTC',offsetMinutes:0}};
+ const x=normalize(target,snap,at);assert.deepEqual(x.browserClock,{zone:'UTC',offsetMinutes:0,providerDisplayZoneVerified:false});assert.equal(x.startAt,null);assert.equal(x.state,'context_incomplete');assert.equal(normalize(target,{...snap,browserClock:{zone:'not-a-zone',offsetMinutes:0}},at).browserClock,null);
+});

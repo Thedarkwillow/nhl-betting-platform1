@@ -27,3 +27,12 @@ test('offline roster and schedule candidate never substitutes unverified local c
  assert.equal(reconcileLocal(r,{...ctx,scopes:[{...s,firstGitAt:'2026-11-25T19:11:00Z'}]}),null);
  const a=reconcileArchive(ctx,[{schema:'pickfinder-public-nba-context-v1',records:[r,r]}]);assert.equal(a.uniqueCandidates,1);assert.equal(a.counts.candidates,2);
 });
+
+test('candidate offer links retain exact threshold and never qualify a probability',()=>{
+ const {candidateOffers,reconcileArchive}=require('../scripts/native-individual-research.cjs');
+ const clock='2026-11-25T19:10:00Z',o={sport:'nhl',book:'prizepicks',source:'pickfinder_premium',eventId:'e',player:'Example',market:'player_goals',detailId:'/players/nhl/abc?prop=x%3Aplayer_goals%3Ae%3A0.5',line:0.5,side:'Higher',tier:'standard',observedAt:clock};
+ const c={sport:'nhl',eventId:'e',player:'Example',playerPath:'/players/nhl/abc',nativeGameId:9,nativePlayerId:1,nativeStartAt:'2026-11-26T00:00:00Z'};
+ const ctx={preparedAt:clock,archive:{latest:[{first:clock,digest:'abc',offers:[o,o,{...o,line:1.5}]}]}};
+ const rows=candidateOffers(ctx,{rows:[c]});assert.equal(rows.length,1);assert.equal(rows[0].line,0.5);assert.equal(rows[0].probability,null);assert.equal(rows[0].sourceClockVerified,false);assert.equal(rows[0].modelApproved,false);
+ const a=reconcileArchive(ctx,[{schema:'pickfinder-public-nba-context-v1',records:[{state:'context_incomplete',routeVerified:false}]}]);assert.equal(a.reasons.unverified_profile,1);assert.equal(a.counts.unresolved,1);
+});

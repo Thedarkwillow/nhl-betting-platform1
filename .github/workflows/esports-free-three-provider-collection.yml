@@ -69,8 +69,10 @@ jobs:
           GRID_API_KEY: ${{ secrets.GRID_API_KEY || secrets.RIOT_GRID_API_KEY || secrets.GRID }}
           PANDASCORE_BETTING_DATA_AUTHORIZED: ${{ vars.PANDASCORE_BETTING_DATA_AUTHORIZED }}
           PANDASCORE_NO_CHARGE_CONFIRMED: ${{ vars.PANDASCORE_NO_CHARGE_CONFIRMED }}
-          GRID_BETTING_DATA_AUTHORIZED: ${{ vars.GRID_BETTING_DATA_AUTHORIZED }}
-          GRID_NO_CHARGE_CONFIRMED: ${{ vars.GRID_NO_CHARGE_CONFIRMED }}
+          # Owner reports provider permission and no additional charges, 2026-11-25 UTC.
+          # Explicit repository-variable values override these documented defaults; 0 disables collection.
+          GRID_BETTING_DATA_AUTHORIZED: ${{ vars.GRID_BETTING_DATA_AUTHORIZED || '1' }}
+          GRID_NO_CHARGE_CONFIRMED: ${{ vars.GRID_NO_CHARGE_CONFIRMED || '1' }}
         run: node public/scripts/esports-free-source-adapters.cjs restricted "$RUNNER_TEMP/esports-free-provider-observations.json"
       - name: Persist restricted source observations
         working-directory: restricted

@@ -4,7 +4,7 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const {execFileSync}=require('node:child_process');
 const SEED='aef07d2aecb75388c6757c9cc5844b2113d6a0ac';
 const ROOT='research/pickfinder-premium-deep';
-const {captureDashboard}=require('./pickfinder-dashboard-research.cjs');
+const {traverseDashboard,inspectCapabilities}=require('./pickfinder-dashboard-research.cjs');
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const git=(root,args)=>execFileSync('git',['-C',root,...args],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']});
 function scope(book,row){
@@ -89,6 +89,7 @@ async function run({root,context,page,enrich,collect,limit=Infinity,shouldContin
  const startedAt=new Date().toISOString(),records=[],diagnostics={};
  const premium=async p=>p.evaluate(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium')&&!!document.querySelector('button[aria-label="Open user menu"]'));
  diagnostics.controls=await page.evaluate(inventory);
+ diagnostics.readOnlyCapabilities=await inspectCapabilities(page);
  // Only follow uniquely visible same-origin read-only dashboard anchors. Builder and alerts are inventory-only.
  diagnostics.dashboards={};
  const dashboardSnapshots=[];
@@ -103,11 +104,28 @@ async function run({root,context,page,enrich,collect,limit=Infinity,shouldContin
    await page.goto(u.href,{timeout:15000});
    await page.waitForFunction(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium'),null,{timeout:12000});
    if(!await premium(page))throw Error('session unavailable');
-   const snapshot=await captureDashboard(page,name);
-   dashboardSnapshots.push(snapshot);
-   await persist(root,{schema:'pickfinder-deep-v1',seed:SEED,startedAt,finishedAt:new Date().toISOString(),diagnostics:{},dashboardSnapshots:[snapshot],records:[],modelInputsApproved:false,originalOffersVerified:false});
-   diagnostics.dashboards[name]={state:snapshot.tables.length||snapshot.cards.length?'observed':'no_visible_records',tables:snapshot.tables.length,cards:snapshot.cards.length,controls:await page.evaluate(inventory)};
+   let tables=0,cards=0,clocks=0;
+   const traversal=await traverseDashboard(page,name,{shouldContinue,onSnapshot:async snapshot=>{
+    tables+=snapshot.tables.length;cards+=snapshot.cards.length;clocks+=snapshot.clocks.length;
+    await persist(root,{schema:'pickfinder-deep-v1',seed:SEED,startedAt,finishedAt:new Date().toISOString(),diagnostics:{},dashboardSnapshots:[snapshot],records:[],modelInputsApproved:false,originalOffersVerified:false});
+   }});
+   diagnostics.dashboards[name]={...traversal,tables,cards,clocks,controls:await page.evaluate(inventory)};
+
   }catch{diagnostics.dashboards[name]={state:'unverified'};await page.goto('https://www.pickfinder.app/props',{timeout:20000});await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:15000});if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
+ }
+ // Inspect only same-origin read-only navigation links; do not add picks, save alerts or submit forms.
+ for(const name of ['Pick Builder','Line Alerts','Alerts']){
+  if(!shouldContinue())break;
+  try{
+   await page.goto('https://www.pickfinder.app/props',{timeout:15000});
+   const link=page.getByRole('link',{name,exact:true});
+   if(await link.count()!==1||!await link.isVisible()){diagnostics[name]={state:'navigation_not_verified'};continue;}
+   const href=await link.getAttribute('href'),u=new URL(href,'https://www.pickfinder.app');
+   if(!href||u.origin!=='https://www.pickfinder.app'||!['/pick-builder','/builder','/alerts','/line-alerts'].includes(u.pathname)){diagnostics[name]={state:'route_not_verified'};continue;}
+   await page.goto(u.href,{timeout:15000});await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});
+   if(!await premium(page))throw Error('session unavailable');
+   diagnostics[name]={state:'read_only_capabilities_observed',route:u.pathname,labels:await inspectCapabilities(page),mutations:0};
+  }catch{diagnostics[name]={state:'unverified',mutations:0};}
  }
  for(const code of ['DOTA2','SOCCER']){
   if(!shouldContinue())break;

@@ -1,0 +1,45 @@
+name: Private witnessed forecast cohort grading
+on:
+  pull_request:
+    paths: ['scripts/prizepicks-vault-grade-cohort.cjs','scripts/prizepicks-restricted-nba-grade.cjs','test/prizepicks-vault-grade-cohort.test.cjs','.github/workflows/prizepicks-vault-grade-cohort.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/prizepicks-vault-grade-cohort.cjs','.github/workflows/prizepicks-vault-grade-cohort.yml']
+  schedule:
+    - cron: '35 4,22 * * *'
+      timezone: America/Los_Angeles
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: private-witnessed-cohort-grade-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/prizepicks-vault-grade-cohort.test.cjs test/prizepicks-native-context-readiness.test.cjs
+  audit_and_grade:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify pregame witness and reconcile or grade in dedicated private vault
+        env:
+          PRIZEPICKS_FORECAST_VAULT_TOKEN: ${{ secrets.PRIZEPICKS_FORECAST_VAULT_TOKEN }}
+          PRIZEPICKS_FORECAST_STORAGE_GRANT: ${{ vars.PRIZEPICKS_FORECAST_STORAGE_GRANT }}
+        run: node scripts/prizepicks-vault-grade-cohort.cjs

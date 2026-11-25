@@ -1,0 +1,48 @@
+name: CS2 round reconciliation and Valorant prior agent mixture
+on:
+  pull_request:
+    paths: ['scripts/cs2_round_reconcile.py','scripts/public-opencs2-map-baseline.py','scripts/valorant_pregame_agent_research.py','.github/workflows/esports-round-reconcile-and-agent-mixture.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/esports-round-reconcile-and-agent-mixture.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m py_compile scripts/cs2_round_reconcile.py scripts/valorant_pregame_agent_research.py
+      - run: python3 -m unittest discover -s test -p test_opencs2_map_baseline.py
+      - run: node scripts/validate-master-roadmap.cjs && node scripts/validate-execution-roadmap.cjs
+  cs2:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyarrow==19.0.1
+      - run: CS2_ROUND_TABLE_RECONCILE=1 python scripts/public-opencs2-map-baseline.py
+  valorant:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install duckdb==1.2.2
+      - run: python scripts/valorant_pregame_agent_research.py

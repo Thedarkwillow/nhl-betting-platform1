@@ -137,6 +137,9 @@ def main():
     if os.environ.get("CS2_INDEPENDENT_IDENTITY_AUDIT")=="1":
         from cs2_independent_steam_audit import run
         run(strict)
+    if os.environ.get("CS2_ROUND_TABLE_RECONCILE")=="1":
+        from cs2_round_reconcile import run as round_run
+        round_run(strict)
     if os.environ.get("CS2_STATIC_HLTV_RESEARCH")=="1":
         from cs2_static_hltv_research import run as static_run
         static_run(strict)

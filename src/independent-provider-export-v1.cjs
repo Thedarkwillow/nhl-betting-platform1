@@ -19,7 +19,7 @@ function adapt(doc,receivedAt,provider,source,sideMap,needsRung){
   if(!r||r.is_demo!==false||r.source!==source||r.status!=="active"){reject("source_or_status");continue;}
   const sport=resolveSport(r),start=timestamp(r.event?.starts_at),observed=timestamp(r.observed_at);
   if(!sport||!text(r.id)||!text(r.source_projection_id)||!text(r.player?.id)||!text(r.player?.name)||!text(r.market?.id)||!text(r.market?.stat)||!text(r.market?.period)||!Number.isFinite(r.line)||(needsRung&&!text(r.line_id))){reject("identity_scope_or_line");continue;}
-  if(!Number.isFinite(start)||!Number.isFinite(observed)||observed>now||now-observed>900000||start<=now+900000){reject("stale_or_started");continue;}
+  if(!Number.isFinite(start)||!Number.isFinite(observed)||observed>now||now-observed>900000||start<=now+900000||observed>=start||r.is_live===true||r.in_game===true){reject("stale_or_started");continue;}
   const selections={};let invalid=false;
   if(!Array.isArray(r.selections)){reject("missing_selections");continue;}
   for(const s of r.selections){
@@ -49,16 +49,38 @@ function compact(doc,receivedAt,provider,source,prefixes){
   if(!sport||!text(r.id)||!text(r.player)||!text(r.stat)||!text(r.period)||!Number.isFinite(r.line)){reject("compact_identity_scope_or_line");continue;}
   if(!Number.isFinite(start)||!Number.isFinite(observed)||observed>now||now-observed>900000||start<=now+900000){reject("stale_or_started");continue;}
   const selections={};let invalid=false;
+  const listed=provider==="PrizePicksAPI"&&Object.hasOwn(r,"sides");
+  const warnings=[];
+  // Documented compact JSON uses a row-level tier and an explicit sides array.
+  // Keep the older flat side fields for compatible exports. Never infer an
+  // unavailable side, a payout or a tier from a missing value.
+  if(listed&&(!Array.isArray(r.sides)||r.sides.length<1||r.sides.length>2||
+    new Set(r.sides).size!==r.sides.length||r.sides.some(s=>s!=="more"&&s!=="less")||
+    !["standard","goblin","demon","unknown"].includes(r.tier))){reject("invalid_compact_side_schema");continue;}
   for(const [prefix,side] of prefixes){
-   const available=r[prefix+"_available"],multiplier=r[prefix+"_mult"]??r[prefix+"_multiplier"]??null;
-   if(available==null)continue;
-   if(typeof available!=="boolean"||(multiplier!==null&&(!Number.isFinite(multiplier)||multiplier<=0||!available))){invalid=true;break;}
-   selections[side]={available,tier:text(r[prefix+"_tier"]),multiplier};
+   const flat=r[prefix+"_available"],flatTier=r[prefix+"_tier"],multiplier=r[prefix+"_mult"]??r[prefix+"_multiplier"]??null;
+   if(listed){
+    const offered=r.sides.includes(prefix);
+    if(flat!=null&&(typeof flat!=="boolean"||flat!==offered)){invalid=true;break;}
+    if(offered&&flatTier!=null&&flatTier!==r.tier){invalid=true;break;}
+    if(multiplier!==null&&(!Number.isFinite(multiplier)||multiplier<=0||!offered)){invalid=true;break;}
+    if(!offered)continue;
+    // Alternate PrizePicks lines are Higher-only. The published fictional
+    // sample contains conflicting Lower flags; retain Higher and flag the
+    // conflict, rather than treating that Lower as a selectable side.
+    if(side==="Lower"&&["goblin","demon"].includes(r.tier)){warnings.push("alternate_lower_side_conflict");continue;}
+    selections[side]={available:true,tier:r.tier,multiplier};
+   }else{
+    if(flat==null)continue;
+    if(typeof flat!=="boolean"||(multiplier!==null&&(!Number.isFinite(multiplier)||multiplier<=0||!flat))){invalid=true;break;}
+    if(provider==="PrizePicksAPI"&&flat&&side==="Lower"&&["goblin","demon"].includes(flatTier)){warnings.push("alternate_lower_side_conflict");continue;}
+    selections[side]={available:flat,tier:text(flatTier),multiplier};
+   }
   }
-  if(invalid||!Object.values(selections).some(x=>x.available)){reject("invalid_selections");continue;}
+  if(invalid||!Object.values(selections).some(x=>x.available===true)){reject("invalid_selections");continue;}
   if(seen.has(r.id)){const i=seen.get(r.id);if(i!==null){rows[i]=null;seen.set(r.id,null);reject("duplicate_identity");}reject("duplicate_identity");continue;}
   seen.set(r.id,rows.length);
-  rows.push({provider,sport,providerOfferId:r.id,providerRungId:text(r.line_id),sourceProjectionId:text(r.source_projection_id),providerPlayerId:text(r.player_id),providerEventId:text(r.fixture_id??r.event_id),providerMarketId:null,player:r.player,team:text(r.team),opponent:text(r.opponent),stat:r.stat,period:r.period,line:r.line,startsAt:new Date(start).toISOString(),observedAt:new Date(observed).toISOString(),receivedAt,selections,adjustedOdds:typeof r.adjusted_odds==="boolean"?r.adjusted_odds:null,standardRatesApply:typeof r.standard_rates_apply==="boolean"?r.standard_rates_apply:null,sourceFieldPresent:r.source!=null,rowExplicitNonDemo:r.is_demo===false,provenance:"independent_provider_compact_observation",identityResolutionRequired:true,originalAppAvailabilityVerified:false,officialExportVerified:false,productionEligible:false});
+  rows.push({provider,sport,providerOfferId:r.id,providerRungId:text(r.line_id),sourceProjectionId:text(r.source_projection_id),providerPlayerId:text(r.player_id),providerEventId:text(r.fixture_id??r.event_id),providerMarketId:null,player:r.player,team:text(r.team),opponent:text(r.opponent),stat:r.stat,period:r.period,line:r.line,startsAt:new Date(start).toISOString(),observedAt:new Date(observed).toISOString(),receivedAt,selections,selectionWarnings:warnings,selectionSchema:listed?"compact_sides_array":"flat_side_fields",adjustedOdds:typeof r.adjusted_odds==="boolean"?r.adjusted_odds:null,standardRatesApply:typeof r.standard_rates_apply==="boolean"?r.standard_rates_apply:null,sourceFieldPresent:r.source!=null,rowExplicitNonDemo:r.is_demo===false,provenance:"independent_provider_compact_observation",identityResolutionRequired:true,originalAppAvailabilityVerified:false,officialExportVerified:false,productionEligible:false});
  }
  return {kind:"independent_provider_compact_research_v1",provider,rows:rows.filter(Boolean),excluded,sourceDocumentSha256:createHash("sha256").update(JSON.stringify(doc)).digest("hex"),completePage:doc.meta.next_cursor===null,networkCalls:0,originalOffersVerified:0,publicRawRedistributionAllowed:false};
 }

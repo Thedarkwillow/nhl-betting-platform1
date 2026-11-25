@@ -6,6 +6,8 @@ const {collect,ORIGIN}=require('./pickfinder-browser.cjs');
 const {enrich}=require('./pickfinder-player-research.cjs');
 const {archive,normalize}=require('./pickfinder-premium-archive.cjs');
 const {loadPilot,compare,inputAudit}=require('./pickfinder-pilot-reconcile.cjs');
+const {registry,classify,orderedPartitions}=require('./season-aware-collection.cjs');
+const {discover}=require('./season-aware-discovery.cjs');
 const SPORTS=['NBA','CS2','VAL','LOL','DOTA2','COD','NHL','NFL'];
 const BOOKS=['prizepicks','underdog'];
 const partitions=()=>SPORTS.flatMap(code=>BOOKS.map(book=>({code,book})));
@@ -134,31 +136,40 @@ async function main(env=process.env){
  const prefix='research/pickfinder-premium/'+p.clock.day+'/'+p.expected.replace(':','');
  const deadline=Date.now()+20*60000;
  const remaining=()=>{const t=pacific(new Date());return p.reconcile?Date.now()<deadline&&t.day===p.clock.day:t.day===p.clock.day&&t.hour===p.clock.hour&&t.minute<55;};
- const targets=p.reconcile?[...['NBA','NFL','NHL'].map(code=>({book:'prizepicks',code})),...partitions().filter(p=>p.book!=='prizepicks'||!['NBA','NFL','NHL'].includes(p.code))]:partitions();
+ const evidence=await discover({env});
+ const preferredTargets=orderedPartitions(SPORTS,BOOKS,evidence);
+ const optionalCodes=Object.keys(registry).filter(code=>!SPORTS.includes(code));
+ const targets=p.reconcile?[...['NBA','NFL','NHL'].map(code=>({book:'prizepicks',code})),...preferredTargets.filter(p=>p.book!=='prizepicks'||!['NBA','NFL','NHL'].includes(p.code))]:preferredTargets;
+ console.log(JSON.stringify({state:'competition_discovery',sports:Object.fromEntries(Object.keys(registry).map(code=>[code,{source:evidence[code]?.source,status:evidence[code]?.status,upcoming:evidence[code]?.upcoming}])),paidEndpointsCalled:0}));
  const attempt=crypto.randomUUID();
  const counts=[],batches=[],normalized=[];let failed=false;
  process.env.RESTRICTED_DESTINATION_VERIFIED='1';
  const {context,page}=await open();
  try{
   const detail=await context.newPage();detail.setDefaultTimeout(5000);
+  // Probe optional league controls only after verified authentication. Missing optional sports are not proof of an offseason.
+  for(const code of optionalCodes){const b=page.getByRole('button',{name:code,exact:true});if(await b.count()===1&&await b.isVisible())targets.push(...BOOKS.map(book=>({code,book})));else console.log(JSON.stringify({state:'optional_board_not_exposed',code,competition:'unknown'}));}
   for(const {book,code} of targets){
    if(!remaining()){failed=true;break;}
    try{
-    await page.goto(ORIGIN+'/props',{timeout:20000});
-    const batch=await collect(page,{book,code,slot:p.expected,maxPages:p.reconcile?2:100,shouldContinue:remaining});
+    await stage('board_navigation',()=>page.goto(ORIGIN+'/props',{timeout:20000}));
+    const batch=await stage('board_collection',()=>collect(page,{book,code,slot:p.expected,maxPages:p.reconcile?2:100,shouldContinue:remaining}));
     // A bounded profile sample preserves board coverage. Separate deep research is still required.
     const sample=batch.pages.flatMap(pg=>pg.rows).find(r=>r.apps.length);
     if(sample&&remaining())try{await enrich(detail,sample,{navigate:url=>detail.goto(url,{timeout:8000})});}catch{sample.profileCollection={status:'unavailable'};}
     batch.endedAt=new Date().toISOString();
-    const summary=archive(batch,root,attempt);
+    const summary=await stage('partition_archive_validation',()=>archive(batch,root,attempt));
     batches.push(batch);normalized.push(normalize(batch));
-    counts.push({book,code,boardState:summary.boardState,withinSlot:summary.withinSlot,offers:summary.health.distinctOfferKeys,unresolved:summary.health.unresolvedRows,unresolvedEvidence:summary.health.unresolvedEvidence,pages:summary.health.pages,traversal:summary.pageTraversalComplete});
+    const health=classify({boardState:batch.boardState,offers:summary.health.distinctOfferKeys,pages:summary.health.pages,authenticated:batch.authenticated===true,explicitEmpty:batch.explicitEmpty===true,disabledConfirmed:batch.disabledConfirmed===true,failure:batch.failure,schedule:evidence[code]});
+    counts.push({book,code,seasonStatus:health.state,competition:health.competition,boardState:summary.boardState,withinSlot:summary.withinSlot,offers:summary.health.distinctOfferKeys,unresolved:summary.health.unresolvedRows,unresolvedEvidence:summary.health.unresolvedEvidence,pages:summary.health.pages,traversal:summary.pageTraversalComplete});
     if(batch.failure==='session_expired'){failed=true;break;}
-    if(!p.reconcile&&(!summary.withinSlot||summary.boardState==='partial'||summary.health.unresolvedRows||summary.health.priceConflictKeys||summary.health.repeatOrUnresolvedLinks))failed=true;
+    if(!p.reconcile&&(!summary.withinSlot||!health.healthy||summary.health.unresolvedRows||summary.health.priceConflictKeys||summary.health.repeatOrUnresolvedLinks))failed=true;
     if(p.reconcile&&summary.boardState==='partial'&&!summary.health.pages)failed=true;
-   }catch{counts.push({book,code,state:'partition_failed'});failed=true;}
+   }catch(e){counts.push({book,code,state:'partition_failed',stage:e instanceof RunnerStageError?e.stage:'unclassified'});failed=true;}
+   console.log(JSON.stringify({state:'partition_status',...counts.at(-1)}));
   }
  }finally{await context.close();}
+ console.log(JSON.stringify({state:'collection_attempt_summary',attempted:counts.length,expected:targets.length,partitions:counts,rawRowsPublished:0}));
  if(counts.some(c=>typeof c.offers==='number')){
   git(root,['add','--',prefix]);
   if(!safeAddedFiles(git(root,['diff','--cached','--name-status']),prefix))throw Error('non append-only staging refused');
@@ -176,7 +187,7 @@ async function main(env=process.env){
   });
   if(p.reconcile)console.log(JSON.stringify({state:'fresh_reconciliation',...compare(loadPilot(root),batches)}));
   console.log(JSON.stringify({state:'nba_esports_input_audit',...inputAudit(normalized)}));
-  if(!p.reconcile&&!hosted&&counts.length===partitions().length&&counts.every(c=>c.withinSlot===true)&&counts.some(c=>c.offers>0)){
+  if(!p.reconcile&&!hosted&&counts.length===targets.length&&counts.every(c=>c.withinSlot===true)&&counts.some(c=>c.offers>0)){
    fs.writeFileSync(receiptPath,JSON.stringify({...receipt,captureVerifiedAt:new Date().toISOString(),archiveSha:sha}),{mode:0o600});
   }
   console.log(JSON.stringify({state:'remote_archive_verified',sha,slot:p.expected,partitions:counts,allPartitionsAttempted:counts.length===targets.length,remoteDigestVerified:true,boundedSample:p.reconcile===true,fullBoardCertified:false,modelInputsApproved:false}));

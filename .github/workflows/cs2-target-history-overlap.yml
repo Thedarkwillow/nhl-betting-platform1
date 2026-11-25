@@ -1,0 +1,39 @@
+name: CS2 targeted historical identity overlap
+on:
+  pull_request:
+    paths: ['scripts/cs2_target_history_overlap.py','test/test_cs2_target_history_overlap.py','.github/workflows/cs2-target-history-overlap.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/cs2_target_history_overlap.py','test/test_cs2_target_history_overlap.py','.github/workflows/cs2-target-history-overlap.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python -m unittest discover -s test -p test_cs2_target_history_overlap.py
+  audit:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Confirm private archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/kashrock-source-captures
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: restricted
+          persist-credentials: false
+      - run: python scripts/cs2_target_history_overlap.py restricted/research/kashrock-source-captures/identity-projection-candidate-review-20261125.json

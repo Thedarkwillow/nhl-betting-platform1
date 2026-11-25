@@ -52,7 +52,7 @@ function originalOffers(files){
  return out;
 }
 function build(offers,maps,previous,now,rev){
- const rows=[],excluded={staleOrLate:0,duplicate:0,noHistory:0};
+ const rows=[],excluded={staleOrLate:0,duplicate:0,noHistory:0,noOfferedDirection:0};
  const existing=new Set(previous.flatMap(x=>x.doc?.kind==="esports_prospective_frozen_v2"&&Array.isArray(x.doc.rows)?x.doc.rows.map(r=>r.key):[]));
  for(const x of offers.sort((a,b)=>at(a.offer.capturedAt)-at(b.offer.capturedAt))){
   const o=x.offer,key=identity(o);
@@ -61,18 +61,29 @@ function build(offers,maps,previous,now,rev){
   const eligible=maps.filter(r=>at(r.archiveFirstGitAt)<=at(o.capturedAt)&&at(r.observedAt)<=at(o.capturedAt));
   const p=model.predict(o,eligible);
   if(p.status!=="research_only"){excluded.noHistory++;continue;}
+  const b=p.baseline,side=b.higher>b.lower?"Higher":b.lower>b.higher?"Lower":null;
+  if(!side||!o.sides.includes(side)){excluded.noOfferedDirection++;continue;}
   existing.add(key);
-  rows.push({key,offer:o,forecast:p,offerDigest:x.offerDigest,offerFirstGitAt:x.offerFirstGitAt,mapArchiveDigests:[...new Set(eligible.filter(r=>r.title===o.title&&r.playerId===o.playerId&&p.priorSeriesIds.includes(r.seriesId)).map(r=>r.archiveDigest))].sort()});
+  rows.push({key,offer:o,forecast:p,frozenDirection:side,offerDigest:x.offerDigest,offerFirstGitAt:x.offerFirstGitAt,mapArchiveDigests:[...new Set(eligible.filter(r=>r.title===o.title&&r.playerId===o.playerId&&p.priorSeriesIds.includes(r.seriesId)).map(r=>r.archiveDigest))].sort()});
  }
  return {kind:"esports_prospective_frozen_v2",generatedAt:now,modelRevision:rev,rows,excluded,researchOnly:true,platformSettlementVerified:false,modelPromoted:false};
 }
-function grade(files,maps){
+function grade(files,maps,offers=[]){
+ const offerProof=new Map();for(const x of offers){const k=JSON.stringify([identity(x.offer),x.offerDigest,x.offerFirstGitAt]);offerProof.set(k,x.offer);}
  const group={},seen=new Set(),counts={registered:0,decided:0,pending:0,push:0,lateOrInvalid:0,duplicate:0};let totalBrier=0;const challenger={};
  for(const f of files){
   const d=f.doc;if(d?.kind!=="esports_prospective_frozen_v2"||!Array.isArray(d.rows)||!Number.isFinite(at(d.generatedAt))||at(d.generatedAt)>at(f.first)||!/^[a-f0-9]{40}$/.test(d.modelRevision||""))continue;
   for(const r of d.rows){
    const o=r.offer,p=r.forecast?.baseline;
    if(!validSourceOffer(o)||r.key!==identity(o)||!sourceHash(r.offerDigest)||!Array.isArray(r.mapArchiveDigests)||!r.mapArchiveDigests.length||!r.mapArchiveDigests.every(sourceHash)||!p||![p.higher,p.lower,p.push].every(x=>Number.isFinite(x)&&x>=0&&x<=1)||Math.abs(p.higher+p.lower+p.push-1)>1e-8||at(r.offerFirstGitAt)>at(d.generatedAt)||at(f.first)+900000>at(o.seriesStartAt)){counts.lateOrInvalid++;continue;}
+   const original=offerProof.get(JSON.stringify([r.key,r.offerDigest,r.offerFirstGitAt]));
+   const prior=maps.filter(x=>at(x.archiveFirstGitAt)<=at(o.capturedAt)&&at(x.observedAt)<=at(o.capturedAt));
+   const check=original?model.predict(original,prior):null;
+   const expected=p.higher>p.lower?"Higher":p.lower>p.higher?"Lower":null;
+   const digests=[...new Set(prior.filter(x=>x.title===o.title&&x.playerId===o.playerId&&check?.priorSeriesIds?.includes(x.seriesId)).map(x=>x.archiveDigest))].sort();
+   if(!original||hash(original)!==hash(o)||check?.status!=="research_only"||hash(check.baseline)!==hash(p)||hash(check.priorSeriesIds)!==hash(r.forecast.priorSeriesIds)||hash(digests)!==hash([...r.mapArchiveDigests].sort())||!expected||r.frozenDirection!==expected||!o.sides.includes(expected)){counts.lateOrInvalid++;continue;}
+   const actualStarts=maps.filter(x=>x.title===o.title&&x.seriesId===o.seriesId&&o.maps.includes(x.mapIndex)).map(x=>at(x.startAt));
+   if(actualStarts.some(x=>x<at(f.first)+900000)){counts.lateOrInvalid++;continue;}
    if(seen.has(r.key)){counts.duplicate++;continue;}seen.add(r.key);counts.registered++;
    const k=JSON.stringify([o.title,o.market,o.maps,o.platform,o.tier]),g=group[k]??={registered:0,pending:0,push:0,decided:0,wins:0,higher:0,brierSum:0,series:new Set(),dates:new Set()};g.registered++;
    const final=model.grade(o,maps);
@@ -80,7 +91,7 @@ function grade(files,maps){
    if(final.outcome==="Push"){counts.push++;g.push++;continue;}
    const den=p.higher+p.lower;if(!den){counts.pending++;g.pending++;continue;}
    const y=Number(final.outcome==="Higher"),q=p.higher/den;
-   counts.decided++;g.decided++;g.higher+=y;g.wins+=Number(Number(q>.5)===y);g.brierSum+=(q-y)**2;totalBrier+=(q-y)**2;g.series.add(o.seriesId);g.dates.add(o.seriesStartAt.slice(0,10));
+   counts.decided++;g.decided++;g.higher+=y;g.wins+=Number(r.frozenDirection===final.outcome);g.brierSum+=(q-y)**2;totalBrier+=(q-y)**2;g.series.add(o.seriesId);g.dates.add(o.seriesStartAt.slice(0,10));
    const alt=r.forecast.lolCountChallenger;if(o.title==="LOL"&&alt&&[alt.higher,alt.lower,alt.push].every(x=>Number.isFinite(x)&&x>=0&&x<=1)&&Math.abs(alt.higher+alt.lower+alt.push-1)<1e-8&&alt.higher+alt.lower>0){const v=alt.higher/(alt.higher+alt.lower),z=challenger[k]??={n:0,baselineBrierSum:0,countBrierSum:0,baselineWins:0,countWins:0};z.n++;z.baselineBrierSum+=(q-y)**2;z.countBrierSum+=(v-y)**2;z.baselineWins+=Number(Number(q>.5)===y);z.countWins+=Number(Number(v>.5)===y);}
   }
  }
@@ -96,7 +107,7 @@ function main(){
   const dest=path.join(root,dirs.freeze);fs.mkdirSync(dest,{recursive:true,mode:0o700});
   fs.writeFileSync(path.join(dest,now.replace(/[-:.]/g,"")+".json"),JSON.stringify(next)+"\n",{flag:"wx",mode:0o600});
  }
- const out={kind:"esports_prospective_archive_audit_v2",offerFiles:a.counts,mapFiles:m.counts,frozenFiles:f.counts,eligibleOffers:offers.length,verifiedMapRows:maps.length,freezeCandidates:next.rows.length,freezeExcluded:next.excluded,grade:grade(f.out,maps),paidRequests:0,rawRowsPublished:0,platformSettlementVerified:false,modelPromoted:false};
+ const out={kind:"esports_prospective_archive_audit_v2",offerFiles:a.counts,mapFiles:m.counts,frozenFiles:f.counts,eligibleOffers:offers.length,verifiedMapRows:maps.length,freezeCandidates:next.rows.length,freezeExcluded:next.excluded,grade:grade(f.out,maps,offers),paidRequests:0,rawRowsPublished:0,platformSettlementVerified:false,modelPromoted:false};
  console.log(JSON.stringify(out));
 }
 if(require.main===module){try{main()}catch{console.error("Restricted prospective evidence audit failed closed");process.exitCode=1;}}

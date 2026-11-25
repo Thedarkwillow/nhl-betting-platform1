@@ -43,12 +43,21 @@ function readVisible({player,detailId}){
  const clocks=[...scope.querySelectorAll('time[datetime]')].filter(visible).flatMap(t=>{const label=clean(t.getAttribute('aria-label')||t.getAttribute('title'));return /^(?:game|match|event|scheduled)\s*(?:start|time)/i.test(label)?[{label,value:clean(t.getAttribute('datetime'))}]:[];});
  return {routeVerified:true,playerLabelVerified:true,entries:[...new Map(entries.map(x=>[JSON.stringify(x),x])).values()].slice(0,30),clocks:[...new Map(clocks.map(x=>[JSON.stringify(x),x])).values()].slice(0,10)};
 }
+// Local clock labels are evidence, never UTC timestamps. Require a separately
+// established display zone before using them to corroborate a native schedule.
+function localMatchup(entries){
+ const values=[...new Set(entries.filter(x=>x.label.toLowerCase()==='matchup').map(x=>x.value.trim()))];
+ if(values.length!==1)return null;
+ const m=values[0].match(/^([A-Z]{2,4})\s+(@|vs\.?)\s+([A-Z]{2,4})\s*•\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*@\s*(1[0-2]|[1-9]):([0-5]\d)\s*([AP]M)$/);
+ return m?{team:m[1],opponent:m[3],homeAway:m[2]==='@'?'away':'home',weekday:m[4],hour:Number(m[5]),minute:Number(m[6]),dayPeriod:m[7]}:null;
+}
 function normalize(t,s,at){
  const entries=(s.entries||[]).filter(x=>typeof x.label==='string'&&typeof x.value==='string'),one=label=>{const a=[...new Set(entries.filter(x=>x.label.toLowerCase()===label).map(x=>x.value.trim().toUpperCase()))];return a.length===1?a[0]:null;};
  const teams=new Set(({nba:'ATL BOS BKN CHA CHI CLE DAL DEN DET GSW HOU IND LAC LAL MEM MIA MIL MIN NOP NYK OKC ORL PHI PHX POR SAC SAS TOR UTA WAS',nhl:'ANA BOS BUF CAR CBJ CGY CHI COL DAL DET EDM FLA LAK MIN MTL NJD NSH NYI NYR OTT PHI PIT SEA SJS STL TBL TOR UTA VAN VGK WPG WSH',nfl:'ARI ATL BAL BUF CAR CHI CIN CLE DAL DEN DET GB HOU IND JAX JAC KC LAC LAR LA LV MIA MIN NE NO NYG NYJ PHI PIT SEA SF TB TEN WAS WSH'}[t.sport]||'').split(' '));
  const team=one('team'),opponent=one('opponent'),clocks=[...new Set([...(s.clocks||[]).map(x=>x.value),...entries.filter(x=>/^(?:game|match|event|scheduled)\s*(?:start|time)/i.test(x.label)).map(x=>x.value)].filter(iso).map(x=>new Date(x).toISOString()))];
  const startAt=clocks.length===1?clocks[0]:null;
  const explicit=s.routeVerified===true&&s.playerLabelVerified===true&&teams.has(team)&&teams.has(opponent)&&team!==opponent&&startAt&&iso(at)&&Date.parse(startAt)>Date.parse(at);
- return {...t,observedAt:at,state:explicit?'explicit_context_observed':'context_incomplete',routeVerified:s.routeVerified===true,playerLabelVerified:s.playerLabelVerified===true,team:teams.has(team)?team:null,opponent:teams.has(opponent)?opponent:null,startAt,displayedEvidence:entries,displayedClocks:s.clocks||[],independentReviewVerified:false,originalPlatformVerified:false};
+ const local=localMatchup(entries);
+ return {...t,observedAt:at,localMatchup:local,clockEvidenceState:startAt?'explicit_iso':local?'local_clock_zone_unverified':'missing_clock',state:explicit?'explicit_context_observed':'context_incomplete',routeVerified:s.routeVerified===true,playerLabelVerified:s.playerLabelVerified===true,team:teams.has(team)?team:null,opponent:teams.has(opponent)?opponent:null,startAt,displayedEvidence:entries,displayedClocks:s.clocks||[],independentReviewVerified:false,originalPlatformVerified:false};
 }
-module.exports={queue,readVisible,normalize,target,key};
+module.exports={queue,readVisible,normalize,target,key,localMatchup};

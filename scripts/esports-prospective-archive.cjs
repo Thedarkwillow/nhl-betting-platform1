@@ -68,9 +68,44 @@ function build(offers,maps,previous,now,rev){
  }
  return {kind:"esports_prospective_frozen_v2",generatedAt:now,modelRevision:rev,rows,excluded,researchOnly:true,platformSettlementVerified:false,modelPromoted:false};
 }
+// Diagnostic bins use frozen probabilities only; no fit on the evaluation outcomes.
+function calibration(){return {n:0,brier3Sum:0,logLoss3Sum:0,bins:Array.from({length:10},()=>({n:0,pSum:0,ySum:0}))};}
+function addCalibration(a,p,outcome){
+ const actual={higher:Number(outcome==="Higher"),lower:Number(outcome==="Lower"),push:Number(outcome==="Push")};
+ a.n++;a.brier3Sum+=["higher","lower","push"].reduce((n,k)=>n+(p[k]-actual[k])**2,0);
+ a.logLoss3Sum-=Math.log(Math.max(1e-15,p[outcome.toLowerCase()]));
+ const den=p.higher+p.lower;
+ if(outcome!=="Push"&&den>0){const q=p.higher/den,b=a.bins[Math.min(9,Math.floor(q*10))];b.n++;b.pSum+=q;b.ySum+=actual.higher;}
+}
+function summarizeCalibration(a){
+ const bins=a.bins.map((b,i)=>({lower:i/10,upper:(i+1)/10,n:b.n,meanProbability:b.n?b.pSum/b.n:null,observedHigherRate:b.n?b.ySum/b.n:null}));
+ const n=a.bins.reduce((s,b)=>s+b.n,0);
+ return {resolved:a.n,threeOutcomeBrier:a.n?a.brier3Sum/a.n:null,threeOutcomeLogLoss:a.n?a.logLoss3Sum/a.n:null,conditionalHigherECE:n?a.bins.reduce((s,b)=>s+Math.abs(b.pSum-b.ySum),0)/n:null,reliabilityBins:bins,calibrationApproved:false};
+}
+// Frozen-batch conservative paper portfolios, not payout/EV or a joint probability estimate.
+// All candidates (including pending and pushes) enter ranking BEFORE outcomes are examined.
+function paperAudit(batches){
+ const totals={};for(let n=2;n<=6;n++)totals[n]={registered:0,pending:0,pushOrVoidUnresolved:0,decided:0,allCorrect:0,notAllCorrect:0,insufficientCandidates:0};
+ for(const batch of Object.values(batches)){
+  const sorted=[...batch].sort((a,b)=>b.p-a.p||a.key.localeCompare(b.key)),selected=[],used=new Set();
+  for(const x of sorted){
+   const ids=[x.series,x.player,x.team,x.opponent];
+   if(ids.some(k=>used.has(k)))continue;
+   ids.forEach(k=>used.add(k));selected.push(x);if(selected.length===6)break;
+  }
+  for(let n=2;n<=6;n++){
+   const s=totals[n];if(selected.length<n){s.insufficientCandidates++;continue;}
+   const legs=selected.slice(0,n);s.registered++;
+   if(legs.some(x=>x.outcome===null)){s.pending++;continue;}
+   if(legs.some(x=>x.outcome==="Push")){s.pushOrVoidUnresolved++;continue;}
+   s.decided++;if(legs.every(x=>x.side===x.outcome))s.allCorrect++;else s.notAllCorrect++;
+  }
+ }
+ return {selection:"same frozen file/platform/UTC slate, distinct series/player/team/opponent, highest marginal side probability",overlappingSizesNotIndependent:true,payoutVerified:false,jointProbabilityVerified:false,researchOnly:true,bySize:totals};
+}
 function grade(files,maps,offers=[]){
  const offerProof=new Map();for(const x of offers){const k=JSON.stringify([identity(x.offer),x.offerDigest,x.offerFirstGitAt]);offerProof.set(k,x.offer);}
- const group={},seen=new Set(),counts={registered:0,decided:0,pending:0,push:0,lateOrInvalid:0,duplicate:0};let totalBrier=0;const challenger={};
+ const group={},seen=new Set(),counts={registered:0,decided:0,pending:0,push:0,lateOrInvalid:0,duplicate:0};let totalBrier=0;const challenger={},cal=calibration(),batches={};
  for(const f of files){
   const d=f.doc;if(d?.kind!=="esports_prospective_frozen_v2"||!Array.isArray(d.rows)||!Number.isFinite(at(d.generatedAt))||at(d.generatedAt)>at(f.first)||!/^[a-f0-9]{40}$/.test(d.modelRevision||""))continue;
   for(const r of d.rows){
@@ -85,18 +120,22 @@ function grade(files,maps,offers=[]){
    const actualStarts=maps.filter(x=>x.title===o.title&&x.seriesId===o.seriesId&&o.maps.includes(x.mapIndex)).map(x=>at(x.startAt));
    if(actualStarts.some(x=>x<at(f.first)+900000)){counts.lateOrInvalid++;continue;}
    if(seen.has(r.key)){counts.duplicate++;continue;}seen.add(r.key);counts.registered++;
-   const k=JSON.stringify([o.title,o.market,o.maps,o.platform,o.tier]),g=group[k]??={registered:0,pending:0,push:0,decided:0,wins:0,higher:0,brierSum:0,series:new Set(),dates:new Set()};g.registered++;
-   const final=model.grade(o,maps);
-   if(final.status!=="statistical_result_only"){counts.pending++;g.pending++;continue;}
+   const k=JSON.stringify([o.title,o.market,o.maps,o.platform,o.tier]),g=group[k]??={registered:0,pending:0,push:0,decided:0,wins:0,higher:0,brierSum:0,cal:calibration(),series:new Set(),dates:new Set()};g.registered++;
+   const final=model.grade(o,maps),outcome=final.status==="statistical_result_only"&&["Higher","Lower","Push"].includes(final.outcome)?final.outcome:null;
+   const batchKey=JSON.stringify([f.digest||f.first,d.generatedAt,o.platform,o.seriesStartAt.slice(0,10)]);
+   const prefix=o.title+":";
+   (batches[batchKey]??=[]).push({key:r.key,p:p[r.frozenDirection.toLowerCase()],side:r.frozenDirection,outcome,series:prefix+"series:"+o.seriesId,player:prefix+"player:"+o.playerId,team:prefix+"team:"+o.teamId,opponent:prefix+"team:"+o.opponentId});
+   if(outcome){addCalibration(cal,p,outcome);addCalibration(g.cal,p,outcome);}
+   if(outcome===null){counts.pending++;g.pending++;continue;}
    if(final.outcome==="Push"){counts.push++;g.push++;continue;}
    const den=p.higher+p.lower;if(!den){counts.pending++;g.pending++;continue;}
    const y=Number(final.outcome==="Higher"),q=p.higher/den;
    counts.decided++;g.decided++;g.higher+=y;g.wins+=Number(r.frozenDirection===final.outcome);g.brierSum+=(q-y)**2;totalBrier+=(q-y)**2;g.series.add(o.seriesId);g.dates.add(o.seriesStartAt.slice(0,10));
-   const alt=r.forecast.lolCountChallenger;if(o.title==="LOL"&&alt&&[alt.higher,alt.lower,alt.push].every(x=>Number.isFinite(x)&&x>=0&&x<=1)&&Math.abs(alt.higher+alt.lower+alt.push-1)<1e-8&&alt.higher+alt.lower>0){const v=alt.higher/(alt.higher+alt.lower),z=challenger[k]??={n:0,baselineBrierSum:0,countBrierSum:0,baselineWins:0,countWins:0};z.n++;z.baselineBrierSum+=(q-y)**2;z.countBrierSum+=(v-y)**2;z.baselineWins+=Number(Number(q>.5)===y);z.countWins+=Number(Number(v>.5)===y);}
+   const alt=r.forecast.lolCountChallenger;if(o.title==="LOL"&&alt&&check.lolCountChallenger&&hash(alt)===hash(check.lolCountChallenger)&&[alt.higher,alt.lower,alt.push].every(x=>Number.isFinite(x)&&x>=0&&x<=1)&&Math.abs(alt.higher+alt.lower+alt.push-1)<1e-8&&alt.higher+alt.lower>0){const v=alt.higher/(alt.higher+alt.lower),z=challenger[k]??={n:0,baselineBrierSum:0,countBrierSum:0,baselineWins:0,countWins:0};z.n++;z.baselineBrierSum+=(q-y)**2;z.countBrierSum+=(v-y)**2;z.baselineWins+=Number(Number(q>.5)===y);z.countWins+=Number(Number(v>.5)===y);}
   }
  }
  // Only groups by market/platform/scope; no players, offers, or private IDs.
- return {counts,lolCountMatched:Object.fromEntries(Object.entries(challenger).map(([k,z])=>[k,{n:z.n,baselineBrier:z.baselineBrierSum/z.n,countBrier:z.countBrierSum/z.n,baselineWins:z.baselineWins,countWins:z.countWins,approved:false}])),brier:counts.decided?totalBrier/counts.decided:null,groups:Object.fromEntries(Object.entries(group).map(([k,g])=>[k,{registered:g.registered,pending:g.pending,push:g.push,decided:g.decided,wins:g.wins,hitRate:g.decided?g.wins/g.decided:null,alwaysHigher:g.decided?g.higher/g.decided:null,alwaysLower:g.decided?1-g.higher/g.decided:null,brier:g.decided?g.brierSum/g.decided:null,distinctSeries:g.series.size,dates:g.dates.size,evidenceMinimumMet:g.decided>=100&&g.series.size>=30&&g.dates.size>=10,approved:false}]))};
+ return {counts,calibration:summarizeCalibration(cal),paperLineups:paperAudit(batches),lolCountMatched:Object.fromEntries(Object.entries(challenger).map(([k,z])=>[k,{n:z.n,baselineBrier:z.baselineBrierSum/z.n,countBrier:z.countBrierSum/z.n,baselineWins:z.baselineWins,countWins:z.countWins,approved:false}])),brier:counts.decided?totalBrier/counts.decided:null,groups:Object.fromEntries(Object.entries(group).map(([k,g])=>[k,{registered:g.registered,pending:g.pending,push:g.push,decided:g.decided,wins:g.wins,hitRate:g.decided?g.wins/g.decided:null,alwaysHigher:g.decided?g.higher/g.decided:null,alwaysLower:g.decided?1-g.higher/g.decided:null,brier:g.decided?g.brierSum/g.decided:null,calibration:summarizeCalibration(g.cal),distinctSeries:g.series.size,dates:g.dates.size,evidenceMinimumMet:g.decided>=100&&g.series.size>=30&&g.dates.size>=10,approved:false}]))};
 }
 function main(){
  const [rootArg,mode]=process.argv.slice(2),root=fs.realpathSync(rootArg);
@@ -111,4 +150,4 @@ function main(){
  console.log(JSON.stringify(out));
 }
 if(require.main===module){try{main()}catch{console.error("Restricted prospective evidence audit failed closed");process.exitCode=1;}}
-module.exports={build,grade,collectMaps,originalOffers,verifiedMap,identity};
+module.exports={build,grade,collectMaps,originalOffers,verifiedMap,identity,paperAudit,calibration,addCalibration,summarizeCalibration};

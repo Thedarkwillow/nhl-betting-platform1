@@ -24,3 +24,24 @@ test("unreviewed and conflicting map evidence excluded",()=>{
 });
 
 test("grading requires original immutable offer proof and matching frozen forecast; no unsupported side",()=>{const maps=collectMaps([file]),a=build([obs],maps,[],"2026-12-01T00:05:00Z",rev),f={doc:a,first:"2026-12-01T00:06:00Z"};assert.equal(a.rows[0].frozenDirection,"Higher");assert.equal(grade([f],maps,[]).counts.lateOrInvalid,1);assert.equal(grade([{...f,doc:{...a,rows:[{...a.rows[0],frozenDirection:"Lower"}]}}],maps,[obs]).counts.lateOrInvalid,1);assert.equal(build([{...obs,offer:{...offer,sides:["Lower"]}}],maps,[],"2026-12-01T00:05:00Z",rev).rows.length,0);const altered={...a.rows[0],forecast:{...a.rows[0].forecast,baseline:{higher:.8,lower:.2,push:0}}};assert.equal(grade([{...f,doc:{...a,rows:[altered]}}],maps,[obs]).counts.lateOrInvalid,1);});
+
+test("calibration includes pushes, excludes them from binary reliability, and reports no estimate on empty evidence",()=>{
+ const {calibration,addCalibration,summarizeCalibration}=require("../scripts/esports-prospective-archive.cjs"),a=calibration();
+ assert.equal(summarizeCalibration(a).threeOutcomeBrier,null);
+ addCalibration(a,{higher:.5,lower:.25,push:.25},"Higher");
+ addCalibration(a,{higher:.5,lower:.25,push:.25},"Push");
+ const s=summarizeCalibration(a);assert.equal(s.resolved,2);
+ assert.ok(Math.abs(s.threeOutcomeBrier-.625)<1e-10);
+ assert.ok(Math.abs(s.conditionalHigherECE-1/3)<1e-10);
+ assert.equal(s.reliabilityBins.reduce((n,b)=>n+b.n,0),1);assert.equal(s.calibrationApproved,false);
+});
+test("paper portfolios use frozen marginal ranking before outcomes and exclude related legs",()=>{
+ const {paperAudit}=require("../scripts/esports-prospective-archive.cjs");
+ const leg=(i,p,outcome)=>({key:"k"+i,p,side:"Higher",outcome,series:"s"+i,player:"p"+i,team:"t"+i,opponent:"o"+i});
+ const a=leg(1,.9,null),b=leg(2,.8,"Higher"),c={...leg(3,.85,"Higher"),series:a.series},d=leg(4,.7,"Lower");
+ const res=paperAudit({batch:[a,b,c,d]});
+ assert.equal(res.bySize[2].pending,1);assert.equal(res.bySize[3].pending,1);assert.equal(res.bySize[4].insufficientCandidates,1);
+ const res2=paperAudit({batch:[{...a,outcome:"Higher"},b,c,d]});
+ assert.equal(res2.bySize[2].allCorrect,1);assert.equal(res2.bySize[3].notAllCorrect,1);assert.equal(res2.payoutVerified,false);
+ const res3=paperAudit({batch:[{...a,outcome:"Push"},b]});assert.equal(res3.bySize[2].pushOrVoidUnresolved,1);
+});

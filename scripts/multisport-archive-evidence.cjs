@@ -50,7 +50,7 @@ function identityCandidates(root){
  }
  const byName=new Map();
  for(const r of rawRows){const n=norm(r.player),m=byName.get(n)||new Map();const old=m.get(r.playerId);if(!old||r.gameDate>old.gameDate)m.set(r.playerId,r);byName.set(n,m);}
- return [...profiles.values()].map(s=>{const label=[...s][0],m=byName.get(label);return {label,conflict:s.size!==1,candidate:s.size===1&&m?.size===1?[...m.values()][0]:null};});
+ return [...profiles.entries()].map(([profile,s])=>{const label=[...s][0],m=byName.get(label);return {profile,label,conflict:s.size!==1,candidate:s.size===1&&m?.size===1?[...m.values()][0]:null};});
 }
 async function official(root,client=fetch){
  const candidates=identityCandidates(root),groups=new Map();
@@ -70,5 +70,60 @@ async function official(root,client=fetch){
  }
  return {sourceProfiles:candidates.length,uniqueMirrorCandidates:candidates.filter(c=>c.candidate).length,missingOrAmbiguous:candidates.filter(c=>!c.candidate).length,officialHistoricalIdNameTeamCorroborated:matched,conflict,unmatched,unavailable,notChecked:candidates.filter(c=>c.candidate).length-matched-conflict-unmatched-unavailable,freeRequests:requests,authoritativePickFinderIdentityLinks:0,rawRowsPublished:0,paidRequests:0};
 }
-if(require.main===module)(async()=>{try{const root=fs.realpathSync(process.argv[2]);console.log(JSON.stringify(process.argv[3]==='nhl'?nhl(root):await official(root)));}catch{console.error('Multisport archive audit failed closed');process.exitCode=1;}})();
-module.exports={nhl,identityCandidates,official,workloadReplay};
+
+// ESPN's own event and roster identifiers corroborate the mirror candidate,
+// but are a different namespace; do not call this an authoritative NBA ID bridge.
+async function independentIdentity(root,client=fetch){
+ const candidates=identityCandidates(root),byDate=new Map(),counts={confirmedHistoricalNameTeamStat:0,ambiguousOrMissing:0,sourceUnavailable:0,notChecked:0,statMismatch:0};
+ const normTeam=require('../src/nba-research-pipeline-v1.cjs').teams;
+ let requests=0,stopped=false;
+ async function get(url){
+  requests++;
+  const res=await client(url,{redirect:'error',signal:AbortSignal.timeout(15000),headers:{Accept:'application/json'}});
+  if(res.status===403||res.status===429){stopped=true;throw Error('source refusal');}
+  if(!res.ok)throw Error('source unavailable');
+  const raw=await res.text();if(raw.length>6000000)throw Error('bound');
+  return JSON.parse(raw);
+ }
+ for(const c of candidates)if(c.candidate){const date=c.candidate.gameDate;const a=byDate.get(date)||[];a.push(c);byDate.set(date,a);}
+ const summaryCache=new Map(),links=[];
+ for(const [date,list] of byDate){
+  if(stopped){counts.notChecked+=list.length;continue;}
+  let events;
+  try{const d=await get('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates='+date.replace(/-/g,'')+'&limit=100');events=d.events;if(!Array.isArray(events))throw Error('schema');}
+  catch{counts.sourceUnavailable+=list.length;continue;}
+  for(const c of list){
+   if(stopped){counts.notChecked++;continue;}
+   const r=c.candidate,tm=normTeam(r.team),opp=normTeam(r.opponent);
+   const eligible=events.filter(e=>{const g=e.competitions?.[0],teams=g?.competitors?.map(x=>normTeam(x.team?.abbreviation));return g?.status?.type?.completed===true&&g.status.type.name==='STATUS_FINAL'&&teams?.length===2&&teams.includes(tm)&&teams.includes(opp)&&tm!==opp;});
+   if(eligible.length!==1){counts.ambiguousOrMissing++;continue;}
+   const event=eligible[0],id=String(event.id);
+   if(!/^\d+$/.test(id)){counts.ambiguousOrMissing++;continue;}
+   if(!summaryCache.has(id)){try{summaryCache.set(id,await get('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event='+id));}catch{summaryCache.set(id,null);}}
+   const d=summaryCache.get(id);
+   if(!d){counts.sourceUnavailable++;continue;}
+   const gc=d.header?.competitions?.[0],actualTeams=gc?.competitors?.map(x=>normTeam(x.team?.abbreviation));
+   if(String(d.header?.id)!==id||gc?.status?.type?.name!=='STATUS_FINAL'||actualTeams?.length!==2||!actualTeams.includes(tm)||!actualTeams.includes(opp)){counts.ambiguousOrMissing++;continue;}
+   const records=[];
+   for(const t of d.boxscore?.players||[])if(normTeam(t.team?.abbreviation)===tm)for(const g of t.statistics||[]){
+    const fields={PTS:'points',REB:'rebounds',AST:'assists',STL:'steals',BLK:'blocks',TO:'turnovers'};
+    if(!Object.keys(fields).every(k=>g.labels?.filter(x=>x===k).length===1))continue;
+    for(const a of g.athletes||[])if(a.didNotPlay===false&&norm(a.athlete?.displayName)===c.label&&/^\d+$/.test(String(a.athlete?.id))&&Array.isArray(a.stats)&&a.stats.length===g.labels.length){
+     const match=Object.entries(fields).every(([k,v])=>Number.isInteger(r[v])&&/^\d+$/.test(String(a.stats[g.labels.indexOf(k)]))&&Number(a.stats[g.labels.indexOf(k)])===r[v]);
+     records.push({id:String(a.athlete.id),match});
+    }
+   }
+   if(records.length!==1){counts.ambiguousOrMissing++;continue;}
+   if(!records[0].match){counts.statMismatch++;continue;}
+   links.push({profile:c.profile,mirrorPlayerId:r.playerId,espnAthleteId:records[0].id,espnEventId:id,date});
+   counts.confirmedHistoricalNameTeamStat++;
+  }
+ }
+ const forward=new Map(),reverse=new Map();
+ for(const l of links){const a=forward.get(l.mirrorPlayerId)||new Set(),b=reverse.get(l.espnAthleteId)||new Set();a.add(l.espnAthleteId);b.add(l.mirrorPlayerId);forward.set(l.mirrorPlayerId,a);reverse.set(l.espnAthleteId,b);}
+ const unique=links.filter(l=>forward.get(l.mirrorPlayerId).size===1&&reverse.get(l.espnAthleteId).size===1);
+ return {kind:'nba_independent_espn_identity_candidate_audit_v1',sourceProfiles:candidates.length,mirrorCandidates:candidates.filter(c=>c.candidate).length,missingMirrorCandidates:candidates.filter(c=>!c.candidate).length,counts,uniqueCorroboratedCandidates:unique.length,crossNamespaceConflicts:links.length-unique.length,authoritativePickFinderIdentityLinks:0,independentOriginalOfferVerification:false,freeRequests:requests,paidRequests:0,rawRowsPublished:0};
+}
+
+if(require.main===module)(async()=>{try{const root=fs.realpathSync(process.argv[2]);console.log(JSON.stringify(process.argv[3]==='nhl'?nhl(root):process.argv[3]==='nba-espn'?await independentIdentity(root):await official(root)));}catch{console.error('Multisport archive audit failed closed');process.exitCode=1;}})();
+module.exports={nhl,identityCandidates,official,independentIdentity,workloadReplay};

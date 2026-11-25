@@ -25,7 +25,7 @@ jobs:
           import runpy
           m=runpy.run_path('scripts/pickfinder-free-research.py')
           p=m['parse']('<h2>Fixture</h2><table><tr><th>Team</th></tr><tr><td>A</td></tr></table>')
-          assert m['summarize'](p)=={'tables':1,'rows':2,'headedTables':1,'headerRows':1}
+          assert m['summarize'](p)=={'tables':1,'rows':2,'headedTables':1,'headerRows':1,'playerLinks':0}
           PY
   archive:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'Thedarkwillow/nhl-betting-platform1'

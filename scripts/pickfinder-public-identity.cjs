@@ -94,8 +94,24 @@ async function main(root){
   const gs=groups.filter(g=>g.sport===sport);if(!gs.length){sources[sport]={state:'no_source_events_observed'};continue;}
   const official=sport==='nhl',source=official?'nhl:official':'espn:'+sport;let events=[],roster=[],failedTeams=0,proofs=[];
   try{
-   const d=await get(official?'https://api-web.nhle.com/v1/schedule/'+day(Date.now()):'https://site.api.espn.com/apis/site/v2/sports/'+league+'/scoreboard?dates='+start+'-'+end+'&limit=200');
-   events=official?nhlEvents(d.data):espnEvents(d.data,sport);proofs.push({url:d.url,digest:d.sourceDigest,observedAt:d.observedAt});
+   if(official){
+    const d=await get('https://api-web.nhle.com/v1/schedule/'+day(Date.now()));
+    events=nhlEvents(d.data);proofs.push({url:d.url,digest:d.sourceDigest,observedAt:d.observedAt});
+   }else{
+    // Individual dates avoid rejected range requests. No sport-wide absence claims.
+    const unique=new Map(),conflicts=new Set();let failures=0,successfulDays=0,lastError=null;
+    for(let offset=0;offset<=3;offset++){
+     const date=day(Date.now()+offset*86400000).replaceAll('-','');
+     try{const d=await get('https://site.api.espn.com/apis/site/v2/sports/'+league+'/scoreboard?dates='+date+'&limit=100');
+      const rows=espnEvents(d.data,sport);successfulDays++;
+      proofs.push({url:d.url,digest:d.sourceDigest,observedAt:d.observedAt});
+      for(const g of rows){const old=unique.get(g.eventId);if(old&&(old.startAt!==g.startAt||JSON.stringify(old.teams)!==JSON.stringify(g.teams)))conflicts.add(g.eventId);else unique.set(g.eventId,g);}
+     }catch(e){failures++;lastError=e;if([401,403,429].includes(e.status))break;}
+    }
+    if(!successfulDays)throw lastError||Error('schedule unavailable');
+    events=[...unique.values()].filter(g=>!conflicts.has(g.eventId));
+    proofs.push({individualDateRequests:true,successfulDays,failedDays:failures,conflictingEvents:conflicts.size});
+   }
    const teams=[...new Map(events.filter(g=>g.status==='pre'&&dt(g.startAt)>dt(at)&&dt(g.startAt)<dt(at)+72*3600000).flatMap(g=>g.teams).map(t=>[t.id,t])).values()];
    if(['nba','nhl','nfl','mlb','wnba','college-football','college-basketball'].includes(sport))for(const team of teams.slice(0,40)){
     try{const season=new Date().getUTCFullYear()-(new Date().getUTCMonth()<6?1:0),yr=String(season)+String(season+1);

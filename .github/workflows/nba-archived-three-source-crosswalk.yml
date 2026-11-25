@@ -1,0 +1,47 @@
+name: NBA archived three-source crosswalk
+on:
+  pull_request:
+    paths: ['scripts/nba-archived-three-source-crosswalk.cjs','test/nba-archived-three-source-crosswalk.test.cjs','.github/workflows/nba-archived-three-source-crosswalk.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/nba-archived-three-source-crosswalk.cjs','test/nba-archived-three-source-crosswalk.test.cjs','.github/workflows/nba-archived-three-source-crosswalk.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/nba-archived-three-source-crosswalk.test.cjs
+  archived:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 402d4fceb29a2ec2f3d3b09d06ede8ba2dd4ef9a
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: official
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 74300400cf6afcad3ed8338b74705a257ef5cc98
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: provider
+          persist-credentials: false
+      - name: Reconcile existing private artifacts, aggregate only
+        run: |
+          node scripts/nba-archived-three-source-crosswalk.cjs \
+            official/outputs/nba/schedule/20261124T182019390Z.json 1b418d636215d5027acf5f918880157d00e30686 \
+            provider/outputs/nba/authorized-providers/bdl-schedule/20261124T185847327Z.json e7ffbdae237fa4af09f37e6e0e7093de19e8f473 \
+            official/outputs/nba/boards/20261124T182019940Z.json 246fa2b96c0bb9ec08cd92d95d797102b3aa74d9

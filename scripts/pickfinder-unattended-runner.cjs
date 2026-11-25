@@ -10,7 +10,7 @@ const BOOKS=['prizepicks','underdog'];
 const partitions=()=>SPORTS.flatMap(code=>BOOKS.map(book=>({code,book})));
 function plan(env,now=new Date()){
  if(env.PICKFINDER_AUTOMATION_AUTHORIZED!=='1')throw Error('authorization_required');
- if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&env.REQUESTED_MODE==='probe_now')return {probe:true};
+ if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='probe_now')return {probe:true};
  if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&env.REQUESTED_MODE==='reconcile_now')return {allowed:true,reconcile:true,expected:'manual',clock:pacific(now)};
  if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_SCHEDULE_ENABLED!=='1')return {allowed:false,state:'schedule_disabled'};
  return decide({eventName:env.GITHUB_EVENT_NAME,mode:env.REQUESTED_MODE,schedule:env.GITHUB_EVENT_SCHEDULE,now});

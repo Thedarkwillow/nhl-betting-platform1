@@ -68,5 +68,5 @@ async function main(root){
  fs.mkdirSync(path.join(root,'data'),{recursive:true});fs.writeFileSync(path.join(root,'data/pickfinder-public-research-health.json'),JSON.stringify(a.summary,null,2)+'\n');
  console.log(JSON.stringify({state:'public_research_validation',manifests:a.summary.archiveManifests,invalid:a.summary.invalidManifests,offerRefs:a.summary.offerRefs,exactComparisons:a.summary.exactComparisons,nbaShadowRows:rows.length,nbaSources:a.summary.nbaOfficialSources,independentGrading:a.summary.independentGrading,paidRequests:0,privateRepoUsed:false}));
 }
-module.exports={candidates,modelRows,aliases,pairedStats};
+module.exports={candidates,modelRows,aliases,pairedStats,reviewed,history,save};
 if(require.main===module)main(fs.realpathSync(process.argv[2]||'.')).catch(()=>{console.error('Public research validation failed closed');process.exitCode=1;});

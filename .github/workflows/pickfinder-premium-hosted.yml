@@ -24,8 +24,9 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: pickfinder-hosted-capture
-  cancel-in-progress: false
+  # PR tests must not queue behind live captures. Owner-authorized main cutover cancels old run.
+  group: ${{ github.event_name == 'pull_request' && format('pickfinder-public-ci-{0}', github.event.pull_request.number) || 'pickfinder-hosted-capture' }}
+  cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
 jobs:
   test:
     runs-on: ubuntu-latest

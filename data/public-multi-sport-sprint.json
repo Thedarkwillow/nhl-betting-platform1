@@ -1,6 +1,6 @@
 {
   "kind": "public_multi_sport_sprint_evidence_v1",
-  "asOf": "2026-11-24T23:38:36Z",
+  "asOf": "2026-11-25T02:23:36Z",
   "rawRowsPublished": 0,
   "paidRequests": 0,
   "modelPromoted": false,
@@ -19,14 +19,15 @@
     },
     {
       "sport": "NBA",
-      "description": "57/57 games matched and original aggregate counts reproduced; 89 candidate mappings, 46 unresolved. Original audit lacks immutable row identities; retrospective roster evidence is not pregame proof. Freeze not approved.",
+      "description": "135/135 reconstructed injury identity candidates, final four corroborated against primary ESPN rosters. Original immutable injury rows and untouched validation not verified; freeze not approved.",
       "historicalRows": 2093,
-      "unresolvedInjuryRows": 46
+      "unresolvedInjuryRows": 0,
+      "originalImmutableInjuryRowsVerified": false
     },
     {
       "sport": "CS2",
-      "description": "Original cohort: 834 complete maps, 8,340 player-map rows. Separate regulation reconstruction: 1,125 complete maps, 11,250 rows, including 454 maps absent from original cohort. Cohorts overlap; do not add them. No original prop lines.",
-      "historicalRows": 8340
+      "description": "102,900 source-local player-map records, 10,290 maps. Repaired team context yields 17,520 retrospective test observations per market; opponent-adjusted MAE improves kills, deaths and assists. Separate Steam-native headshot cohort is not added to this total. No authoritative cross-provider player link or original-line approval.",
+      "historicalRows": 102900
     },
     {
       "sport": "Valorant",
@@ -152,12 +153,31 @@
       "configuredOfficialExports": 0,
       "independentKeysPresent": 2,
       "meteredProviderCalls": 0
+    },
+    "archiveStats": {
+      "observedAt": "2026-11-25T02:23:36Z",
+      "uniqueGames": 19,
+      "CS2": 70,
+      "DOTA2": 70,
+      "LOL": 50,
+      "headshotRows": 70,
+      "actualOffersMatched": 0
+    },
+    "identityRegistry": {
+      "status": "research_candidates_only",
+      "authoritativeLinks": 0,
+      "productionEligible": false,
+      "sourceIdsRemainSeparate": true
     }
   },
   "validationRuns": {
     "nba": 45511373860,
     "cs2AndExport": 45511373328,
     "codAndNhl": 45511373767,
-    "coverage": 45511373750
+    "coverage": 45511373750,
+    "nbaPrimary": 45532337782,
+    "apiArchive": 45532337675,
+    "cs2Context": 45532260719,
+    "nhlLag": 45532337668
   }
 }

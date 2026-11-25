@@ -8,7 +8,7 @@ const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const git=(root,args)=>execFileSync('git',['-C',root,...args],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']});
 function scope(book,row){
  if(!['prizepicks','underdog'].includes(book)||!row||!row.sport||!row.player||!row.market||!row.eventId||typeof row.detailId!=='string')return null;
- const url=new URL(row.detailId,'https://www.pickfinder.app');
+ let url;try{url=new URL(row.detailId,'https://www.pickfinder.app');}catch{return null;}
  if(url.origin!=='https://www.pickfinder.app'||!url.pathname.startsWith('/players/')||!url.searchParams.has('prop'))return null;
  return {book,sport:row.sport,player:row.player,market:row.market,eventId:row.eventId,detailId:row.detailId,period:row.period||null,mapRange:row.mapRange||null,gameMode:row.gameMode||null};
 }
@@ -50,6 +50,21 @@ async function run({root,context,page,enrich,collect,limit=20,shouldContinue=()=
  const startedAt=new Date().toISOString(),records=[],diagnostics={};
  const premium=async p=>p.evaluate(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium')&&!!document.querySelector('button[aria-label="Open user menu"]'));
  diagnostics.controls=await page.evaluate(inventory);
+ // Only follow uniquely visible same-origin read-only dashboard anchors. Builder and alerts are inventory-only.
+ diagnostics.dashboards={};
+ for(const name of ['Games','Discrepancies','Popular']){
+  if(!shouldContinue())break;
+  try{
+   await page.goto('https://www.pickfinder.app/props',{timeout:15000});
+   const links=page.getByRole('link',{name,exact:true});
+   if(await links.count()!==1||!await links.isVisible()){diagnostics.dashboards[name]={state:'link_not_verified'};continue;}
+   const href=await links.getAttribute('href'),u=new URL(href,'https://www.pickfinder.app');
+   if(!href||u.origin!=='https://www.pickfinder.app'||!['/games','/discrepancies','/popular'].includes(u.pathname)){diagnostics.dashboards[name]={state:'route_not_verified'};continue;}
+   await page.goto(u.href,{timeout:15000});
+   if(!await premium(page))throw Error('session unavailable');
+   diagnostics.dashboards[name]={state:'visible_route',controls:await page.evaluate(inventory)};
+  }catch{diagnostics.dashboards[name]={state:'unverified'};if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
+ }
  for(const code of ['DOTA2','SOCCER']){
   if(!shouldContinue())break;
   try{await page.goto('https://www.pickfinder.app/props',{timeout:20000});
@@ -63,7 +78,7 @@ async function run({root,context,page,enrich,collect,limit=20,shouldContinue=()=
   if(!shouldContinue())break;
   const row={...item,research:[]};
   try{
-   await enrich(detail,row,{navigate:async url=>{await detail.goto(url,{timeout:10000});if(new URL(detail.url()).origin!=='https://www.pickfinder.app'||!await premium(detail))throw Error('session unavailable');}});
+   await enrich(detail,row,{maxFields:2000,navigate:async url=>{await detail.goto(url,{timeout:10000});if(new URL(detail.url()).origin!=='https://www.pickfinder.app'||!await premium(detail))throw Error('session unavailable');}});
    records.push({...item,status:row.research.length?'sampled':'empty',profileCollection:row.profileCollection,research:row.research});
   }catch{records.push({...item,status:'failed',research:[]});if(!await premium(detail).catch(()=>false))break;}
  }

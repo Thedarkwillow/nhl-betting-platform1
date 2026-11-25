@@ -4,6 +4,7 @@ const {execFileSync}=require('node:child_process');
 const {pacific,decide}=require('./pacific-morning-capture-gate.cjs');
 const {collect,ORIGIN}=require('./pickfinder-browser.cjs');
 const {enrich}=require('./pickfinder-player-research.cjs');
+const {createJournal}=require('./pickfinder-page-journal.cjs');
 const {archive,normalize}=require('./pickfinder-premium-archive.cjs');
 const {loadPilot,compare,inputAudit,missingDisposition,loadVerifiedAttempt}=require('./pickfinder-pilot-reconcile.cjs');
 const {registry,classify,orderedPartitions}=require('./season-aware-collection.cjs');
@@ -195,7 +196,10 @@ async function main(env=process.env){
    if(!remaining()){failed=true;break;}
    try{
     await stage('board_navigation',()=>page.goto(ORIGIN+'/props',{timeout:20000}));
-    const batch=await stage('board_collection',()=>collect(page,{book,code,slot:p.expected,maxPages:p.reconcile&&!p.full?2:Infinity,shouldContinue:remaining}));
+    const journal=createJournal({root,day:p.clock.day,slot:p.expected.replace(':',''),attempt,book,sport:({CFB:'college-football',CBB:'college-basketball',VAL:'valorant'})[code]||code.toLowerCase(),interval:p.targeted?1:10});
+    let batch;
+    try{batch=await stage('board_collection',()=>collect(page,{book,code,slot:p.expected,maxPages:p.reconcile&&!p.full?2:Infinity,shouldContinue:remaining,onPage:snapshot=>stage('page_journal_checkpoint',()=>journal.append(snapshot))}));}
+    finally{await stage('page_journal_checkpoint',()=>journal.flush());}
     // A bounded profile sample preserves board coverage. Separate deep research is still required.
     const sample=batch.pages.flatMap(pg=>pg.rows).find(r=>r.apps.length);
     if(sample&&remaining())try{await enrich(detail,sample,{navigate:url=>detail.goto(url,{timeout:8000})});}catch{sample.profileCollection={status:'unavailable'};}
@@ -209,7 +213,7 @@ async function main(env=process.env){
     if(batch.failure==='session_expired'){failed=true;break;}
     if(!p.reconcile&&(!summary.withinSlot||!health.healthy||summary.health.unresolvedRows||summary.health.priceConflictKeys||summary.health.repeatOrUnresolvedLinks))failed=true;
     if(p.reconcile&&summary.boardState==='partial')failed=true;
-   }catch(e){counts.push({book,code,state:'partition_failed',stage:e instanceof RunnerStageError?e.stage:'unclassified'});failed=true;if(e instanceof RunnerStageError&&e.stage.startsWith('private_archive')||e instanceof RunnerStageError&&['partition_checkpoint','partition_archive_validation'].includes(e.stage)){console.log(JSON.stringify({state:'partition_status',...counts.at(-1)}));break;}}
+   }catch(e){counts.push({book,code,state:'partition_failed',stage:e instanceof RunnerStageError?e.stage:'unclassified'});failed=true;if(e instanceof RunnerStageError&&e.stage.startsWith('private_archive')||e instanceof RunnerStageError&&['partition_checkpoint','partition_archive_validation','page_journal_checkpoint'].includes(e.stage)){console.log(JSON.stringify({state:'partition_status',...counts.at(-1)}));break;}}
    console.log(JSON.stringify({state:'partition_status',...counts.at(-1)}));
   }
  }finally{await context.close();}

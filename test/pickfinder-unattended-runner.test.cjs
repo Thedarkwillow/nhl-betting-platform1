@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const {plan,receiptValid,safeAddedFiles,partitions}=require('../scripts/pickfinder-unattended-runner.cjs');
+const {plan,receiptValid,safeAddedFiles,partitions,passwordLogin,stage,RunnerStageError}=require('../scripts/pickfinder-unattended-runner.cjs');
 const {collect}=require('../scripts/pickfinder-browser.cjs');
 const now=new Date('2026-11-25T14:07:00Z');
 const env={PICKFINDER_AUTOMATION_AUTHORIZED:'1',PICKFINDER_SCHEDULE_ENABLED:'1',GITHUB_EVENT_NAME:'schedule',GITHUB_EVENT_SCHEDULE:'7 6 * * *'};
@@ -39,4 +39,19 @@ test('deadline prevents another board read or next-page action',async()=>{
  const page={getByRole:()=>control,evaluate:async()=>{reads++;return {authenticated:true};}};
  const result=await collect(page,{book:'prizepicks',code:'NBA',shouldContinue:()=>false});
  assert.equal(reads,0);assert.equal(clicks,0);assert.equal(result.boardState,'partial');assert.equal(result.pages.length,0);
+});
+
+function loginFixture({twoStep=true,challenge=false,origin='https://www.pickfinder.app/sign-in'}={}){
+ let submissions=0,filled=[];
+ const page={goto:async()=>{},url:()=>origin,locator(selector){const isPassword=selector.includes('type=password');return {waitFor:async()=>{if(isPassword&&challenge)throw Error('sensitive fixture text');},isVisible:async()=>!twoStep||submissions>0,fill:async v=>{filled.push([isPassword?'password':'email',v]);}};},getByRole(role,opts){return {waitFor:async()=>{},click:async()=>{submissions++;}};}};
+ return {page,filled,get submissions(){return submissions;}};
+}
+test('normal one-step and two-step password forms are supported',async()=>{
+ for(const twoStep of [true,false]){const f=loginFixture({twoStep});await passwordLogin(f.page,{PICKFINDER_EMAIL:'fixture',PICKFINDER_PASSWORD:'fixture-secret'});assert.deepEqual(f.filled,[['email','fixture'],['password','fixture-secret']]);assert.equal(f.submissions,twoStep?2:1);}
+});
+test('verification and unexpected origin fail closed without leaking errors',async()=>{
+ const f=loginFixture({challenge:true});await assert.rejects(passwordLogin(f.page,{PICKFINDER_EMAIL:'fixture',PICKFINDER_PASSWORD:'fixture-secret'}),e=>e instanceof RunnerStageError&&e.stage==='password_step_unavailable_or_verification_required'&&!e.message.includes('sensitive'));
+ assert.equal(f.submissions,1);assert.equal(f.filled.length,1);
+ const g=loginFixture({origin:'https://example.org'});await assert.rejects(passwordLogin(g.page,{PICKFINDER_EMAIL:'fixture',PICKFINDER_PASSWORD:'fixture-secret'}),/login_origin_not_supported/);assert.equal(g.filled.length,0);
+ await assert.rejects(stage('safe_stage',()=>{throw Error('private text');}),e=>e.message==='safe_stage');
 });

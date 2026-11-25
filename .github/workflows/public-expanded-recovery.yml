@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'scripts/public-nhl-original-paired-audit.cjs'
+      - 'src/nhl-standard-rolling-calibration-research.cjs'
+      - 'test/nhl-standard-rolling-calibration-research.test.cjs'
       - 'scripts/public-opencs2-map-baseline.py'
       - 'scripts/public_cod_wiki_history.py'
       - 'test/test_opencs2_map_baseline.py'
@@ -29,7 +31,7 @@ jobs:
       - run: python3 -m unittest discover -s test -p test_opencs2_map_baseline.py
       - run: python3 -m unittest discover -s test -p test_esports_context_models.py
       - run: python3 -m unittest discover -s test -p test_nba_dated_injury_cohort.py
-      - run: node --test test/nhl-standard-forward-scoreboard.test.cjs test/esports-zero-credit-coverage.test.cjs
+      - run: node --test test/nhl-standard-rolling-calibration-research.test.cjs test/nhl-standard-forward-scoreboard.test.cjs test/esports-zero-credit-coverage.test.cjs
       - run: node --check scripts/public-nhl-original-paired-audit.cjs && node --check assets/public-multi-sport-sprint.js
   cod-2026:
     needs: tests

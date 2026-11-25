@@ -11,7 +11,7 @@ const mean=a=>a.reduce((s,x)=>s+x,0)/a.length;
 const finite=x=>Number.isFinite(x)&&x>=0;
 const key=x=>JSON.stringify(x);
 function nbaRows(d){
- if(!d||!Array.isArray(d.rows)||!validDate(d.capturedAt)||!/^2026-27$/.test(d.season||""))throw Error("NBA history contract");
+ if(!d||!Array.isArray(d.rows)||!validDate(d.capturedAt)||!["2023-24","2024-25","2025-26","2026-27"].includes(d.season))throw Error("NBA history contract");
  const seen=new Set(),out=[];
  for(const x of d.rows){
   if(!Number.isInteger(x.gameId)||!Number.isInteger(x.playerId)||!/^\d{4}-\d{2}-\d{2}$/.test(x.gameDate||"")||!validDate(x.gameDate)||x.gameDate>=d.capturedAt.slice(0,10)||typeof x.team!=="string"||!NBA.every(k=>finite(x[k])))continue;
@@ -116,4 +116,4 @@ if(require.main===module){try{
  // Print aggregate metrics only, no player IDs, matches, offers or raw source rows.
  console.log(JSON.stringify(r));
 }catch{console.error("Chronological player stat audit failed closed");process.exitCode=1}}
-module.exports={nbaRows,esportsRows,empirical,correlation,evaluate,workload,contextSummary};
+module.exports={nbaRows,esportsRows,empirical,correlation,evaluate,workload,contextSummary,immutableMaps};

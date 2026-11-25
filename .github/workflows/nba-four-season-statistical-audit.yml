@@ -1,0 +1,43 @@
+name: Recovered NBA four-season statistical audit
+on:
+  pull_request:
+    paths: ['scripts/nba-four-season-statistical-audit.cjs','scripts/chronological-player-stat-audit.cjs','test/chronological-player-stat-audit.test.cjs','.github/workflows/nba-four-season-statistical-audit.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/nba-four-season-statistical-audit.cjs','scripts/chronological-player-stat-audit.cjs','test/chronological-player-stat-audit.test.cjs','.github/workflows/nba-four-season-statistical-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/chronological-player-stat-audit.test.cjs test/private-source-history-connections.test.cjs
+      - run: node --check scripts/nba-four-season-statistical-audit.cjs
+  evidence:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Verify private archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: archive
+          persist-credentials: false
+          sparse-checkout: outputs/nba/history
+      - name: Evaluate recovered data without new source requests
+        run: node public/scripts/nba-four-season-statistical-audit.cjs archive

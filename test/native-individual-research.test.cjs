@@ -10,3 +10,5 @@ test('native NHL individual projection uses existing five game minimum',()=>{
  history.games.pop();assert.equal(generate(ctx).native.length,0);
 });
 test('NFL research baseline abstains below fifteen and preserves push mass',()=>{assert.equal(nflEmpiricalBaseline(Array(14).fill(2),2),null);const p=nflEmpiricalBaseline(Array(15).fill(2),2);assert.ok(Math.abs(p.higher+p.lower+p.push-1)<1e-9);assert.equal(p.modelApproved,false);});
+
+test('legacy priced book-only tier is research standard; unknown and unpriced tiers abstain',()=>{const {researchTier}=require('../scripts/native-individual-research.cjs');const o={source:'pickfinder_premium',book:'prizepicks',tier:null,displayedPrice:'-110'};assert.equal(researchTier(o),'standard');assert.equal(researchTier({...o,displayedPrice:null}),null);assert.equal(researchTier({...o,tier:'unknown'}),null);assert.equal(researchTier({...o,source:'other'}),null);assert.equal(researchTier({...o,tier:'Demon'}),'demon');});

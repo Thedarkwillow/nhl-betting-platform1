@@ -77,7 +77,7 @@ async function mcpMetadata(key,fetcher){
  }catch{return {requests,status:"metadata_request_failed"};}
 }
 async function run(env=process.env,fetcher=fetch){
- const key=env.GETODDS_API_KEY||env.GETODDS_API;
+ const key=env.GETODDSAPI||env.GETODDS_API_KEY||env.GETODDS_API;
  const report={kind:"getodds_secure_account_preflight_v1",observedAt:new Date().toISOString(),credentialConfigured:!!key,metadataRequests:0,dataRequests:0,paidRequestsAuthorized:false,originalOperatorVerified:false,rawRowsPublished:0,sources:{}};
  if(!key){report.status="missing_secret";return report;}
  let meta;

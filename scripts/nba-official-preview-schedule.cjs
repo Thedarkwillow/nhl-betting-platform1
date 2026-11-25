@@ -32,7 +32,7 @@ async function get(url,client,accept){
  if(!r.ok)throw Error("schedule_http_"+r.status);
  const raw=await r.text();if(raw.length>8000000)throw Error("schedule response bound");return raw;
 }
-async function collect(date,at,client=fetch){
+async function collect(date,at,client=fetch,clock=()=>new Date().toISOString()){
  if(et(at)!==date)throw Error("incorrect date");
  const sourceUrl="https://www.nba.com/games?date="+date;
  const raw=await get(sourceUrl,client,"text/html"),found=links(raw),previews=previewLinks(raw);
@@ -49,7 +49,7 @@ async function collect(date,at,client=fetch){
   games.push({...x,gameId:Number(id),status:1,sourceUrl:url,sourceResponseSha256:hash(html),statusEvidence:"official dated preview link plus ESPN explicit scheduled status"});
  }
  if(!games.length||new Set(games.map(x=>x.gameId)).size!==games.length)throw Error("no verified upcoming matchups");
- const capturedAt=new Date().toISOString();
+ const capturedAt=clock();
  if(et(capturedAt)!==date||games.some(g=>dt(g.startAt)<=dt(capturedAt)+900000))throw Error("schedule expired during capture");
  return {kind:"nba_official_schedule_v1",source:"NBA public preview plus ESPN explicit pregame",sourceUrl,independentSourceUrl:espnUrl,sourceResponseSha256:hash(raw),independentResponseSha256:hash(independentRaw),scope:"dated_preview_crosscheck",capturedAt,games,excluded,independentScheduledGames:rows.length,paidRequests:0,modelPromoted:false};
 }

@@ -6,16 +6,21 @@ on:
     branches: [main]
     paths: ['scripts/native-individual-research.cjs','scripts/pickfinder-clock-reconciliation.cjs','test/pickfinder-clock-reconciliation.test.cjs','scripts/prizepicks-multisport-model-bridge.cjs']
   workflow_dispatch:
+  workflow_run:
+    workflows: ['Public independent sports identity and final evidence']
+    types: [completed]
 permissions:
   contents: read
 jobs:
   generate:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event != 'pull_request')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:

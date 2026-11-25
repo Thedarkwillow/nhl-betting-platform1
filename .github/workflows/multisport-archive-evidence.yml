@@ -95,7 +95,7 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'Thedarkwillow/nhl-betting-platform1' && vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1'
     needs: test
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:

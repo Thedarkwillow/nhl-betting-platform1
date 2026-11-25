@@ -1,0 +1,35 @@
+name: GetOdds secure account preflight
+on:
+  pull_request:
+    paths: ['scripts/getodds-secure-preflight.cjs','test/getodds-secure-preflight.test.cjs','.github/workflows/getodds-secure-preflight.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/getodds-secure-preflight.cjs','test/getodds-secure-preflight.test.cjs','.github/workflows/getodds-secure-preflight.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: getodds-preflight-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/getodds-secure-preflight.test.cjs
+  probe:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Report sanitized account metadata only unless confirmed free
+        env:
+          GETODDS_API_KEY: ${{ secrets.GETODDS_API_KEY || secrets.GETODDS_API }}
+          GETODDS_FREE_PLAN_CONFIRMED: ${{ vars.GETODDS_FREE_PLAN_CONFIRMED }}
+        run: node scripts/getodds-secure-preflight.cjs

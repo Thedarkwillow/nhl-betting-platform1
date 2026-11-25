@@ -1162,6 +1162,7 @@ Public baseline imported from private Git blob 7ac01dea9de441e7f577050c425c67176
 | ESP-031 | 2026-11-25 | [Dota probability test](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45549936255) | Scoped historical or third-party evidence only; no production approval |
 | ESP-032 | 2026-11-25 | [LoL Elo evaluation](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45549936255) | Scoped historical or third-party evidence only; no production approval |
 | ESP-033 | 2026-11-25 | [Private archival workflow](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45549936255) | Scoped historical or third-party evidence only; no production approval |
+| ESP-034 | 2026-11-25 | [Merged PR #209](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/209), [completed cohort jobs](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45554189717) | Four historical cohort comparisons; prospective and original-line gates remain open |
 
 ## Roadmap change history
 

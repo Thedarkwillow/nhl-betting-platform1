@@ -45,7 +45,7 @@ function pandaFixture(x,title,now){
  return {provider:"pandascore",title,providerSeriesId:String(x.id),scheduledStartAt:iso(start),endAt:end===null?null:iso(end),teamIds:teams,tournamentId:id(x.tournament_id)?String(x.tournament_id):null,status:x.status,bestOf:id(x.number_of_games)?x.number_of_games:null,results:score,winnerTeamId:winner,providerReportedFinal:final,mapPlayerStatsAvailable:false,originalOfferMatched:false};
 }
 function gridSeries(x){
- const title=x?.title?.nameShortened?.trim().toLowerCase(),sport=Object.keys(slug).filter(k=>k!=="COD").find(k=>slug[k].includes(title)|| (k==="CS2"&&["counter-strike 2","counter strike 2","cs:go"].includes(title))||(k==="LOL"&&title==="league of legends")||(k==="DOTA2"&&["dota 2","dota"].includes(title)))||null;
+ const title=x?.title?.nameShortened?.trim().toLowerCase(),titleById={"28":"CS2","2":"DOTA2","6":"VALORANT","3":"LOL"},sport=titleById[x?.title?.id]||Object.keys(slug).filter(k=>k!=="COD").find(k=>slug[k].includes(title)|| (k==="CS2"&&["counter-strike 2","counter strike 2","cs:go"].includes(title))||(k==="LOL"&&title==="league of legends")||(k==="DOTA2"&&["dota 2","dota"].includes(title)))||null;
  if(!sport||!text(x.id)||at(x.startTimeScheduled)===null||!Array.isArray(x.teams)||x.teams.length!==2||x.teams.some(t=>!text(t.baseInfo?.id))||x.teams[0].baseInfo.id===x.teams[1].baseInfo.id)return null;
  return {provider:["LOL","VALORANT"].includes(sport)?"riot_grid":"grid",title:sport,providerSeriesId:x.id,scheduledStartAt:iso(at(x.startTimeScheduled)),teamIds:x.teams.map(t=>t.baseInfo.id),teamNames:x.teams.map(t=>text(t.baseInfo.name)?t.baseInfo.name:null),providerTitleId:text(x.title.id)?x.title.id:null,tournamentId:text(x.tournament?.id)?x.tournament.id:null,originalOfferMatched:false};
 }
@@ -186,17 +186,30 @@ async function collectGrid(env,client=fetch,root=null){
  try{
   const now=Date.now(),{queryPlan,done,attempted}=gridHistoryPlan(root,now),{titleId,from,to}=queryPlan;
   data.queryPlan=queryPlan;data.attemptedSeriesIds=[];report.queryPlan=queryPlan;
-  const q=await query("https://api-op.grid.gg/central-data/graphql",`query { allSeries(first:20,filter:{titleId:"${titleId}",startTimeScheduled:{gte:"${from}",lte:"${to}"}},orderBy:StartTimeScheduled){ edges { node { id startTimeScheduled title { id nameShortened } teams { baseInfo { id name } } tournament { id name } } } } }`);
+  const q=await query("https://api-op.grid.gg/central-data/graphql",`query { allSeries(first:20,filter:{titleId:"${titleId}",startTimeScheduled:{gte:"${from}",lte:"${to}"}},orderBy:StartTimeScheduled){ totalCount pageInfo { hasNextPage } edges { node { id startTimeScheduled title { id nameShortened } teams { baseInfo { id name } } tournament { id name } } } } }`);
   if(!Array.isArray(q.data.allSeries?.edges)||q.data.allSeries.edges.length>20)throw Error("fixture list");
-  const seen=new Set();for(const e of q.data.allSeries.edges){const f=gridSeries(e.node);if(f&&f.title===queryPlan.title&&f.providerTitleId===titleId&&f.providerSeriesId!==titleId&&at(f.scheduledStartAt)>=at(from)&&at(f.scheduledStartAt)<=at(to)&&!seen.has(f.providerSeriesId)){seen.add(f.providerSeriesId);data.fixtures.push(f);}}
+  const seen=new Set(),reject={};const skip=k=>reject[k]=(reject[k]||0)+1;
+  const edges=q.data.allSeries.edges;report.centralDataEdges=edges.length;report.centralDataTotalCount=cnt(q.data.allSeries.totalCount)?q.data.allSeries.totalCount:null;report.centralDataHasNextPage=typeof q.data.allSeries.pageInfo?.hasNextPage==="boolean"?q.data.allSeries.pageInfo.hasNextPage:null;
+  for(const e of edges){
+   const f=gridSeries(e?.node);
+   if(!f){skip("invalid_fixture_contract");continue;}
+   if(f.title!==queryPlan.title||f.providerTitleId!==titleId){skip("unexpected_title");continue;}
+   if(f.providerSeriesId===titleId){skip("test_series");continue;}
+   if(at(f.scheduledStartAt)<at(from)||at(f.scheduledStartAt)>at(to)){skip("outside_date_window");continue;}
+   if(seen.has(f.providerSeriesId)){skip("duplicate_series");continue;}
+   seen.add(f.providerSeriesId);data.fixtures.push(f);
+  }
+  report.fixtureRejections=reject;data.centralDataDiagnostics={edges:report.centralDataEdges,totalCount:report.centralDataTotalCount,hasNextPage:report.centralDataHasNextPage,rejections:reject};
   data.sourceDigests.push({endpoint:"central-data",sha256:q.digest});
   const past=data.fixtures.filter(x=>!done.has(x.providerSeriesId)).sort((a,b)=>Number(attempted.has(a.providerSeriesId))-Number(attempted.has(b.providerSeriesId))||Date.parse(b.scheduledStartAt)-Date.parse(a.scheduledStartAt));
+  report.stateDiagnostics={nonFinal:0,contractRejected:0,missingSeries:0};
   for(const f of past.slice(0,2)){
    data.attemptedSeriesIds.push(f.providerSeriesId);
    await pause();
    const s=await query("https://api-op.grid.gg/live-data-feed/series-state/graphql",`query { seriesState(id:${JSON.stringify(f.providerSeriesId)}) { id valid started finished teams { id name won } games { id sequenceNumber started finished teams { id won players { id name kills deaths } } } } }`);
-   if(s.data.seriesState?.finished!==true)continue;
-   const final=gridState(s.data.seriesState,f);data.finals.push({...final,sourceDocumentSha256:s.digest});
+   if(!s.data.seriesState){report.stateDiagnostics.missingSeries++;continue;}
+   if(s.data.seriesState.finished!==true){report.stateDiagnostics.nonFinal++;continue;}
+   try{const final=gridState(s.data.seriesState,f);data.finals.push({...final,sourceDocumentSha256:s.digest});}catch{report.stateDiagnostics.contractRejected++;}
   }
   report.status=data.fixtures.length?"fixture_and_state_check_completed":"no_supported_series";
  }catch(e){report.status=failure(e);}

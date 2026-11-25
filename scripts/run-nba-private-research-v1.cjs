@@ -65,6 +65,7 @@ async function collectSchedule(client=fetch){
  if(!games.length||new Set(games.map(x=>x.gameId)).size!==games.length)throw Error("NBA scoreboard lacks exact game identity");
  const a={kind:"nba_official_schedule_v1",capturedAt:at,source:"cdn.nba.com",sourceUrl:url,scope:"today_only",games};save("schedule/"+stamp(at)+".json",a);return a;
  }catch(e){errors.push(e.message);}
+ try{const a=await require("./nba-official-preview-schedule.cjs").collect(date,now(),client);a.fallbackReasons=errors;save("schedule/"+stamp(a.capturedAt)+".json",a);return a;}catch(e){errors.push("preview_crosscheck_"+String(e.message).slice(0,100));}
  const a=datedManualSchedule(date,now());if(a){a.fallbackReasons=errors;save("schedule/"+stamp(a.capturedAt)+".json",a);return a;}
  throw Error("NBA schedule all sources unavailable: "+errors.join(";"));
 }

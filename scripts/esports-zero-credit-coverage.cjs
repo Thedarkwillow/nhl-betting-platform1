@@ -18,7 +18,9 @@ function quota(headers){
  const integer=v=>typeof v==="string"&&/^\d{1,12}$/.test(v)?Number(v):null;
  const unit=headers.get("X-Usage-Unit");
  const reset=headers.get("X-Quota-Reset");
- return {remainingCredits:integer(headers.get("X-Credits-Remaining")),remainingRequests:integer(headers.get("X-Requests-Remaining")),usageUnit:["credit","credits","request","requests"].includes(unit)?unit:null,resetAt:reset&&Number.isFinite(Date.parse(reset))?new Date(Date.parse(reset)).toISOString():null};
+ const requestHeaders=[headers.get("X-Requests-Remaining"),headers.get("X-RateLimit-Remaining")].filter(v=>v!==null).map(integer);
+ const remainingRequests=requestHeaders.length&&requestHeaders.every(v=>v!==null&&v===requestHeaders[0])?requestHeaders[0]:null;
+ return {remainingCredits:integer(headers.get("X-Credits-Remaining")),remainingRequests,usageUnit:["credit","credits","request","requests"].includes(unit)?unit:null,resetAt:reset&&Number.isFinite(Date.parse(reset))?new Date(Date.parse(reset)).toISOString():null};
 }
 async function check(platform,key,client=fetch){
  if(!key)return {platform,configured:false,status:"missing_key"};

@@ -2,6 +2,11 @@ name: DataSportsAPI restricted esports history
 on:
   pull_request:
     paths: ['scripts/datasportsapi_restricted_history.py','test/test_datasportsapi_restricted_history.py','scripts/datasportsapi_esports_preflight.py','.github/workflows/datasportsapi-restricted-history.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/datasportsapi-restricted-history.yml']
+  schedule:
+    - cron: '15 14 * * *'
   workflow_dispatch:
 permissions:
   contents: read
@@ -18,7 +23,7 @@ jobs:
       - run: python3 -m unittest discover -s test -p test_datasportsapi_restricted_history.py
   collect:
     needs: test
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -41,7 +46,7 @@ jobs:
       - name: Collect bounded sample
         env:
           DATASPORTSAPI_API_KEY: ${{ secrets.DATASPORTSAPI || secrets.DATASPORTSAPI_API_KEY }}
-          DATASPORTS_HISTORY_DAYS: '7'
+          DATASPORTS_HISTORY_DAYS: ${{ github.event_name == 'schedule' && '2' || '7' }}
           DATASPORTS_RESTRICTED_OUTPUT: ${{ runner.temp }}/datasportsapi-history.json
         run: python3 scripts/datasportsapi_restricted_history.py
       - name: Store privately without public artifacts

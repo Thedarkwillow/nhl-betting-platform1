@@ -60,16 +60,27 @@ def collect(client,now,days):
                         if client.stopped or client.calls>=client.max_calls:break
                         if ids[g["id"]]!=1 or nums[g["number"]]!=1:excluded["ambiguous_game"]+=1;continue
                         doc=client.get(f"/v2/fixtures/{fid}/games/{g['id']}/lineups")
-                        if lineup_valid(doc,g["id"]) is None:excluded["incomplete_lineup"]+=1;continue
+                        if lineup_valid(doc,g["id"]) is None:
+                            d=doc.get("data")
+                            if not isinstance(d,dict):reason="lineup_not_object"
+                            elif not isinstance(doc.get("meta"),dict) or doc["meta"].get("gameId")!=g["id"]:reason="lineup_game_id_mismatch"
+                            elif not all(isinstance(d.get(k),list) for k in ("home","away")):reason="lineup_side_shape"
+                            elif not d["home"] or not d["away"]:reason="lineup_empty_side"
+                            elif len(d["home"])!=5 or len(d["away"])!=5:reason="lineup_not_five_per_side"
+                            else:reason="lineup_missing_identity_or_stats"
+                            excluded[reason]+=1
+                            counts[title+":incompleteLineups"]+=1
+                            continue
                         batch=[]
                         for side in ("home","away"):
                             for p in doc["data"][side]:
                                 stats={k:p[k] for k in ("kills","deaths","assists")}
-                                for k,canonical in (("headshotKills","headshots"),("creepScore","creep_score"),("lastHits","last_hits")):
+                                for k,canonical in (("headshotKills","headshots"),("creepScore","last_hits" if title=="DOTA2" else "creep_score")):
                                     v=p.get(k)
                                     if type(v) is int and v>=0 and (k!="headshotKills" or v<=p["kills"]):stats[canonical]=v
                                 batch.append({"providerPlayerId":str(p["player"]["id"]),"providerTeamId":str(f[side]["id"]),"name":str(p["player"].get("name") or "")[:120],**stats})
-                        out.append({"title":title,"providerFixtureId":str(fid),"providerGameId":str(g["id"]),"mapOrdinal":g["number"],"map":g.get("map"),"startsAt":g["startedAt"],"durationSeconds":g["durationSeconds"],"providerCompleted":True,"players":batch,"officialFinalVerified":False,"sourceRef":f"https://api.datasportsapi.com/v2/fixtures/{fid}/games/{g['id']}/lineups"})
+                                if "headshots" in stats:counts[title+":headshotRows"]+=1
+                        out.append({"title":title,"providerFixtureId":str(fid),"providerGameId":str(g["id"]),"mapOrdinal":g["number"],"map":g.get("map"),"fixtureStartsAt":f["startTime"],"homeTeam":str(f["home"].get("name") or "")[:120],"awayTeam":str(f["away"].get("name") or "")[:120],"homeScore":(g.get("home") or {}).get("score"),"awayScore":(g.get("away") or {}).get("score"),"startsAt":g["startedAt"],"durationSeconds":g["durationSeconds"],"providerCompleted":True,"players":batch,"officialFinalVerified":False,"sourceRef":f"https://api.datasportsapi.com/v2/fixtures/{fid}/games/{g['id']}/lineups"})
                         counts[title+":completeGames"]+=1
                         counts[title+":playerGameRows"]+=10
                 except ValueError as e:excluded[str(e) if str(e).startswith("http_") else "invalid_contract_or_limit"]+=1

@@ -7,6 +7,7 @@ import csv,hashlib,io,json,re,urllib.request,zipfile
 from collections import Counter,defaultdict
 from datetime import date
 from esports_context_models import evaluate
+from cs2_context_challenger import evaluate as challenger
 URL="https://www.kaggle.com/api/v1/datasets/download/ektarr/counter-strike-pro-matches"
 SHA="02fd2eb78c50a9c2fa819ceaf8281f9db030f69f32f4e0cba34a1f64867131ee"
 SIZE=5817137
@@ -52,7 +53,7 @@ def parse(reader):
                     if vals["kills"]>5*(a+b) or vals["deaths"]>a+b:raise ValueError("round_counts")
                     name=r[p].strip()
                     if not name:raise ValueError("name")
-                    batch.append(dict(event=mid+"|"+gid,player="ektarr:"+pid,date=day,map=mp,team=teams[side-1],rounds=a+b,**vals))
+                    batch.append(dict(event=mid+"|"+gid,player="ektarr:"+pid,date=day,map=mp,team=teams[side-1],opponent=teams[2-side],rounds=a+b,**vals))
             if len({x["player"] for x in batch})!=10:raise ValueError("duplicate_player")
             groups[key]=batch
         except (ValueError,KeyError,AttributeError,TypeError):excluded["invalid_map_row"]+=1
@@ -71,7 +72,7 @@ def main():
         from importlib.util import spec_from_file_location,module_from_spec
         from pathlib import Path
         spec=spec_from_file_location("free",Path(__file__).with_name("public-eight-free-history.py"));mod=module_from_spec(spec);spec.loader.exec_module(mod)
-        print(json.dumps({"kind":"cs2_ektarr_wide_history_v1","sourceSha256":SHA,"declaredLicense":"CC BY-SA 4.0","underlyingRightsIndependentlyVerified":False,**report,"baseline":mod.baseline(rows),"context":evaluate(rows,MARKETS,["map"]),"actualPropLines":0,"modelPromoted":False,"paidRequests":0,"rawRowsPublished":0}))
+        print(json.dumps({"kind":"cs2_ektarr_wide_history_v1","sourceSha256":SHA,"declaredLicense":"CC BY-SA 4.0","underlyingRightsIndependentlyVerified":False,**report,"baseline":mod.baseline(rows),"context":evaluate(rows,MARKETS,["map"]),"teamMapChallenger":challenger(rows),"actualPropLines":0,"modelPromoted":False,"paidRequests":0,"rawRowsPublished":0}))
     except Exception as e:
         print(json.dumps({"kind":"cs2_ektarr_wide_history_v1","status":"unavailable","reason":str(e) if isinstance(e,ValueError) and str(e) in ("pinned_source_changed","archive_contract","row_cap") else type(e).__name__,"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
 if __name__=="__main__":main()

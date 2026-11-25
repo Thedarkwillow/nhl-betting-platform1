@@ -30,3 +30,17 @@ test("private archive is append-only and prints no offer rows",()=>{
  try{fs.mkdirSync(path.join(dir,".git"));process.env.RESTRICTED_DESTINATION_VERIFIED="0";assert.throws(()=>archive(input(),dir,"a",{now}));process.env.RESTRICTED_DESTINATION_VERIFIED="1";const y=archive(input(),dir,"a",{now});assert.equal(y.rawRowsPublished,0);assert.equal(y.offers,undefined);assert.throws(()=>archive(input(),dir,"a",{now}));}
  finally{if(previous===undefined)delete process.env.RESTRICTED_DESTINATION_VERIFIED;else process.env.RESTRICTED_DESTINATION_VERIFIED=previous;fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+test("scoped research preserves N/A, period and mode without leaking raw fields in summaries",()=>{
+ const x=input(),r=x.pages[0].rows[0];r.mapRange="maps 1-2";r.gameMode="HP";
+ r.research=[{origin:"profile",tab:"Player Stats",metric:"kills",scope:"player",mapRange:"maps 1-2",gameMode:"HP",window:"L10",observedAt,value:"N/A"},{origin:"board",tab:"Implied",metric:"Higher implied percentage",scope:"market",observedAt,value:55,unit:"percent"}];
+ const y=normalize(x,{now});assert.equal(y.offers[0].mapRange,"maps 1-2");assert.equal(y.offers[0].gameMode,"HP");assert.equal(y.researchObservations[0].value,null);assert.equal(y.researchObservations[0].missingReason,"displayed_na");assert.equal(y.researchObservations[1].value,55);assert.equal(y.researchObservations[1].modelInputsApproved,false);
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),"pickfinder-research-"));const old=process.env.RESTRICTED_DESTINATION_VERIFIED;
+ try{fs.mkdirSync(path.join(dir,".git"));process.env.RESTRICTED_DESTINATION_VERIFIED="1";const summary=archive(x,dir,"scoped",{now});assert.equal(summary.researchObservations,undefined);assert.equal(summary.health.researchFields,2);}
+ finally{if(old===undefined)delete process.env.RESTRICTED_DESTINATION_VERIFIED;else process.env.RESTRICTED_DESTINATION_VERIFIED=old;fs.rmSync(dir,{recursive:true,force:true});}
+ r.research[0].observedAt="2026-11-25T14:01:00Z";assert.throws(()=>normalize(x,{now}));
+});
+test("map ranges and game modes cannot collapse to one offer",()=>{
+ const x=input(),r=row();x.pages[0].rows[0].gameMode="HP";r.gameMode="S&D";x.pages[0].rows.push(r);
+ assert.equal(normalize(x,{now}).offers.length,2);
+});

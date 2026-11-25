@@ -49,3 +49,10 @@ test('parallel profile trial is isolated to explicit manual deep collection',()=
  assert.equal(profileWorkers(env,{...p,expected:'09:00'}),1);
  assert.equal(profileWorkers(env,{...p,contextOnly:true}),1);
 });
+
+test('manual board, feature, and context sessions are isolated from deep and protected slots',()=>{
+ const env={PICKFINDER_AUTOMATION_AUTHORIZED:'1',PICKFINDER_PUBLIC_DATA_AUTHORIZED:'1',GITHUB_EVENT_NAME:'workflow_dispatch'};
+ const at=new Date('2026-11-25T20:00:00Z'),b=invocation({...env,REQUESTED_MODE:'boards_only'},at),f=invocation({...env,REQUESTED_MODE:'features_only'},at),c=invocation({...env,REQUESTED_MODE:'nba_context_only'},at);
+ assert.equal(b.boardsOnly,true);assert.equal(b.deep,false);assert.equal(f.featuresOnly,true);assert.equal(f.deep,true);assert.equal(c.contextOnly,true);
+ for(const mode of ['boards_only','features_only','nba_context_only'])for(const hour of [13,14,16,17])assert.equal(invocation({...env,REQUESTED_MODE:mode},new Date('2026-11-25T'+hour+':01:00Z')).allowed,false);
+});

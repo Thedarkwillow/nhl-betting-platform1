@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const {plan,receiptValid,safeAddedFiles,partitions,passwordLogin,stage,RunnerStageError}=require('../scripts/pickfinder-unattended-runner.cjs');
+const {plan,receiptValid,safeAddedFiles,partitions,passwordLogin,submitLoginStep,stage,RunnerStageError}=require('../scripts/pickfinder-unattended-runner.cjs');
 const {collect}=require('../scripts/pickfinder-browser.cjs');
 const now=new Date('2026-11-25T14:07:00Z');
 const env={PICKFINDER_AUTOMATION_AUTHORIZED:'1',PICKFINDER_SCHEDULE_ENABLED:'1',GITHUB_EVENT_NAME:'schedule',GITHUB_EVENT_SCHEDULE:'7 6 * * *'};
@@ -41,9 +41,11 @@ test('deadline prevents another board read or next-page action',async()=>{
  assert.equal(reads,0);assert.equal(clicks,0);assert.equal(result.boardState,'partial');assert.equal(result.pages.length,0);
 });
 
-function loginFixture({twoStep=true,challenge=false,origin='https://www.pickfinder.app/sign-in'}={}){
+function loginFixture({twoStep=true,challenge=false,formControls=1,disabled=false,origin='https://www.pickfinder.app/sign-in'}={}){
  let submissions=0,filled=[];
- const page={goto:async()=>{},url:()=>origin,locator(selector){const isPassword=selector.includes('type=password');return {waitFor:async()=>{if(isPassword&&challenge)throw Error('sensitive fixture text');},isVisible:async()=>!twoStep||submissions>0,fill:async v=>{filled.push([isPassword?'password':'email',v]);}};},getByRole(role,opts){return {waitFor:async()=>{},click:async()=>{submissions++;}};}};
+ const button={count:async()=>formControls,waitFor:async()=>{},click:async()=>{if(disabled)throw Error('disabled fixture');submissions++;}};
+ const form={count:async()=>1,locator:()=>button};
+ const page={goto:async()=>{},url:()=>origin,locator(selector){const isPassword=selector.includes('type=password');return {locator:()=>form,waitFor:async()=>{if(isPassword&&challenge)throw Error('sensitive fixture text');},isVisible:async()=>!twoStep||submissions>0,fill:async v=>{filled.push([isPassword?'password':'email',v]);}};},getByRole(role,opts){return {waitFor:async()=>{},click:async()=>{submissions++;}};}};
  return {page,filled,get submissions(){return submissions;}};
 }
 test('normal one-step and two-step password forms are supported',async()=>{
@@ -54,4 +56,9 @@ test('verification and unexpected origin fail closed without leaking errors',asy
  assert.equal(f.submissions,1);assert.equal(f.filled.length,1);
  const g=loginFixture({origin:'https://example.org'});await assert.rejects(passwordLogin(g.page,{PICKFINDER_EMAIL:'fixture',PICKFINDER_PASSWORD:'fixture-secret'}),/login_origin_not_supported/);assert.equal(g.filled.length,0);
  await assert.rejects(stage('safe_stage',()=>{throw Error('private text');}),e=>e.message==='safe_stage');
+});
+
+test('ambiguous and disabled form controls are not bypassed',async()=>{
+ const a=loginFixture({twoStep:false,formControls:2});await assert.rejects(passwordLogin(a.page,{PICKFINDER_EMAIL:'fixture',PICKFINDER_PASSWORD:'fixture-secret'}),/password_submit_ambiguous_form_controls/);assert.equal(a.submissions,0);
+ const b=loginFixture({twoStep:false,disabled:true});await assert.rejects(passwordLogin(b.page,{PICKFINDER_EMAIL:'fixture',PICKFINDER_PASSWORD:'fixture-secret'}),/password_submit_control_click/);assert.equal(b.submissions,0);
 });

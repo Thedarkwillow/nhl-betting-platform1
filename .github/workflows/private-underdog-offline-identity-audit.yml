@@ -20,9 +20,15 @@ jobs:
     if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      RESEARCH_ARCHIVE_ROOT: ${{ github.workspace }}/restricted-archive
     steps:
       - uses: actions/checkout@v4
         with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          path: restricted-archive
           repository: Thedarkwillow/nhl-betting-platform
           ref: main
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
@@ -46,7 +52,7 @@ jobs:
         run: |
           node - <<'NODE'
           const {loadRoster}=require('./scripts/probe-underdogapi-coverage.cjs');
-          const r=loadRoster('NFL');
+          const r=loadRoster('NFL',process.env.RESEARCH_ARCHIVE_ROOT);
           if(!r)throw Error('Archive contract not verified');
           const counts={};
           for(const x of r.rows){if(Number(x.season)!==2026||!Number.isInteger(Number(x.week)))continue;const q=counts[x.week]??={rows:0,usableIdentityFields:0};q.rows++;if(x.name&&x.team&&x.playerId)q.usableIdentityFields++;}

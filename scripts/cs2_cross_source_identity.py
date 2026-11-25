@@ -9,6 +9,20 @@ from cs2_team_identity import norm
 
 MAP_ALIASES={"dust ii":"dust2","dust 2":"dust2","de_dust2":"dust2"}
 MARKETS=("kills","deaths","assists")
+# Scoped CS2 research labels for the reviewed November fixtures only.
+TEAM_ALIASES={
+ "tl":"liquid","team liquid":"liquid",
+ "nip":"ninjas in pyjamas","ninjas in pyjamas":"ninjas in pyjamas",
+ "prv":"parivision","pari vision":"parivision",
+ "faze clan":"faze","faze":"faze",
+ "den":"dendele","dendele":"dendele",
+ "9z team":"9z","9z":"9z",
+ "cw":"chinggis warriors","chinggis warriors":"chinggis warriors",
+ "bcg":"bc.game","bcgame":"bc.game","bc.game esports":"bc.game",
+}
+def reviewed_team(x):
+    n=norm(x)
+    return TEAM_ALIASES.get(n,n)
 def mapname(x):
     n=norm(x)
     return MAP_ALIASES.get(n,n.removeprefix("de_"))
@@ -112,6 +126,10 @@ def audit(history,archives,review=None,capture=None):
             counts["steam_no_exact_alias_team"]+=1
             if any(prior(q["date"]) for q in alias_hist[alias]):counts["steam_alias_present_other_team_label"]+=1
         elif len(hs)>1:counts["steam_ambiguous_alias_team"]+=1
+        if not hs:
+            hs={q["player"] for q in alias_hist[alias] if prior(q["date"]) and reviewed_team(q.get("teamLabel"))==reviewed_team(team)}
+            if len(hs)==1:counts["reviewedTeamAliasCandidate"]+=1
+        ap={pid for pid,tm,dt in api_alias[alias] if reviewed_team(tm)==reviewed_team(team) and prior(dt)}
         if len(hs)==1:
             h=next(iter(hs));counts["uniqueHistoryAliasTeamCandidates"]+=1
             steam.append({"historyPlayerId":h,"steamId":x["steamIdCandidate"],"providerPlayerIds":[pid for pid in ap if (h,pid) in verified],"method":"exact_alias_dated_team_review_candidate","originalPregameVerification":False})

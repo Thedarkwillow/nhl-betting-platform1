@@ -200,8 +200,8 @@ async function main(env=process.env){
    try{
     await stage('board_navigation',()=>page.goto(ORIGIN+'/props',{timeout:20000}));
     const journal=createJournal({root,day:p.clock.day,slot:p.expected.replace(':',''),attempt,book,sport:({CFB:'college-football',CBB:'college-basketball',VAL:'valorant'})[code]||code.toLowerCase(),interval:p.targeted&&p.targetCode!=='NFL'?1:10});
-    let batch;
-    try{batch=await stage('board_collection',()=>collect(page,{book,code,slot:p.expected,maxPages:p.reconcile&&!p.full?2:Infinity,shouldContinue:remaining,onPage:snapshot=>stage('page_journal_checkpoint',()=>journal.append(snapshot))}));}
+    let batch,rowsObserved=0,pricedRows=0,unpricedRows=0;
+    try{batch=await stage('board_collection',()=>collect(page,{book,code,slot:p.expected,maxPages:p.reconcile&&!p.full?2:Infinity,shouldContinue:remaining,onPage:async snapshot=>{await stage('page_journal_checkpoint',()=>journal.append(snapshot));rowsObserved+=snapshot.page.rows.length;pricedRows+=snapshot.page.rows.filter(r=>r.apps?.length).length;unpricedRows+=snapshot.page.rows.filter(r=>!r.apps?.length).length;const status=journal.status();if(snapshot.page.number===1||snapshot.page.number%10===0||snapshot.page.number===snapshot.displayedPageCount)console.log(JSON.stringify({state:'prop_board_live_progress',book,code,pagesCollected:status.lastPage,pagesVerifiedRemote:status.verified,pagesDisplayed:snapshot.displayedPageCount??null,rowsObserved,pricedRows,unpricedRows,rawRowsPublished:0}));}}));}
     finally{await stage('page_journal_checkpoint',()=>journal.flush());}
     // A bounded profile sample preserves board coverage. Separate deep research is still required.
     const sample=batch.pages.flatMap(pg=>pg.rows).find(r=>r.apps.length);

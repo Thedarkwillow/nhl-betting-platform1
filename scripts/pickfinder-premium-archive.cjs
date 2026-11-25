@@ -12,13 +12,26 @@ function instant(v){
  const t=new Date(v);if(!Number.isFinite(t.getTime()))throw Error("invalid timestamp");return t;
 }
 function inSlot(t,day,slot){const p=pacific(t);return p.day===day&&WINDOWS[String(p.hour)]===slot;}
+// Profile/board metrics remain separate from the offer and never imply model probabilities.
+function scopedResearch(fields,first,last,sport){
+ if(fields===undefined)return [];
+ if(!Array.isArray(fields)||fields.length>500)throw Error("research field contract");
+ return fields.map(f=>{
+  if(!f||!["board","profile","line_movement","prop_history"].includes(f.origin)||!text(f.tab)||!text(f.metric)||!text(f.scope))throw Error("research provenance required");
+  const observed=instant(f.observedAt);
+  if(observed<first||observed>last)throw Error("research observation outside attempt");
+  const missing=f.value===null||f.value==="N/A";
+  if(!missing&&!finite(f.value)&&!text(f.value))throw Error("research value contract");
+  return {sport,origin:f.origin,tab:f.tab,metric:f.metric,scope:f.scope,period:text(f.period)?f.period:null,mapRange:text(f.mapRange)?f.mapRange:null,gameMode:text(f.gameMode)?f.gameMode:null,window:text(f.window)?f.window:null,unit:text(f.unit)?f.unit:null,observedAt:observed.toISOString(),value:missing?null:f.value,missingReason:missing?(f.value==="N/A"?"displayed_na":"missing"):null,modelInputsApproved:false};
+ });
+}
 function normalize(input,{now=new Date()}={}){
  if(!input||input.schema!=="pickfinder-premium-export-v1"||!BOOKS.has(input.book)||!SPORTS.has(input.sport))throw Error("partition contract");
  if(!/^\d{4}-\d\d-\d\d$/.test(input.localDay)||!["06:00","09:00"].includes(input.slot))throw Error("slot required");
  if(!Array.isArray(input.pages)||input.pages.length>500||!["populated","empty","disabled","partial"].includes(input.boardState))throw Error("page contract");
  const first=instant(input.startedAt),last=instant(input.endedAt);
  if(first>last||last>now)throw Error("attempt chronology");
- const links=new Set(),offers=new Map(),conflicts=new Set(),pageNumbers=new Set();
+ const links=new Set(),offers=new Map(),conflicts=new Set(),pageNumbers=new Set(),researchObservations=[];
  let appearances=0,unresolvedRows=0,wrongSport=0,crossHourRows=0;
  for(const page of input.pages){
   if(!Number.isInteger(page.number)||page.number<1||pageNumbers.has(page.number)||!Array.isArray(page.rows)||page.rows.length>500)throw Error("page shape");
@@ -30,14 +43,15 @@ function normalize(input,{now=new Date()}={}){
    const observed=instant(row.observedAt);
    if(observed<first||observed>last)throw Error("row outside attempt");
    links.add(row.detailId);
+   for(const field of scopedResearch(row.research,first,last,input.sport))researchObservations.push({...field,detailId:row.detailId,player:row.player});
    if(!inSlot(observed,input.localDay,input.slot))crossHourRows++;
    let matched=0;
    for(const a of row.apps){
     if(!a||a.book!==input.book)continue;
     if(!finite(a.line)||!["Higher","Lower"].includes(a.side)){continue;}
     matched++;
-    const offer={source:"pickfinder_premium",book:input.book,sport:input.sport,detailId:row.detailId,player:row.player,eventId:text(row.eventId)?row.eventId:null,market:row.market,period:text(row.period)?row.period:null,line:a.line,tier:text(a.tier)?a.tier:null,side:a.side,displayedPrice:text(a.displayedPrice)?a.displayedPrice:null,observedAt:observed.toISOString(),startAt:row.startAt?instant(row.startAt).toISOString():null,teamMoneylinePercent:finite(row.teamMoneylinePercent)&&row.teamMoneylinePercent>=0&&row.teamMoneylinePercent<=100?row.teamMoneylinePercent:null,originalPlatformVerified:false,eligibleForLockedModel:false};
-    const key=JSON.stringify([offer.detailId,offer.eventId,offer.player,offer.market,offer.period,offer.line,offer.tier,offer.side]);
+    const offer={source:"pickfinder_premium",book:input.book,sport:input.sport,detailId:row.detailId,player:row.player,eventId:text(row.eventId)?row.eventId:null,market:row.market,period:text(row.period)?row.period:null,mapRange:text(row.mapRange)?row.mapRange:null,gameMode:text(row.gameMode)?row.gameMode:null,line:a.line,tier:text(a.tier)?a.tier:null,side:a.side,displayedPrice:text(a.displayedPrice)?a.displayedPrice:null,observedAt:observed.toISOString(),startAt:row.startAt?instant(row.startAt).toISOString():null,teamMoneylinePercent:finite(row.teamMoneylinePercent)&&row.teamMoneylinePercent>=0&&row.teamMoneylinePercent<=100?row.teamMoneylinePercent:null,originalPlatformVerified:false,eligibleForLockedModel:false};
+    const key=JSON.stringify([offer.detailId,offer.eventId,offer.player,offer.market,offer.period,offer.mapRange,offer.gameMode,offer.line,offer.tier,offer.side]);
     const previous=offers.get(key);
     if(previous&&previous.displayedPrice!==offer.displayedPrice)conflicts.add(key);
     if(!previous||offer.observedAt>previous.observedAt)offers.set(key,offer);
@@ -58,7 +72,7 @@ function normalize(input,{now=new Date()}={}){
  if(input.sport==="soccer"&&links.size>=9999)reasons.push("possible_display_cap_requires_partition_reconciliation");
  if(input.boardState==="empty"&&appearances!==0||input.boardState==="disabled"&&appearances!==0)reasons.push("inconsistent_board_state");
  // A mutable UI traversal is not proof of full-board completeness, even when contiguous.
- return {schema:"pickfinder-premium-normalized-v1",book:input.book,sport:input.sport,localDay:input.localDay,slot:input.slot,firstObservedAt:first.toISOString(),lastObservedAt:last.toISOString(),boardState:input.boardState,withinSlot,pageTraversalComplete,fullBoardCertified:false,originalOffersVerified:0,modelInputsApproved:false,health:{pages:pageNumbers.size,appearances,distinctDetailLinks:links.size,repeatOrUnresolvedLinks:repeatLinks,distinctOfferKeys:offers.size,priceConflictKeys:conflicts.size,wrongSport,unresolvedRows,crossHourRows,reasons},offers:[...offers.values()]};
+ return {schema:"pickfinder-premium-normalized-v1",book:input.book,sport:input.sport,localDay:input.localDay,slot:input.slot,firstObservedAt:first.toISOString(),lastObservedAt:last.toISOString(),boardState:input.boardState,withinSlot,pageTraversalComplete,fullBoardCertified:false,originalOffersVerified:0,modelInputsApproved:false,health:{pages:pageNumbers.size,appearances,distinctDetailLinks:links.size,repeatOrUnresolvedLinks:repeatLinks,distinctOfferKeys:offers.size,priceConflictKeys:conflicts.size,wrongSport,unresolvedRows,crossHourRows,researchFields:researchObservations.length,reasons},offers:[...offers.values()],researchObservations};
 }
 function archive(input,root,attemptId,opts){
  if(process.env.RESTRICTED_DESTINATION_VERIFIED!=="1"||!fs.existsSync(root+"/.git"))throw Error("verified private archive required");
@@ -70,7 +84,7 @@ function archive(input,root,attemptId,opts){
  const dest=path.join(base,attemptId);fs.mkdirSync(dest,{mode:0o700});
  fs.writeFileSync(path.join(dest,"source.json"),raw,{flag:"wx",mode:0o600});
  fs.writeFileSync(path.join(dest,"normalized.json"),JSON.stringify({...result,sourceDigest:digest}),{flag:"wx",mode:0o600});
- const {offers,...summary}=result;return {...summary,sourceDigest:digest,rawRowsPublished:0};
+ const {offers,researchObservations,...summary}=result;return {...summary,sourceDigest:digest,rawRowsPublished:0};
 }
 module.exports={normalize,archive};
 if(require.main===module){

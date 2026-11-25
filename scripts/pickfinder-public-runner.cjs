@@ -15,9 +15,15 @@ function invocation(env,now=new Date()){
 function cleanBoard(batch){
  const n=normalize(batch);return safe({...n,sourceDigest:sha(JSON.stringify(batch)),schema:'pickfinder-public-normalized-v1',authenticated:batch.authenticated===true,explicitEmpty:batch.explicitEmpty===true,disabledConfirmed:batch.disabledConfirmed===true,displayedPageCount:batch.displayedPageCount??null,lastPageReached:batch.lastPageReached===true,rawHtmlPublished:false,accountDataPublished:false});
 }
+function splitBoard(n){
+ const {offers,researchObservations,unpricedTierObservations,sportsbookQuotes,...meta}=n,parts=[];
+ for(const [field,values] of Object.entries({offers,researchObservations,unpricedTierObservations,sportsbookQuotes})){
+  let rows=[],bytes=0;for(const value of values||[]){const size=Buffer.byteLength(JSON.stringify(value))+1;if(size>2000000)throw Error('record too large');if(bytes+size>2000000){parts.push({schema:'pickfinder-public-board-part-v1',book:n.book,sport:n.sport,sourceDigest:n.sourceDigest,field,rows});rows=[];bytes=0;}rows.push(value);bytes+=size;}if(rows.length)parts.push({schema:'pickfinder-public-board-part-v1',book:n.book,sport:n.sport,sourceDigest:n.sourceDigest,field,rows});
+ }return {meta,parts};
+}
 function queue(boards,profiles){
  const done=new Set(),attempted=new Map();for(const b of profiles)for(const r of b.records||[]){attempted.set(r.key,(attempted.get(r.key)||0)+1);if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&r.research?.length)done.add(r.key);}
- const q=new Map();for(const b of boards)for(const o of [...b.offers||[],...b.unpricedTierObservations||[]]){
+ const q=new Map();for(const b of boards)for(const o of [...b.offers||[],...b.unpricedTierObservations||[],...(['offers','unpricedTierObservations'].includes(b.field)?b.rows:[])]){
   if(!o.eventId||!o.detailId||!o.player||!o.market)continue;
   const u=new URL(o.detailId,ORIGIN);if(u.origin!==ORIGIN||!u.pathname.startsWith('/players/')||!u.searchParams.has('prop')||[...u.searchParams.keys()].some(k=>k!=='prop'))continue;
   const s={book:b.book,sport:b.sport,player:o.player,market:o.market,eventId:o.eventId,detailId:o.detailId,period:o.period??null,mapRange:o.mapRange??null,gameMode:o.gameMode??null};
@@ -50,14 +56,14 @@ async function main(root,env=process.env){
    if(!alive())break;
    try{await page.goto(ORIGIN+'/props',{timeout:20000});const names=code==='DOTA2'?['DOTA2','Dota 2']:[code];let visible=false;for(const name of names){const b=page.getByRole('button',{name,exact:true});if(await b.count()===1&&await b.isVisible())visible=true;}if(!visible){console.log(JSON.stringify({state:'public_board_not_exposed',code,book,competition:'unknown'}));continue;}
     const batch=await collect(page,{book,code,slot:p.expected,shouldContinue:alive,onPage:async x=>{if(x.page.number===1||x.page.number%10===0)console.log(JSON.stringify({state:'public_board_progress',code,book,pages:x.page.number,displayedPages:x.displayedPageCount}));}});
-    const n=cleanBoard(batch),receipt=await write('boards',n);boards++;
+    const n=cleanBoard(batch),{meta,parts}=splitBoard(n),partDigests=[];for(const part of parts)partDigests.push((await write('board-parts',part)).digest);const receipt=await write('boards',{...meta,partDigests});boards++;
     console.log(JSON.stringify({state:'public_board_checkpoint_verified',code,book,slot:n.slot,withinSlot:n.withinSlot,boardState:n.boardState,pages:n.health.pages,offers:n.health.distinctOfferKeys,unresolved:n.health.unresolvedRows,sourceDigest:n.sourceDigest,archiveDigest:receipt.digest,remoteDigestVerified:true,originalOffersVerified:false}));
     if(batch.failure==='session_expired')throw Error('session expired');if(batch.boardState==='partial')errors++;
    }catch{errors++;console.log(JSON.stringify({state:'public_board_partition_pending',code,book}));if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
   }}
   // Morning board acquisition is independent of deep research and must never delay next slot.
   if(p.expected!=='manual')return;
-  const q=queue(read(root,'boards'),read(root,'profiles'));console.log(JSON.stringify({state:'public_deep_queue',total:q.total,completed:q.done,remaining:q.pending.length,legacyPrivateHistoryImported:false}));
+  const q=queue(read(root,'board-parts'),read(root,'profiles'));console.log(JSON.stringify({state:'public_deep_queue',total:q.total,completed:q.done,remaining:q.pending.length,legacyPrivateHistoryImported:false}));
   const detail=await context.newPage();detail.setDefaultTimeout(5000);
   const buffer=checkpointBuffer({write:rows=>write('profiles',{schema:'pickfinder-public-profiles-v1',observedAt:new Date().toISOString(),records:rows,modelInputsApproved:false}),onVerified:r=>{profiles++;console.log(JSON.stringify({state:'public_deep_scope_checkpoint_verified',sport:r.sport,book:r.book,status:r.status,truncated:r.truncated,verifiedThisRun:profiles}));}});
   try{
@@ -72,5 +78,5 @@ async function main(root,env=process.env){
   await context.close();console.log(JSON.stringify({state:'public_pickfinder_throughput',boards,profiles,profileMs,archiveMs,transactions,errors,elapsedMs:Date.now()-started,privateRepoUsed:false,modelInputsApproved:false}));
  }
 }
-module.exports={invocation,queue,cleanBoard,publicProfile};
+module.exports={invocation,queue,cleanBoard,publicProfile,splitBoard};
 if(require.main===module)main(fs.realpathSync(process.argv[2])).catch(()=>{console.error(JSON.stringify({state:'public_pickfinder_failed_closed',privateRepoUsed:false,accountDataLogged:false}));process.exitCode=1;});

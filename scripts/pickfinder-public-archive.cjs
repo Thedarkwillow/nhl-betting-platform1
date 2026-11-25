@@ -17,12 +17,12 @@ function safe(v,depth=0){
  }
  if(Array.isArray(v))return v.map(x=>safe(x,depth+1));
  if(v&&Object.getPrototypeOf(v)===Object.prototype){
-  const o={};for(const [k,x] of Object.entries(v)){if(/^(?:__proto__|prototype|constructor|authorization|cookie|cookies|password|token|storageState|headers|email|session|apiKey|html)$/i.test(k))throw Error('unsafe key');if(x!==undefined)o[k]=safe(x,depth+1);}return o;
+  const o={};for(const [k,x] of Object.entries(v)){if(/^(?:__proto__|prototype|constructor|authorization|cookie|cookies|password|token|storageState|email|session|apiKey|html)$/i.test(k))throw Error('unsafe key');if(x!==undefined)o[k]=safe(x,depth+1);}return o;
  }throw Error('unsafe value');
 }
 async function persist(root,kind,data){
  assertDestination(root);
- if(!['boards','profiles','dashboards','directory','capabilities'].includes(kind))throw Error('invalid archive kind');
+ if(!['boards','board-parts','profiles','dashboards','directory','capabilities'].includes(kind))throw Error('invalid archive kind');
  const raw=Buffer.from(JSON.stringify(safe(data))+'\n');if(raw.length>8e6)throw Error('archive size');
  const digest=sha(raw),file=ROOT+'/'+kind+'/'+digest+'.json';
  const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'pf-public-index-'));const env={...process.env,GIT_INDEX_FILE:path.join(tmp,'index')};

@@ -45,7 +45,18 @@ def main():
     directory=fetch("/free-research")
     listed={urlsplit(urljoin(BASE,l)).path for l in directory.links if urlsplit(urljoin(BASE,l)).netloc==urlsplit(BASE).netloc}
     out={}; snapshots=[]
-    for rel in PILOT:
+    # Discover listed sporting paths; never invent endpoints or attempt Pro-only routes.
+    from collections import defaultdict,deque
+    groups=defaultdict(deque)
+    for rel in sorted(listed):
+        bits=rel.strip("/").split("/")
+        if len(bits)==3 and bits[0]=="leagues" and bits[1] in ("nba","nhl","nfl","cs2","dota-2","valorant","league-of-legends","lol","cod","mlb","wnba","college-football","college-basketball","soccer","tennis") and rel not in PILOT:groups[bits[1]].append(rel)
+    additional=[]
+    while groups and len(additional)<6:
+        for sport in list(groups):
+            if groups[sport] and len(additional)<6:additional.append(groups[sport].popleft())
+            if not groups[sport]:del groups[sport]
+    for rel in PILOT+additional:
         if rel not in listed:out[rel]={"state":"not_listed"};continue
         p=fetch(rel);out[rel]={"state":"observed",**summarize(p)}
         snapshots.append({"path":rel,"observedAt":datetime.now(timezone.utc).isoformat(),"tables":p.tables})
@@ -57,7 +68,7 @@ def main():
         base.mkdir(parents=True,exist_ok=True)
         payload=json.dumps({"schema":"pickfinder_free_research_v1","snapshots":snapshots,"historicalFeaturesApproved":False},sort_keys=True).encode()
         with (base/(hashlib.sha256(payload).hexdigest()+".json")).open("xb") as f:f.write(payload)
-    print(json.dumps({"kind":"pickfinder_public_research_probe","observedAt":datetime.now(timezone.utc).isoformat(),"pages":out,"historicalFeaturesApproved":False,"rawRowsPublished":0,"paidRequests":0}))
+    print(json.dumps({"kind":"pickfinder_public_research_probe","observedAt":datetime.now(timezone.utc).isoformat(),"pages":out,"discoveredLeagueResearchPaths":sum(1 for rel in listed if rel.startswith("/leagues/") and len(rel.strip("/").split("/"))==3),"historicalFeaturesApproved":False,"rawRowsPublished":0,"paidRequests":0}))
 if __name__=="__main__":
     try:main()
     except Exception:print("Public research probe stopped without data disclosure",file=sys.stderr);sys.exit(1)

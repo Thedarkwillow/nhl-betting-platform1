@@ -1,10 +1,10 @@
 name: Native individual NHL NFL research
 on:
   pull_request:
-    paths: ['scripts/native-individual-research.cjs','scripts/prizepicks-multisport-model-bridge.cjs','test/native-individual-research.test.cjs','.github/workflows/native-individual-research.yml']
+    paths: ['scripts/native-individual-research.cjs','scripts/pickfinder-clock-reconciliation.cjs','test/pickfinder-clock-reconciliation.test.cjs','scripts/prizepicks-multisport-model-bridge.cjs','test/native-individual-research.test.cjs','.github/workflows/native-individual-research.yml']
   push:
     branches: [main]
-    paths: ['scripts/native-individual-research.cjs','scripts/prizepicks-multisport-model-bridge.cjs']
+    paths: ['scripts/native-individual-research.cjs','scripts/pickfinder-clock-reconciliation.cjs','test/pickfinder-clock-reconciliation.test.cjs','scripts/prizepicks-multisport-model-bridge.cjs']
   workflow_dispatch:
 permissions:
   contents: read
@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test test/native-individual-research.test.cjs
+      - run: node --test test/native-individual-research.test.cjs test/pickfinder-clock-reconciliation.test.cjs
       - run: node scripts/native-individual-research.cjs
       - uses: actions/upload-artifact@v4
         with:

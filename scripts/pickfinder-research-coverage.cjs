@@ -1,6 +1,6 @@
 'use strict';
 // Only observed sporting research, no inferred quotes, no account mutation.
-const VERSION='sport-filter-v4';
+const VERSION='sport-filter-v5';
 const common={
  game_logs:['game log','gamelog','game logs','player stats'],
  historical_lines:['historical line','prop history'],

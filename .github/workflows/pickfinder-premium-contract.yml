@@ -1,0 +1,20 @@
+name: PickFinder Premium archive contract
+on:
+  pull_request:
+    paths: ['scripts/pickfinder-premium-archive.cjs','test/pickfinder-premium-archive.test.cjs','scripts/pacific-morning-capture-gate.cjs','.github/workflows/pickfinder-premium-contract.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/pickfinder-premium-archive.cjs','test/pickfinder-premium-archive.test.cjs','scripts/pacific-morning-capture-gate.cjs','.github/workflows/pickfinder-premium-contract.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/pickfinder-premium-archive.test.cjs scripts/test-pacific-morning-capture-gate.cjs

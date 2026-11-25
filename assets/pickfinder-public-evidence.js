@@ -10,6 +10,19 @@
  function render(){holder.textContent='';const table=add(holder,'table','');const head=add(table,'thead',''),hr=add(head,'tr','');for(const x of ['Sport','Platform','Pages','Priced offers','Unresolved','State','Capture slot','Observed'])add(hr,'th',x);const body=add(table,'tbody','');
  for(const [s,x] of Object.entries(d.bySport||{})){if(filter.value!=='all'&&filter.value!==s)continue;for(const [book,b] of Object.entries(x.boards||{})){const tr=add(body,'tr','');for(const v of [s,book,n(b.pages)+' / '+n(b.displayedPages),n(b.offers),n(b.unresolved),b.state,b.slot||'Unverified',new Date(b.observedAt).toLocaleString()])add(tr,'td',v);}add(holder,'p',s.toUpperCase()+': '+n(x.unpricedGoblin)+' unpriced Goblin, '+n(x.unpricedDemon)+' unpriced Demon; '+n(x.matchedTwoSidedQuotes)+' exact two-sided quote observations; '+n(x.missingStartAt)+' offers missing a source start clock.');}}
  filter.addEventListener('change',render);render();
+ try{
+  const response=await fetch('./data/pickfinder-public-activity.json',{cache:'no-store'});if(!response.ok)throw Error();
+  const activity=await response.json();if(activity.kind!=='public_pickfinder_activity_readiness_v1'||activity.modelApproved!==false)throw Error();
+  add(mount,'h3','PickFinder activity center');
+  add(mount,'p','Observed board activity, not native PickFinder alerts. Report as of '+new Date(activity.generatedAt).toLocaleString()+'. Discord and native mobile delivery unverified.');
+  const list=add(mount,'ul','');
+  for(const e of (activity.events||[]).slice(0,12)){if(e.kind!=='board_observation'||e.nativeNotificationVerified!==false)continue;add(list,'li',e.sport.toUpperCase()+' · '+e.book+' · '+e.state+' · '+n(e.offers)+' observed offers · '+new Date(e.observedAt).toLocaleString());}
+  const c=activity.cache||{},g=activity.grading||{};
+  add(mount,'p','Historical cache: '+n(c.nonconflictingKeys)+' nonconflicting fact keys; '+n(c.conflictedKeys)+' conflicts; collection requests skipped: '+n(c.requestsSkipped)+'.');
+  add(mount,'p','Independent grading queue: '+n(g.dueForIndependentGrade)+' due, '+n(g.pendingNotDue)+' not due, '+n(g.alreadyGraded)+' already graded.');
+  const fresh=Object.values(activity.readiness||{}).filter(x=>x.freshCompleteBoard&&Number.isFinite(Date.parse(x.observedAt))&&Date.parse(x.observedAt)<=Date.now()&&Date.now()-Date.parse(x.observedAt)<=900000);
+  add(mount,'p','Fresh complete core boards: '+fresh.length+' / '+Object.keys(activity.readiness||{}).length+'. Old observations remain history, not live availability.');
+ }catch{add(mount,'p','Public activity center report pending; no native notification delivery certified.');}
  const grading=d.independentGrading||{},coverage=d.researchCoverage||{};
  add(mount,'p','New NBA research forecasts: '+n(d.nbaShadowRows)+' · Archived pregame forecasts: '+n(grading.archivedPregameRows)+' · Not yet due: '+n(grading.pendingNotDue)+' · Due and awaiting results: '+n(grading.pendingDueAfterRun)+' · New independent grades: '+n(grading.newGrades)+' · No production approval.');
  add(mount,'p','Profile attempts: '+n(coverage.profileAttempts)+' · Named dashboard snapshots: '+n(coverage.namedDashboardSnapshots)+' · Game-dialog observations: '+n(coverage.gameDialogObservations)+' · Full filter coverage remains pending.');

@@ -37,7 +37,7 @@ function candidate(record,f,now){
  const identity={sport:record.sport,profile:u.pathname,player:record.player,market:record.market,period:f.period??record.period??null,mapRange:f.mapRange??record.mapRange??null,gameMode:f.gameMode??record.gameMode??null,season:season.label,date,tab:f.tab,headers,window:f.window??null,filters:stable(f.filterSelection)};
  return {key:sha(JSON.stringify(stable(identity))),digest:sha(JSON.stringify(stable(cells))),seen,sport:record.sport};
 }
-function audit(documents,now=new Date()){
+function buildIndex(documents,now=new Date()){
  const index=new Map();let fields=0,candidates=0,duplicates=0,conflicts=0,profiles=0;
  const bySport={};
  for(const doc of documents)for(const r of doc.records||[]){
@@ -46,12 +46,15 @@ function audit(documents,now=new Date()){
    fields++;const c=candidate(r,f,now);if(!c)continue;candidates++;
    const sport=bySport[c.sport]??={candidates:0,duplicateObservations:0,conflictedKeys:0};sport.candidates++;
    const prev=index.get(c.key);
-   if(!prev){index.set(c.key,{digest:c.digest,seen:c.seen,conflict:false,sport:c.sport});continue;}
-   if(prev.digest===c.digest){duplicates++;sport.duplicateObservations++;prev.seen=Math.max(prev.seen,c.seen);}
+   if(!prev){index.set(c.key,{digest:c.digest,seen:c.seen,conflict:false,sport:c.sport,field:f});continue;}
+   if(prev.digest===c.digest){duplicates++;sport.duplicateObservations++;if(c.seen>prev.seen){prev.seen=c.seen;prev.field=f;}}
    else if(!prev.conflict){prev.conflict=true;conflicts++;sport.conflictedKeys++;}
   }
  }
- return {state:'historical_cache_shadow_audit',generatedAt:now.toISOString(),profiles,fields,candidates,duplicateObservations:duplicates,distinctKeys:index.size,conflictedKeys:conflicts,nonconflictingKeys:index.size-conflicts,bySport,requestsSkipped:0,completeSeasonCertified:false,modelInputsApproved:false};
+ return {index,summary:{state:'historical_cache_shadow_audit',generatedAt:now.toISOString(),profiles,fields,candidates,duplicateObservations:duplicates,distinctKeys:index.size,conflictedKeys:conflicts,nonconflictingKeys:index.size-conflicts,bySport,requestsSkipped:0,completeSeasonCertified:false,modelInputsApproved:false}};
 }
-module.exports={day,priorSeason,candidate,audit};
+function audit(documents,now=new Date()){return buildIndex(documents,now).summary;}
+// Consumers can reuse only an exact previously observed historical fact. No collection scope is skipped.
+function lookup(index,key){const row=index.get(key);return row&&!row.conflict?{field:row.field,digest:row.digest,observedAt:new Date(row.seen).toISOString()}:null;}
+module.exports={day,priorSeason,candidate,audit,buildIndex,lookup};
 if(require.main===module){try{const {read}=require('./pickfinder-public-archive.cjs');console.log(JSON.stringify(audit(read(process.argv[2]||'.','profiles'))));}catch{console.error('Historical cache audit failed closed');process.exitCode=1;}}

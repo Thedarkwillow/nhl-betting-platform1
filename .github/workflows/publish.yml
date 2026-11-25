@@ -14,6 +14,7 @@ on:
       - 'Publish safe NFL independent research coverage'
       - 'Validate Accuracy And Platform Evidence Dashboard'
       - 'Public PrizePicks model ranking research'
+      - 'Public PickFinder activity readiness'
     types: [completed]
   push:
     branches: [main]
@@ -30,6 +31,7 @@ on:
       - 'data/nfl-independent-coverage.json'
       - 'data/public-multi-sport-sprint.json'
       - 'data/prizepicks-model-rankings.json'
+      - 'data/pickfinder-public-activity.json'
       - 'nhl-games.json'
       - '.github/workflows/publish.yml'
 permissions:

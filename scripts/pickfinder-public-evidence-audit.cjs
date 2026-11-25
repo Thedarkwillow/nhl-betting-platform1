@@ -83,7 +83,13 @@ function coverage(root){
  const done=new Set(profiles.filter(r=>r.status==='sampled'&&r.coverageVersion===VERSION&&!r.truncated&&r.research?.length).map(r=>r.key));
  const byDashboard={},gameDialogBySport={};let gameDialogReceipts=0,gameDialogObservations=0,namedDashboardSnapshots=0,unclassifiedDashboardFiles=0;
  for(const d of dashboards){
-  if(d.schema==='pickfinder-public-game-dialog-v1'&&Array.isArray(d.records)){gameDialogReceipts++;for(const r of d.records){if(typeof r.sport!=='string'||!r.sport||typeof r.eventId!=='string'||!r.eventId)continue;gameDialogObservations++;gameDialogBySport[r.sport]=(gameDialogBySport[r.sport]||0)+1;}continue;}
+  if(d.schema==='pickfinder-public-game-dialog-v1'&&Array.isArray(d.records)){gameDialogReceipts++;for(const r of d.records){
+   if(typeof r.sport!=='string'||!r.sport)continue;
+   let eventId=r.eventId;
+   if(r.sourceUrl){try{const u=new URL(r.sourceUrl),ids=u.searchParams.getAll('game');if(u.origin!=='https://www.pickfinder.app'||!['/games','/game-lines'].includes(u.pathname)||ids.length!==1||!/^[\w-]{1,80}$/.test(ids[0])||(eventId!=null&&eventId!==ids[0]))continue;eventId=ids[0];}catch{continue;}}
+   if(typeof eventId!=='string'||!/^[\w-]{1,80}$/.test(eventId))continue;
+   gameDialogObservations++;gameDialogBySport[r.sport]=(gameDialogBySport[r.sport]||0)+1;
+  }continue;}
   if(['Games','Discrepancies','Popular'].includes(d.name)){namedDashboardSnapshots++;byDashboard[d.name]=(byDashboard[d.name]||0)+1;}else unclassifiedDashboardFiles++;
  }
  return {profileAttempts:profiles.length,uniqueCompletedCurrentVersion:done.size,dashboardSnapshots:dashboards.length,namedDashboardSnapshots,byDashboard,gameDialogReceipts,gameDialogObservations,gameDialogBySport,unclassifiedDashboardFiles,allFiltersVerified:false};

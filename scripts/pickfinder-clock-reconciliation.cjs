@@ -32,7 +32,7 @@ function recover(ctx,docs){
    if(!verifiedSample){reject('event_not_independently_sampled');continue;}
    const m=nativeMatches({...r,localMatchup:local},scopes,at).filter(s=>s.startAt===verifiedSample&&same(local,clockAt(s.startAt,zone)));
    if(m.length!==1){reject('missing_or_conflicting_native_scope');continue;}
-   const s=m[0];rows.push({sport:r.sport,eventId:r.eventId,player:r.player,playerPath:r.playerPath,observedAt:r.observedAt,nativeGameId:s.gameId,nativePlayerId:s.playerId,nativeStartAt:s.startAt,nativeReceiptDigest:s.receiptDigest,clockCorroborated:true,sourceClockVerified:false,modelApproved:false});
+   const s=m[0];rows.push({sport:r.sport,eventId:r.eventId,player:r.player,playerPath:r.playerPath,team:r.team,opponent:r.opponent,observedAt:r.observedAt,nativeGameId:s.gameId,nativePlayerId:s.playerId,nativeStartAt:s.startAt,nativeReceiptDigest:s.receiptDigest,clockCorroborated:true,sourceClockVerified:false,modelApproved:false});
   }catch{reject('invalid_record');}
  }
  return {rows,summary:{sample,attempts,corroboratedAttempts:rows.length,reasons,modelApproved:false,paidRequests:0}};

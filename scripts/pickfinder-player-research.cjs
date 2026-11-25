@@ -48,7 +48,8 @@ function readSections({tab,origin,observedAt,context}) {
   }
   return fields;
 }
-async function enrich(page,row,{navigate}){
+async function enrich(page,row,{navigate,maxFields=500}){
+  if(!Number.isInteger(maxFields)||maxFields<1||maxFields>2000)throw Error('invalid profile field budget');
   const url=new URL(row.detailId,'https://www.pickfinder.app');
   if(url.origin!=='https://www.pickfinder.app'||!url.pathname.startsWith('/players/'))throw Error('invalid profile');
   await navigate(url.href);
@@ -66,10 +67,10 @@ async function enrich(page,row,{navigate}){
   }
   for(const [name,origin] of [['Line Movement','line_movement'],['Prop History','prop_history']]){
     const target=page.getByRole('button',{name,exact:true});
-    if(await target.isVisible()){await target.click();await collect(name,origin);}
+    if(await target.isVisible()){await target.click();await collect(name,origin);}else tabAudit.push({tab:name,origin,state:'not_visible',fields:0});
   }
   // Allocate across panels so a long game log cannot crowd out history or injury data.
-  const remaining=500-row.research.length;
+  const remaining=Math.max(0,maxFields-row.research.length);
   const nonempty=groups.filter(g=>g.length);
   const limit=Math.floor(remaining/Math.max(1,nonempty.length));
   row.profileCollection={observationsAvailable:groups.reduce((n,g)=>n+g.length,0),panels:groups.length,tabAudit,truncated:groups.some(g=>g.length>limit)};

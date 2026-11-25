@@ -29,7 +29,7 @@ function crosscheck(row,side,tier,s,archive,clock){
  const q=a.length===1?quotes(a[0].o,a[0].b.sportsbookQuotes||[],clock):[];
  return {pickfinderCorroborated:a.length===1,matchedSportsbooks:q.length,marketBenchmark:q.length?q.reduce((n,x)=>n+(side==='Higher'?x.higher:1-x.higher),0)/q.length:null};
 }
-function project(row,s,clock){
+function project(row,s,clock,{researchProbabilities=false}={}){
  const cut=dt(row.observedAt);
  if(row.sport==='NHL'){
   const metric=nhlMarkets[norm(row.stat)];if(!metric||!full(row.period)||!s.history||s.history.playerId!==s.playerId||norm(s.history.team)!==norm(s.team)||norm(s.history.name)!==norm(s.name)||!Array.isArray(s.history.games)||!['skater','goalie'].includes(s.history.type))return null;
@@ -48,7 +48,7 @@ function project(row,s,clock){
   if(new Set(eligible.map(g=>g.year+'|'+g.week)).size!==eligible.length)return null;
   const histories=new Map();for(const g of eligible)for(const [m,v] of Object.entries(g.measures||{}))if(Number.isFinite(v)){const k=identity+'|'+m;const a=histories.get(k)||[];a.push(v);histories.set(k,a);}
   const a=histories.get(identity+'|'+metric)||[];if(a.length<5||!nfl.isRoleEligible({identity,position:s.position},metric,histories)||identity.startsWith('kicker:')&&s.kickerParticipationVerified!==true)return null;
-  const p=nfl.forecast(a);return p?{metric,projection:p.shrunk_last5,probabilities:null,prior:a.length,method:'shrunk_last5'}:null;
+  const p=nfl.forecast(a);const q=researchProbabilities?nflEmpiricalBaseline(a,row.line):null;return p?{metric,projection:p.shrunk_last5,probabilities:q,prior:a.length,method:q?'shrunk_last5/empirical_jeffreys_v0':'shrunk_last5'}:null;
  }
  const metric=esportsMarkets[norm(row.stat)],maps=mapPeriod(row.period);
  if(!metric||!maps||JSON.stringify(maps)!==JSON.stringify(s.maps)||s.scopeReviewed!==true||!s.ruleset||!s.ruleVersion||!Array.isArray(s.history))return null;
@@ -107,4 +107,4 @@ function nflEmpiricalBaseline(history,line){
  const n=history.length,den=n+(canPush?1.5:1);
  return {higher:(higher+0.5)/den,lower:(lower+0.5)/den,push:canPush?(push+0.5)/den:0,priorObservations:n,method:'empirical_jeffreys_v0',calibrated:false,modelApproved:false};
 }
-module.exports={evaluateOther,mapPeriod,crosscheck,nflResidualChallenger,nflEmpiricalBaseline};
+module.exports={evaluateOther,mapPeriod,crosscheck,nflResidualChallenger,nflEmpiricalBaseline,project};

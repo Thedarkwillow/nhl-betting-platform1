@@ -1,5 +1,6 @@
 'use strict';
 const {traverseNativeFilters}=require('./pickfinder-research-coverage.cjs');
+const {traverseCustomFilters}=require('./pickfinder-custom-filters.cjs');
 // Capture visible sporting tables and cards only, without account details or actions.
 async function captureDashboard(page,name){
  if(!['Games','Discrepancies','Popular'].includes(name))throw Error('dashboard scope');
@@ -66,6 +67,7 @@ async function traverseDashboardFilters(page,name,{shouldContinue=()=>true,onSna
   const x=await traverseDashboard(page,name,{shouldContinue,onSnapshot,filterSelection:selection});
   if(x.state!=='explicit_last_page_observed')throw Error('filter pagination incomplete');
  }});
- return {...defaultTraversal,filterAudit,filtersExhausted:false,allDashboardDataVerified:false};
+ const customFilterAudit=await traverseCustomFilters(page,{shouldContinue,maxMs:60000,onState:async selection=>{const x=await traverseDashboard(page,name,{shouldContinue,onSnapshot,filterSelection:selection});if(x.state!=='explicit_last_page_observed')throw Error('filter pagination incomplete');}});
+ return {...defaultTraversal,filterAudit,customFilterAudit,filtersExhausted:false,allDashboardDataVerified:false};
 }
 module.exports={captureDashboard,traverseDashboard,traverseDashboardFilters,inspectCapabilities,verifiedNavigation};

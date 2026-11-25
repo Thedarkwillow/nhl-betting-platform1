@@ -1,14 +1,17 @@
 name: PickFinder Premium public orchestration
 on:
+  pull_request:
+    paths: ['scripts/pickfinder-public-*.cjs','scripts/pickfinder-unattended-runner.cjs','test/pickfinder-public-runner.test.cjs','.github/workflows/pickfinder-premium-hosted.yml']
   push:
     branches: [main]
     paths: ['.github/workflows/pickfinder-premium-hosted.yml']
   workflow_dispatch:
     inputs:
       mode:
-        required: true
         type: choice
-        options: [audit_pilot, probe_now, reconcile_now, full_reconcile_now, cs2_reconcile_now, nfl_reconcile_now, deep_research_now, capture_0600, capture_0900]
+        required: true
+        default: board_and_deep
+        options: [board_and_deep, deep_research_now, probe_now, capture_0600, capture_0900]
   schedule:
     - cron: '7 6 * * *'
       timezone: America/Los_Angeles
@@ -20,116 +23,50 @@ on:
       timezone: America/Los_Angeles
 permissions:
   contents: read
-  actions: read
 concurrency:
-  group: pickfinder-hosted-capture
-  cancel-in-progress: false
+  # PR tests must not queue behind live captures. Owner-authorized main cutover cancels old run.
+  group: ${{ github.event_name == 'pull_request' && format('pickfinder-public-ci-{0}', github.event.pull_request.number) || 'pickfinder-hosted-capture' }}
+  cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/pickfinder-public-runner.test.cjs test/pickfinder-checkpoint-buffer.test.cjs test/pickfinder-combinations.test.cjs test/pickfinder-browser.test.cjs test/pickfinder-premium-archive.test.cjs test/pickfinder-unattended-runner.test.cjs
   run:
-    # Owner-directed private pause; restore original condition only when authorized:
-    # if: github.repository == 'Thedarkwillow/nhl-betting-platform1' && github.ref == 'refs/heads/main' && (inputs.mode == 'audit_pilot' || (vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (contains(github.event.head_commit.message, '[pickfinder-probe]') || contains(github.event.head_commit.message, '[pickfinder-reconcile]') || contains(github.event.head_commit.message, '[pickfinder-deep]') || contains(github.event.head_commit.message, '[pickfinder-cs2]') || contains(github.event.head_commit.message, '[pickfinder-nfl]'))) || (github.event_name == 'schedule'))))
-    if: ${{ false }}
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1'
     runs-on: ubuntu-24.04
     timeout-minutes: 65
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
           path: public-source
           persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          path: public-archive
+          ref: main
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check restricted destination
-        env:
-          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+      - name: Install pinned browser
         run: |
-          set -euo pipefail
-          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .visibility)" = private
-      - uses: actions/checkout@v4
-        with:
-          repository: Thedarkwillow/nhl-betting-platform
-          ref: main
-          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
-          path: private-archive
-          persist-credentials: true
-          fetch-depth: 0
-      - name: Offline tests and count-only pilot reconciliation
-        run: |
-          set -euo pipefail
-          cd public-source
-          node --test test/pickfinder-checkpoint-buffer.test.cjs test/pickfinder-combinations.test.cjs test/pickfinder-quote-features.test.cjs test/season-aware-collection.test.cjs test/pickfinder-unattended-runner.test.cjs test/pickfinder-browser.test.cjs test/pickfinder-premium-archive.test.cjs test/pickfinder-pilot-reconcile.test.cjs scripts/test-pacific-morning-capture-gate.cjs
-          node scripts/pickfinder-pilot-reconcile.cjs ../private-archive
-          node scripts/pickfinder-deep-research.cjs ../private-archive HEAD
-          node scripts/pickfinder-local-line-alerts.cjs ../private-archive config/pickfinder-local-alert-rules.json
-      - name: Install pinned browser dependency before injecting credentials
-        if: inputs.mode != 'audit_pilot'
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/pickfinder-deps" "$RUNNER_TEMP/pickfinder-profile"
-          chmod 700 "$RUNNER_TEMP/pickfinder-profile"
           npm install --prefix "$RUNNER_TEMP/pickfinder-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2
           "$RUNNER_TEMP/pickfinder-deps/node_modules/.bin/playwright" install --with-deps chromium
-      - name: Verify prior successful hosted authentication for bounded reconciliation
-        id: prior-auth
-        if: github.event_name == 'schedule' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-reconcile]')) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-deep]')) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-cs2]')) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-nfl]')) || inputs.mode == 'nfl_reconcile_now' || inputs.mode == 'cs2_reconcile_now' || inputs.mode == 'deep_research_now' || inputs.mode == 'full_reconcile_now'
+      - name: Authorized public-only sporting evidence collection
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          test "$(gh api repos/Thedarkwillow/nhl-betting-platform1/actions/runs/45591219482 --jq .conclusion)" = success
-          test "$(gh api repos/Thedarkwillow/nhl-betting-platform1/actions/runs/45591219482 --jq .head_sha)" = 55407e80b8513377b0b06c75298a7435c0f64bf9
-          test "$(gh api repos/Thedarkwillow/nhl-betting-platform1/actions/runs/45593204862 --jq .conclusion)" = success
-          test "$(gh api repos/Thedarkwillow/nhl-betting-platform1/actions/runs/45593204862 --jq .head_sha)" = 000f8d075d86a802f3e25358e62f618850614bb1
-          echo 'verified=1' >> "$GITHUB_OUTPUT"
-      - name: Authorized private research capture (scoped Continue control diagnostics)
-        if: inputs.mode != 'audit_pilot'
-        env:
-          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
-          REQUESTED_MODE: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-nfl]') && 'nfl_reconcile_now' || github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-cs2]') && 'cs2_reconcile_now' || github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-deep]') && 'deep_research_now' || github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-reconcile]') && 'full_reconcile_now' || github.event_name == 'push' && 'probe_now' || inputs.mode }}
-          RUN_DEEP_AFTER_FULL: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-all-research]') && '1' || '0' }}
-          PICKFINDER_SCHEDULE_RESEARCH_PILOT: ${{ github.event_name == 'schedule' && '1' || '0' }}
-          PICKFINDER_PRIOR_AUTH_PROOF: ${{ steps.prior-auth.outputs.verified }}
+          REQUESTED_MODE: ${{ inputs.mode }}
+          PICKFINDER_PUBLIC_DATA_AUTHORIZED: '1'
           PICKFINDER_AUTOMATION_AUTHORIZED: ${{ vars.PICKFINDER_AUTOMATION_AUTHORIZED }}
-          # Owner explicitly enabled scheduled research; explicit repository opt-out still wins.
-          PICKFINDER_SCHEDULE_ENABLED: ${{ vars.PICKFINDER_SCHEDULE_ENABLED || '1' }}
-          PICKFINDER_HOSTED_AUTH_VERIFIED: ${{ vars.PICKFINDER_HOSTED_AUTH_VERIFIED }}
-          PICKFINDER_HOSTED_CAPTURE_VERIFIED: ${{ vars.PICKFINDER_HOSTED_CAPTURE_VERIFIED }}
-          PANDASCORE_API_KEY: ${{ secrets.PANDASCORE_API_KEY || secrets.PANDASCORE_TOKEN || secrets.PANDASCORE }}
-          PANDASCORE_BETTING_DATA_AUTHORIZED: ${{ vars.PANDASCORE_BETTING_DATA_AUTHORIZED }}
-          PANDASCORE_NO_CHARGE_CONFIRMED: ${{ vars.PANDASCORE_NO_CHARGE_CONFIRMED }}
-          PICKFINDER_HOSTED: '1'
           PICKFINDER_EMAIL: ${{ secrets.PICKFINDER_EMAIL }}
           PICKFINDER_PASSWORD: ${{ secrets.PICKFINDER_PASSWORD }}
           PICKFINDER_STORAGE_STATE: ${{ secrets.PICKFINDER_STORAGE_STATE }}
-          PICKFINDER_PROFILE_DIR: ${{ runner.temp }}/pickfinder-profile
-          PICKFINDER_PRIVATE_ROOT: ${{ github.workspace }}/private-archive
           NODE_PATH: ${{ runner.temp }}/pickfinder-deps/node_modules
-        run: |
-          set -euo pipefail
-          if [[ "$REQUESTED_MODE" == full_reconcile_now && "$GITHUB_EVENT_NAME" == push && "$RUN_DEEP_AFTER_FULL" == 1 ]]; then
-            full_status=0
-            node public-source/scripts/pickfinder-unattended-runner.cjs || full_status=$?
-            deep_status=0
-            REQUESTED_MODE=deep_research_now node public-source/scripts/pickfinder-unattended-runner.cjs || deep_status=$?
-            test "$full_status" = 0 && test "$deep_status" = 0
-          else
-            node public-source/scripts/pickfinder-unattended-runner.cjs
-          fi
-      - name: Audit remote deep research checkpoints after collection
-        if: always() && !cancelled() && inputs.mode != 'audit_pilot'
-        run: |
-          set -euo pipefail
-          git -C private-archive fetch --quiet origin main
-          node public-source/scripts/pickfinder-deep-research.cjs private-archive FETCH_HEAD
-      - name: Remove temporary profile
-        if: always()
-        run: rm -rf "$RUNNER_TEMP/pickfinder-profile"
-
-# Live verification of source-reported last-page traversal after removal of artificial ceiling.
-
-# Expanded sport-specific research and native read-only filter coverage.
-
-# Read-only custom filters and capability schema; local alert rules disabled by default.
-
-# Count-only live research and board progress; final GitHub Actions job summary.
+        run: node public-source/scripts/pickfinder-public-runner.cjs public-archive

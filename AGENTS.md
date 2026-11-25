@@ -22,5 +22,5 @@
 - Collection priority: NBA, NHL and NFL first, then esports with independently verified upcoming competition (including CS2, Dota 2, Valorant, LoL and COD whenever active). Keep unknown/offseason titles queued for historical research and status rechecks; do not infer inactivity from failures. Use weighted deep-profile sessions to avoid starvation. No extra paid discovery.
 
 
-## Owner-directed public-only pause (2026-11-25)
-Until the owner explicitly authorizes resumption, work only in this public repository. Do not access or use the private repository, including via public Actions jobs. Preserve existing restricted evidence in place; never publish licensed/Premium raw data, credentials or private history as a workaround. Private-backed collection, grading and morning archive acceptance remain pending. No automatic resumption.
+## Owner-directed public-only operation (2026-11-25)
+The owner confirmed authorization to publish PickFinder sporting evidence. Never access the private repository or use its credentials until explicitly authorized. Collect fresh authorized sporting evidence directly into public Git; never publish credentials, account data, storage state, private history, or unstructured account content. Resume collection via public-only adapters. Do not claim historical archive migration or model qualification until verified.

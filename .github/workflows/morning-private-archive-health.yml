@@ -1,31 +1,23 @@
-name: NBA and esports morning archive health
+name: Public PickFinder morning evidence health
 on:
   pull_request:
-    paths: ['scripts/pickfinder-morning-archive-audit.cjs','test/pickfinder-morning-archive-audit.test.cjs','scripts/morning-private-archive-health.cjs','test/morning-private-archive-health.test.cjs','.github/workflows/morning-private-archive-health.yml']
+    paths: ['scripts/pickfinder-public-morning-audit.cjs','test/pickfinder-public-runner.test.cjs','.github/workflows/morning-private-archive-health.yml']
   push:
     branches: [main]
-    paths: ['scripts/pickfinder-morning-archive-audit.cjs','test/pickfinder-morning-archive-audit.test.cjs','scripts/morning-private-archive-health.cjs','test/morning-private-archive-health.test.cjs','.github/workflows/morning-private-archive-health.yml']
+    paths: ['scripts/pickfinder-public-morning-audit.cjs','.github/workflows/morning-private-archive-health.yml']
+  workflow_dispatch:
+    inputs:
+      slot:
+        type: choice
+        options: ['06:00','09:00']
+        default: '06:00'
   schedule:
     - cron: '20 7 * * *'
       timezone: America/Los_Angeles
     - cron: '20 10 * * *'
       timezone: America/Los_Angeles
-  workflow_dispatch:
-    inputs:
-      day:
-        description: Pacific date YYYY-MM-DD
-        required: true
-        type: string
-      slot:
-        description: Completed Pacific capture hour
-        required: true
-        type: choice
-        options: ['06:00','09:00']
 permissions:
   contents: read
-concurrency:
-  group: morning-private-archive-health
-  cancel-in-progress: false
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -33,65 +25,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - run: node --test test/morning-private-archive-health.test.cjs test/nba-esports-prepull-candidate-lock.test.cjs test/pickfinder-morning-archive-audit.test.cjs
+      - run: node --test test/pickfinder-public-runner.test.cjs test/morning-private-archive-health.test.cjs test/nba-esports-prepull-candidate-lock.test.cjs test/pickfinder-morning-archive-audit.test.cjs
   audit:
     needs: test
-    # Owner-directed private pause; restore original condition only when authorized:
-    # if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
-    if: ${{ false }}
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          path: public
-          persist-credentials: false
-      - name: Confirm authorized private archive
-        id: private_destination
-        env:
-          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
-        run: |
-          set -euo pipefail
-          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
-      - uses: actions/checkout@v4
-        with:
-          repository: Thedarkwillow/nhl-betting-platform
-          ref: main
-          path: archive
-          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
-          persist-credentials: false
           fetch-depth: 0
-      - name: Read immutable archive and emit count-only evidence
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          EVENT_SCHEDULE: ${{ github.event.schedule }}
-          AUDIT_DAY: ${{ inputs.day }}
-          AUDIT_SLOT: ${{ inputs.slot }}
-        run: |
-          set -euo pipefail
-          if [ "$EVENT_NAME" = schedule ]; then
-            AUDIT_DAY="$(TZ=America/Los_Angeles date +%F)"
-            case "$EVENT_SCHEDULE:$(TZ=America/Los_Angeles date +%H)" in
-              "20 7 * * *:07") AUDIT_SLOT=06:00 ;;
-              "20 10 * * *:10") AUDIT_SLOT=09:00 ;;
-              *) echo 'Scheduled health check delayed outside audit hour; no slot inferred'; exit 1 ;;
-            esac
-          fi
-          node public/scripts/pickfinder-morning-archive-audit.cjs archive "$AUDIT_DAY" "$AUDIT_SLOT"
-          node public/scripts/morning-private-archive-health.cjs archive "$AUDIT_DAY" "$AUDIT_SLOT"
-      - name: Inspect separate existing free-provider archive
-        if: always() && !cancelled() && steps.private_destination.outcome == 'success'
-        id: provider_checkout
-        uses: actions/checkout@v4
-        with:
-          repository: Thedarkwillow/nhl-betting-platform
-          ref: research/esports-free-providers
-          path: provider-archive
-          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
-          fetch-depth: 0
-      - name: Report native historical source context separately from morning forecast certification
-        if: always() && !cancelled() && steps.provider_checkout.outcome == 'success'
-        run: |
-          set -euo pipefail
-          node -e 'const fs=require("node:fs"),p=fs.realpathSync("provider-archive"),a=require("./public/scripts/private-source-history-connections.cjs").providerArchive(p);console.log(JSON.stringify({kind:"morning_native_provider_context_v1",historicalSourceContext:a,forecastFreezeVerified:false,paidRequests:0,rawRowsPublished:0}))'
+      - name: Verify public immutable morning evidence
+        env:
+          SLOT: ${{ github.event.schedule == '20 10 * * *' && '09:00' || inputs.slot || '06:00' }}
+        run: node scripts/pickfinder-public-morning-audit.cjs . "$SLOT"

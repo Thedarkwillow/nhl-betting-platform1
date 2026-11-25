@@ -1,5 +1,5 @@
 """Read-only, resumable crawl of linked public sporting pages; no paid endpoints."""
-import os,sys,json,hashlib,time,re,runpy,urllib.request,urllib.error
+import os,sys,json,hashlib,time,re,runpy,urllib.request,urllib.error,subprocess
 from pathlib import Path
 from collections import deque,defaultdict
 from datetime import datetime,timezone
@@ -50,8 +50,11 @@ def fetch(rel):
         if len(raw)>8_000_000:raise ValueError("size")
     return raw
 def main(root,budget=80):
-    if os.getenv("RESTRICTED_DESTINATION_VERIFIED")!="1" or not (root/".git").exists():raise ValueError("private root")
-    dest=root/"research"/"pickfinder-public-directory-v2"
+    public=os.getenv('PICKFINDER_PUBLIC_DATA_AUTHORIZED')=='1'
+    if public:
+        if os.getenv('GITHUB_REPOSITORY')!='Thedarkwillow/nhl-betting-platform1' or subprocess.check_output(['git','-C',str(root),'remote','get-url','origin'],text=True).strip().rstrip('/') not in ('https://github.com/Thedarkwillow/nhl-betting-platform1','https://github.com/Thedarkwillow/nhl-betting-platform1.git'):raise ValueError('public destination')
+    elif os.getenv('RESTRICTED_DESTINATION_VERIFIED')!='1' or not (root/'.git').exists():raise ValueError('restricted root')
+    dest=root/'research'/('pickfinder-public-directory-v3' if public else 'pickfinder-public-directory-v2')
     if dest.is_symlink() or dest.parent.is_symlink():raise ValueError("symlink")
     dest.mkdir(parents=True,exist_ok=True)
     now=datetime.now(timezone.utc);existing={}
@@ -80,6 +83,7 @@ def main(root,budget=80):
             raw=fetch(rel);d=extract(raw.decode("utf-8"),rel)
             d.update(schema="pickfinder_public_directory_v2",observedAt=datetime.now(timezone.utc).isoformat(),responseSha256=hashlib.sha256(raw).hexdigest(),modelInputsApproved=False)
             payload=json.dumps(d,sort_keys=True,separators=(",",":")).encode()
+            if public and re.search(rb'[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|\b(?:Bearer\s+\S+|github_pat_[A-Za-z0-9_]+|gh[pousr]_[A-Za-z0-9]+|eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)',payload,re.I):raise ValueError('sensitive text')
             with (dest/(hashlib.sha256(payload).hexdigest()+".json")).open("xb") as f:f.write(payload);f.flush();os.fsync(f.fileno())
             known.update(d["links"]);existing[rel]=(datetime.fromisoformat(d["observedAt"]),d)
             sport=rel.split("/")[2] if rel.startswith("/leagues/") else "directory"
@@ -91,7 +95,7 @@ def main(root,budget=80):
         except Exception:failed+=1
         time.sleep(1)
     pending=sum(due(p) for p in known)
-    print(json.dumps({"state":"public_directory_progress","knownPaths":len(known),"observedPaths":sum(p in existing for p in known),"pendingOrRefreshDue":pending,"attempted":len(attempted),"failures":failed,"stoppedOnRefusal":stopped,"bySport":dict(counts),"allPagesCertified":False,"modelInputsApproved":False,"paidRequests":0,"rawRowsPublished":0}))
+    print(json.dumps({"state":"public_directory_progress","knownPaths":len(known),"observedPaths":sum(p in existing for p in known),"pendingOrRefreshDue":pending,"attempted":len(attempted),"failures":failed,"stoppedOnRefusal":stopped,"bySport":dict(counts),"allPagesCertified":False,"modelInputsApproved":False,"paidRequests":0,"publicSportingPagesArchived":public,"rawHtmlPublished":False}))
 def test():
     assert next_path(['/leagues/call-of-duty/players/a','/leagues/nhl/players/b'],{}, {})=='/leagues/nhl/players/b'
     assert next_path(['/leagues/nba/players/a','/leagues/nhl/players/b'],{}, {'nba':1})=='/leagues/nhl/players/b'

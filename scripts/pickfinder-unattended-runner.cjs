@@ -53,6 +53,34 @@ class RunnerStageError extends Error {
  constructor(stage){super(stage);this.stage=stage;}
 }
 async function stage(name,fn){try{return await fn();}catch(e){if(e instanceof RunnerStageError)throw e;throw new RunnerStageError(name);}}
+async function checkpoint(root,prefix,batches,attempt,p){
+  git(root,['add','--',prefix]);
+  if(!safeAddedFiles(git(root,['diff','--cached','--name-status']),prefix))throw Error('non append-only staging refused');
+  git(root,['-c','user.name=PickFinder research runner','-c','user.email=research-runner@users.noreply.github.com','commit','-m','Archive PickFinder private research '+p.clock.day+' '+p.expected]);
+  // Other authorized archive jobs may append while a long board collection is in flight.
+  // Rebase only our append-only commit; never force-push or overwrite an existing source.
+  const sha=await stage('private_archive_push',async()=>{
+   for(let attempt=0;attempt<3;attempt++){
+    git(root,['fetch','origin','main']);
+    try{git(root,['rebase','FETCH_HEAD']);}catch(e){try{git(root,['rebase','--abort']);}catch{}throw e;}
+    const revision=git(root,['rev-parse','HEAD']);
+    if(!safeAddedFiles(git(root,['diff-tree','--no-commit-id','--name-status','-r',revision]),prefix))throw Error('rebased commit not append-only');
+    try{git(root,['push','origin','HEAD:refs/heads/main']);return revision;}catch(e){const detail=String(e?.stderr||'');const category=/non-fast-forward|fetch first|failed to push some refs/i.test(detail)?'remote_rejected_or_advanced':/authentication failed|permission denied|403/i.test(detail)?'permission_or_authentication':/large files|exceeds.*limit|GH001/i.test(detail)?'file_size_rejected':'other_git_failure';console.log(JSON.stringify({state:'private_archive_push_retry',attempt:attempt+1,category,rawDataLogged:false}));if(attempt===2)throw e;await new Promise(resolve=>setTimeout(resolve,2000*(attempt+1)));}
+   }
+   throw Error('archive push retry exhausted');
+  });
+  await stage('private_archive_fetch',()=>git(root,['fetch','origin','main']));
+  await stage('private_archive_ancestry',()=>git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']));
+  await stage('private_archive_remote_readback',()=>{
+   for(const b of batches){const base=prefix+'/'+b.book+'/'+b.sport+'/'+attempt;
+    const raw=execFileSync('git',['-C',root,'show','FETCH_HEAD:'+base+'/source.json'],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']});
+    const n=JSON.parse(execFileSync('git',['-C',root,'show','FETCH_HEAD:'+base+'/normalized.json'],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']}));
+    if(crypto.createHash('sha256').update(raw).digest('hex')!==n.sourceDigest||raw.toString()!==JSON.stringify(b))throw Error('archive mismatch');
+   }
+  });
+
+ return sha;
+}
 async function submitLoginStep(page,field,phase){
  // Only use the normal visible submit control associated with this credential field.
  const form=field.locator('xpath=ancestor::form[1]');
@@ -156,7 +184,7 @@ async function main(env=process.env){
  const targets=p.targeted?BOOKS.map(book=>({book,code:'CS2'})):[...nbaPair,...(p.reconcile?[...['NFL','NHL'].map(code=>({book:'prizepicks',code})),...other.filter(p=>p.book!=='prizepicks'||!['NFL','NHL'].includes(p.code))]:other)];
  console.log(JSON.stringify({state:'competition_discovery',sports:Object.fromEntries(Object.keys(registry).map(code=>[code,{source:evidence[code]?.source,status:evidence[code]?.status,upcoming:evidence[code]?.upcoming}])),paidEndpointsCalled:0}));
  const attempt=crypto.randomUUID();
- const counts=[],batches=[],normalized=[];let failed=false;
+ const counts=[],batches=[],normalized=[],checkpointShas=[];let failed=false;
  process.env.RESTRICTED_DESTINATION_VERIFIED='1';
  const {context,page}=await open();
  try{
@@ -173,42 +201,22 @@ async function main(env=process.env){
     if(sample&&remaining())try{await enrich(detail,sample,{navigate:url=>detail.goto(url,{timeout:8000})});}catch{sample.profileCollection={status:'unavailable'};}
     batch.endedAt=new Date().toISOString();
     const summary=await stage('partition_archive_validation',()=>archive(batch,root,attempt));
-    batches.push(batch);normalized.push(normalize(batch));
+    const checkpointSha=await stage('partition_checkpoint',()=>checkpoint(root,prefix,[batch],attempt,p));
+    checkpointShas.push(checkpointSha);batches.push(batch);normalized.push(normalize(batch));
+    console.log(JSON.stringify({state:'partition_checkpoint_verified',book,code,sha:checkpointSha,remoteDigestVerified:true}));
     const health=classify({boardState:batch.boardState,offers:summary.health.distinctOfferKeys,pages:summary.health.pages,authenticated:batch.authenticated===true,explicitEmpty:batch.explicitEmpty===true,disabledConfirmed:batch.disabledConfirmed===true,failure:batch.failure,schedule:evidence[code]});
     counts.push({book,code,seasonStatus:health.state,competition:health.competition,boardState:summary.boardState,withinSlot:summary.withinSlot,offers:summary.health.distinctOfferKeys,unresolved:summary.health.unresolvedRows,unresolvedEvidence:summary.health.unresolvedEvidence,pages:summary.health.pages,traversal:summary.pageTraversalComplete,failure:batch.failure||null});
     if(batch.failure==='session_expired'){failed=true;break;}
     if(!p.reconcile&&(!summary.withinSlot||!health.healthy||summary.health.unresolvedRows||summary.health.priceConflictKeys||summary.health.repeatOrUnresolvedLinks))failed=true;
     if(p.reconcile&&summary.boardState==='partial')failed=true;
-   }catch(e){counts.push({book,code,state:'partition_failed',stage:e instanceof RunnerStageError?e.stage:'unclassified'});failed=true;}
+   }catch(e){counts.push({book,code,state:'partition_failed',stage:e instanceof RunnerStageError?e.stage:'unclassified'});failed=true;if(e instanceof RunnerStageError&&e.stage.startsWith('private_archive')||e instanceof RunnerStageError&&['partition_checkpoint','partition_archive_validation'].includes(e.stage)){console.log(JSON.stringify({state:'partition_status',...counts.at(-1)}));break;}}
    console.log(JSON.stringify({state:'partition_status',...counts.at(-1)}));
   }
  }finally{await context.close();}
  console.log(JSON.stringify({state:'collection_attempt_summary',attempted:counts.length,expected:targets.length,partitions:counts,rawRowsPublished:0}));
  if(counts.some(c=>typeof c.offers==='number')){
-  git(root,['add','--',prefix]);
-  if(!safeAddedFiles(git(root,['diff','--cached','--name-status']),prefix))throw Error('non append-only staging refused');
-  git(root,['-c','user.name=PickFinder research runner','-c','user.email=research-runner@users.noreply.github.com','commit','-m','Archive PickFinder private research '+p.clock.day+' '+p.expected]);
-  // Other authorized archive jobs may append while a long board collection is in flight.
-  // Rebase only our append-only commit; never force-push or overwrite an existing source.
-  const sha=await stage('private_archive_push',async()=>{
-   for(let attempt=0;attempt<3;attempt++){
-    git(root,['fetch','origin','main']);
-    try{git(root,['rebase','FETCH_HEAD']);}catch(e){try{git(root,['rebase','--abort']);}catch{}throw e;}
-    const revision=git(root,['rev-parse','HEAD']);
-    if(!safeAddedFiles(git(root,['diff-tree','--no-commit-id','--name-status','-r',revision]),prefix))throw Error('rebased commit not append-only');
-    try{git(root,['push','origin','HEAD:refs/heads/main']);return revision;}catch(e){const detail=String(e?.stderr||'');const category=/non-fast-forward|fetch first|failed to push some refs/i.test(detail)?'remote_rejected_or_advanced':/authentication failed|permission denied|403/i.test(detail)?'permission_or_authentication':/large files|exceeds.*limit|GH001/i.test(detail)?'file_size_rejected':'other_git_failure';console.log(JSON.stringify({state:'private_archive_push_retry',attempt:attempt+1,category,rawDataLogged:false}));if(attempt===2)throw e;await new Promise(resolve=>setTimeout(resolve,2000*(attempt+1)));}
-   }
-   throw Error('archive push retry exhausted');
-  });
-  await stage('private_archive_fetch',()=>git(root,['fetch','origin','main']));
-  await stage('private_archive_ancestry',()=>git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']));
-  await stage('private_archive_remote_readback',()=>{
-   for(const b of batches){const base=prefix+'/'+b.book+'/'+b.sport+'/'+attempt;
-    const raw=execFileSync('git',['-C',root,'show','FETCH_HEAD:'+base+'/source.json'],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']});
-    const n=JSON.parse(execFileSync('git',['-C',root,'show','FETCH_HEAD:'+base+'/normalized.json'],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']}));
-    if(crypto.createHash('sha256').update(raw).digest('hex')!==n.sourceDigest||raw.toString()!==JSON.stringify(b))throw Error('archive mismatch');
-   }
-  });
+  const sha=checkpointShas.at(-1);
+  if(checkpointShas.length!==batches.length||!sha)throw Error('partition checkpoint incomplete');
   if(p.reconcile){const pilot=loadPilot(root);console.log(JSON.stringify({state:'fresh_reconciliation',...compare(pilot,batches)}));
    console.log(JSON.stringify({state:'prior_missing_disposition',...missingDisposition(pilot,loadVerifiedAttempt(root,'168bd736ee99157891fcf87b766ffcae49170dd2'))}));
    console.log(JSON.stringify({state:'current_missing_disposition',...missingDisposition(pilot,batches)}));
@@ -223,5 +231,5 @@ async function main(env=process.env){
  if(p.full&&counts.some(c=>!c.traversal&&!['verified_empty_board','verified_disabled_board'].includes(c.seasonStatus)))failed=true;
  if(failed||counts.length!==targets.length)process.exitCode=1;
 }
-module.exports={plan,receiptValid,safeAddedFiles,partitions,passwordLogin,submitLoginStep,stage,RunnerStageError};
+module.exports={checkpoint,plan,receiptValid,safeAddedFiles,partitions,passwordLogin,submitLoginStep,stage,RunnerStageError};
 if(require.main===module)main().catch(e=>{console.error(JSON.stringify({state:'runner_failed',stage:e instanceof RunnerStageError?e.stage:'unclassified',rawDataLogged:false}));process.exitCode=1;});

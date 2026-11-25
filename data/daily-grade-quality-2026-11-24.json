@@ -1,0 +1,79 @@
+{
+  "kind": "public_daily_six_quality_gates_v1",
+  "slateDate": "2026-11-24",
+  "sourceGeneratedAt": "2026-11-25T20:03:00.576Z",
+  "generatedAt": "2026-11-25T20:03:00.610Z",
+  "tracks": [
+    {
+      "id": "nhl_points",
+      "status": "monitor_future",
+      "observed": {
+        "decided": 6,
+        "wins": 3,
+        "losses": 3,
+        "observedHitRate": 0.5,
+        "alwaysHigherSameLine": 0.3333333333333333,
+        "alwaysLowerSameLine": 0.6666666666666666
+      },
+      "mustUsePregameEvidence": true,
+      "remedy": "Audit frozen points, TOI, PP, linemates and opponent concessions; test any new policy only on later first-Git games"
+    },
+    {
+      "id": "nhl_standard",
+      "status": "monitor_future",
+      "observed": {
+        "decided": 19,
+        "wins": 10,
+        "losses": 9,
+        "observedHitRate": 0.5263157894736842,
+        "alwaysHigherSameLine": 0.47368421052631576,
+        "alwaysLowerSameLine": 0.5263157894736842
+      },
+      "modelPromotionApproved": false,
+      "remedy": "Require positive paired future game/slate-cluster bounds versus BOTH directional baselines before promotion"
+    },
+    {
+      "id": "nfl_rushing",
+      "status": "awaiting_complete_final",
+      "yards": null,
+      "attempts": null,
+      "notIndependentEntries": true,
+      "remedy": "Investigate carries, snaps, injuries, matchup and source identity using past-only evidence; freeze any new filter before games"
+    },
+    {
+      "id": "unresolved",
+      "status": "awaiting_complete_final",
+      "nhlPending": 0,
+      "nflUnresolved": null,
+      "nflFirstDistinctThresholdUnresolved": null,
+      "evidenceNeeded": "Official boxscore and exact identity/appearance; do not convert to a loss or a platform refund"
+    },
+    {
+      "id": "probability_payout",
+      "status": "not_verified",
+      "calibratedHigherLowerProbability": false,
+      "originalAppSettlementVerified": false,
+      "authenticatedPlatformPayout": false,
+      "expectedValue": null,
+      "approvedLineups": 0,
+      "remedy": "Withhold wagering-ready confidence, EV and Power/Flex lineup claims until independent held-out calibration and exact platform settlement"
+    },
+    {
+      "id": "automated_grading",
+      "status": "incomplete_sources",
+      "officialNhlFinals": true,
+      "officialNflFinals": false,
+      "privateLedgerPreserved": true,
+      "remedy": "Generate this fail-closed aggregate check each day after final-only original Git grading; never publish player rows"
+    }
+  ],
+  "gradedNhlFinalOnly": true,
+  "gradedNflFinalOnly": false,
+  "notActualBettingROI": true,
+  "officialWagersPlaced": 0,
+  "modelPromoted": false,
+  "originalPlatformSettlementVerified": false,
+  "calibrated": false,
+  "payoutAdjustedEV": null,
+  "rawPropRowsExposed": 0
+}

@@ -1,0 +1,136 @@
+{
+  "kind": "public_original_daily_grade_v1",
+  "slateDate": "2026-11-24",
+  "generatedAt": "2026-11-25T20:03:00.576Z",
+  "nhl": {
+    "status": "official_final_slate_graded",
+    "scheduledGames": 1,
+    "finalGames": 1,
+    "officialPlayerRows": 40,
+    "statsFetchedAt": "2026-11-25T19:54:30.686Z",
+    "ledgerBuiltAt": "2026-11-25T19:56:22.184Z",
+    "all": {
+      "registered": 68,
+      "correct": 40,
+      "incorrect": 28,
+      "push": 0,
+      "pending": 0,
+      "decided": 68,
+      "hitRate": 0.5882352941176471,
+      "alwaysHigher": 0.5735294117647058,
+      "alwaysLower": 0.4264705882352941,
+      "distinctGradedGames": 1
+    },
+    "byTier": {
+      "Standard": {
+        "registered": 19,
+        "correct": 10,
+        "incorrect": 9,
+        "push": 0,
+        "pending": 0,
+        "decided": 19,
+        "hitRate": 0.5263157894736842,
+        "alwaysHigher": 0.47368421052631576,
+        "alwaysLower": 0.5263157894736842,
+        "distinctGradedGames": 1
+      },
+      "Goblin": {
+        "registered": 38,
+        "correct": 26,
+        "incorrect": 12,
+        "push": 0,
+        "pending": 0,
+        "decided": 38,
+        "hitRate": 0.6842105263157895,
+        "alwaysHigher": 0.6842105263157895,
+        "alwaysLower": 0.3157894736842105,
+        "distinctGradedGames": 1
+      },
+      "Demon": {
+        "registered": 11,
+        "correct": 4,
+        "incorrect": 7,
+        "push": 0,
+        "pending": 0,
+        "decided": 11,
+        "hitRate": 0.36363636363636365,
+        "alwaysHigher": 0.36363636363636365,
+        "alwaysLower": 0.6363636363636364,
+        "distinctGradedGames": 1
+      }
+    },
+    "standardByMarket": {
+      "assists": {
+        "registered": 3,
+        "correct": 2,
+        "incorrect": 1,
+        "push": 0,
+        "pending": 0,
+        "decided": 3,
+        "hitRate": 0.6666666666666666,
+        "alwaysHigher": 0.6666666666666666,
+        "alwaysLower": 0.3333333333333333,
+        "distinctGradedGames": 1
+      },
+      "blockedShots": {
+        "registered": 3,
+        "correct": 1,
+        "incorrect": 2,
+        "push": 0,
+        "pending": 0,
+        "decided": 3,
+        "hitRate": 0.3333333333333333,
+        "alwaysHigher": 0.6666666666666666,
+        "alwaysLower": 0.3333333333333333,
+        "distinctGradedGames": 1
+      },
+      "points": {
+        "registered": 6,
+        "correct": 3,
+        "incorrect": 3,
+        "push": 0,
+        "pending": 0,
+        "decided": 6,
+        "hitRate": 0.5,
+        "alwaysHigher": 0.3333333333333333,
+        "alwaysLower": 0.6666666666666666,
+        "distinctGradedGames": 1
+      },
+      "shotsOnGoal": {
+        "registered": 7,
+        "correct": 4,
+        "incorrect": 3,
+        "push": 0,
+        "pending": 0,
+        "decided": 7,
+        "hitRate": 0.5714285714285714,
+        "alwaysHigher": 0.42857142857142855,
+        "alwaysLower": 0.5714285714285714,
+        "distinctGradedGames": 1
+      }
+    },
+    "gamesWithOriginalSelections": 1,
+    "officialBoxscoreAppearanceAudit": {
+      "originallyPending": 0,
+      "absentFromOfficialFinalPlayerRows": 0,
+      "playerPresentButMarketUnresolved": 0,
+      "source": "Same-game NHL final official player ID, never same-name guess",
+      "confirmedDnp": 0,
+      "confirmedPlatformVoids": 0,
+      "automaticGradeChanges": 0,
+      "playerIdentityExposed": false,
+      "originalSelectionsImmutable": true,
+      "absentRowNotProofOfPlatformVoid": true,
+      "requiresIndependentRosterAndSettlementProof": true
+    }
+  },
+  "nfl": {
+    "status": "no_games_on_archived_schedule",
+    "scheduledGames": 0,
+    "finalGames": 0
+  },
+  "platformSettlementVerified": false,
+  "payoutROI": null,
+  "modelPromoted": false,
+  "rawPropRowsExposed": 0
+}

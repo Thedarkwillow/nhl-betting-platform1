@@ -34,10 +34,10 @@ def lineup_valid(doc,game_id):
 class Client:
     def __init__(self,key,max_calls=MAX_CALLS):
         if not 1<=max_calls<=40:raise ValueError("request_cap")
-        self.key=key;self.calls=0;self.stopped=False;self.max_calls=max_calls
+        self.key=key;self.calls=0;self.stopped=False;self.max_calls=max_calls;self.rateLimitRetryAfterSeconds=None
     def get(self,path):
         if self.stopped or self.calls>=self.max_calls:raise ValueError("request_cap")
-        if self.calls:time.sleep(6.5)
+        if self.calls:time.sleep(9)
         self.calls+=1
         req=urllib.request.Request(BASE+path,headers={"Authorization":"Bearer "+self.key,"Accept":"application/json","User-Agent":"EsportsResearchContract/1.0"})
         # Do not forward credentials to redirects.
@@ -52,6 +52,9 @@ class Client:
             return doc
         except urllib.error.HTTPError as e:
             if e.code in (401,403,429) or 300<=e.code<400:self.stopped=True
+            if e.code==429:
+                value=e.headers.get('Retry-After','') if e.headers else ''
+                self.rateLimitRetryAfterSeconds=int(value) if value.isdigit() and len(value)<=7 else None
             raise ValueError("http_"+str(e.code)) from None
 def audit(client,now):
     report={"kind":"datasportsapi_esports_preflight_v1","status":"connected","fixturesRead":0,"upcomingFixtures":0,"finishedFixtures":0,"completedGames":0,"completeLineupMaps":0,"playerMapRows":0,"statCoverage":{},"errors":{},"fixturePaginationComplete":False,"historicalArchiveEnabled":False,"originalOffersMatched":0,"officialSettlementVerified":False,"rawRowsPublished":0,"paidEndpointsCalled":0,"modelPromoted":False}

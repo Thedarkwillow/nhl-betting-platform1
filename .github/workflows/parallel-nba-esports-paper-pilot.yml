@@ -24,7 +24,9 @@ jobs:
       - run: node --test test/pickfinder-model-input-evidence.test.cjs test/grade-nba-parallel-paper-pilot.test.cjs test/nba-parallel-paper-pilot.test.cjs test/nba-research-pipeline-v1.test.cjs test/esports-prospective-archive.test.cjs
   pilot:
     needs: test
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # Owner-directed private pause; restore original condition only when authorized:
+    # if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:

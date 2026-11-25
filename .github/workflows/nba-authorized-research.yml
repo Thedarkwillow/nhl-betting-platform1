@@ -72,7 +72,9 @@ jobs:
         run: node scripts/check-nba-authorized-provider-access.cjs
   research:
     needs: validation
-    if: github.ref == 'refs/heads/main' && vars.NBA_DIRECT_SOURCE_AUTHORIZED == '1'
+    # Owner-directed private pause; restore original condition only when authorized:
+    # if: github.ref == 'refs/heads/main' && vars.NBA_DIRECT_SOURCE_AUTHORIZED == '1'
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -200,7 +202,9 @@ jobs:
 
   alternate_providers:
     needs: validation
-    if: github.ref == 'refs/heads/main'
+    # Owner-directed private pause; restore original condition only when authorized:
+    # if: github.ref == 'refs/heads/main'
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

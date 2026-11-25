@@ -20,3 +20,7 @@
 - Prioritize secure persistent authentication, actual private exports, completeness reconciliation, separately gated 6/9 AM Pacific captures and verified archival before adding new providers. Keep credentials out of Git and public logs; no access-control bypass. Preserve locked models and use challenger validation before promoting new inputs. Track acceptance under ESP-062/063 in the master roadmap.
 
 - Collection priority: NBA, NHL and NFL first, then esports with independently verified upcoming competition (including CS2, Dota 2, Valorant, LoL and COD whenever active). Keep unknown/offseason titles queued for historical research and status rechecks; do not infer inactivity from failures. Use weighted deep-profile sessions to avoid starvation. No extra paid discovery.
+
+
+## Owner-directed public-only pause (2026-11-25)
+Until the owner explicitly authorizes resumption, work only in this public repository. Do not access or use the private repository, including via public Actions jobs. Preserve existing restricted evidence in place; never publish licensed/Premium raw data, credentials or private history as a workaround. Private-backed collection, grading and morning archive acceptance remain pending. No automatic resumption.

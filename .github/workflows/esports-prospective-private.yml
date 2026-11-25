@@ -31,7 +31,9 @@ jobs:
       - run: node --test test/esports-prospective-archive.test.cjs test/esports-research-v1.test.cjs
   archive:
     needs: test
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # Owner-directed private pause; restore original condition only when authorized:
+    # if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

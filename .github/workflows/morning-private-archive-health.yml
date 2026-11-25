@@ -36,7 +36,9 @@ jobs:
       - run: node --test test/morning-private-archive-health.test.cjs test/nba-esports-prepull-candidate-lock.test.cjs test/pickfinder-morning-archive-audit.test.cjs
   audit:
     needs: test
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    # Owner-directed private pause; restore original condition only when authorized:
+    # if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

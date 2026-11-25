@@ -28,6 +28,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   backfill:
+    # Owner-directed private pause.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:

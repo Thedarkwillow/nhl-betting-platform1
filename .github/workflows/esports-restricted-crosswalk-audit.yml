@@ -17,6 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - run: python3 -m unittest discover -s test -p test_esports_scope_history.py
       - run: python3 -m unittest discover -s test -p test_esports_result_contract.py
       - run: python3 -m unittest discover -s test -p test_esports_independent_crosswalk.py
       - run: python3 -m unittest discover -s test -p test_cs2_restricted_history_join.py
@@ -60,6 +61,12 @@ jobs:
           assert matches[0]["originalForecastFrozen"] is False
           assert matches[0]["paidRequests"]==0
           print(json.dumps(matches[0]))
+          scopes=[r for r in rows if r.get("kind")=="cs2_exact_scope_history_v1"]
+          assert len(scopes)==1
+          print(json.dumps(scopes[0]))
+          diagnostic=[r for r in rows if r.get("kind")=="restricted_esports_regulation_history_diagnostic_v1"]
+          assert len(diagnostic)==1
+          print(json.dumps(diagnostic[0]))
           PY
   final-evidence:
     needs: test

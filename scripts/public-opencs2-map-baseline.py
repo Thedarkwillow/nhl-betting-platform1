@@ -64,6 +64,7 @@ def map_rows(m,reason=None,verified_regulation=False):
     teams=m.get("teams") or []
     if len(teams)!=2 or any(len(t.get("players") or [])!=5 for t in teams):return reject("team_roster_shape")
     roster=[str(p.get("steamid") or "") for t in teams for p in t["players"]]
+    identities={str(p.get("steamid") or ""):(i,p,t) for i,t in enumerate(teams) for p in t["players"]}
     if len(set(roster))!=10 or any(not re.fullmatch(r"\d{17}",p) for p in roster):return reject("player_ids")
     by=defaultdict(list)
     for p in m.get("players") or []:by[str(p.get("steamid") or "")].append(p)
@@ -71,7 +72,8 @@ def map_rows(m,reason=None,verified_regulation=False):
     for pid in roster:
         values=player_total(by[pid],n)
         if values is None:return reject("player_total_conflict_or_missing")
-        batch.append({"event":str(mid)+"|"+str(mp),"player":pid,"date":day,"map":m.get("map_name") or x.get("map_name") or x.get("map"),**dict(zip(METRICS,values))})
+        i,person,team=identities[pid]
+        batch.append({"event":str(mid)+"|"+str(mp),"player":pid,"date":day,"map":m.get("map_name") or x.get("map_name") or x.get("map"),"sourceTeamSlot":i,"sourceAlias":person.get("name") if isinstance(person.get("name"),str) else None,"sourceTeamLabel":team.get("name") if isinstance(team.get("name"),str) else None,"rounds":n,"regulationScorePair":sorted(regulation_team_score(m)) if verified_regulation else None,**dict(zip(METRICS,values))})
     return batch
 def evaluate(rows):
     # chronological prior-date-only holdout; all maps on a day withheld together
@@ -131,6 +133,9 @@ def main():
             else:maps[k]=r
     rows=[r for k,a in maps.items() if all_ids[k]==1 for r in a]
     strict=[r for k,a in verified_maps.items() if all_ids[k]==1 for r in a]
+    if os.environ.get("CS2_INDEPENDENT_IDENTITY_AUDIT")=="1":
+        from cs2_independent_steam_audit import run
+        run(strict)
     recovered=sum(k not in maps and all_ids[k]==1 for k in verified_maps)
     from esports_scope_history import evaluate as scope_eval
     print(json.dumps({"kind":"cs2_exact_scope_history_v1","originalCohort":[scope_eval(rows,METRICS,x) for x in ((1,),(2,),(1,2))],"regulationDiagnosticCohort":[scope_eval(strict,METRICS,x) for x in ((1,),(2,),(1,2))],"cohortsKeptSeparate":True,"paidRequests":0,"rawRowsPublished":0}))

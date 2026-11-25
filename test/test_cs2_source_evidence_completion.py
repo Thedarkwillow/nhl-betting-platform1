@@ -15,4 +15,7 @@ class Tests(unittest.TestCase):
   p={"kind":"restricted_hltv_steam_secondary_profile_review_v2","candidates":[{"alias":"p","hltvPlayerId":"1","steamIdCandidate":"456","secondaryProfile":"public"}]}
   x=audit(r,p,[{"player":"ektarr:1","alias":"p","teamLabel":"t"}])
   self.assertEqual(x["counts"],{"profile_candidate_disagrees":1});self.assertEqual(x["authoritativeConflictsResolved"],0)
+ def test_csv_documented_preamble_and_multiple_column_labels(self):
+  s=b"# Flash Props API, last 7 days.\n# source details\n\nplayer,event_id,stat,market,line,outcome,actual,start_time,captured_at\np,e,kills_on_map_1,Kills Map 1,10.5,over,11,2026-11-25T06:00:00Z,2026-11-25T05:00:00Z\n"
+  r=graded(s);self.assertEqual(r["preambleLinesSkipped"],3);self.assertEqual(r["rows"],1);self.assertEqual(r["distinctContractRows"],1);self.assertEqual(r["timedPregameRows"],1);self.assertEqual(r["numericDisagreements"],0);self.assertEqual(r["verifiedOriginalLines"],0)
 if __name__=="__main__":unittest.main()

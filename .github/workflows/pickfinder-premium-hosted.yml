@@ -5,7 +5,7 @@ on:
       mode:
         required: true
         type: choice
-        options: [audit_pilot, probe_now, capture_0600, capture_0900]
+        options: [audit_pilot, probe_now, reconcile_now, capture_0600, capture_0900]
   schedule:
     - cron: '7 6 * * *'
       timezone: America/Los_Angeles

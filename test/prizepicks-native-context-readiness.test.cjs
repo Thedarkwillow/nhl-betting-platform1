@@ -29,3 +29,8 @@ t('NFL needs independent ESPN to GSIS exact event and weekly roster plus prior h
  const c=build({...args,facts:nflFacts,nflSeasons});a.equal(c.scopes.length,1);a.equal(c.scopes[0].playerId,'00-1234567');a.equal(c.scopes[0].history.length,15);a.equal(c.scopes[0].position,'QB');a.equal(c.scopes[0].kickerParticipationVerified,undefined);
  a.equal(build({...args,facts:nflFacts,nflSeasons:nflSeasons.slice(0,2)}).scopes.length,0);
 });
+
+t('NBA and history-deficient NHL retain identity-only scopes without model promotion',()=>{
+ const nba=wrap({sport:'nba',source:'espn:nba',events:[{...game,teams:[{id:'AAA',abbr:'AAA',homeAway:'away'},{id:'BBB',abbr:'BBB',homeAway:'home'}]}],roster:[player],proofs:[{url:'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=20261125',observedAt,digest:h},{url:'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/AAA/roster',observedAt,digest:h,teamId:'AAA'}]});
+ const ctx=build({...args,facts:[...facts,nba],nhlFinals:[]});a.equal(ctx.scopes.length,0);a.equal(ctx.identityScopes.length,2);a.equal(ctx.identityScopes.find(s=>s.sport==='NBA').historyVerified,false);a.equal(ctx.status.NBA.eligibleContextScopes,0);
+});

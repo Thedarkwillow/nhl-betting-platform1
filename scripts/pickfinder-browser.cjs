@@ -64,9 +64,9 @@ function readBoard({book, code, sport, observedAt}) {
         value:!value || value==='-'?null:value,scope:'displayed prop',observedAt,
         window:/^(L5|L10|L15|Avg L10|H2H|SZN)$/.test(metric)?metric:null});
     }
-    const eventTimes=[...new Set([...tr.querySelectorAll('time[datetime]')].map(t=>t.getAttribute('datetime')).filter(t=>typeof t==='string'&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(t)&&Number.isFinite(Date.parse(t))))];
+    const eventTimes=[...new Set([...(tr.querySelectorAll?.('time[datetime]')||[])].map(t=>t.getAttribute('datetime')).filter(t=>typeof t==='string'&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(t)&&Number.isFinite(Date.parse(t))))];
     // A single explicitly labeled game/start time only; never infer a clock from event ID.
-    const startAt=eventTimes.length===1&&[...tr.querySelectorAll('time[datetime]')].some(t=>/^(?:game|match|event|scheduled)\s*(?:start|time)/i.test(t.getAttribute('aria-label')||t.getAttribute('title')||''))?eventTimes[0]:null;
+    const startAt=eventTimes.length===1&&[...(tr.querySelectorAll?.('time[datetime]')||[])].some(t=>/^(?:game|match|event|scheduled)\s*(?:start|time)/i.test(t.getAttribute('aria-label')||t.getAttribute('title')||''))?eventTimes[0]:null;
     rows.push({startAt,sport:rawSport===code.toLowerCase()||code==='DOTA2'&&['dota-2','dota_2'].includes(rawSport)?sport:rawSport,player:a.querySelector('p')?.innerText,
       market,eventId:parts[2],detailId:u.pathname+'?'+u.search.slice(1).split('&').filter(part=>part.startsWith('prop=')).join('&'),
       period:market?.match(/^(\d+(?:st|nd|rd|th)_(?:half|quarter|period))/)?.[1]||null,

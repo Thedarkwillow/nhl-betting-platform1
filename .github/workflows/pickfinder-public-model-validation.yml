@@ -40,7 +40,8 @@ jobs:
       - name: Archive public research report and verified source evidence
         run: |
           set -euo pipefail
-          git add -f research/pickfinder-public-validation-v1 data/pickfinder-public-research-health.json
+          git add -f data/pickfinder-public-research-health.json
+          if test -d research/pickfinder-public-validation-v1; then git add -f research/pickfinder-public-validation-v1; fi
           git diff --cached --quiet && exit 0
           test -z "$(git diff --cached --name-only --diff-filter=CDRTUXB)"
           git config user.name 'Public research validation'

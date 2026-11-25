@@ -3,6 +3,8 @@
 // An old offer is a historical reference, never a current executable offer.
 const {fromArchive}=require('./prizepicks-native-context-readiness.cjs');
 const {git}=require('./pickfinder-public-evidence-audit.cjs');
+const {read}=require('./pickfinder-public-archive.cjs');
+const {target,key:contextKey}=require('./pickfinder-public-nba-context.cjs');
 const {project}=require('./prizepicks-multisport-model-bridge.cjs');
 const nhl=require('../src/projections.cjs');
 const fs=require('node:fs');
@@ -15,7 +17,9 @@ function researchTier(o){
  if(o.tier===null&&o.source==='pickfinder_premium'&&['prizepicks','underdog'].includes(o.book)&&typeof o.displayedPrice==='string'&&/^[+-]\d{2,4}$/.test(o.displayedPrice)&&Math.abs(Number(o.displayedPrice))>=100)return 'standard';
  return null;
 }
-function generate(ctx){
+function generate(ctx,receipts=[]){
+ const contexts=new Map();for(const doc of receipts.filter(x=>x.schema==='pickfinder-public-nba-context-v1'))for(const r of doc.records||[]){if(r.state!=='explicit_context_observed'||r.routeVerified!==true||r.playerLabelVerified!==true||!r.team||!r.opponent||!Number.isFinite(Date.parse(r.startAt))||!Number.isFinite(Date.parse(r.observedAt))||Date.parse(r.observedAt)>Date.parse(ctx.preparedAt)||Date.parse(r.startAt)<=Date.parse(ctx.preparedAt)+900000)continue;const k=contextKey(r),a=contexts.get(k)||[];a.push(r);contexts.set(k,a);}
+
  const clock=ctx.preparedAt,at=Date.parse(clock),native=[],rows=[],excluded={};
  const reject=k=>{excluded[k]=(excluded[k]||0)+1;};
  for(const s of ctx.scopes.filter(s=>s.sport==='NHL')){
@@ -32,22 +36,28 @@ function generate(ctx){
    if(!side){reject('invalid_direction');continue;}
    if(!['standard','goblin','demon'].includes(tier)){reject('invalid_tier');continue;}
    if(!Number.isFinite(Date.parse(o.observedAt))||Date.parse(o.observedAt)>at){reject('invalid_observation_clock');continue;}
-   if(!Number.isFinite(Date.parse(o.startAt))){reject('missing_event_timestamp');continue;}
-   if(Date.parse(o.startAt)<=at+900000){reject('event_started_or_too_close');continue;}
+   const t=target(o),e=t?contexts.get(contextKey(t))||[]:[];
+   const signatures=new Set(e.map(r=>JSON.stringify([r.team,r.opponent,Date.parse(r.startAt)])));
+   if(signatures.size>1){reject('conflicting_event_context');continue;}
+   const recovered=e.sort((a,b)=>Date.parse(b.observedAt)-Date.parse(a.observedAt))[0];
+   if(recovered&&o.startAt&&Date.parse(o.startAt)!==Date.parse(recovered.startAt)){reject('conflicting_event_clock');continue;}
+   const startAt=o.startAt||recovered?.startAt;
+   if(!Number.isFinite(Date.parse(startAt))){reject('missing_event_timestamp');continue;}
+   if(Date.parse(startAt)<=at+900000){reject('event_started_or_too_close');continue;}
    const meta=b.researchObservations.filter(x=>x.detailId===o.detailId&&x.observedAt===o.observedAt&&x.origin==='board');
    const values=k=>[...new Set(meta.filter(x=>x.metric===k).map(x=>norm(x.value)).filter(Boolean))];
-   const teams=values('Team'),opponents=values('Opponent');
+   const teams=[...new Set([...values('Team'),...(recovered?[norm(recovered.team)]:[])])],opponents=[...new Set([...values('Opponent'),...(recovered?[norm(recovered.opponent)]:[])])];
    if(teams.length!==1||opponents.length!==1){reject('missing_exact_team_context');continue;}
-   const a=ctx.scopes.filter(s=>s.sport===b.m.sport.toUpperCase()&&norm(s.name)===norm(o.player)&&norm(s.team)===teams[0]&&norm(s.opponent)===opponents[0]&&Date.parse(s.startAt)===Date.parse(o.startAt));
+   const a=ctx.scopes.filter(s=>s.sport===b.m.sport.toUpperCase()&&norm(s.name)===norm(o.player)&&norm(s.team)===teams[0]&&norm(s.opponent)===opponents[0]&&Date.parse(s.startAt)===Date.parse(startAt));
    if(a.length!==1){reject('native_match');continue;}
    const s=a[0],p=project({sport:s.sport,stat:o.market,period:o.period,line:o.line,observedAt:clock},s,clock,{researchProbabilities:true});
    if(!p){reject('model_scope');continue;}
    const key=JSON.stringify([b.digest,o.detailId,o.eventId,o.market,o.period,o.line,side,tier]);if(seen.has(key))continue;seen.add(key);
    const q=p.probabilities;
-   rows.push({sport:s.sport,book:b.m.book,player:s.name,playerId:s.playerId,gameId:s.gameId,team:s.team,opponent:s.opponent,startAt:s.startAt,market:p.metric,line:o.line,side,tier,sourceTier:o.tier,platformTierVerified:false,projection:p.projection,probability:q?q[side.toLowerCase()]:null,pushProbability:q?.push??null,priorObservations:p.prior,method:p.method,sourceObservedAt:o.observedAt,forecastAt:clock,manifestDigest:b.digest,sourceEventId:o.eventId,sourceDetailId:o.detailId,historyDigests:s.historyDigests,modelRevision:ctx.revision,offerFresh:at-Date.parse(o.observedAt)<=300000,originalPlatformVerified:false,calibrated:false,modelApproved:false,expectedValue:null});
+   rows.push({sport:s.sport,book:b.m.book,player:s.name,playerId:s.playerId,gameId:s.gameId,team:s.team,opponent:s.opponent,startAt:s.startAt,market:p.metric,line:o.line,side,tier,sourceTier:o.tier,platformTierVerified:false,projection:p.projection,probability:q?q[side.toLowerCase()]:null,pushProbability:q?.push??null,priorObservations:p.prior,method:p.method,sourceObservedAt:o.observedAt,contextObservedAt:recovered?.observedAt??null,forecastAt:clock,manifestDigest:b.digest,sourceEventId:o.eventId,sourceDetailId:o.detailId,historyDigests:s.historyDigests,modelRevision:ctx.revision,offerFresh:at-Date.parse(o.observedAt)<=300000,originalPlatformVerified:false,calibrated:false,modelApproved:false,expectedValue:null});
   }
  }
  return {kind:'native_individual_research_v1',generatedAt:clock,modelRevision:ctx.revision,native,rows,excluded,paidRequests:0,modelApproved:false};
 }
 module.exports={generate,researchTier};
-if(require.main===module){const root=process.cwd(),clock=new Date().toISOString(),out=generate(fromArchive(root,clock,git(root,['rev-parse','HEAD'])));fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,excluded:out.excluded}));}
+if(require.main===module){const root=process.cwd(),clock=new Date().toISOString(),out=generate(fromArchive(root,clock,git(root,['rev-parse','HEAD'])),read(root,'directory'));fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,excluded:out.excluded}));}

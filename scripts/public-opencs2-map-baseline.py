@@ -132,6 +132,8 @@ def main():
     rows=[r for k,a in maps.items() if all_ids[k]==1 for r in a]
     strict=[r for k,a in verified_maps.items() if all_ids[k]==1 for r in a]
     recovered=sum(k not in maps and all_ids[k]==1 for k in verified_maps)
+    from esports_scope_history import evaluate as scope_eval
+    print(json.dumps({"kind":"cs2_exact_scope_history_v1","originalCohort":[scope_eval(rows,METRICS,x) for x in ((1,),(2,),(1,2))],"regulationDiagnosticCohort":[scope_eval(strict,METRICS,x) for x in ((1,),(2,),(1,2))],"cohortsKeptSeparate":True,"paidRequests":0,"rawRowsPublished":0}))
     from esports_context_models import evaluate as context_eval
     review=os.environ.get("ESPORTS_CROSSWALK_REVIEW")
     if review:
@@ -139,6 +141,8 @@ def main():
         archived=json.loads(pathlib.Path(os.environ["ESPORTS_CROSSWALK_CAPTURE"]).read_text())
         reviewed=json.loads(pathlib.Path(review).read_text())
         print(json.dumps(crosswalk_audit(archived,reviewed,rows)))
+        reg=crosswalk_audit(archived,reviewed,strict)
+        print(json.dumps({"kind":"restricted_esports_regulation_history_diagnostic_v1","counts":reg["counts"],"qualified":0,"paidRequests":0,"rawRowsPublished":0}))
 
     # Optional restricted inputs; only aggregate readiness counts leave the runner.
     capture=os.environ.get("CS2_RESTRICTED_CAPTURE")

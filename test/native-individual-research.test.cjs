@@ -51,3 +51,14 @@ test('clock comparison counts distinct events, handles midnight and never verifi
  const b={...a,eventId:'f'};const bad={...b,localMatchup:{...b.localMatchup,hour:5}};
  const out=clockAudit([a,a,b,bad]);assert.equal(out.distinctEvents,2);assert.equal(out.conflictingEvents,1);assert.equal(out.offsetMinutesByEvent['-480'],1);assert.equal(out.sourceClockVerified,false);
 });
+
+test('clock offer join retains exact threshold and rejects conflicting event scopes',()=>{
+ const {clockOfferContext}=require('../scripts/native-individual-research.cjs');
+ const o={sport:'nhl',book:'prizepicks',eventId:'e',player:'Example',market:'player_goals',detailId:'/players/nhl/abc?prop=x%3Aplayer_goals%3Ae%3A0.5',line:0.5,observedAt:'2026-11-25T19:00:00Z'};
+ const r={sport:'nhl',eventId:'e',player:'Example',playerPath:'/players/nhl/abc',nativeGameId:9,nativePlayerId:1,team:'OTT',opponent:'FLA',observedAt:o.observedAt,nativeStartAt:'2026-11-26T00:00:00Z',clockCorroborated:true};
+ const at=Date.parse('2026-11-25T19:10:00Z');
+ assert.equal(clockOfferContext(o,[r],at).startAt,r.nativeStartAt);
+ assert.equal(clockOfferContext({...o,line:1.5},[r],at),null);
+ assert.equal(clockOfferContext(o,[r,{...r,nativeGameId:10}],at),null);
+ assert.equal(clockOfferContext(o,[r],Date.parse(r.nativeStartAt)),null);
+});

@@ -44,7 +44,7 @@ function normalize(input,{now=new Date()}={}){
    const observed=instant(row.observedAt);
    if(observed<first||observed>last)throw Error("row outside attempt");
    links.add(row.detailId);
-   for(const field of scopedResearch(row.research,first,last,input.sport))researchObservations.push({...field,detailId:row.detailId,player:row.player});
+   for(const field of scopedResearch(row.research,first,last,input.sport))researchObservations.push({...field,detailId:row.detailId,player:row.player,market:row.market,eventId:text(row.eventId)?row.eventId:null,boardBook:input.book,startAt:row.startAt?instant(row.startAt).toISOString():null});
    if(input.slot!=="manual"&&!inSlot(observed,input.localDay,input.slot))crossHourRows++;
    let matched=0;
    for(const a of row.apps){

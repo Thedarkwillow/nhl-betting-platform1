@@ -10,7 +10,7 @@ function invocation(env,now=new Date()){
  if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&['capture_0600','capture_0900'].includes(env.REQUESTED_MODE))return decide({eventName:'workflow_dispatch',mode:env.REQUESTED_MODE,now});
  const clock=pacific(now),mode=env.REQUESTED_MODE||'board_and_deep';
  if(!['board_and_deep','deep_research_now','probe_now','nba_context_only','features_only','boards_only'].includes(mode))throw Error('mode');
- if([6,9].includes(clock.hour))return {allowed:false,state:'protect_morning_hour',clock};
+ if([6,9].includes(clock.hour)||(['features_only','boards_only','nba_context_only'].includes(mode)&&[5,8].includes(clock.hour)))return {allowed:false,state:'protect_morning_hour',clock};
  return {allowed:true,expected:'manual',clock,deep:['deep_research_now','nba_context_only','features_only'].includes(mode),contextOnly:mode==='nba_context_only',featuresOnly:mode==='features_only',boardsOnly:mode==='boards_only',probe:mode==='probe_now'};
 }
 function profileWorkers(env,p){return env.GITHUB_EVENT_NAME==='workflow_dispatch'&&env.REQUESTED_MODE==='deep_research_now'&&p.expected==='manual'&&p.deep&&!p.contextOnly?2:1;}
@@ -66,7 +66,7 @@ const premium=page=>page.evaluate(()=>document.body.innerText.split('\n').some(x
 async function main(root,env=process.env){
  assertDestination(root);const p=invocation(env);if(!p.allowed){console.log(JSON.stringify(p));return;}
  const {chromium}=require('playwright');const {page,context}=await openHostedBoard(chromium,env);
- const started=Date.now(),deadline=started+(p.expected==='manual'?40:45)*60000,alive=()=>{const c=pacific(new Date());return Date.now()<deadline&&c.day===p.clock.day&&(p.expected==='manual'?![6,9].includes(c.hour):c.hour===p.clock.hour&&c.minute<55);};
+ const started=Date.now(),deadline=started+(p.expected==='manual'?40:45)*60000,alive=()=>{const c=pacific(new Date());return Date.now()<deadline&&c.day===p.clock.day&&(p.expected==='manual'?!(p.featuresOnly||p.boardsOnly||p.contextOnly?[5,6,8,9]:[6,9]).includes(c.hour):c.hour===p.clock.hour&&c.minute<55);};
  let boards=0,profiles=0,archiveMs=0,transactions=0,profileMs=0,errors=0;const write=async(kind,data)=>{const t=Date.now();const receipt=await persist(root,kind,data);archiveMs+=Date.now()-t;transactions++;return receipt;};
  try{
   if(p.probe){console.log(JSON.stringify({state:'public_hosted_auth_verified',accountDataPublished:false}));return;}
@@ -108,7 +108,7 @@ async function main(root,env=process.env){
     }
    }catch{errors++;console.log(JSON.stringify({state:'public_game_context_pending'}));}
   }
-  if(alive()){
+  if(alive()&&!p.featuresOnly){
    const until=Date.now()+(p.contextOnly?25:5)*60000,contextAlive=()=>alive()&&Date.now()<until;
    const q=gameContext.queue(load(root),read(root,'directory'),new Date().toISOString());
    const detail=await context.newPage();detail.setDefaultTimeout(5000);

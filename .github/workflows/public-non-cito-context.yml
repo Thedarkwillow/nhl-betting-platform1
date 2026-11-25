@@ -11,7 +11,7 @@ on:
       - '.github/workflows/public-non-cito-context.yml'
   push:
     branches: [main]
-    paths: ['.github/workflows/public-non-cito-context.yml']
+    paths: ['.github/workflows/public-non-cito-context.yml','scripts/esports_context_models.py']
   workflow_dispatch:
 permissions:
   contents: read

@@ -4,7 +4,7 @@ on:
     paths: ['scripts/public-eight-free-history.py','scripts/public-six-esports-history.py','scripts/public_cod_wiki_history.py','scripts/cs2_headshot_history.py','.github/workflows/additional-free-esports-diagnostics.yml']
   push:
     branches: [main]
-    paths: ['.github/workflows/additional-free-esports-diagnostics.yml']
+    paths: ['.github/workflows/additional-free-esports-diagnostics.yml','scripts/cs2_headshot_history.py']
   workflow_dispatch:
 permissions:
   contents: read

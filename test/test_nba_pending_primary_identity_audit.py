@@ -8,3 +8,10 @@ class Test(unittest.TestCase):
   fake=lambda t:dict(team=dict(abbreviation=t),athletes=[dict(id="3",fullName="Tarik Biberović")])
   x=report(a,b,fake);self.assertEqual(x["counts"]["primary_espn_current_team_candidate_verified"],1);self.assertFalse(x["freezeApproved"])
   b["rows"][0]["espnAthleteId"]="4";self.assertEqual(report(a,b,fake)["counts"]["primary_id_conflict"],1)
+
+ def test_ambiguous_link_is_not_last_write_wins(self):
+  a=dict(kind="nba_reconstructed_pending_identity_review_v1",rows=[dict(reconstructedIdentitySha256="x",team="DAL",nbaGameId="1",nbaReportId="2",reportName="Player")])
+  x=dict(reconstructedIdentitySha256="x",team="DAL",nbaGameId="1",nbaPlayerId="2",espnAthleteId="3")
+  b=dict(kind="nba_reconstructed_manual_identity_candidates_v1",rows=[x,{**x,"espnAthleteId":"4"}])
+  def no_fetch(team):raise AssertionError("ambiguous rows must not query")
+  r=report(a,b,no_fetch);self.assertEqual(r["counts"]["duplicate_or_missing_identity_binding"],1);self.assertEqual(r["freeRequests"],0)

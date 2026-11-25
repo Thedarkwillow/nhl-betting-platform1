@@ -2,16 +2,13 @@ name: PickFinder Premium public orchestration
 on:
   pull_request:
     paths: ['scripts/pickfinder-public-*.cjs','scripts/pickfinder-unattended-runner.cjs','test/pickfinder-public-runner.test.cjs','.github/workflows/pickfinder-premium-hosted.yml']
-  push:
-    branches: [main]
-    paths: ['.github/workflows/pickfinder-premium-hosted.yml']
   workflow_dispatch:
     inputs:
       mode:
         type: choice
         required: true
-        default: board_and_deep
-        options: [board_and_deep, deep_research_now, probe_now, capture_0600, capture_0900]
+        default: boards_only
+        options: [boards_only, nba_context_only, features_only, board_and_deep, deep_research_now, probe_now, capture_0600, capture_0900]
   schedule:
     - cron: '7 6 * * *'
       timezone: America/Los_Angeles

@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: esports-restricted-single-capture-20261124
+  group: esports-restricted-diagnostic-capture-20261124
   cancel-in-progress: false
 jobs:
   preflight:
@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test test/independent-provider-export-v1.test.cjs test/esports-zero-credit-coverage.test.cjs
+      - run: node --test test/underdog-bounded-capture-reconcile.test.cjs test/independent-provider-export-v1.test.cjs test/esports-zero-credit-coverage.test.cjs
       - run: node scripts/esports-restricted-single-capture.cjs preflight
   capture:
     needs: preflight
@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
-      RESTRICTED_BRANCH: research/esports-single-capture-20261124
+      RESTRICTED_BRANCH: research/esports-diagnostic-capture-20261124
     steps:
       - uses: actions/checkout@v4
         with:
@@ -63,9 +63,9 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git config core.hooksPath /dev/null
           git switch -c "$RESTRICTED_BRANCH"
-          mkdir esports-single-capture-20261124
-          printf '{"kind":"synthetic_storage_reservation","runId":"%s","paidRequests":0}\n' "$GITHUB_RUN_ID" > esports-single-capture-20261124/reservation.json
-          git add esports-single-capture-20261124/reservation.json
+          mkdir esports-diagnostic-capture-20261124
+          printf '{"kind":"synthetic_storage_reservation","runId":"%s","paidRequests":0}\n' "$GITHUB_RUN_ID" > esports-diagnostic-capture-20261124/reservation.json
+          git add esports-diagnostic-capture-20261124/reservation.json
           git commit -qm 'Reserve one restricted research capture'
           git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet --force-with-lease="refs/heads/$RESTRICTED_BRANCH:" origin "HEAD:refs/heads/$RESTRICTED_BRANCH"
           remote="$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin "refs/heads/$RESTRICTED_BRANCH" | cut -f1)"
@@ -93,8 +93,8 @@ jobs:
           if test ! -f "$RUNNER_TEMP/restricted-esports.json"; then echo 'No capture file; no records stored.'; exit 0; fi
           test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
           cd restricted-archive
-          install -m 600 "$RUNNER_TEMP/restricted-esports.json" esports-single-capture-20261124/normalized.json
-          git add esports-single-capture-20261124/normalized.json
+          install -m 600 "$RUNNER_TEMP/restricted-esports.json" esports-diagnostic-capture-20261124/normalized.json
+          git add esports-diagnostic-capture-20261124/normalized.json
           git commit -qm 'Store bounded independent research observations'
           git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin "HEAD:refs/heads/$RESTRICTED_BRANCH"
           remote="$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin "refs/heads/$RESTRICTED_BRANCH" | cut -f1)"

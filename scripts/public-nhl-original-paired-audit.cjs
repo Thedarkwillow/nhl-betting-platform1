@@ -13,5 +13,6 @@ function main(){
  const compact=x=>Object.fromEntries(Object.entries(x.byVariant).map(([k,v])=>[k,{n:v.decided,games:v.distinctGames,dates:v.distinctDates,championRate:v.championRate,challengerRate:v.challengerRate,alwaysHigher:v.decided?v.alwaysHigherOnSameLines/v.decided:null,alwaysLower:v.decided?v.alwaysLowerOnSameLines/v.decided:null,championBrier:v.championBrier,challengerBrier:v.challengerBrier,neutralBrier:v.neutralProbabilityBrier,skillVsNeutral:v.challengerBrierSkillVsNeutral,beatsBothConstantDirections:v.challengerBeatsBothConstantDirections,challengerLogLoss:v.challengerLogLoss,neutralLogLoss:v.neutralProbabilityLogLoss,intervals:v.pairedGameClusterBootstrap?.intervals??null,minimumSample:v.eligibleForMinimumSample}]));
  const out={kind:"public_nhl_original_paired_cluster_audit_v1",decided:r.all.gradedOriginalLines,all:compact(r.all),byMarket:Object.fromEntries(Object.entries(r.byMarket).map(([k,v])=>[k,compact(v)])),modelPromoted:false,platformSettlementVerified:false,rawRowsPublished:0,paidRequests:0};
  console.log(JSON.stringify(out));
+ console.log(JSON.stringify(require("../src/nhl-standard-rolling-calibration-research.cjs").evaluate(s.rows)));
 }
 if(require.main===module)try{main()}catch{console.error("Original paired audit failed closed");process.exitCode=1;}

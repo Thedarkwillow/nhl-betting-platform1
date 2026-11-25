@@ -1267,6 +1267,8 @@ Expansion order after existing rollout: related sport families (WNBA, CBB, WCBB,
 
 | ESP-059 | 2026-11-25 | [Merged PR #241](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/241), [main diagnostic 45573299745](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45573299745) | All nine official page clocks corroborated; 1,804 conditional archived rankings only, no live status/freeze |
 
+| ESP-060 | 2026-11-25 | [VCT intake](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45602915247) | Private native cache verified, 73,950 player-map rows; historical only |
+| ESP-061 | 2026-11-25 | [CS2 and COD intake](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45602299386) | CS2 existing cache and new COD cache verified; historical only |
 | ESP-072 | 2026-11-25 | [Committed archive audit](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45597696166) verified 27 source digests; no live coverage or model qualification implied. |
 
 ## Roadmap change history

@@ -12,7 +12,7 @@ function audit(archive,payload,clock,receipts=[]){
  for(const [e,n] of payload.crosswalk){if(!id.has(e))id.set(e,new Set());id.get(e).add(n);if(!reverse.has(n))reverse.set(n,new Set());reverse.get(n).add(e);}
  for(const x of payload.history){const k=String(x.playerId),a=h.get(k)||[];a.push(x);h.set(k,a);}
  const by=new Map(groupOffers(archive).filter(g=>g.sport==='nba').map(g=>[g.eventId,match(g,payload.facts.events,payload.facts.roster,clock)]));
- const reviewIndex=indexReviews(receipts,clock);let reviewedOfferMatches=0;
+ const reviewIndex=indexReviews(receipts,clock);let reviewedOfferMatches=0;const reviewedProfileKeys=new Set();
  const sourceContexts=new Map();for(const b of receipts)if(b.schema==='pickfinder-public-nba-context-v1')for(const x of b.records||[]){if(x.state!=='explicit_context_observed'||!Number.isFinite(dt(x.observedAt))||dt(x.observedAt)>dt(clock)||dt(clock)-dt(x.observedAt)>6*3600000||!Number.isFinite(dt(x.startAt))||dt(x.startAt)<=dt(clock)||x.routeVerified!==true||x.playerLabelVerified!==true)continue;const k=JSON.stringify([x.eventId,x.player,x.playerPath]),v=sourceContexts.get(k)||new Map();v.set(JSON.stringify([x.team,x.opponent,x.startAt]),x);sourceContexts.set(k,v);}
  const dialogEvents=new Map();
  for(const receipt of receipts.filter(b=>b.schema==='pickfinder-public-game-dialog-v1'))for(const row of receipt.records||[]){
@@ -20,7 +20,7 @@ function audit(archive,payload,clock,receipts=[]){
   const seen=dialogEvents.get(row.eventId)||new Map();
   seen.set(JSON.stringify([row.displayedClock,row.browserTimeZone,row.teams]),row);dialogEvents.set(row.eventId,seen);
  }
- const out={};let total=0,candidate=0,context=0,profileContextCandidates=0;
+ const out={};let total=0,candidate=0,context=0,profileContextCandidates=0,reviewedOrBoardContext=0;
  for(const b of archive.latest.filter(b=>b.m.sport==='nba')){
   const z=out[b.m.book]??={offers:0,historyCandidates:0,sourceContextCorroborated:0,excluded:{},byMarket:{}};
   const reject=k=>z.excluded[k]=(z.excluded[k]||0)+1;
@@ -49,17 +49,21 @@ function audit(archive,payload,clock,receipts=[]){
      displayedClockAt(event.startAt,card.browserTimeZone)===card.displayedClock)
       z.dashboardAndRosterCorroborated=(z.dashboardAndRosterCorroborated||0)+1;
    }
-   if(matchesReview(reviewIndex,o,native,e,event)){reviewedOfferMatches++;z.independentlyReviewedOfferMatches=(z.independentlyReviewedOfferMatches||0)+1;}
+   const reviewedMatch=matchesReview(reviewIndex,o,native,e,event);
+   if(reviewedMatch){reviewedOfferMatches++;z.independentlyReviewedOfferMatches=(z.independentlyReviewedOfferMatches||0)+1;reviewedProfileKeys.add(JSON.stringify([o.eventId,o.player,new URL(o.detailId,'https://www.pickfinder.app').pathname]));}
    let playerPath=null;try{playerPath=new URL(o.detailId,'https://www.pickfinder.app').pathname;}catch{}
    const receiptsForPlayer=sourceContexts.get(JSON.stringify([o.eventId,o.player,playerPath]));
    if(receiptsForPlayer?.size===1){const source=[...receiptsForPlayer.values()][0],team=event.teams.find(t=>t.id===e.teamId),opp=event.teams.find(t=>t.id!==e.teamId);if(team&&opp&&norm(team.abbr)===norm(source.team)&&norm(opp.abbr)===norm(source.opponent)&&Math.abs(dt(source.startAt)-dt(event.startAt))<=300000&&dt(o.observedAt)<dt(source.startAt)){profileContextCandidates++;z.profileContextCandidates=(z.profileContextCandidates||0)+1;}}
-   const m=z.byMarket[metric]??={historyCandidates:0,sourceContextCorroborated:0};m.historyCandidates++;
+   const m=z.byMarket[metric]??={historyCandidates:0,sourceContextCorroborated:0,independentlyReviewedOfferMatches:0,reviewedOrBoardContext:0};m.historyCandidates++;
+   if(reviewedMatch)m.independentlyReviewedOfferMatches++;
+   const boardContext=p[0].sourceContextCorroborated===true&&Number.isFinite(dt(o.startAt))&&Math.abs(dt(o.startAt)-dt(event.startAt))<=300000&&dt(o.observedAt)<dt(event.startAt);
+   if(reviewedMatch||boardContext){reviewedOrBoardContext++;z.reviewedOrBoardContext=(z.reviewedOrBoardContext||0)+1;m.reviewedOrBoardContext++;}
    // Candidate links are never verified merely because name, historical ID and schedule align.
-   if(p[0].sourceContextCorroborated!==true||!Number.isFinite(dt(o.startAt))||Math.abs(dt(o.startAt)-dt(event.startAt))>300000||dt(o.observedAt)>=dt(event.startAt)){reject('missing_or_unverified_offer_context');continue;}
+   if(!boardContext){reject('missing_or_unverified_offer_context');continue;}
    context++;z.sourceContextCorroborated++;m.sourceContextCorroborated++;
   }
  }
- return {kind:'nba_pickfinder_offer_history_candidate_audit_v1',status:'observed',archiveInvalidManifests:archive.invalid.length,totalOffers:total,historyCandidates:candidate,independentlyReviewedOfferMatches:reviewedOfferMatches,unresolvedHistoryCandidates:candidate-reviewedOfferMatches,sourceContextCorroborated:context,profileContextCandidates,profileContextPlayerEventKeys:sourceContexts.size,byBook:out,independentlyReviewedPickfinderCrosswalks:0,originalPlatformVerified:false,modelApproved:false,rawRowsPublished:0};
+ return {kind:'nba_pickfinder_offer_history_candidate_audit_v1',status:'observed',archiveInvalidManifests:archive.invalid.length,totalOffers:total,historyCandidates:candidate,independentlyReviewedOfferMatches:reviewedOfferMatches,unresolvedHistoryCandidates:candidate-reviewedOfferMatches,sourceContextCorroborated:context,boardNativeClockCorroborated:context,reviewedOrBoardContext,reviewedProfileContextKeys:reviewedProfileKeys.size,missingReviewedAndBoardContext:candidate-reviewedOrBoardContext,contextCountSemantics:'sourceContextCorroborated requires the original board clock; independentlyReviewedOfferMatches requires the separate reviewed receipt; reviewedOrBoardContext is their union; none certifies first-party offers or automated crosswalk intake',profileContextCandidates,profileContextPlayerEventKeys:sourceContexts.size,byBook:out,independentlyReviewedPickfinderCrosswalks:0,originalPlatformVerified:false,modelApproved:false,rawRowsPublished:0};
 }
 if(require.main===module)try{const payload=JSON.parse(fs.readFileSync(0,'utf8'));console.log(JSON.stringify(audit(load(process.argv[2],'nba'),payload,new Date().toISOString(),['directory','dashboards'].flatMap(kind=>list(process.argv[2],kind).map(d=>read(process.argv[2],kind,d))))));}catch{console.error('NBA offer candidate audit failed closed');process.exitCode=1;}
 module.exports={audit};

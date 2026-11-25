@@ -10,7 +10,7 @@ async function captureDashboard(page,name){
   const tables=[...document.querySelectorAll('main table')].filter(visible).map(t=>({headers:[...t.querySelectorAll('thead th')].map(cell),rows:[...t.querySelectorAll('tbody tr')].filter(visible).map(tr=>[...tr.cells].map(cell))}));
   const cards=[...document.querySelectorAll('main a[href*="/players/"],main a[href*="/games/"]')].filter(visible).flatMap(a=>{
    const u=new URL(a.href);if(u.origin!==location.origin)return [];
-   return [{path:u.pathname,prop:u.searchParams.get('prop'),text:a.innerText.trim().slice(0,1000)}];
+   return [{path:u.pathname,prop:u.searchParams.get('prop'),text:a.innerText.trim().slice(0,1000),displayedTimes:[...a.querySelectorAll('time[datetime]')].filter(visible).map(t=>({datetime:t.getAttribute('datetime'),label:t.innerText.trim().slice(0,100)}))}];
   });
   return {tables,cards};
  });

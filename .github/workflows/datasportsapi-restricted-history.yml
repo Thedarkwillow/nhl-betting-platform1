@@ -1,0 +1,74 @@
+name: DataSportsAPI restricted esports history
+on:
+  pull_request:
+    paths: ['scripts/datasportsapi_restricted_history.py','test/test_datasportsapi_restricted_history.py','scripts/datasportsapi_esports_preflight.py','.github/workflows/datasportsapi-restricted-history.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: datasportsapi-esports-preflight
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s test -p test_datasportsapi_restricted_history.py
+  collect:
+    needs: test
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify private destination
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: restricted
+          persist-credentials: false
+      - name: Collect bounded sample
+        env:
+          DATASPORTSAPI_API_KEY: ${{ secrets.DATASPORTSAPI || secrets.DATASPORTSAPI_API_KEY }}
+          DATASPORTS_HISTORY_DAYS: '7'
+          DATASPORTS_RESTRICTED_OUTPUT: ${{ runner.temp }}/datasportsapi-history.json
+        run: python3 scripts/datasportsapi_restricted_history.py
+      - name: Store privately without public artifacts
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          file="$RUNNER_TEMP/datasportsapi-history.json"
+          trap 'rm -f "$file"' EXIT
+          test -f "$file" || { echo 'No verified rows to archive'; exit 0; }
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          cd restricted
+          branch=research/datasportsapi-esports-history
+          if git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote --exit-code origin "refs/heads/$branch" >/dev/null; then
+            git -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch --quiet origin "refs/heads/$branch"
+            git switch --detach FETCH_HEAD
+          fi
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config core.hooksPath /dev/null
+          mkdir -p research/datasportsapi-esports-history
+          dest="research/datasportsapi-esports-history/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
+          test ! -e "$dest"
+          install -m 600 "$file" "$dest"
+          git add "$dest"
+          git commit -qm 'Archive restricted DataSportsAPI statistics sample'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin "HEAD:refs/heads/$branch"
+          test "$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin "refs/heads/$branch" | cut -f1)" = "$(git rev-parse HEAD)"
+          echo 'Private archive commit verified.'

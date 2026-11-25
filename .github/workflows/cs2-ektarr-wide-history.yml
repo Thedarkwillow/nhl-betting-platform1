@@ -1,0 +1,17 @@
+name: CS2 expanded wide-format history
+on:
+  pull_request:
+    paths: ['scripts/cs2_ektarr_wide_history.py','test/test_cs2_ektarr_wide_history.py','.github/workflows/cs2-ektarr-wide-history.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s test -p test_cs2_ektarr_wide_history.py
+      - run: python3 scripts/cs2_ektarr_wide_history.py

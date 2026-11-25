@@ -32,10 +32,11 @@ def lineup_valid(doc,game_id):
         if type(p.get("creepScore")) is int and p["creepScore"]>=0:fields["creepScore"]+=1
     return fields
 class Client:
-    def __init__(self,key):
-        self.key=key;self.calls=0;self.stopped=False
+    def __init__(self,key,max_calls=MAX_CALLS):
+        if not 1<=max_calls<=40:raise ValueError("request_cap")
+        self.key=key;self.calls=0;self.stopped=False;self.max_calls=max_calls
     def get(self,path):
-        if self.stopped or self.calls>=MAX_CALLS:raise ValueError("request_cap")
+        if self.stopped or self.calls>=self.max_calls:raise ValueError("request_cap")
         if self.calls:time.sleep(6.5)
         self.calls+=1
         req=urllib.request.Request(BASE+path,headers={"Authorization":"Bearer "+self.key,"Accept":"application/json","User-Agent":"EsportsResearchContract/1.0"})

@@ -110,7 +110,7 @@ async function main(env=process.env){
     if(sample&&remaining())try{await enrich(detail,sample,{navigate:url=>detail.goto(url,{timeout:8000})});}catch{sample.profileCollection={status:'unavailable'};}
     batch.endedAt=new Date().toISOString();
     const summary=archive(batch,root,attempt);
-    counts.push({book,code,boardState:summary.boardState,withinSlot:summary.withinSlot,offers:summary.health.distinctOfferKeys,unresolved:summary.health.unresolvedRows,pages:summary.health.pages,traversal:summary.pageTraversalComplete});
+    counts.push({book,code,boardState:summary.boardState,withinSlot:summary.withinSlot,offers:summary.health.distinctOfferKeys,unresolved:summary.health.unresolvedRows,unresolvedEvidence:summary.health.unresolvedEvidence,pages:summary.health.pages,traversal:summary.pageTraversalComplete});
     if(batch.failure==='session_expired'){failed=true;break;}
     if(!p.reconcile&&!summary.withinSlot||summary.boardState==='partial'||summary.health.unresolvedRows||summary.health.priceConflictKeys||summary.health.repeatOrUnresolvedLinks)failed=true;
    }catch{counts.push({book,code,state:'partition_failed'});failed=true;}

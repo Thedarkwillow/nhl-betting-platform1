@@ -39,3 +39,9 @@ test('key-free discovery is bounded and esports credentials require no-charge an
 });
 
 test('official NHL fallback supplies positive dated evidence only',async()=>{const r=await discover({env:{},now,client:async url=>url.includes('api-web.nhle.com')?new Response(JSON.stringify({gameWeek:[{games:[{id:123,gameState:'FUT',startTimeUTC:'2026-11-25T18:00:00Z'}]}]})):new Response('',{status:403})});assert.equal(r.NHL.upcoming,1);assert.equal(r.NHL.source,'nhl:official_week');assert.equal(r.NBA.failure,'http_403');assert.equal(scheduleStatus(r.NHL,now),'competition_scheduled');});
+
+test('owner priority is NBA NHL NFL then independently scheduled esports without excluding unknown sports',()=>{
+ const {prioritySports}=require('../scripts/season-aware-collection.cjs');
+ const result=prioritySports(Object.keys(registry),{VAL:{...evidence,upcoming:1},CS2:{...evidence,upcoming:1},COD:evidence},now);
+ assert.deepEqual(result.slice(0,5),['NBA','NHL','NFL','CS2','VAL']);assert.equal(result.length,14);
+});

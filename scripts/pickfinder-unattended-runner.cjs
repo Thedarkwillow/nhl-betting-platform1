@@ -50,15 +50,22 @@ async function stage(name,fn){try{return await fn();}catch(e){if(e instanceof Ru
 async function submitLoginStep(page,field,phase){
  // Only use the normal visible submit control associated with this credential field.
  const form=field.locator('xpath=ancestor::form[1]');
- const scoped=form.locator('button[type=submit]:visible, input[type=submit]:visible, button:not([type]):visible');
- const named=page.getByRole('button',{name:/^(sign in|log in|continue|next)(?: with (?:email|password))?(?:\s*→)?$/i,exact:true});
+ // The observed PickFinder flow has a header Sign in button and a form Continue button.
+ // Password visibility toggles and other buttons must not count as submit candidates.
+ const label=/^continue(?:\s*[→▶▸])?$/i;
+ const scoped=form.getByRole('button',{name:label});
+ const native=form.locator('button[type=submit]:visible, input[type=submit]:visible');
+ const named=page.getByRole('button',{name:label});
  const button=await stage(phase+'_control_lookup',async()=>{
   if(await form.count()===1){
    const count=await scoped.count();
    if(count===1)return scoped;
-   if(count>1)throw new RunnerStageError(phase+'_ambiguous_form_controls');
+   if(count>1)throw new RunnerStageError(phase+'_ambiguous_continue_controls');
+   const n=await native.count();
+   if(n===1)return native;
+   if(n>1)throw new RunnerStageError(phase+'_ambiguous_form_controls');
   }
-  if(await named.count()!==1)throw new RunnerStageError(phase+'_unique_control_unavailable');
+  if(await named.count()!==1)throw new RunnerStageError(phase+'_unique_continue_unavailable');
   return named;
  });
  await stage(phase+'_control_visible',()=>button.waitFor({state:'visible',timeout:10000}));

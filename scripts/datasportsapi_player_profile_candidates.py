@@ -17,7 +17,7 @@ def search(client,review,capture):
             doc=client.get("/v2/search?"+urllib.parse.urlencode({"q":alias,"type":"player"}))
             data=doc.get("data");meta=doc.get("meta",{})
             if not isinstance(data,list) or meta.get("hasNextPage") is not False:counts["incomplete_search"]+=1;continue
-            hit=[r for r in data if r.get("type")=="player" and r.get("sport")=="esports" and valid_id(r.get("id")) and norm(r.get("name"))==norm(alias) and reviewed_team((r.get("team") or {}).get("name"))==reviewed_team(p["team"])]
+            hit=[r for r in data if isinstance(r,dict) and r.get("type")=="player" and r.get("sport")=="esports" and valid_id(r.get("id")) and norm(r.get("name"))==norm(alias) and isinstance(r.get("team"),dict) and valid_id(r["team"].get("id")) and reviewed_team((r.get("team") or {}).get("name"))==reviewed_team(p["team"])]
             if len(hit)!=1:counts["no_unique_profile"]+=1;continue
             h=hit[0];profile=client.get("/v2/players/"+str(h["id"])).get("data")
             if not isinstance(profile,dict) or profile.get("id")!=h["id"] or norm(profile.get("name"))!=norm(alias) or (profile.get("team") or {}).get("id")!=(h.get("team") or {}).get("id"):

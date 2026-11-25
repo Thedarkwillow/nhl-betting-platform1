@@ -1,6 +1,6 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),{normalize}=require('./pickfinder-premium-archive.cjs'),{collect,ORIGIN}=require('./pickfinder-browser.cjs'),{enrich}=require('./pickfinder-player-research.cjs'),{VERSION}=require('./pickfinder-research-coverage.cjs'),{checkpointBuffer}=require('./pickfinder-checkpoint-buffer.cjs'),{pacific,decide}=require('./pacific-morning-capture-gate.cjs'),{prioritySports,registry}=require('./season-aware-collection.cjs'),{discover}=require('./season-aware-discovery.cjs'),{openHostedBoard}=require('./pickfinder-unattended-runner.cjs'),{persist,read,safe,sha,assertDestination}=require('./pickfinder-public-archive.cjs');
-const {verifiedNavigation,traverseDashboardFilters,inspectCapabilities}=require('./pickfinder-dashboard-research.cjs');
+const {dashboardRoutes,captureGameDialogs,verifiedNavigation,traverseDashboardFilters,inspectCapabilities}=require('./pickfinder-dashboard-research.cjs');
 const {inspectTool}=require('./pickfinder-tool-schema.cjs');
 const gameContext=require('./pickfinder-public-nba-context.cjs'),{load}=require('./pickfinder-public-evidence-audit.cjs');
 const CORE=['NBA','NHL','NFL','CS2','DOTA2','VAL','LOL','COD','MLB','WNBA','CFB','CBB','TENNIS','SOCCER'],BOOKS=['prizepicks','underdog'];
@@ -79,10 +79,23 @@ async function main(root,env=process.env){
    const until=Date.now()+90000,gameAlive=()=>alive()&&Date.now()<until;
    try{
     await page.goto(ORIGIN+'/props',{timeout:15000});
-    const href=await verifiedNavigation(page,'Games',['/games']);
+    const href=await verifiedNavigation(page,'Games',dashboardRoutes('Games'));
     if(href&&gameAlive()){
      await page.goto(href,{timeout:15000});
-     if(await premium(page)&&gameAlive())await traverseDashboardFilters(page,'Games',{shouldContinue:gameAlive,onSnapshot:async s=>{
+     if(await premium(page)&&gameAlive()){
+      const records=[];
+      try{
+       for(const sport of ['NBA','NHL','NFL','CS2','DOTA2','VAL','LOL','COD']){
+        if(!gameAlive())break;
+        const stop=Date.now()+12000;
+        try{await captureGameDialogs(page,sport,()=>gameAlive()&&Date.now()<stop,game=>records.push(game));}
+        catch{errors++;if(!await premium(page).catch(()=>false))throw Error('session unavailable');await page.goto(href,{timeout:5000});}
+       }
+      }finally{
+       if(records.length)await write('dashboards',{schema:'pickfinder-public-game-dialog-v1',records});
+      }
+     }
+     if(gameAlive()&&await premium(page))await traverseDashboardFilters(page,'Games',{shouldContinue:gameAlive,onSnapshot:async s=>{
       const {controls,...sports}=s;await write('dashboards',{schema:'pickfinder-public-dashboard-v1',...sports});
      }});
     }
@@ -121,7 +134,7 @@ async function main(root,env=process.env){
    }
   }finally{if(!buffer.failed())await buffer.flush();}
   // Dashboard snapshots remain separate from player data; only sporting tables/cards.
-  for(const name of ['Games','Discrepancies','Popular']){if(!alive())break;try{await page.goto(ORIGIN+'/props',{timeout:15000});const href=await verifiedNavigation(page,name,['/'+name.toLowerCase()]);if(!href)continue;await page.goto(href,{timeout:15000});if(!await premium(page))continue;await traverseDashboardFilters(page,name,{shouldContinue:alive,onSnapshot:async s=>{const {controls,...sports}=s;await write('dashboards',{schema:'pickfinder-public-dashboard-v1',...sports});}});}catch{errors++;}}
+  for(const name of ['Games','Discrepancies','Popular']){if(!alive())break;try{await page.goto(ORIGIN+'/props',{timeout:15000});const href=await verifiedNavigation(page,name,dashboardRoutes(name));if(!href)continue;await page.goto(href,{timeout:15000});if(!await premium(page))continue;await traverseDashboardFilters(page,name,{shouldContinue:alive,onSnapshot:async s=>{const {controls,...sports}=s;await write('dashboards',{schema:'pickfinder-public-dashboard-v1',...sports});}});}catch{errors++;}}
   if(alive()){await page.goto(ORIGIN+'/props',{timeout:15000});const labels=await inspectCapabilities(page);await write('capabilities',{schema:'pickfinder-public-capabilities-v1',labels,observedAt:new Date().toISOString(),accountMutations:0});}
  }finally{
   await context.close();console.log(JSON.stringify({state:'public_pickfinder_throughput',boards,profiles,profileMs,archiveMs,transactions,errors,elapsedMs:Date.now()-started,privateRepoUsed:false,modelInputsApproved:false}));

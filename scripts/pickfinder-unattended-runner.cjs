@@ -59,7 +59,7 @@ async function openBoard(chromium,profile){
 class RunnerStageError extends Error {
  constructor(stage){super(stage);this.stage=stage;}
 }
-async function stage(name,fn){try{return await fn();}catch(e){if(e instanceof RunnerStageError)throw e;throw new RunnerStageError(name);}}
+async function stage(name,fn){try{return await fn();}catch(e){if(e instanceof RunnerStageError)throw e;if(name==='deep_research'&&e instanceof require('./pickfinder-deep-research.cjs').DeepFailure&&/^[a-z_]+$/.test(e.deepStage))throw new RunnerStageError(name+'_'+e.deepStage);throw new RunnerStageError(name);}}
 async function checkpoint(root,prefix,batches,attempt,p){
   git(root,['add','--',prefix]);
   if(!safeAddedFiles(git(root,['diff','--cached','--name-status']),prefix))throw Error('non append-only staging refused');

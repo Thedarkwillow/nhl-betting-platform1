@@ -55,7 +55,9 @@ async function main(env=process.env){
   fs.writeFileSync(receiptPath,JSON.stringify({runner:env.RUNNER_NAME,launches:2,checkedAt:new Date().toISOString()}),{flag:'wx',mode:0o600});
   console.log(JSON.stringify({state:'two_browser_relaunches_authenticated',hostRebootVerified:false,offers:0}));return;
  }
- if(!receiptValid(JSON.parse(fs.readFileSync(receiptPath,'utf8')),env.RUNNER_NAME))throw Error('recent runner probe required');
+ const receipt=JSON.parse(fs.readFileSync(receiptPath,'utf8'));
+ if(!receiptValid(receipt,env.RUNNER_NAME))throw Error('recent runner probe required');
+ if(env.GITHUB_EVENT_NAME==='schedule'&&!receipt.captureVerifiedAt)throw Error('manual in-window remote archive proof required');
  const prefix='research/pickfinder-premium/'+p.clock.day+'/'+p.expected.replace(':','');
  const remaining=()=>{const t=pacific(new Date());return t.day===p.clock.day&&t.hour===p.clock.hour&&t.minute<55;};
  const attempt=crypto.randomUUID();
@@ -88,6 +90,9 @@ async function main(env=process.env){
   git(root,['push','origin','HEAD:refs/heads/main']);
   git(root,['fetch','origin','main']);
   git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']);
+  if(counts.length===partitions().length&&counts.every(c=>c.withinSlot===true)&&counts.some(c=>c.offers>0)){
+   fs.writeFileSync(receiptPath,JSON.stringify({...receipt,captureVerifiedAt:new Date().toISOString(),archiveSha:sha}),{mode:0o600});
+  }
   console.log(JSON.stringify({state:'remote_archive_verified',sha,slot:p.expected,partitions:counts,allPartitionsAttempted:counts.length===partitions().length,fullBoardCertified:false,modelInputsApproved:false}));
  }else failed=true;
  if(failed||counts.length!==partitions().length)process.exitCode=1;

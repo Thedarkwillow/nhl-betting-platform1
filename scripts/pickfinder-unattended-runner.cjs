@@ -11,11 +11,12 @@ const {discover}=require('./season-aware-discovery.cjs');
 const SPORTS=['NBA','CS2','VAL','LOL','DOTA2','COD','NHL','NFL'];
 const BOOKS=['prizepicks','underdog'];
 const partitions=()=>SPORTS.flatMap(code=>BOOKS.map(book=>({code,book})));
+const scheduledResearchPilot=env=>env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_SCHEDULE_RESEARCH_PILOT==='1'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1';
 function plan(env,now=new Date()){
  if(env.PICKFINDER_AUTOMATION_AUTHORIZED!=='1')throw Error('authorization_required');
  if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='probe_now')return {probe:true};
  if((env.GITHUB_EVENT_NAME==='workflow_dispatch'||env.GITHUB_EVENT_NAME==='push'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')&&['reconcile_now','full_reconcile_now'].includes(env.REQUESTED_MODE))return {allowed:true,reconcile:true,full:env.REQUESTED_MODE==='full_reconcile_now',expected:'manual',clock:pacific(now)};
- if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_SCHEDULE_ENABLED!=='1')return {allowed:false,state:'schedule_disabled'};
+ if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_SCHEDULE_ENABLED!=='1'&&!scheduledResearchPilot(env))return {allowed:false,state:'schedule_disabled'};
  return decide({eventName:env.GITHUB_EVENT_NAME,mode:env.REQUESTED_MODE,schedule:env.GITHUB_EVENT_SCHEDULE,now});
 }
 function receiptValid(receipt,runner,now=new Date()){
@@ -115,6 +116,8 @@ async function main(env=process.env){
  const {root,profile}=await stage('private_destination_validation',()=>destination(env));
  const {chromium}=await stage('playwright_module_load',()=>require('playwright'));
  const hosted=env.PICKFINDER_HOSTED==='1';
+ const pilotSchedule=hosted&&scheduledResearchPilot(env);
+ if(pilotSchedule)await stage('prior_private_archive_digest_proof',()=>loadVerifiedAttempt(root,'168bd736ee99157891fcf87b766ffcae49170dd2'));
  const open=()=>hosted?openHostedBoard(chromium,env):openBoard(chromium,profile);
  const receiptPath=path.join(profile,'.pickfinder-automation-probe.json');
  if(p.probe){
@@ -127,8 +130,8 @@ async function main(env=process.env){
  }
  const receipt=hosted?null:JSON.parse(fs.readFileSync(receiptPath,'utf8'));
  if(hosted){
-  if(env.PICKFINDER_HOSTED_AUTH_VERIFIED!=='1'&&!(p.reconcile&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1'))throw Error('fresh hosted probe required');
-  if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_HOSTED_CAPTURE_VERIFIED!=='1')throw Error('manual capture proof required');
+  if(env.PICKFINDER_HOSTED_AUTH_VERIFIED!=='1'&&!((p.reconcile||pilotSchedule)&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1'))throw Error('fresh hosted probe required');
+  if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_HOSTED_CAPTURE_VERIFIED!=='1'&&!pilotSchedule)throw Error('manual capture proof required');
  }else{
   if(!receiptValid(receipt,env.RUNNER_NAME))throw Error('recent runner probe required');
   if(env.GITHUB_EVENT_NAME==='schedule'&&!receipt.captureVerifiedAt)throw Error('manual in-window remote archive proof required');
@@ -193,7 +196,7 @@ async function main(env=process.env){
   if(!p.reconcile&&!hosted&&counts.length===targets.length&&counts.every(c=>c.withinSlot===true)&&counts.some(c=>c.offers>0)){
    fs.writeFileSync(receiptPath,JSON.stringify({...receipt,captureVerifiedAt:new Date().toISOString(),archiveSha:sha}),{mode:0o600});
   }
-  console.log(JSON.stringify({state:'remote_archive_verified',sha,slot:p.expected,partitions:counts,allPartitionsAttempted:counts.length===targets.length,remoteDigestVerified:true,boundedSample:p.reconcile===true&&!p.full,allVisibleBoardsTraversed:counts.length===targets.length&&counts.every(c=>c.traversal||['verified_empty_board','verified_disabled_board'].includes(c.seasonStatus)),fullBoardCertified:false,modelInputsApproved:false}));
+  console.log(JSON.stringify({state:'remote_archive_verified',sha,slot:p.expected,partitions:counts,allPartitionsAttempted:counts.length===targets.length,remoteDigestVerified:true,researchOnly:true,scheduledPilot:pilotSchedule,boundedSample:p.reconcile===true&&!p.full,allVisibleBoardsTraversed:counts.length===targets.length&&counts.every(c=>c.traversal||['verified_empty_board','verified_disabled_board'].includes(c.seasonStatus)),fullBoardCertified:false,modelInputsApproved:false}));
  }else failed=true;
  if(p.reconcile&&!counts.some(c=>c.offers>0))failed=true;
  if(p.full&&counts.some(c=>!c.traversal&&!['verified_empty_board','verified_disabled_board'].includes(c.seasonStatus)))failed=true;

@@ -47,7 +47,7 @@ function compact(doc,receivedAt,provider,source,prefixes){
   if(!r||r.is_demo===true||(r.source!=null&&r.source!==source)||r.status!=="active"){reject("source_or_status");continue;}
   const sport=resolveSport(r),start=timestamp(r.event_starts_at??r.starts_at),observed=timestamp(r.observed_at);
   if(!sport||!text(r.id)||!text(r.player)||!text(r.stat)||!text(r.period)||!Number.isFinite(r.line)){reject("compact_identity_scope_or_line");continue;}
-  if(!Number.isFinite(start)||!Number.isFinite(observed)||observed>now||now-observed>900000||start<=now+900000){reject("stale_or_started");continue;}
+  if(!Number.isFinite(start)||!Number.isFinite(observed)||observed>now||now-observed>900000||start<=now+900000||observed>=start||r.is_live===true||r.in_game===true){reject("stale_or_started");continue;}
   const selections={};let invalid=false;
   const listed=provider==="PrizePicksAPI"&&Object.hasOwn(r,"sides");
   const warnings=[];

@@ -239,5 +239,5 @@ async function main(env=process.env){
  if(p.full&&counts.some(c=>!c.traversal&&!['verified_empty_board','verified_disabled_board'].includes(c.seasonStatus)))failed=true;
  if(failed||counts.length!==targets.length)process.exitCode=1;
 }
-module.exports={checkpoint,plan,receiptValid,safeAddedFiles,partitions,passwordLogin,submitLoginStep,stage,RunnerStageError};
+module.exports={openHostedBoard,checkpoint,plan,receiptValid,safeAddedFiles,partitions,passwordLogin,submitLoginStep,stage,RunnerStageError};
 if(require.main===module)main().catch(e=>{console.error(JSON.stringify({state:'runner_failed',stage:e instanceof RunnerStageError?e.stage:'unclassified',rawDataLogged:false}));process.exitCode=1;});

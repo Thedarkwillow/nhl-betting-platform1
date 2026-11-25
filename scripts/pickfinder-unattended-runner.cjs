@@ -134,11 +134,11 @@ async function passwordLogin(page,env){
  // No retry or alternate verification path. The provider may require an interactive challenge.
  await stage('login_completion_not_verified',()=>page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:25000}));
 }
-async function openHostedBoard(chromium,env){
+async function openHostedBoard(chromium,env,timezoneId){
  const browser=await stage('browser_launch',()=>chromium.launch({headless:true}));
  try{
   const state=env.PICKFINDER_STORAGE_STATE;
-  const context=await stage('browser_context_creation',()=>browser.newContext(state?{storageState:JSON.parse(state)}:{}));
+  const context=await stage('browser_context_creation',()=>browser.newContext({...state?{storageState:JSON.parse(state)}:{},...timezoneId?{timezoneId}:{}}));
   const page=await stage('browser_page_creation',()=>context.newPage());page.setDefaultTimeout(8000);
   if(!state)await passwordLogin(page,env);
   await stage('premium_board_navigation',()=>page.goto(ORIGIN+'/props',{timeout:20000}));

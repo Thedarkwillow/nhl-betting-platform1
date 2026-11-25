@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths: ['scripts/getodds-secure-preflight.cjs','test/getodds-secure-preflight.test.cjs','.github/workflows/getodds-secure-preflight.yml']
   workflow_dispatch:
+  schedule:
+    - cron: '20 15 * * *'
 permissions:
   contents: read
 concurrency:
@@ -23,13 +25,48 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
         with:
+          persist-credentials: false
+      - name: Verify restricted archive destination
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/getodds-samples
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: restricted
           persist-credentials: false
       - name: Report sanitized account metadata only unless confirmed free
         env:
           GETODDS_API_KEY: ${{ secrets.GETODDSAPI || secrets.GETODDS_API_KEY || secrets.GETODDS_API }}
           GETODDS_FREE_PLAN_CONFIRMED: ${{ vars.GETODDS_FREE_PLAN_CONFIRMED }}
+          GETODDS_PRIVATE_REPORT_PATH: ${{ runner.temp }}/getodds-report.json
+          GETODDS_PRIVATE_CANDIDATE_PATH: ${{ github.workspace }}/restricted/research/kashrock-source-captures/identity-projection-candidate-review-20261125.json
         run: node scripts/getodds-secure-preflight.cjs
+      - name: Preserve restricted research observations
+        working-directory: restricted
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          mkdir -p research/getodds-samples
+          dest="research/getodds-samples/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.json"
+          test ! -e "$dest"
+          install -m 600 "$RUNNER_TEMP/getodds-report.json" "$dest"
+          git add -f "$dest"
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Archive bounded GetOdds research observations'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:refs/heads/research/getodds-samples
+          test "$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin refs/heads/research/getodds-samples | cut -f1)" = "$(git rev-parse HEAD)"
+          echo 'Private GetOdds research archive verified.'

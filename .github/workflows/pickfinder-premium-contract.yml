@@ -17,5 +17,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test test/season-aware-collection.test.cjs test/pickfinder-pilot-reconcile.test.cjs test/pickfinder-unattended-runner.test.cjs test/pickfinder-browser.test.cjs test/pickfinder-premium-archive.test.cjs scripts/test-pacific-morning-capture-gate.cjs
+      - run: node --test test/pickfinder-quote-features.test.cjs test/season-aware-collection.test.cjs test/pickfinder-pilot-reconcile.test.cjs test/pickfinder-unattended-runner.test.cjs test/pickfinder-browser.test.cjs test/pickfinder-premium-archive.test.cjs scripts/test-pacific-morning-capture-gate.cjs
 

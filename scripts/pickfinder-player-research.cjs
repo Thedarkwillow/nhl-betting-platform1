@@ -50,27 +50,35 @@ function readSections({tab,origin,observedAt,context}) {
   }
   return fields;
 }
+async function traverseMixed(page,collect,shouldContinue){
+ const start=Date.now(),issues=new Set();let states=0,customControls=0;const alive=()=>shouldContinue()&&Date.now()-start<45000;
+ const capture=async selection=>{if(!alive()){issues.add('deadline');return;}await collect(selection);states++;};
+ async function inner(native){if(!alive()){issues.add('deadline');return;}const a=await traverseCustomFilters(page,{shouldContinue:alive,maxMs:Math.max(1,45000-(Date.now()-start)),onState:s=>capture([...native,...s])});customControls+=a.eligibleControls;for(const i of a.issues)issues.add(i);if(!a.statesObserved)await capture(native);}
+ const native=await traverseNativeFilters(page,{shouldContinue:alive,maxMs:45000,onState:inner});
+ if(!native.statesObserved&&alive())await inner([]);
+ for(const i of native.issues)issues.add(i);
+ return {statesObserved:states,customControls,native,issues:[...issues],allFilterCombinationsVerified:false};
+}
 async function enrich(page,row,{navigate,maxFields=500,expanded=false,shouldContinue=()=>true}){
   if(!(maxFields===Infinity||Number.isInteger(maxFields)&&maxFields>=1&&maxFields<=2000))throw Error('invalid profile field budget');
   const url=new URL(row.detailId,'https://www.pickfinder.app');
   if(url.origin!=='https://www.pickfinder.app'||!url.pathname.startsWith('/players/'))throw Error('invalid profile');
   await navigate(url.href);
   await page.getByRole('button',{name:'Line Movement',exact:true}).waitFor({state:'visible'});
-  const groups=[],tabAudit=[];let filterAudit=null,customFilterAudit=null,deadline=false;
-  const update=()=>{const remaining=Math.max(0,maxFields-initial.length),nonempty=groups.filter(g=>g.length),limit=Math.floor(remaining/Math.max(1,nonempty.length));row.research=[...initial,...nonempty.flatMap(g=>g.slice(0,limit))];row.profileCollection={observationsAvailable:groups.reduce((n,g)=>n+g.length,0),panels:groups.length,tabAudit:[...tabAudit],truncated:groups.some(g=>g.length>limit)||tabAudit.some(t=>t.state==='failed')||deadline||(expanded&&(!!filterAudit?.issues?.length||!!customFilterAudit?.issues?.length)),...(expanded?{coverageVersion:VERSION,featureCoverage:coverage(row.sport,row.research),filterAudit,customFilterAudit}: {})};};
+  const groups=[],tabAudit=[];let filterAudit=null,customFilterAudit=null,deadline=false;const tabFilterAudit=[];
+  const update=()=>{const remaining=Math.max(0,maxFields-initial.length),nonempty=groups.filter(g=>g.length),limit=Math.floor(remaining/Math.max(1,nonempty.length));row.research=[...initial,...nonempty.flatMap(g=>g.slice(0,limit))];row.profileCollection={observationsAvailable:groups.reduce((n,g)=>n+g.length,0),panels:groups.length,tabAudit:[...tabAudit],truncated:groups.some(g=>g.length>limit)||tabAudit.some(t=>t.state==='failed')||deadline||(expanded&&(!!filterAudit?.issues?.length||!!customFilterAudit?.issues?.length||tabFilterAudit.some(t=>t.audit.issues.length))),...(expanded?{coverageVersion:VERSION,featureCoverage:coverage(row.sport,row.research),filterAudit,customFilterAudit,tabFilterAudit}: {})};};
   const initial=[...row.research];
   const context={period:row.period,mapRange:row.mapRange,gameMode:row.gameMode};
   const collect=async(tab,origin,selection=null)=>{const fields=await page.evaluate(readSections,{tab,origin,observedAt:new Date().toISOString(),context:{...context,...(selection?{filterSelection:selection}:{})}});groups.push(fields);tabAudit.push({tab,origin,fields:fields.length,state:fields.length?'observed':'empty'});update();};
   await collect('Player overview','profile');
-  if(expanded&&shouldContinue())filterAudit=await traverseNativeFilters(page,{shouldContinue,onState:selection=>collect('Player overview','profile',selection)});
-  if(expanded&&shouldContinue())customFilterAudit=await traverseCustomFilters(page,{shouldContinue,onState:selection=>collect('Player overview','profile',selection)});
-  for(const name of ['Matchup','Defense','Shooting','Similar','Rankings','Injuries','Player Stats','Maps','Team Form',...(maxFields>500?['Depth Chart','Lineups','Home/Away','Splits','Season','Teammates','Modes','Agents','Champions','Heroes']:[]),...(expanded?tabs:[])]){
+  if(expanded&&shouldContinue())filterAudit=await traverseMixed(page,selection=>collect('Player overview','profile',selection),shouldContinue);
+  for(const name of [...new Set(['Matchup','Defense','Shooting','Similar','Rankings','Injuries','Player Stats','Maps','Team Form',...(maxFields>500?['Depth Chart','Lineups','Home/Away','Splits','Season','Teammates','Modes','Agents','Champions','Heroes']:[]),...(expanded?tabs:[])])]){
     if(!shouldContinue()){deadline=true;break;}
     const candidate=page.getByRole('tab',{name,exact:true}).or(page.getByRole('button',{name,exact:true}));
     if(expanded&&await candidate.count()!==1){tabAudit.push({tab:name,origin:'profile',state:await candidate.count()?'ambiguous':'not_visible',fields:0});continue;}
     const target=candidate.first();
     if(await target.isVisible()){
-      try{await target.click();await collect(name,'profile');}catch{tabAudit.push({tab:name,origin:'profile',state:'failed',fields:0});update();}
+      try{await target.click();await collect(name,'profile');if(expanded&&shouldContinue()){const audit=await traverseMixed(page,selection=>collect(name,'profile',selection),shouldContinue);tabFilterAudit.push({tab:name,audit});}}catch{tabAudit.push({tab:name,origin:'profile',state:'failed',fields:0});update();}
     }else tabAudit.push({tab:name,origin:'profile',state:'not_visible',fields:0});
   }
   for(const [name,origin] of [['Line Movement','line_movement'],['Prop History','prop_history']]){
@@ -80,4 +88,4 @@ async function enrich(page,row,{navigate,maxFields=500,expanded=false,shouldCont
   }
   update();
 }
-module.exports={enrich,readSections};
+module.exports={enrich,readSections,traverseMixed};

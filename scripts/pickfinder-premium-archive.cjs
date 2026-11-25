@@ -2,6 +2,7 @@
 // Validates a normalized authorized Premium browser export, not a browser/login implementation.
 // No network, credentials, wagering, model inputs or first-party offer certification.
 const fs=require("node:fs"),crypto=require("node:crypto");
+const {extractQuotes}=require("./pickfinder-quote-features.cjs");
 const {pacific,WINDOWS}=require("./pacific-morning-capture-gate.cjs");
 const BOOKS=new Set(["prizepicks","underdog"]);
 const SPORTS=new Set(["nba","nfl","nhl","mlb","wnba","college-football","college-basketball","tennis","soccer","cs2","valorant","lol","dota2","cod"]);
@@ -31,7 +32,7 @@ function normalize(input,{now=new Date()}={}){
  if(!Array.isArray(input.pages)||!["populated","empty","disabled","partial"].includes(input.boardState))throw Error("page contract");
  const first=instant(input.startedAt),last=instant(input.endedAt);
  if(first>last||last>now)throw Error("attempt chronology");
- const links=new Set(),offers=new Map(),conflicts=new Set(),pageNumbers=new Set(),researchObservations=[],unpricedTierObservations=new Map();
+ const links=new Set(),offers=new Map(),conflicts=new Set(),pageNumbers=new Set(),researchObservations=[],unpricedTierObservations=new Map(),sportsbookQuotes=new Map();
  let appearances=0,unresolvedRows=0,wrongSport=0,crossHourRows=0;
  const unresolvedEvidence={legacyNoEvidence:0,bookBadgeMissing:0,tierWithoutExplicitPrice:0,bookBadgeWithoutExplicitPrice:0,ambiguousBookGroup:0,lineMissing:0};
  for(const page of input.pages){
@@ -44,6 +45,7 @@ function normalize(input,{now=new Date()}={}){
    const observed=instant(row.observedAt);
    if(observed<first||observed>last)throw Error("row outside attempt");
    links.add(row.detailId);
+   for(const q of extractQuotes(row)){const k=JSON.stringify([q.detailId,q.eventId,q.market,q.bookLabel,q.side,q.quoteLine,q.price,q.observedAt]);sportsbookQuotes.set(k,q);}
    for(const field of scopedResearch(row.research,first,last,input.sport))researchObservations.push({...field,detailId:row.detailId,player:row.player,market:row.market,eventId:text(row.eventId)?row.eventId:null,boardBook:input.book,startAt:row.startAt?instant(row.startAt).toISOString():null});
    if(input.slot!=="manual"&&!inSlot(observed,input.localDay,input.slot))crossHourRows++;
    // A visible book/tier/line is useful research even when the side and price are absent.
@@ -91,7 +93,7 @@ function normalize(input,{now=new Date()}={}){
  if(input.sport==="soccer"&&links.size>=9999)reasons.push("possible_display_cap_requires_partition_reconciliation");
  if(input.boardState==="empty"&&appearances!==0||input.boardState==="disabled"&&appearances!==0)reasons.push("inconsistent_board_state");
  // A mutable UI traversal is not proof of full-board completeness, even when contiguous.
- return {schema:"pickfinder-premium-normalized-v1",book:input.book,sport:input.sport,localDay:input.localDay,slot:input.slot,firstObservedAt:first.toISOString(),lastObservedAt:last.toISOString(),boardState:input.boardState,withinSlot,pageTraversalComplete,fullBoardCertified:false,originalOffersVerified:0,modelInputsApproved:false,health:{pages:pageNumbers.size,appearances,distinctDetailLinks:links.size,repeatOrUnresolvedLinks:repeatLinks,distinctOfferKeys:offers.size,priceConflictKeys:conflicts.size,wrongSport,unresolvedRows,crossHourRows,unresolvedEvidence,researchFields:researchObservations.length,unpricedTierObservations:unpricedTierObservations.size,reasons},offers:[...offers.values()],researchObservations,unpricedTierObservations:[...unpricedTierObservations.values()]};
+ return {schema:"pickfinder-premium-normalized-v1",book:input.book,sport:input.sport,localDay:input.localDay,slot:input.slot,firstObservedAt:first.toISOString(),lastObservedAt:last.toISOString(),boardState:input.boardState,withinSlot,pageTraversalComplete,fullBoardCertified:false,originalOffersVerified:0,modelInputsApproved:false,health:{pages:pageNumbers.size,appearances,distinctDetailLinks:links.size,repeatOrUnresolvedLinks:repeatLinks,distinctOfferKeys:offers.size,priceConflictKeys:conflicts.size,wrongSport,unresolvedRows,crossHourRows,unresolvedEvidence,researchFields:researchObservations.length,sportsbookQuoteObservations:sportsbookQuotes.size,unpricedTierObservations:unpricedTierObservations.size,reasons},offers:[...offers.values()],researchObservations,unpricedTierObservations:[...unpricedTierObservations.values()],sportsbookQuotes:[...sportsbookQuotes.values()]};
 }
 function archive(input,root,attemptId,opts){
  if(process.env.RESTRICTED_DESTINATION_VERIFIED!=="1"||!fs.existsSync(root+"/.git"))throw Error("verified private archive required");
@@ -103,7 +105,7 @@ function archive(input,root,attemptId,opts){
  const dest=path.join(base,attemptId);fs.mkdirSync(dest,{mode:0o700});
  fs.writeFileSync(path.join(dest,"source.json"),raw,{flag:"wx",mode:0o600});
  fs.writeFileSync(path.join(dest,"normalized.json"),JSON.stringify({...result,sourceDigest:digest}),{flag:"wx",mode:0o600});
- const {offers,researchObservations,unpricedTierObservations,...summary}=result;return {...summary,sourceDigest:digest,rawRowsPublished:0};
+ const {offers,researchObservations,unpricedTierObservations,sportsbookQuotes,...summary}=result;return {...summary,sourceDigest:digest,rawRowsPublished:0};
 }
 module.exports={normalize,archive};
 if(require.main===module){

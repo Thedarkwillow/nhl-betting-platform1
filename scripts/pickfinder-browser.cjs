@@ -46,14 +46,14 @@ function readBoard({book, code, sport, observedAt}) {
     // Keep competitor quotes distinct from the selected fantasy book. The board's line
     // is not assumed to be the competitor's own threshold.
     const sportsbookEvidence=[];
-    const supported=new Set(['draftkings','fanduel','betmgm','caesars','pinnacle','bet365','espnbet','fanatics','betrivers','hardrockbet','betonline','bovada','fliff','betfair']);
+    const supported=new Set(['prizepicks','underdog','draftkings','fanduel','betmgm','caesars','pinnacle','bet365','espnbet','fanatics','betrivers','hardrockbet','betonline','bovada','fliff','betfair']);
     const canonical=x=>x.toLowerCase().replace(/[^a-z0-9]/g,'');
     for(const icon of cell?.querySelectorAll('img[alt]')||[]){
-      const label=icon.alt.trim(),id=canonical(label);if(!id||['prizepicks','underdog','goblin','demon'].includes(id))continue;
+      const label=icon.alt.trim(),id=canonical(label);if(!id||['goblin','demon'].includes(id))continue;
       let group=icon.parentElement;
       while(group?.parentElement&&group.parentElement!==cell){const next=group.parentElement,icons=[...next.querySelectorAll('img[alt]')];if(icons.length!==1||icons[0]!==icon)break;group=next;}
       const display=group?.innerText.trim().slice(0,400)||'';
-      const prices=[...display.matchAll(/(?:^|\s)(O|U|Higher|Lower|Over|Under)\s*([+-]\d{2,4})(?=\s|$)/gi)].map(m=>({side:/^(o|over|higher)$/i.test(m[1])?'Higher':'Lower',price:m[2]}));
+      const prices=[...display.matchAll(/(?:^|\s)(O|U|Higher|Lower|Over|Under)\s*(?:(\d+(?:\.\d+)?)\s+)?\(?([+-]\d{2,4})\)?(?=\s|$)/gi)].filter(m=>Math.abs(Number(m[3]))>=100).map(m=>({side:/^(o|over|higher)$/i.test(m[1])?'Higher':'Lower',price:m[3],quoteLine:m[2]===undefined?null:Number(m[2])}));
       sportsbookEvidence.push({book:supported.has(id)?id:null,displayedBookLabel:label,unclassifiedBookBadge:!supported.has(id),display,prices,quoteLine:null,originalPlatformVerified:false,modelInputsApproved:false});
     }
     const research = [];

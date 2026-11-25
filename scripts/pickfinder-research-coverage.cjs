@@ -1,6 +1,6 @@
 'use strict';
 // Only observed sporting research, no inferred quotes, no account mutation.
-const VERSION='sport-filter-v3';
+const VERSION='sport-filter-v4';
 const common={
  game_logs:['game log','gamelog','game logs','player stats'],
  historical_lines:['historical line','prop history'],
@@ -24,8 +24,18 @@ const sports={
  lol:{champions:['champion','champions'],team_kills:['team kills','team kill','kills per game'],game_modes:['game mode','modes']},
  cod:{map_pools:['map pool','maps'],game_modes:['game mode','modes','hardpoint','search and destroy','control'],lan_online:['lan','online'],team_kills:['team kills','team kill','kills per map']}
 };
-const tabs=['Game Logs','Gamelog','Game Log','Historical Stats','Shooting Chart','Shot Chart','Shot Zones','Rotations','Rotation','Minutes','On/Off','With/Without','Quarter','Half','Defense vs Position','Defense vs. Position','Shot Attempts','Goalie Matchup','Goalies','Goaltending','Line Combinations','Power Play','Target Share','Rushing','Receiving','Kicking','Kickers','Map Pool','Map Stats','LAN','Online','Headshots','Team Kills','Team Stats','Game Modes','Match History','Sportsbooks','Odds','Advanced Stats'];
-const filterLabels=['sport','league','date','game','match','market','prop','stat','stat type','apps','app','book','books','sportsbook','sportsbooks','modifier','modifiers','tier','period','quarter','half','season','split','splits','home/away','home away','opponent','position','team','teammates','with/without','with without','map','maps','map pool','map range','mode','game mode','agent','champion','hero','lan/online','lan online','last games','games','window','timeframe','sort','sort by'];
+Object.assign(common,{similar_players:['similar players','similar','comparable players'],streaks:['streak','avg l10','average'],line_discrepancy:['diff','discrepancy'],projections:['projection','projected'],matchup:['matchup','opponent']});
+Object.assign(sports.nba,{minutes_usage:['minutes','usage rate','usage percentage']});
+Object.assign(sports.nhl,{time_on_ice:['time on ice','toi'],period_stats:['period','1p','2p','3p'],team_rankings:['team rankings','offense','defense']});
+Object.assign(sports.nfl,{passing_workload:['pass attempts','passing attempts','dropbacks'],weather:['weather','wind','temperature'],game_environment:['game total','team total','spread']});
+for(const k of ['cs2','valorant','dota2','lol','cod'])Object.assign(sports[k],{rosters:['roster','substitutes','substitute'],tournament_tier:['tournament tier','event tier'],series_length:['series length','best of','bo3','bo5'],team_environment:['kill environment','bloodiest teams','kills conceded']});
+Object.assign(sports.cs2,{round_counts:['rounds','round count','rounds per map'],map_bans:['map bans','veto','map picks'],assists:['assists','assist board']});
+Object.assign(sports.valorant,{first_bloods:['first blood','first kill','first bloods'],round_counts:['rounds','round count','rounds per map'],map_bans:['map bans','veto','map picks']});
+Object.assign(sports.dota2,{role_defense:['defense vs position','role defense','kills conceded'],assists:['assists','assist board']});
+Object.assign(sports.lol,{role_defense:['defense vs position','role defense'],assists:['assists','assist board']});
+Object.assign(sports.cod,{first_bloods:['first blood','first bloods']});
+const tabs=['Game Logs','Gamelog','Game Log','Historical Stats','Shooting Chart','Shot Chart','Shot Zones','Rotations','Rotation','Minutes','On/Off','With/Without','Quarter','Half','Defense vs Position','Defense vs. Position','Shot Attempts','Goalie Matchup','Goalies','Goaltending','Line Combinations','Power Play','Target Share','Rushing','Receiving','Kicking','Kickers','Map Pool','Map Stats','LAN','Online','Headshots','Team Kills','Team Stats','Game Modes','Match History','Sportsbooks','Odds','Advanced Stats','Similar Players','Streaks','Projections','Usage','Time on Ice','Period','Passing','Pass Attempts','Weather','Team Rankings','First Bloods','Round Counts','Map Bans','Veto','Roster','Substitutes','Tournament Tier','Series Length','Kill Environment','Assist Board','Bloodiest Teams','Defense vs Role'];
+const filterLabels=['sport','league','date','game','match','market','prop','stat','stat type','apps','app','book','books','sportsbook','sportsbooks','modifier','modifiers','tier','period','quarter','half','season','split','splits','home/away','home away','opponent','position','team','teammates','with/without','with without','map','maps','map pool','map range','mode','game mode','agent','champion','hero','lan/online','lan online','last games','games','window','timeframe','sort','sort by','tournament','tournament tier','event tier','role','roster','series length','rounds','minutes','usage','stat category','line type','odds format'];
 const normalize=s=>String(s??'').trim().toLowerCase().replace(/\s+/g,' ');
 function coverage(sport,fields){
  const wanted={...common,...sports[sport]},out={};

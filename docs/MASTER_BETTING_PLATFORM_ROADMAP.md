@@ -1139,6 +1139,52 @@ Public baseline imported from private Git blob 7ac01dea9de441e7f577050c425c67176
 - [ ] **[ESP-060]** Preserve owner-authorized VCT Reference dataset as a bounded content-addressed private historical cache with prior-date diagnostics and aggregate counts. Owner reports explicit permission, agreement not independently inspected; do not redistribute raw data. No live offer, identity link or final clock certification. CI, merge and actual intake pending.
 - [ ] **[ESP-061]** Preserve pinned Ektarr CS2 source and bounded COD May 2026 Cargo source cohort as content-addressed private historical caches, validating exact hash/complete player maps, stopping on refusal, separating source-native scopes and underlying rights from independent authority. CI, merge and actual intake pending.
 
+
+## Phase 23 — PrizePicks and Underdog long-term sport expansion (owner-approved backlog, 2026-11-25)
+
+Keep Phase 10's original sport rollout order intact. Complete current PickFinder authentication/capture, model qualification and prospective evidence before expanding production coverage. Current shared registry includes 14 categories; five are registration-only/partial (WNBA, CFB, CBB, tennis, soccer). The preceding coverage audit identified 16 additional categories with reported independent-provider offer history and five further reported categories requiring individual offer verification. This is not a verified complete live PrizePicks inventory, nor proof that Underdog carries the same sports. Soccer league subdivisions below are not counted as additional sports. The source catalog is a discovery lead, not authorization or original-platform proof. Maintain season awareness and the no-new-paid-credit policy across every category.
+
+Expansion order after existing rollout: related sport families (WNBA, CBB, WCBB, CFB, CFL, KBO); additional esports (R6, APEX, Rocket League pending verification); individual sports (tennis, UFC, PGA, European golf, boxing); soccer subdivisions, F1, NASCAR, cricket; specialty sports (TT, badminton, darts, WTGL) and other verified categories. Priority is flexible based on actual competition, source quality, existing infrastructure and owner approval. Do not start collection or promote any model solely because it is on this list.
+
+- [ ] **[EXP-01]** Build automatic PrizePicks and Underdog league discovery with stable platform-specific IDs, aliases, segment/period codes, timestamps, source and regional availability. Use existing authorized Premium and documented free metadata first; distinguish missing, disabled, offseason, partial, and source failure; do not equate catalog entries with live offers.
+- [ ] **[EXP-02]** Complete the existing rollout first (NHL, NFL, NBA, five esports titles, then the separate MLB project in the original order). Preserve locked models, original forecasts, and existing project boundaries. Expansion is a backlog, not permission to divert the current validation sprint.
+- [ ] **[EXP-03]** Finish dedicated WNBA collection, official results and player identity, sport-specific calibration and prospective grading.
+- [ ] **[EXP-04]** Finish men's college basketball (CBB) collection, roster/transfer identity, competition and season coverage, market rules and held-out models.
+- [ ] **[EXP-05]** Finish college football (CFB) collection, team/player/season identity, workload, opponent strength, kicking and settlement rules; validate independently of NFL.
+- [ ] **[EXP-06]** Add women's college basketball (WCBB): confirm league IDs, historical player stats, team/roster continuity and dedicated models.
+- [ ] **[EXP-07]** Add Canadian football (CFL): verify rules, schedule and player stats, market definitions, historical lines and distinct calibration.
+- [ ] **[EXP-08]** Add Korean baseball (KBO): verify scoring, league-specific historical stats, lineups, pitcher availability, weather/park context and separate calibration; preserve MLB project.
+- [ ] **[EXP-09]** Add Rainbow Six Siege (R6): independently verify offers, roster IDs, maps/rounds, format and patch context, historical stats and settlement.
+- [ ] **[EXP-10]** Add Apex Legends (APEX): verify offers, player/team identity, lobby and match structure, placement, kills and scoring/patch versions.
+- [ ] **[EXP-11]** Investigate Rocket League (reported coverage, unverified individual offers); if verified, collect series/game stats, rosters, scoring and format context; build a dedicated model.
+- [ ] **[EXP-12]** Finish tennis (TENNIS) coverage by tour, tournament, surface, player ID, retirement/withdrawal and match-format settlement; validate dedicated models.
+- [ ] **[EXP-13]** Add UFC/MMA (UFC): verify event and fighter IDs, weight class, fight format, historical stats and exact settlement rules; validate uncertainty independently.
+- [ ] **[EXP-14]** Add PGA Tour golf (PGA): verify tournament/course/round/tee-time, golfer identity, scoring, cut and withdrawal rules and historical models.
+- [ ] **[EXP-15]** Add European golf (EUROGOLF): verify tour namespace and actual offer coverage, course/round context and separate scoring validation.
+- [ ] **[EXP-16]** Add boxing (BOXING): verify fighter/event ID, weight class, scheduled rounds, historical evidence, outcomes and sport-specific scoring.
+- [ ] **[EXP-17]** Finish general soccer collection with competition-specific models; verify each league independently instead of pooling unsupported markets.
+- [ ] **[EXP-18]** Add Premier League (England) competition-specific soccer coverage.
+- [ ] **[EXP-19]** Add La Liga (Spain) competition-specific soccer coverage.
+- [ ] **[EXP-20]** Add Bundesliga (Germany) competition-specific soccer coverage.
+- [ ] **[EXP-21]** Add Serie A (Italy) competition-specific soccer coverage.
+- [ ] **[EXP-22]** Add Ligue 1 (France) competition-specific soccer coverage.
+- [ ] **[EXP-23]** Add MLS (USA/Canada) competition-specific soccer coverage.
+- [ ] **[EXP-24]** Add Liga MX (Mexico) competition-specific soccer coverage.
+- [ ] **[EXP-25]** Add UEFA Champions League competition-specific soccer coverage.
+- [ ] **[EXP-26]** Add Formula 1 (F1): driver/team, circuit, session, qualifying/race, rule changes and market settlement.
+- [ ] **[EXP-27]** Add NASCAR (NASCAR): verify series namespace, driver/team, track, race-stage, qualifying and settlement rules.
+- [ ] **[EXP-28]** Add cricket (CRICKET): split competition and match formats (T20/ODI/Test), player/team/innings and weather/interruption rules.
+- [ ] **[EXP-29]** Add table tennis (TT): verify tournament, player identity, match/game format, point-level evidence and market rules.
+- [ ] **[EXP-30]** Add badminton (BAD): verify singles/doubles, tournament and game scoring, player identity and withdrawal rules.
+- [ ] **[EXP-31]** Add darts (DARTS): verify event, player, leg/set format and market/settlement rules.
+- [ ] **[EXP-32]** Add women's TGL golf (WTGL): verify actual competition/offer namespace, team and match format, scoring and historical evidence before model development.
+- [ ] **[EXP-33]** Investigate Japanese baseball (NPB), reported but not independently verified individual offers; if confirmed, add distinct league statistics, schedule, identity and models.
+- [ ] **[EXP-34]** Investigate Australian rules football (AFL), reported but not independently verified individual offers; if confirmed, add sport-specific stats, player roles, rules and models.
+- [ ] **[EXP-35]** Investigate EuroLeague basketball, reported but not independently verified individual offers; if confirmed, add competition-specific schedule, identity and models.
+- [ ] **[EXP-36]** Investigate LIV Golf, reported but not independently verified individual offers; if confirmed, verify tournament and scoring/format versions before separate models.
+- [ ] **[EXP-37]** Apply all-sport acceptance gate to each new category: authorize source usage and storage; verify actual individual offers and independently reconcile identities, historical statistics and results; implement season-aware collection, immutable pregame archives, chronological backtests, calibration and genuinely prospective grading; require verified platform rules, payout and correlation evidence before research lineup optimization or model promotion. Add sport selector and health/coverage display only with truthful readiness labels.
+- [ ] **[EXP-38]** Maintain dynamic coverage catalog and revisit new/removed league codes periodically; support subdivisions, halves/quarters/maps/rounds as market scopes rather than independent sports. Audit current availability and zero-credit source budget before adding providers; no new subscriptions without owner approval.
+
 ## Verified completion log — mark tasks here as they are actually finished
 
 **Original 13 legacy checkmarks** are carried forward as evidence of *implemented scoped components*, not production accreditation. Follow-up changes must supply fresh proof (link to code change, passing CI/workflow, and a representative accepted output) **in the same PR/commit as checking a box**. A task that has not passed its acceptance gate stays `[ ]`.

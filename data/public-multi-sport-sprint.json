@@ -37,17 +37,17 @@
     },
     {
       "sport": "League of Legends",
-      "description": "200,040 historical source rows; 19,999 complete validated games, 15,623 exact series/game-number bindings, 46,263 Maps 1–2 and 23,289 Maps 1–3 player-series. Team-kill MAE 6.779→6.542; kill share 2.101→2.074; assist share 3.652→3.597. Synthetic calibration worsened; no original prop validation. Advanced historical negative-binomial/Poisson challenger reduced synthetic Brier error across all 12 market/scope groups; no verified original-line or prospective calibration.",
+      "description": "200,040 historical source rows; 19,999 complete validated games, 15,623 exact series/game-number bindings, 46,263 Maps 1–2 and 23,289 Maps 1–3 player-series. Team-kill MAE 6.779→6.542; kill share 2.101→2.074; assist share 3.652→3.597. Synthetic calibration worsened; no original prop validation. Advanced historical negative-binomial/Poisson challenger reduced synthetic Brier error across all 12 market/scope groups; no verified original-line or prospective calibration. Explicit results repaired for 19,999 games. Prior-date Elo MAE kills 2.1046→2.0983, deaths 1.7164→1.7067, assists 3.6534→3.6348 (34,887 matched rows per market); patch/role adjustment worsened.",
       "historicalRows": 200040
     },
     {
       "sport": "Dota 2",
-      "description": "3,000 professional matches, 156 dates. Hero-conditioned historical error improved on 3,135 matched observations per market. Prior-only duration blend marginally improved assists MAE 5.535 to 5.520 (4,628); other markets did not improve. Prior team/opponent duration MAE improved 625.74 to 575.99 seconds (4,422). Separate 2024 cohort adds 30,000 player rows across 3,000 games, not pooled. Two private live batches reconcile 169 unique index games and 130 player details, 4 series with all listed details; no independently verified map ordinals.",
+      "description": "3,000 professional matches, 156 dates. Hero-conditioned historical error improved on 3,135 matched observations per market. Prior-only duration blend marginally improved assists MAE 5.535 to 5.520 (4,628); other markets did not improve. Prior team/opponent duration MAE improved 625.74 to 575.99 seconds (4,422). Separate 2024 cohort adds 30,000 player rows across 3,000 games, not pooled. Two private live batches reconcile 169 unique index games and 130 player details, 4 series with all listed details; no independently verified map ordinals. Native series diagnostic: 29,990 historical rows, 29,910 populated lane-role rows, 1,078 chronological candidate series; synthetic Brier improved 7/8 candidate scope/market groups. No independently verified map order.",
       "historicalRows": 30000
     },
     {
       "sport": "Call of Duty",
-      "description": "Separate March 2026 bounded sample: 187 complete maps, 1,496 valid player-map rows across 13 dates. Mode-conditioned kills MAE 5.65 vs last-20 8.59; deaths MAE 5.01 vs 8.26, 388 matched observations per market. Prior cohorts remain separate. June 2026 adds 187 maps / 1,496 rows; mode-conditioned kills MAE 6.315 vs 9.389 and deaths 5.988 vs 9.252 on 480 matched observations each. September returned zero. Cohorts not pooled. May 2026 separate cohort: 1,496 rows / 187 maps, 700 paired tests; mode-conditioned kills MAE 6.444 vs 8.814, deaths 6.076 vs 8.551.",
+      "description": "Separate March 2026 bounded sample: 187 complete maps, 1,496 valid player-map rows across 13 dates. Mode-conditioned kills MAE 5.65 vs last-20 8.59; deaths MAE 5.01 vs 8.26, 388 matched observations per market. Prior cohorts remain separate. June 2026 adds 187 maps / 1,496 rows; mode-conditioned kills MAE 6.315 vs 9.389 and deaths 5.988 vs 9.252 on 480 matched observations each. September returned zero. Cohorts not pooled. May 2026 separate cohort: 1,496 rows / 187 maps, 700 paired tests; mode-conditioned kills MAE 6.444 vs 8.814, deaths 6.076 vs 8.551. Pooled March/May/June cohort has 4,488 unique rows / 33 dates; 884 matched tests, mode-conditioned kills MAE 8.880→4.827, deaths 8.682→4.385; synthetic Brier improved 4/6 groups.",
       "historicalRows": 1496
     },
     {
@@ -251,7 +251,22 @@
         "GRID": false
       },
       "authenticatedOffers": 0,
-      "frozenDecisions": 0
+      "frozenDecisions": 0,
+      "kashrock": {
+        "observedAt": "2026-11-25T04:55:38Z",
+        "sandbox": true,
+        "archivedProviderSides": 182,
+        "distinctProviderProps": 91,
+        "players": 50,
+        "providerEvents": 6,
+        "prizepicksSides": 182,
+        "underdogSides": 0,
+        "sourceFixtureMatched": 0,
+        "originalOffersVerified": 0,
+        "rawRowsPublished": 0,
+        "ownerPermissionReported": true,
+        "archiveRun": 45549936255
+      }
     }
   },
   "validationRuns": {
@@ -274,6 +289,8 @@
     "lolCs2Specialists": 45542340820,
     "esportsAdvanced": 45543382743,
     "esportsSourceFollowup": 45546951289,
-    "freeProviders": 45546951253
+    "freeProviders": 45546951253,
+    "kashrockArchive": 45549936255,
+    "dotaLolFollowup": 45549936255
   }
 }

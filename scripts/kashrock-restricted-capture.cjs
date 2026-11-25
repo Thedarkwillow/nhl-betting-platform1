@@ -17,13 +17,14 @@ function marketScope(r){
 }
 function selectionLink(r,k){
  if(k!=="prizepicks"||r.deeplink_level!=="selection"||typeof r.deeplink!=="string")return null;
- try{const u=new URL(r.deeplink);if(u.protocol!=="https:"||u.hostname!=="app.prizepicks.com")return null;const q=u.searchParams.get("projections");return /^\d{1,30}$/.test(q||"")?q:null;}catch{return null;}
+ try{const u=new URL(r.deeplink);if(u.protocol!=="https:"||u.hostname!=="app.prizepicks.com")return null;const q=u.searchParams.get("projections");return /^[a-zA-Z0-9_-]{1,100}$/.test(q||"")?q:null;}catch{return null;}
 }
 function fixtureRows(doc){
- const a=Array.isArray(doc)?doc:Array.isArray(doc.matches)?doc.matches:Array.isArray(doc.data)?doc.data:[];
+ const a=Array.isArray(doc)?doc:Array.isArray(doc.matches)?doc.matches:Array.isArray(doc.data)?doc.data:Array.isArray(doc.data?.matches)?doc.data.matches:doc.kr_match_id?[doc]:doc.data?.kr_match_id?[doc.data]:doc.match?.kr_match_id?[doc.match]:[];
  if(a.length>100)throw Error("fixture bound");
  const map=new Map(),bad=new Set();
- for(const x of a){
+ for(const x0 of a){
+  const x={...x0,team1:typeof x0.team1==="object"?x0.team1?.name:x0.team1,team2:typeof x0.team2==="object"?x0.team2?.name:x0.team2};
   if(!id(x.kr_match_id,"kr_cs2_")||!str(x.team1)||!str(x.team2)||norm(x.team1)===norm(x.team2)||!Number.isFinite(at(x.event_time))||!["not_started","upcoming","scheduled"].includes(x.status))continue;
   if(map.has(x.kr_match_id)){bad.add(x.kr_match_id);continue;}
   map.set(x.kr_match_id,{matchId:x.kr_match_id,team1:x.team1,team2:x.team2,team1Id:id(x.team1_id,"kr_tm_")?x.team1_id:null,team2Id:id(x.team2_id,"kr_tm_")?x.team2_id:null,startAt:x.event_time,bestOf:Number.isInteger(x.best_of)?x.best_of:null});
@@ -62,15 +63,34 @@ async function main(){
  try{
   report.metaRequests++;const m=await read("/v7/meta",key);
   if(String(m.doc.plan?.name??m.doc.plan).toLowerCase()!=="sandbox"){report.status="sandbox_not_verified";console.log(JSON.stringify(report));return;}
-  const digests=[],rows=[];let fixtures=new Map();
+  const digests=[],rows=[];let fixtures=new Map(),refused=false;
   report.matchRequests++;report.documentedSandboxCredits+=2;
   try{const q=await read("/v7/cs2/matches?status=upcoming&limit=100",key);fixtures=fixtureRows(q.doc);digests.push({endpoint:"matches",sha256:q.digest});}catch(e){report.fixtureError=e.status??"contract";if([401,402,403,429].includes(e.status)){console.log(JSON.stringify(report));return;}}
   report.fixtureRows=fixtures.size;
   for(const k of ["prizepicks","underdog"]){
    await new Promise(r=>setTimeout(r,6500));report.propRequests++;report.documentedSandboxCredits+=5;
    try{const q=await read("/v7/cs2/props?board=dfs&view=groups&book="+k+"&limit=100",key),observedAt=new Date().toISOString(),n=normalize(q.doc,k,fixtures,observedAt);rows.push(...n.rows);digests.push({endpoint:"props",book:k,sha256:q.digest,observedAt});report.byBook[k]={raw:n.raw,accepted:n.rows.length,sourceFixtureMatched:n.rows.filter(x=>x.sourceFixtureMatched).length,selectionIdCandidates:n.rows.filter(x=>x.originalSelectionIdCandidate).length,hasMore:n.hasMore,reasons:n.reasons};}
-   catch(e){report.byBook[k]={error:e.status??"contract"};if([401,402,403,429].includes(e.status))break;}
+   catch(e){report.byBook[k]={error:e.status??"contract"};if([401,402,403,429].includes(e.status)){refused=true;break;}}
   }
+  // Resolve at most six already-observed exact native match IDs when the list has no match.
+  // Sandbox documented schedule endpoint; stop on any auth/quota/plan refusal.
+  report.detailRequests=0;report.detailErrors={};
+  const need=refused?[]:[...new Set(rows.filter(x=>!x.sourceFixtureMatched&&x.providerMatchId).map(x=>x.providerMatchId))].slice(0,6);
+  for(const mid of need){
+   await new Promise(r=>setTimeout(r,6500));report.detailRequests++;report.documentedSandboxCredits+=2;
+   try{
+    const q=await read("/v7/cs2/matches/"+encodeURIComponent(mid),key);
+    const f=fixtureRows(q.doc).get(mid);
+    digests.push({endpoint:"match_detail",sha256:q.digest});
+    if(f)fixtures.set(mid,f);else {report.detailErrors.schema=(report.detailErrors.schema||0)+1;continue;}
+   }catch(e){const k=e.status??"contract";report.detailErrors[k]=(report.detailErrors[k]||0)+1;if([401,402,403,429].includes(e.status))break;}
+  }
+  for(const x of rows){
+   const f=fixtures.get(x.providerMatchId);
+   x.sourceFixtureMatched=!!f&&at(f.startAt)===at(x.startAt)&&JSON.stringify([norm(f.team1),norm(f.team2)].sort())===JSON.stringify([norm(x.team),norm(x.opponent)].sort());
+  }
+  for(const k of Object.keys(report.byBook))if(Number.isInteger(report.byBook[k].accepted))report.byBook[k].sourceFixtureMatched=rows.filter(x=>x.book===k&&x.sourceFixtureMatched).length;
+  report.fixtureRows=fixtures.size;
   report.rows=rows.length;report.sourceFixtureMatched=rows.filter(x=>x.sourceFixtureMatched).length;report.status=rows.length?"restricted_observations_collected":"no_accepted_rows";
   if(rows.length)fs.writeFileSync(dest,JSON.stringify({kind:"restricted_kashrock_source_observations_v1",ownerPermissionReported:true,publicationRightsIndependentlyVerified:false,observedAt:new Date().toISOString(),sourceDigests:digests,fixtures:[...fixtures.values()],rows,originalOffersVerified:false,platformSettlementVerified:false})+"\n",{flag:"wx",mode:0o600});
  }catch(e){report.status=e.status?"http_"+e.status:"contract_or_transport_failure";}

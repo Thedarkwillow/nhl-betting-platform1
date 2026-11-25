@@ -1083,6 +1083,10 @@ Public baseline imported from private Git blob 7ac01dea9de441e7f577050c425c67176
 - [x] **[ESP-027]** Authenticate KashRock free Sandbox key and receive first bounded grouped evaluation page (100 groups; 3,843 reported total, not a verified individual prop inventory).
 - [x] **[ESP-028]** Dota chronological native candidate-scope historical replay: 29,990 rows; 1,078 groups, 10,780 two-map and 3,910 three-map candidate player-series; no independent ordinals.
 - [x] **[ESP-029]** KashRock grouped individual quote parsing and freshness test: 502 rows, 62 fresh PrizePicks pregame sides with selection links. No original-platform identity proof or authorized public raw display.
+- [x] **[ESP-030]** Dota lane-role and prior-date specialist historical experiment: 29,910 populated lane-role records, 4,423 matched tests per market. Role is inferred lane, not independently verified professional position.
+- [x] **[ESP-031]** Dota chronological candidate-scope synthetic probability test: 5,112 threshold trials per two-map market and 1,209 per three-map market; Brier improved in seven of eight groups. Actual exact-map scope/line calibration remains open.
+- [x] **[ESP-032]** LoL explicit-result repair and prior-date Elo evaluation: 19,999 complete result games, 34,887 matched tests per market; kills/deaths/assists MAE improved, CS unchanged. Patch challenger not retained; no production approval.
+- [x] **[ESP-033]** KashRock restricted immutable source capture verified: 182 pregame PrizePicks sides, 91 provider props, 50 players, six native events, zero Underdog offers on that page. No independently verified original-platform rows or fixture bindings; 12 Sandbox credits, no paid plan calls.
 ## Open acceptance criteria — nine-priority sprint
 - [ ] **[ESP-014]** Independently verify Dota series completeness and map ordinal with authoritative second source. Native chronology alone is not sufficient.
 - [ ] **[ESP-015]** Validate Dota hero/position/opponent challengers, with verified position rather than side; retain only independently validated improvements.
@@ -1152,6 +1156,11 @@ Public baseline imported from private Git blob 7ac01dea9de441e7f577050c425c67176
 | ESP-021 | 2026-11-25 | [Pooled COD result](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45548604774) | Scoped esports research milestone; broader gates remain open |
 | ESP-028 | 2026-11-25 | [Dota historical results](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45548604774) | Scoped esports research milestone; broader gates remain open |
 | ESP-029 | 2026-11-25 | [Grouped quote response](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45549415716) | Scoped esports research milestone; broader gates remain open |
+
+| ESP-030 | 2026-11-25 | [Dota lane test](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45549936255) | Scoped historical or third-party evidence only; no production approval |
+| ESP-031 | 2026-11-25 | [Dota probability test](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45549936255) | Scoped historical or third-party evidence only; no production approval |
+| ESP-032 | 2026-11-25 | [LoL Elo evaluation](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45549936255) | Scoped historical or third-party evidence only; no production approval |
+| ESP-033 | 2026-11-25 | [Private archival workflow](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45549936255) | Scoped historical or third-party evidence only; no production approval |
 
 ## Roadmap change history
 
@@ -1549,3 +1558,5 @@ The initial **derived comparison report** is corrected in Git with explicit `cor
 - 2026-11-25 UTC: establish public execution ledger and mandatory evidence policy; 13 scoped completed milestones, 13 open acceptance criteria. Preserve legacy roadmap and broader unfinished parent tasks. Key owner-added; Sandbox meta + one bounded CS2 evaluation call only after plan check.
 - 2026-11-25 UTC: ESP-027 checked after successful authenticated response; ESP-022 remains open until grouped individual quote parser is verified. One additional 5-credit free Sandbox evaluation allowed; no paid plan call or public raw output.
 - 2026-11-25 UTC: ESP-021, ESP-028, ESP-029 checked after actual results. User reports KashRock permission; bounded private capture, no entitlement escalation or public raw lines.
+
+- 2026-11-25 UTC: ESP-030–033 checked after completed main workflow 45549936255, including private archive commit verification. ESP-014–020, ESP-022–026 remain open where independent proof is absent. CS2 round-table reconciliation and prior-only Valorant agent mixture are separate unqualified research tests.

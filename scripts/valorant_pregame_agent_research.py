@@ -81,7 +81,32 @@ def vct():
                 pred=(sum(q)+10*base)/(len(q)+10);z=out[m];z[0]+=1;z[1]+=abs(base-r[m]);z[2]+=abs(pred-r[m])
         for r in sorted(days[day],key=lambda x:(x["event"],x["player"])):
             hist[r["player"]].append(r);agent[r["player"]][r["agent"]]+=1
-    return {"pregamePredictedAgent":{"n":n,"correct":hits,"holdoutStart":cut,"markets":{m:{"n":z[0],"baselineMAE":z[1]/z[0],"predictedAgentMAE":z[2]/z[0]} for m,z in out.items() if z[0]},"priorDatesOnly":True,"sourceLocalPlayerConditional":True},"jointAgentContext":context_eval(joint,("kills","deaths","assists"),["agent_map","agent_opponent"]),"sourceContextFields":[k for k,_ in optional],"context":context_eval(rows,("kills","deaths","assists"),["map","agent","team","opponent","patch"]),"openingContext":context_eval([r for r in rows if "opening_kills" in r and "opening_deaths" in r],("opening_kills","opening_deaths"),["map","agent","team","opponent","patch"]),"roundExposure":exposure_eval(rows,("kills","deaths","assists"),"rounds"),"opponentStrength":strength_eval(rows,("kills","deaths","assists"),"rounds"),"durationNativeCoverage":sum("durationNative" in r for r in rows),"title":"VALORANT","source":"VCT Reference; user reports specific research permission; redistribution unverified","sha256":hashlib.sha256(raw).hexdigest(),"completeMaps":len(rows)//10,"baseline":free.baseline(rows),"paidRequests":0}
+    # Additional fixed prior-only mixture: no observed current agent/map is used.
+    hist2=defaultdict(list);team_hist=defaultdict(list);mix=defaultdict(lambda:[0,0.,0.]);round_test=[0,0.,0.]
+    for day in dates:
+        for r in days[day]:
+            if day<cut:continue
+            a=hist2[r["player"]][-20:]
+            if len(a)<10:continue
+            recent=Counter(q["agent"] for q in a[-10:])
+            for m in ("kills","deaths","assists"):
+                base=mean(q[m] for q in a);p=0
+                for ag,w in recent.items():
+                    q=[x[m] for x in a if x["agent"]==ag]
+                    pred=(sum(q)+10*base)/(len(q)+10)
+                    p+=w*pred/10
+                z=mix[m];z[0]+=1;z[1]+=abs(base-r[m]);z[2]+=abs(p-r[m])
+            if r.get("rounds") and all(q.get("rounds") for q in a):
+                t=team_hist[r["team"]][-20:];o=team_hist[r["opponent"]][-20:]
+                if len(t)>=10 and len(o)>=10:
+                    base=mean(q["rounds"] for q in a);p=(2*base+mean(t)+mean(o))/4
+                    round_test[0]+=1;round_test[1]+=abs(base-r["rounds"]);round_test[2]+=abs(p-r["rounds"])
+        seen=set()
+        for r in sorted(days[day],key=lambda x:(x["event"],x["player"])):
+            hist2[r["player"]].append(r)
+            k=(r["event"],r["team"])
+            if r.get("rounds") and k not in seen:seen.add(k);team_hist[r["team"]].append(r["rounds"])
+    return {"pregameAgentMixture":{"markets":{m:{"n":z[0],"baselineMAE":z[1]/z[0],"candidateMAE":z[2]/z[0]} for m,z in mix.items() if z[0]},"rounds":{"n":round_test[0],"baselineMAE":round_test[1]/round_test[0] if round_test[0] else None,"candidateMAE":round_test[2]/round_test[0] if round_test[0] else None},"priorDatesOnly":True,"knownTeamsConditional":True},"pregamePredictedAgent":{"n":n,"correct":hits,"holdoutStart":cut,"markets":{m:{"n":z[0],"baselineMAE":z[1]/z[0],"predictedAgentMAE":z[2]/z[0]} for m,z in out.items() if z[0]},"priorDatesOnly":True,"sourceLocalPlayerConditional":True},"jointAgentContext":context_eval(joint,("kills","deaths","assists"),["agent_map","agent_opponent"]),"sourceContextFields":[k for k,_ in optional],"context":context_eval(rows,("kills","deaths","assists"),["map","agent","team","opponent","patch"]),"openingContext":context_eval([r for r in rows if "opening_kills" in r and "opening_deaths" in r],("opening_kills","opening_deaths"),["map","agent","team","opponent","patch"]),"roundExposure":exposure_eval(rows,("kills","deaths","assists"),"rounds"),"opponentStrength":strength_eval(rows,("kills","deaths","assists"),"rounds"),"durationNativeCoverage":sum("durationNative" in r for r in rows),"title":"VALORANT","source":"VCT Reference; user reports specific research permission; redistribution unverified","sha256":hashlib.sha256(raw).hexdigest(),"completeMaps":len(rows)//10,"baseline":free.baseline(rows),"paidRequests":0}
 def dota():
     # The documented Explorer endpoint provides player-match rows in one bounded read.
     sql="""SELECT m.match_id,m.start_time,m.duration,pm.account_id,pm.kills,pm.deaths,pm.assists,pm.hero_id,pm.last_hits,pm.player_slot,m.radiant_team_id,m.dire_team_id

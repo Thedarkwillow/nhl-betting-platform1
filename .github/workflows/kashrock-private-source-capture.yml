@@ -4,7 +4,7 @@ on:
     paths: ['docs/MASTER_BETTING_PLATFORM_ROADMAP.md','scripts/kashrock-restricted-capture.cjs','scripts/validate-execution-roadmap.cjs','test/kashrock-restricted-capture.test.cjs','.github/workflows/kashrock-private-source-capture.yml']
   push:
     branches: [main]
-    paths: ['.github/workflows/kashrock-private-source-capture.yml']
+    paths: ['.github/workflows/kashrock-private-source-capture.yml','scripts/kashrock-restricted-capture.cjs']
   workflow_dispatch:
   schedule:
     - cron: '27 6,9 * * *'

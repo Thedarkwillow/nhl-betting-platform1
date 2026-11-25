@@ -41,10 +41,11 @@ test('deadline prevents another board read or next-page action',async()=>{
  assert.equal(reads,0);assert.equal(clicks,0);assert.equal(result.boardState,'partial');assert.equal(result.pages.length,0);
 });
 
-function loginFixture({twoStep=true,challenge=false,formControls=1,disabled=false,origin='https://www.pickfinder.app/sign-in'}={}){
+function loginFixture({twoStep=true,challenge=false,formControls=1,continueControls=1,disabled=false,origin='https://www.pickfinder.app/sign-in'}={}){
  let submissions=0,filled=[];
  const button={count:async()=>formControls,waitFor:async()=>{},click:async()=>{if(disabled)throw Error('disabled fixture');submissions++;}};
- const form={count:async()=>1,locator:()=>button};
+ const continueButton={...button,count:async()=>continueControls};
+ const form={count:async()=>1,locator:()=>button,getByRole:(role,opts)=>{assert.ok(opts.name.test('Continue'));assert.ok(!opts.name.test('Sign in'));assert.ok(!opts.name.test('Show password'));return continueButton;}};
  const page={goto:async()=>{},url:()=>origin,locator(selector){const isPassword=selector.includes('type=password');return {locator:()=>form,waitFor:async()=>{if(isPassword&&challenge)throw Error('sensitive fixture text');},isVisible:async()=>!twoStep||submissions>0,fill:async v=>{filled.push([isPassword?'password':'email',v]);}};},getByRole(role,opts){return {waitFor:async()=>{},click:async()=>{submissions++;}};}};
  return {page,filled,get submissions(){return submissions;}};
 }
@@ -59,6 +60,11 @@ test('verification and unexpected origin fail closed without leaking errors',asy
 });
 
 test('ambiguous and disabled form controls are not bypassed',async()=>{
- const a=loginFixture({twoStep:false,formControls:2});await assert.rejects(passwordLogin(a.page,{PICKFINDER_EMAIL:'fixture',PICKFINDER_PASSWORD:'fixture-secret'}),/password_submit_ambiguous_form_controls/);assert.equal(a.submissions,0);
+ const a=loginFixture({twoStep:false,formControls:2,continueControls:0});await assert.rejects(passwordLogin(a.page,{PICKFINDER_EMAIL:'fixture',PICKFINDER_PASSWORD:'fixture-secret'}),/password_submit_ambiguous_form_controls/);assert.equal(a.submissions,0);
  const b=loginFixture({twoStep:false,disabled:true});await assert.rejects(passwordLogin(b.page,{PICKFINDER_EMAIL:'fixture',PICKFINDER_PASSWORD:'fixture-secret'}),/password_submit_control_click/);assert.equal(b.submissions,0);
+});
+
+test('unique Continue is selected even with multiple other form buttons',async()=>{
+ const f=loginFixture({twoStep:true,formControls:3,continueControls:1});await passwordLogin(f.page,{PICKFINDER_EMAIL:'fixture',PICKFINDER_PASSWORD:'fixture-secret'});assert.equal(f.submissions,2);
+ const g=loginFixture({twoStep:false,continueControls:2});await assert.rejects(passwordLogin(g.page,{PICKFINDER_EMAIL:'fixture',PICKFINDER_PASSWORD:'fixture-secret'}),/password_submit_ambiguous_continue_controls/);assert.equal(g.submissions,0);
 });

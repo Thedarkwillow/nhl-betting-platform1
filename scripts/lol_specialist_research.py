@@ -159,7 +159,7 @@ def calibration(rows,scope):
                 a=history[r["player"],m]
                 if len(a)<10:continue
                 for t in thresholds[m]:
-                    t=t*scope; p=(1+sum(x>t for x in a))/(len(a)+2);y=int(r[m]>t);k=m,min(4,int(p*5))
+                    t=int(t*scope)+.5; p=(1+sum(x>t for x in a))/(len(a)+2);y=int(r[m]>t);k=m,min(4,int(p*5))
                     if cal<=day<hold:bins[k][0]+=1;bins[k][1]+=y
                     elif day>=hold:
                         n,w=bins[k]

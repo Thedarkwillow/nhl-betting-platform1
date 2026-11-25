@@ -16,13 +16,14 @@ def schema(x,depth=0):
     return type(x).__name__
 def main(root):
     paths=["/counts/"];counts=Counter();reports=[]
-    # Registry IDs are source-local. Probe corresponding numeric match references
-    # as candidates only; do not assert they are HLTV IDs or approve any mapping.
+    # The pinned OpenCS2 demo source documents right-side match_id as HLTV ID.
+    # The left Ektarr local IDs are not a verified HLTV namespace.
     events=set()
     for p in sorted((Path(root)/"research/esports-identity-registry/evidence").glob("*.json"))[-20:]:
         for r in json.loads(p.read_text()).get("evidence",[]):
             if r.get("left",{}).get("namespace")!="ektarr":continue
-            a=str(r.get("sourceEvents",[""])[0]).split("|")[0]
+            if r.get("right",{}).get("namespace")!="steam64" or len(r.get("sourceEvents",[]))!=2:continue
+            a=str(r["sourceEvents"][1]).split("|")[0]
             if re.fullmatch(r"\d{6,8}",a):events.add(a)
     for e in sorted(events)[:4]:paths.extend(["/matches/"+e,"/matches/"+e+"/stats?by_map=true"])
     if not events:paths.extend(["/matches/2389666","/matches/2389666/stats?by_map=true"])
@@ -34,5 +35,5 @@ def main(root):
             if e.code in (401,403,429):break
         except Exception as e:counts[type(e).__name__]+=1
         time.sleep(1)
-    print(json.dumps({"kind":"cs2_csapi_independent_preflight_v1","candidateMatchReferences":len(events),"counts":dict(counts),"schemaChecks":reports,"authoritativeLinksAdded":0,"modelPromoted":False,"paidRequests":0,"rawRowsPublished":0}))
+    print(json.dumps({"kind":"cs2_csapi_independent_preflight_v1","documentedHLTVMatchReferences":len(events),"counts":dict(counts),"schemaChecks":reports,"authoritativeLinksAdded":0,"modelPromoted":False,"paidRequests":0,"rawRowsPublished":0}))
 if __name__=="__main__":main(sys.argv[1])

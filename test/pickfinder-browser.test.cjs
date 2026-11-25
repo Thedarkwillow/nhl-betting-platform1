@@ -39,3 +39,6 @@ test('explicit sampling remains bounded and does not claim completeness',async()
  const input=await collect(session([active,{...active,number:1,total:999,rows:[row]},{...active,number:2,total:999,rows:[{...row,detailId:'b'}]}]),{book:'underdog',code:'NHL',maxPages:2});
  assert.equal(input.pages.length,2);assert.equal(input.lastPageReached,false);assert.equal(normalize(input).pageTraversalComplete,false);
 });
+
+test('missing selected-book badge is retained as partial, never certified as offers',async()=>{const wrong={...row,apps:[],appEvidence:[]};const input=await collect(session([active,...Array.from({length:8},()=>({...active,number:1,total:2,rows:[wrong]}))]),{book:'prizepicks',code:'NHL'});assert.equal(input.failure,'selected_book_badge_absent');assert.equal(input.pages.length,1);assert.equal(input.boardState,'partial');assert.equal(normalize(input).offers.length,0);});
+test('same first link with distinct page contents still advances',async()=>{const input=await collect(session([active,{...active,number:1,total:2,rows:[row,{...row,detailId:'b'}]},{...active,number:2,total:2,rows:[row,{...row,detailId:'c'}]}]),{book:'prizepicks',code:'NHL'});assert.equal(input.lastPageReached,true);assert.equal(input.pages.length,2);});

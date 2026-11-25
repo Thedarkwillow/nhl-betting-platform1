@@ -1,7 +1,7 @@
 {
   "kind": "public_pickfinder_identity_health_v1",
-  "generatedAt": "2026-11-25T23:11:34.793Z",
-  "archiveRevision": "79a6bdce14466d79fa272d6ca783edf710e23be0",
+  "generatedAt": "2026-11-25T23:35:02.801Z",
+  "archiveRevision": "ee500d28bdf8f50ffe3e08f3dd88eaab66288338",
   "sourceEvents": 240,
   "sources": {
     "nba": {
@@ -70,7 +70,7 @@
       "rosterPlayers": 605,
       "failedTeams": 0,
       "sourceEvents": 15,
-      "uniqueEventCandidates": 2,
+      "uniqueEventCandidates": 1,
       "uniquePlayerCandidates": 35,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
@@ -130,7 +130,7 @@
   "nativeHistory": {
     "nhl": {
       "finalGames": 36,
-      "playerAppearances": 935,
+      "playerAppearances": 936,
       "completeHistoricalSeasons": false
     },
     "dota2": {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-25T14:31:02.035Z",
+  "generatedAt": "2026-11-25T17:44:42.148Z",
   "sourceReportAt": "2026-11-25T10:01:27.262Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -91,7 +91,7 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-25T09:56:19.364Z",
+    "nhlReportAt": "2026-11-25T17:41:41.027Z",
     "nflReportAt": "2026-11-24T23:17:24.379Z",
     "nhl": {
       "registered": 512,
@@ -115,7 +115,7 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-25T09:56:20.091Z",
+    "sourceReportAt": "2026-11-25T17:41:41.909Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
       "completeOfficialGames": 1656,
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-25T09:57:17.283Z",
+    "sourceReportAt": "2026-11-25T17:42:52.422Z",
     "nhl": {
       "sourceEligible": false,
       "examined": 0,

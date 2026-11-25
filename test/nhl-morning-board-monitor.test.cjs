@@ -52,9 +52,9 @@ test("watchdog requires real 06:00 and 09:00 boards and matching change evidence
 test("watchdog remains scheduled while old metered daily backups stay disabled",()=>{
  const fs=require("node:fs"),path=require("node:path");
  const readLocal=p=>fs.readFileSync(path.join(__dirname,"..",p),"utf8");
- const sixWorkflow=readLocal(".github/workflows/nhl-bounded-daily-pregame-freeze.yml");
- const nineWorkflow=readLocal(".github/workflows/nhl-0900-board-delta.yml");
- const watcher=readLocal(".github/workflows/nhl-morning-board-watchdog.yml");
+ const sixWorkflow=readLocal("migration/legacy-workflow-templates/nhl-bounded-daily-pregame-freeze.yml");
+ const nineWorkflow=readLocal("migration/legacy-workflow-templates/nhl-0900-board-delta.yml");
+ const watcher=readLocal("migration/legacy-workflow-templates/nhl-morning-board-watchdog.yml");
  for(const wf of [sixWorkflow,nineWorkflow]){
   assert.match(wf,/Paused \(No Vendor Calls\)/);
   assert.match(wf,/workflow_dispatch:/);

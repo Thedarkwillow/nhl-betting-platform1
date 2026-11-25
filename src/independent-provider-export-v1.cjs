@@ -4,6 +4,12 @@ const {createHash}=require("node:crypto");
 const text=x=>typeof x==="string"&&x.trim().length>0&&x.length<=256?x:null;
 const timestamp=x=>typeof x==="string"&&/T.*(?:Z|[+-]\d\d:\d\d)$/.test(x)&&Number.isFinite(Date.parse(x))?Date.parse(x):NaN;
 const ids={CS:"CS2",CS2:"CS2",VAL:"VALORANT",VALORANT:"VALORANT",LOL:"LOL",DOTA:"DOTA2",DOTA2:"DOTA2",COD:"COD",CDL:"COD",NBA:"NBA",NFL:"NFL",NHL:"NHL",MLB:"MLB"};
+// A league is more specific than a broad sport label (e.g. esports).
+// Conflicting recognized league/sport codes must never be silently merged.
+function resolveSport(r){
+ const league=ids[r.league],sport=ids[r.sport];
+ return league&&sport&&league!==sport?null:league||sport||null;
+}
 function adapt(doc,receivedAt,provider,source,sideMap,needsRung){
  const now=timestamp(receivedAt);
  if(!Number.isFinite(now)||doc?.meta?.mode!=="live"||doc.meta.source_status!=="fresh"||!Array.isArray(doc.data)||doc.data.length>1000)throw Error("unverified export envelope");
@@ -11,7 +17,7 @@ function adapt(doc,receivedAt,provider,source,sideMap,needsRung){
  function reject(k){excluded[k]=(excluded[k]||0)+1;}
  for(const r of doc.data){
   if(!r||r.is_demo!==false||r.source!==source||r.status!=="active"){reject("source_or_status");continue;}
-  const sport=ids[r.sport||r.league],start=timestamp(r.event?.starts_at),observed=timestamp(r.observed_at);
+  const sport=resolveSport(r),start=timestamp(r.event?.starts_at),observed=timestamp(r.observed_at);
   if(!sport||!text(r.id)||!text(r.source_projection_id)||!text(r.player?.id)||!text(r.player?.name)||!text(r.market?.id)||!text(r.market?.stat)||!text(r.market?.period)||!Number.isFinite(r.line)||(needsRung&&!text(r.line_id))){reject("identity_scope_or_line");continue;}
   if(!Number.isFinite(start)||!Number.isFinite(observed)||observed>now||now-observed>900000||start<=now+900000){reject("stale_or_started");continue;}
   const selections={};let invalid=false;
@@ -25,7 +31,7 @@ function adapt(doc,receivedAt,provider,source,sideMap,needsRung){
   const key=JSON.stringify([r.id,r.line_id??null]);
   if(seen.has(key)){const prev=seen.get(key);if(prev!==null){rows[prev]=null;seen.set(key,null);reject("duplicate_identity");}reject("duplicate_identity");continue;}
   seen.set(key,rows.length);
-  rows.push({provider,sport,providerOfferId:r.id,providerRungId:r.line_id??null,sourceProjectionId:r.source_projection_id,providerPlayerId:r.player.id,player:r.player.name,team:text(r.player.team),providerEventId:text(r.event.id),opponent:text(r.event.opponent),startsAt:new Date(start).toISOString(),observedAt:new Date(observed).toISOString(),receivedAt,providerMarketId:r.market.id,stat:r.market.stat,period:r.market.period,line:r.line,selections,adjustedOdds:r.pricing?.adjusted_odds??null,standardRatesApply:r.pricing?.standard_rates_apply??null,provenance:"independent_provider_observation",originalAppAvailabilityVerified:false,officialExportVerified:false,productionEligible:false});
+  rows.push({provider,sport,providerOfferId:r.id,providerRungId:r.line_id??null,sourceProjectionId:r.source_projection_id,providerPlayerId:r.player.id,player:r.player.name,team:text(r.player.team),providerEventId:text(r.event.id),identityResolutionRequired:!text(r.event.id),opponent:text(r.event.opponent),startsAt:new Date(start).toISOString(),observedAt:new Date(observed).toISOString(),receivedAt,providerMarketId:r.market.id,stat:r.market.stat,period:r.market.period,line:r.line,selections,adjustedOdds:r.pricing?.adjusted_odds??null,standardRatesApply:r.pricing?.standard_rates_apply??null,provenance:"independent_provider_observation",originalAppAvailabilityVerified:false,officialExportVerified:false,productionEligible:false});
  }
  return {kind:"independent_provider_research_export_v1",provider,rows:rows.filter(Boolean),excluded,sourceDocumentSha256:createHash("sha256").update(JSON.stringify(doc)).digest("hex"),completePage:doc.meta.next_cursor===null,networkCalls:0,originalOffersVerified:0,publicRawRedistributionAllowed:false};
 }
@@ -39,7 +45,7 @@ function compact(doc,receivedAt,provider,source,prefixes){
  const reject=k=>{excluded[k]=(excluded[k]||0)+1;};
  for(const r of doc.data){
   if(!r||r.is_demo===true||(r.source!=null&&r.source!==source)||r.status!=="active"){reject("source_or_status");continue;}
-  const sport=ids[r.sport||r.league],start=timestamp(r.event_starts_at??r.starts_at),observed=timestamp(r.observed_at);
+  const sport=resolveSport(r),start=timestamp(r.event_starts_at??r.starts_at),observed=timestamp(r.observed_at);
   if(!sport||!text(r.id)||!text(r.player)||!text(r.stat)||!text(r.period)||!Number.isFinite(r.line)){reject("compact_identity_scope_or_line");continue;}
   if(!Number.isFinite(start)||!Number.isFinite(observed)||observed>now||now-observed>900000||start<=now+900000){reject("stale_or_started");continue;}
   const selections={};let invalid=false;

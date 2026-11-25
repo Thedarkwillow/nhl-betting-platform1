@@ -1,6 +1,6 @@
 {
   "kind": "public_nba_alternate_history_audit_v1",
-  "generatedAt": "2026-11-25T14:19:24.736212+00:00",
+  "generatedAt": "2026-11-25T14:22:44.354238+00:00",
   "seasons": {
     "2024": {
       "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/nba_stats_player_game_logs/player_game_logs_2024.parquet",
@@ -2360,7 +2360,7 @@
   },
   "prospectiveBridge": {
     "kind": "nba_mirror_prospective_bridge_v1",
-    "generatedAt": "2026-11-25T14:19:22.830Z",
+    "generatedAt": "2026-11-25T14:22:42.344Z",
     "reviewedCrosswalkRows": 0,
     "newForecastRows": 0,
     "reason": "no_independently_reviewed_crosswalk",
@@ -2377,6 +2377,8 @@
     "totalOffers": 4399,
     "historyCandidates": 2488,
     "sourceContextCorroborated": 0,
+    "profileContextCandidates": 0,
+    "profileContextPlayerEventKeys": 0,
     "byBook": {
       "underdog": {
         "offers": 1941,

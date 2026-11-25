@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-25T17:44:42.148Z",
+  "generatedAt": "2026-11-25T18:16:19.894Z",
   "sourceReportAt": "2026-11-25T10:01:27.262Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-25T17:42:52.422Z",
+    "sourceReportAt": "2026-11-25T18:14:40.630Z",
     "nhl": {
       "sourceEligible": false,
       "examined": 0,
@@ -204,13 +204,13 @@
         "kind": "public_nhl_goblin_prospective_pending_triage_v1",
         "registered": 1407,
         "abstained": 591,
-        "decided": 663,
+        "decided": 691,
         "pushes": 0,
         "notStarted": 116,
         "startedNoFinalWithinFourHours": 0,
-        "fourHoursWithoutOfficialPlayerStat": 37,
+        "fourHoursWithoutOfficialPlayerStat": 9,
         "conflictingOrInvalidFinal": 0,
-        "officialGradingNeeded": 153,
+        "officialGradingNeeded": 125,
         "verifiedWinRate": null,
         "approvedPicks": 0
       },
@@ -285,7 +285,7 @@
         "independentlyCalibrated": false,
         "approvedPicks": 0
       },
-      "futureDecided": 663,
+      "futureDecided": 691,
       "futureRegistered": 1407
     },
     "nfl": {

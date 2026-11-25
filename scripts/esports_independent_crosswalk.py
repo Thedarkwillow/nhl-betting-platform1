@@ -15,12 +15,20 @@ def clock(v):
         return t if t.tzinfo is not None else None
     except (ValueError,TypeError,AttributeError):return None
 def scope(r,sport):
-    if sport!="CS2":return None # Other games require their own scoring contracts.
-    m=re.fullmatch(r"(kills|deaths|assists|headshots)_on_(map_1|map_2|maps_1_2)",norm(r.get("market",{}).get("stat")))
-    if not m:return None
-    period=norm(r.get("market",{}).get("period"))
-    maps={"map_1":[1],"map_2":[2],"maps_1_2":[1,2]}[m[2]]
-    if period not in ("full_game",{"map_1":"map 1","map_2":"map 2","maps_1_2":"maps 1-2"}[m[2]]):return None
+    from esports_result_contract import RULES
+    if sport not in RULES or (GAMES.get(r.get("league")) or GAMES.get(r.get("sport")))!=sport:return None
+    # Only explicit numbered units are scope candidates. Do not interpret a bare
+    # full_game label as a complete series. Other titles still need real schema validation.
+    market=r.get("market") or {}
+    m=re.fullmatch(r"(kills|deaths|assists|headshots|creep_score|last_hits)_on_(map|maps|game|games)_([1-5](?:_[1-5])*)",norm(market.get("stat")))
+    if not m or m[1] not in RULES[sport]:return None
+    unit=m[2];maps=[int(x) for x in m[3].split("_")]
+    if len(maps)!=len(set(maps)) or maps!=list(range(maps[0],maps[-1]+1)):return None
+    if (unit in ("map","game"))!=(len(maps)==1):return None
+    if sport in ("CS2","VALORANT","COD") and unit.startswith("game"):return None
+    label=("map" if unit.startswith("map") else "game")+("s" if len(maps)>1 else "")+" "+("-".join(map(str,(maps[0],maps[-1]))) if len(maps)>1 else str(maps[0]))
+    period=norm(market.get("period"))
+    if period not in ("full_game",label):return None
     return m[1],maps
 def resolve(r,fixtures):
     sport=GAMES.get(r.get("league")) or GAMES.get(r.get("sport"))

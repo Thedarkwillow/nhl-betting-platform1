@@ -480,6 +480,72 @@
       "automatedNetworkEnabled": false,
       "paidCallsAllowed": false,
       "publicationRightsVerified": false
+    },
+    {
+      "id": "cs2_pro_demo_catalog_jankasen",
+      "url": "https://github.com/jankasen/cs2",
+      "titles": [
+        "CS2"
+      ],
+      "access": "research_catalog_not_distributed",
+      "capabilities": [
+        "reported_player_map_stats",
+        "reported_demo_events"
+      ],
+      "mode": "disabled_pending_dataset_access",
+      "notes": "Reports 65 tournaments and 40,920 player-map boxscores; inspected repository tree has no catalog database or parquet data. Code availability is not data availability.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "ektarr_cs2_kaggle",
+      "url": "https://www.kaggle.com/datasets/ektarr/counter-strike-pro-matches",
+      "titles": [
+        "CS2"
+      ],
+      "access": "metadata_and_license_unverified",
+      "capabilities": [
+        "candidate_map_stats"
+      ],
+      "mode": "disabled_pending_rights_and_schema",
+      "notes": "Referenced by Aokua/csgopred map-ingest code; public listing returned no readable license or file metadata. Do not infer player-map order from row order.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "pgl_singapore_official",
+      "url": "https://www.pglesports.com/cs2/pgl-major-singapore-2026/",
+      "titles": [
+        "CS2"
+      ],
+      "access": "public_reference_only",
+      "capabilities": [
+        "event_schedule",
+        "official_event_reference"
+      ],
+      "mode": "manual_reference",
+      "notes": "Current target fixtures scheduled November 25 UTC; no actual final player-map counts verified at review. No scraping assumed.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
+    },
+    {
+      "id": "cs2_demo_to_dataset_samples",
+      "url": "https://huggingface.co/datasets/Vasy7777/cs2-demo-archive",
+      "titles": [
+        "CS2"
+      ],
+      "access": "published_metadata_cc_by_4_0_underlying_replay_rights_unverified",
+      "capabilities": [
+        "sample_demo_event_tables"
+      ],
+      "mode": "disabled_pending_coverage_and_rights",
+      "notes": "Six complete recordings, thirteen partial casual recordings; not broad historical coverage. Do not download video or attempt to identify anonymized players.",
+      "automatedNetworkEnabled": false,
+      "paidCallsAllowed": false,
+      "publicationRightsVerified": false
     }
   ],
   "titles": {

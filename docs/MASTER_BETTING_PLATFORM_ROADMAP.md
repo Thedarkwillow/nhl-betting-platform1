@@ -1130,7 +1130,9 @@ Public baseline imported from private Git blob 7ac01dea9de441e7f577050c425c67176
 
 - [x] **[ESP-056]** Scoped four-season NBA historical mirror cache import completed. [PR #236](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/236), [CI 45569390854](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45569390854), [successful recovery attempt 2](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45569553746/attempts/2). Both authorizations true at execution; 84,374 appearances imported; all four destination blob SHAs independently match the pinned source; remote ancestry verified. Historical only, no official clock, fresh-board or forecast certification.
 
-- [ ] **[ESP-057]** Evaluate all four recovered NBA historical caches using fixed prior-only comparisons, by-season and pooled, verify exact source hashes and reject duplicates; report MAE, CRPS, coverage and clustered workload comparisons. Historical only; CI, merge and main run acceptance pending.
+- [x] **[ESP-057]** Evaluate all four recovered NBA historical caches using fixed prior-only comparisons, by-season and pooled, verify exact source hashes and reject duplicates; report MAE, CRPS, coverage and clustered workload comparisons. Historical only; [PR #239](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/239) merged e9af2782c5d6382c56e43bfd2baf976b79faa266, [CI 45571874497](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45571874497) and [main 45571951411](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45571951411) passed. 84,374 source appearances, 69,025 pooled comparisons per statistic, 3,754 events and 497 dates. No prospective approval.
+
+- [ ] **[ESP-058]** Archive licensed ChainCC 2025 and 2026 historical player datasets privately with content hashes, attribution, validated complete maps and prior-date contextual evaluation. Source-native only; no authoritative cross-source link, original offer or future freeze inferred. Offline CI, merge and actual cache verification pending.
 
 ## Verified completion log — mark tasks here as they are actually finished
 
@@ -1205,6 +1207,8 @@ Public baseline imported from private Git blob 7ac01dea9de441e7f577050c425c67176
 | ESP-048 | 2026-11-25 | [Verified workflow](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45564849004) | Conditional historical replay; not untouched validation |
 
 | ESP-056 | 2026-11-25 | [Merged PR #236](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/236), [successful workflow attempt 2](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45569553746/attempts/2) | Four historical NBA caches imported; all four blob IDs verified on private main; 84,374 player-game rows, historical research only |
+
+| ESP-057 | 2026-11-25 | [Merged PR #239](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/239), [main evaluation 45571951411](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45571951411) | All four recovered blobs validated; 84,374 source rows and 69,025 comparisons per metric, retrospective only |
 
 ## Roadmap change history
 
@@ -1721,3 +1725,9 @@ The initial **derived comparison report** is corrected in Git with explicit `cor
 
 - [ESP-052/055] PR #238 merged at 5895513fe244ed755f1c1dbe0faa847f8bb4ddf7; morning archive health CI 45570657633 passed. Native provider collection [45557918672 attempt 2](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45557918672/attempts/2) completed; eight additional OpenDota games and 80 player records; GRID returned no Valorant fixtures in queried week. Zero paid endpoints. Independent identity and full map ordinal evidence remain open.
 - [ESP-053/054] [Main historical audit 45568228502](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45568228502) evaluated 5,473 NBA source rows, 852 comparisons per market across 72 games/12 dates; last-30 MAE lower than last-10 in all seven markets, workload adjustment did not improve any. Zero eligible esports map rows. No promotion. Main NBA collection 45569082687 reported 5,202 board observations but zero rankings after official schedule failures. Main esports archive 45569083273 had zero eligible offers/maps. [ESP-057] Four-season archive audit implementation ready for offline CI and main execution; preserve existing model revision, no new provider calls. Dated NBA official website review is historical documentation only, not automatic live schedule acceptance.
+
+### November 25 UTC — four-season audit completed, licensed LoL historical cache
+
+- [ESP-057] Main job 139060554446 completed on all four recovered seasons; pooled last-30 beats last-10 on MAE and CRPS in all seven statistics. Points workload MAE 4.74073 versus 4.77864 (cluster approximate improvement CI 0.02855–0.04728); three-pointers 0.91090 versus 0.91370 (CI 0.00141–0.00419); steals and turnovers significantly worsened, others inconclusive. Current-season workload adjustment worsened all seven, so no promotion; official final clock, historical availability, untouched prospective calibration and original-line performance unverified.
+- [ESP-014] Rechecked BLAST official series page, still exposes map 1 statistics in retrieved static document; alternate match detail requests returned 403 and organizer map 2/3 query unavailable. No new authoritative ordinal or identity proof. Stop on refusals.
+- [ESP-058] ChainCC publicly documents CC BY 4.0 including commercial reuse and explicit attribution at https://chaincc.lol/free/data/; 2025/2026 source pages report 100,530 and 99,510 player rows respectively, not validated ingestion counts. Proposed bounded 25 MB per-file historical intake, digest-based immutable private cache, explicit date/complete-game validation and prior-date context evaluation; no new paid calls, no current prop acquisition. CI/merge/main acceptance pending.

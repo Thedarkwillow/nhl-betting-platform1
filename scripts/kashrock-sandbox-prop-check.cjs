@@ -51,4 +51,4 @@ async function check(env=process.env,client=fetch){
  return report;
 }
 if(require.main===module)check().then(r=>console.log(JSON.stringify(r))).catch(()=>{console.error("Evaluation failed closed");process.exitCode=1;});
-module.exports={inspect,check};
+module.exports={inspect,check,read};

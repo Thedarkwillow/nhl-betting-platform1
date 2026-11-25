@@ -16,8 +16,7 @@ test("no retrospective same-date, same-series or late-observed input enters a fo
  const k=JSON.stringify(["CS2","map_1","kills"]);
  assert.equal(clean.groups[k].n,1);assert.equal(clean.groups[k].mae,5);
  // Same-series and late-observed rows cannot contaminate a distinct target after the chosen cutoff.
- const sameSeries=evaluate([...rows,{...poison[0],values:{}},target]);
- assert.equal(sameSeries.groups[k].mae,5);
+ for(const extra of poison){const result=evaluate([...rows,extra,target]);assert.equal(result.groups[k].n,2);assert.equal(result.groups[k].mae,(990+5)/2);}
  assert.equal(result.prospective,false);assert.equal(result.calibrationApproved,false);
  const sameDate=evaluate([...rows.slice(0,11),{...rows[11],start:2000,end:2000,known:2000},target]);
  assert.equal(sameDate.groups[k],undefined);

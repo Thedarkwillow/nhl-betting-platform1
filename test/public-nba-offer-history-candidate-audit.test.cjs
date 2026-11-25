@@ -23,3 +23,42 @@ test('reviewed game context binds both sources to the exact archived event and p
  assert.equal(check([{...doc,games:[{...game,displayedClock:'Wed 11/25, 4:00 PM'}]}]),false);
  assert.equal(check([doc,{...doc,records:[{...row,nbaPlayerId:'102'}]}]),false);
 });
+
+test('report keeps native board clock and reviewed receipt counts distinct',()=>{
+ const a=audit(archive(offers,fields),payload,clock);
+ assert.equal(a.boardNativeClockCorroborated,2);
+ assert.equal(a.reviewedOrBoardContext,2);
+ assert.equal(a.reviewedProfileContextKeys,0);
+ assert.equal(a.missingReviewedAndBoardContext,0);
+ const b=audit(archive(offers.map(o=>({...o,startAt:null})),[]),payload,clock);
+ assert.equal(b.reviewedOrBoardContext,0);
+ assert.equal(b.missingReviewedAndBoardContext,2);
+});
+test('grading queue counts a valid pregame archive before the game is due',()=>{
+ const {gradingQueue}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const p={book:'prizepicks',gameId:'10',playerId:101,market:'points',line:20.5,offeredSide:'Higher',tier:'standard',gameStartAt:start,modelRevision:'fixture-revision'};
+ const frame={doc:{generatedAt:obs,rows:[p]},first:'2026-11-25T13:30:00Z',digest:'fixture'};
+ const waiting=gradingQueue([frame,frame],new Set(),clock);
+ assert.equal(waiting.archived,1);assert.equal(waiting.pendingNotDue,1);assert.equal(waiting.selected.length,0);
+ const due=gradingQueue([frame],new Set(),'2026-11-26T03:00:00Z');
+ assert.equal(due.selected.length,1);assert.equal(JSON.parse(due.selected[0].id)[0],'fixture-revision');
+ assert.equal(gradingQueue([frame],new Set([due.selected[0].id]),'2026-11-26T03:00:00Z').alreadyGraded,1);
+ const legacy=JSON.stringify([null,p.book,p.gameId,p.playerId,p.market,p.line,p.offeredSide,p.tier]);
+ assert.equal(gradingQueue([frame],new Set([legacy]),'2026-11-26T03:00:00Z').alreadyGraded,1);
+ assert.equal(gradingQueue([{...frame,first:start}],new Set(),'2026-11-26T03:00:00Z').invalid,1);
+});
+test('game dialog receipt is not counted as a complete named dashboard',()=>{
+ const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+ const {ROOT,sha}=require('../scripts/pickfinder-public-archive.cjs'),{coverage}=require('../scripts/pickfinder-public-evidence-audit.cjs');
+ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'pf-coverage-'));
+ try{
+  const dir=path.join(tmp,ROOT,'dashboards');fs.mkdirSync(dir,{recursive:true});
+  for(const d of [{schema:'pickfinder-public-game-dialog-v1',records:[{sport:'NHL',eventId:'1'},{sport:'NBA',eventId:'2'}]},{name:'Games'}]){
+   const raw=JSON.stringify(d);fs.writeFileSync(path.join(dir,sha(raw)+'.json'),raw);
+  }
+  const a=coverage(tmp);
+  assert.equal(a.dashboardSnapshots,2);assert.equal(a.namedDashboardSnapshots,1);assert.equal(a.byDashboard.Games,1);
+  assert.equal(a.gameDialogReceipts,1);assert.equal(a.gameDialogObservations,2);assert.equal(a.gameDialogBySport.NHL,1);
+  assert.equal(a.unclassifiedDashboardFiles,0);assert.equal(a.allFiltersVerified,false);
+ }finally{fs.rmSync(tmp,{recursive:true,force:true});}
+});

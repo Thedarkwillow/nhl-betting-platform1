@@ -22,3 +22,20 @@ test('scheduled provenance must match an independently verified successful actua
  assert.equal(captureOrigin(env,{expected:'09:00'}),null);
  assert.equal(scheduledRunMatches(null,run,day,slot,first),false);
 });
+
+
+test('historical cache shadow only deduplicates explicit prior-season dated structured facts and rejects conflicts',()=>{
+ const {audit,candidate}=require('../scripts/pickfinder-public-history-cache.cjs'),{VERSION}=require('../scripts/pickfinder-research-coverage.cjs');
+ const now=new Date('2026-11-25T15:00:00Z');
+ const f={origin:'profile',metric:'row 1',tab:'Game Log',scope:'Date | PTS',value:JSON.stringify([{value:'2024-11-01',labels:[]},{value:'12',labels:[]}]),observedAt:'2026-11-25T14:00:00Z',filterSelection:[{label:'season',display:'2024-25',value:'2024'}]};
+ const r={status:'sampled',coverageVersion:VERSION,truncated:false,sport:'nba',player:'Fixture',market:'points',detailId:'/players/nba/a?prop=x',research:[f]};
+ assert.ok(candidate(r,f,now));assert.equal(candidate(r,{...f,filterSelection:[]},now),null);
+ assert.equal(candidate(r,{...f,origin:'line_movement'},now),null);assert.equal(candidate({...r,truncated:true},f,now),null);
+ const changed={...r,detailId:'/players/nba/a?prop=y',research:[f]};
+ const conflict={...r,research:[{...f,value:f.value.replace('"12"','"14"')}]};
+ const half={...r,period:'first_half'};
+ const x=audit([{records:[r,changed,conflict,half]}],now);
+ assert.equal(x.candidates,4);assert.equal(x.duplicateObservations,1);assert.equal(x.distinctKeys,2);assert.equal(x.conflictedKeys,1);assert.equal(x.requestsSkipped,0);assert.equal(x.completeSeasonCertified,false);
+ assert.equal(candidate(r,{...f,filterSelection:[{label:'season',display:'2025-26'}]},now),null);
+ assert.equal(candidate(r,{...f,value:f.value.replace('2024-11-01','11/01')},now),null);
+});

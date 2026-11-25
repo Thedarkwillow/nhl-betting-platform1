@@ -20,7 +20,7 @@ function researchTier(o){
 
 // Candidate-only reconciliation: native schedule supplies UTC, never the local label.
 // Without documented source timezone this is NOT an independently verified source clock.
-function reconcileLocal(r,ctx,diagnose=()=>{}){
+function reconcileLocal(r,ctx,diagnose=()=>{},expectedKind='automated_native_schedule_roster_history'){
  const fail=reason=>{diagnose(reason);return null;};
  const at=Date.parse(ctx.preparedAt),observed=Date.parse(r.observedAt);
  if(r.state!=='context_incomplete'||r.startAt)return fail('not_incomplete_local_context');
@@ -31,16 +31,25 @@ function reconcileLocal(r,ctx,diagnose=()=>{}){
  if(!local||local.team!==r.team||local.opponent!==r.opponent)return fail('missing_or_conflicting_matchup');
  const parsed=target({sport:r.sport,eventId:r.eventId,player:r.player,market:new URL(r.detailId,'https://www.pickfinder.app').searchParams.get('prop')?.split(':')[1],detailId:r.detailId});
  if(!parsed||contextKey(parsed)!==contextKey(r))return fail('invalid_source_identity');
- const matches=ctx.scopes.filter(s=>s.sport===r.sport.toUpperCase()&&norm(s.name)===norm(r.player)&&norm(s.team)===norm(r.team)&&norm(s.opponent)===norm(r.opponent)&&s.identityReviewed===true&&s.eventReviewed===true&&s.rosterReviewed===true&&s.evidenceKind==='automated_native_schedule_roster_history'&&/^[a-f0-9]{64}$/.test(s.receiptDigest||'')&&Number.isFinite(Date.parse(s.firstGitAt))&&Date.parse(s.firstGitAt)<=at&&Date.parse(s.startAt)>Math.max(at+900000,observed));
+ const matches=ctx.scopes.filter(s=>s.sport===r.sport.toUpperCase()&&norm(s.name)===norm(r.player)&&norm(s.team)===norm(r.team)&&norm(s.opponent)===norm(r.opponent)&&s.identityReviewed===true&&s.eventReviewed===true&&s.rosterReviewed===true&&s.evidenceKind===expectedKind&&/^[a-f0-9]{64}$/.test(s.receiptDigest||'')&&Number.isFinite(Date.parse(s.firstGitAt))&&Date.parse(s.firstGitAt)<=at&&Date.parse(s.startAt)>Math.max(at+900000,observed));
  if(matches.length!==1)return fail(matches.length?'ambiguous_native_match':'no_eligible_native_match');
  const s=matches[0];
  return {sport:r.sport,eventId:r.eventId,player:r.player,playerPath:r.playerPath,team:r.team,opponent:r.opponent,observedAt:r.observedAt,localMatchup:local,nativeGameId:s.gameId,nativePlayerId:s.playerId,nativeStartAt:s.startAt,nativeReceiptDigest:s.receiptDigest,state:'native_schedule_candidate',sourceClockVerified:false,modelApproved:false};
 }
+// Separate roster-only matches from model-ready candidates; never upgrade eligibility.
+function reconcileIdentityOnly(r,ctx){
+ const scopes=(ctx.identityScopes||[]).filter(s=>s.evidenceKind==='automated_native_schedule_roster_only'&&s.historyVerified===false&&s.nativeNamespace);
+ const c=reconcileLocal(r,{...ctx,scopes},()=>{},'automated_native_schedule_roster_only');
+ if(!c)return null;
+ const matched=scopes.filter(s=>s.sport===c.sport.toUpperCase()&&String(s.gameId)===String(c.nativeGameId)&&String(s.playerId)===String(c.nativePlayerId)&&s.receiptDigest===c.nativeReceiptDigest);
+ if(matched.length!==1||matched[0].homeAway!==c.localMatchup.homeAway)return null;
+ return {...c,state:'native_roster_only_candidate',nativeNamespace:matched[0].nativeNamespace,historyVerified:false};
+}
 function reconcileArchive(ctx,receipts){
- const reasons={},groups=new Map(),counts={attempts:0,candidates:0,unresolved:0,conflicting:0};
+ const identityOnly=[],reasons={},groups=new Map(),counts={attempts:0,candidates:0,unresolved:0,conflicting:0};
  for(const doc of receipts.filter(x=>x.schema==='pickfinder-public-nba-context-v1'))for(const r of doc.records||[]){
   counts.attempts++;let c=null;try{c=reconcileLocal(r,ctx,k=>{reasons[k]=(reasons[k]||0)+1;})}catch{reasons.invalid_record=(reasons.invalid_record||0)+1;}
-  if(!c){counts.unresolved++;continue;}
+  if(!c){counts.unresolved++;try{const identity=reconcileIdentityOnly(r,ctx);if(identity)identityOnly.push(identity);}catch{}continue;}
   const k=contextKey(r),a=groups.get(k)||[];a.push(c);groups.set(k,a);
  }
  const rows=[];
@@ -51,7 +60,9 @@ function reconcileArchive(ctx,receipts){
  // Exclude inconsistent provider-event to native-event associations across players.
  const eventMap=new Map();for(const r of rows){const k=r.sport+'/'+r.eventId,a=eventMap.get(k)||new Set();a.add(String(r.nativeGameId));eventMap.set(k,a);}
  const candidates=rows.filter(r=>eventMap.get(r.sport+'/'+r.eventId).size===1);
- return {counts,reasons,uniqueCandidates:candidates.length,eventConflicts:rows.length-candidates.length,rows:candidates,sourceClockVerified:false};
+ const identityEvents=new Map();for(const r of [...candidates,...identityOnly]){const k=r.sport+'/'+r.eventId,a=identityEvents.get(k)||new Set();a.add(r.nativeStartAt);identityEvents.set(k,a);}
+ const identityRows=[...new Map(identityOnly.filter(r=>identityEvents.get(r.sport+'/'+r.eventId).size===1).map(r=>[contextKey(r),r])).values()];
+ return {counts,reasons,identityOnlyAttempts:identityOnly.length,identityOnlyUnique:identityRows.length,identityOnlyRows:identityRows,uniqueCandidates:candidates.length,eventConflicts:rows.length-candidates.length,rows:candidates,sourceClockVerified:false};
 }
 
 // Join exact archived offer references to candidate identities for diagnostics only.
@@ -111,5 +122,5 @@ function generate(ctx,receipts=[]){
  }
  return {kind:'native_individual_research_v1',generatedAt:clock,modelRevision:ctx.revision,native,rows,excluded,reconciliation,candidateOffers:candidateOffers(ctx,reconciliation),paidRequests:0,modelApproved:false};
 }
-module.exports={generate,researchTier,reconcileLocal,reconcileArchive,candidateOffers};
-if(require.main===module){const root=process.cwd(),clock=new Date().toISOString(),out=generate(fromArchive(root,clock,git(root,['rev-parse','HEAD'])),read(root,'directory'));fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,candidateOfferReferences:out.candidateOffers.length,excluded:out.excluded,reconciliation:{...out.reconciliation,rows:undefined}}));}
+module.exports={generate,researchTier,reconcileLocal,reconcileArchive,candidateOffers,reconcileIdentityOnly};
+if(require.main===module){const root=process.cwd(),clock=new Date().toISOString(),out=generate(fromArchive(root,clock,git(root,['rev-parse','HEAD'])),read(root,'directory'));fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,candidateOfferReferences:out.candidateOffers.length,excluded:out.excluded,reconciliation:{...out.reconciliation,rows:undefined,identityOnlyRows:undefined}}));}

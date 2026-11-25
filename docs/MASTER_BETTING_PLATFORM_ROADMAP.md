@@ -1167,6 +1167,16 @@ Public baseline imported from private Git blob 7ac01dea9de441e7f577050c425c67176
 | ESP-035 | 2026-11-25 | [Merged activation PR #212](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/212), [authenticated collection run](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45555996780) | Five GRID LoL fixtures privately archived; no completed maps or verified original lines |
 | ESP-036 | 2026-11-25 | [Merged PR #215](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/215), [actual historical run](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45556995160) | Chronological retrospective target-cohort experiment only |
 
+| ESP-037 | 2026-11-25 | [Verified workflow](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45557918636) | 42 candidate claims; not authoritative identities |
+| ESP-038 | 2026-11-25 | [Verified workflow](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45561278254) | Bounded GetOdds archival; not operator provenance |
+| ESP-039 | 2026-11-25 | [Verified workflow](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45561278250) | Retrospective paired-line evaluation |
+| ESP-042 | 2026-11-25 | [Verified workflow](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45562590663) | Pinned NBA schedule crosswalk |
+| ESP-043 | 2026-11-25 | [Verified workflow](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45562867783) | Historical CS2 paired consistency |
+| ESP-044 | 2026-11-25 | [Verified workflow](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45563321334) | One Dota map corroborated; not full series |
+| ESP-045 | 2026-11-25 | [Verified workflow](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45563386707) | Coverage metadata only |
+| ESP-047 | 2026-11-25 | [Verified workflow](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45563814358) | Conditional ESPN stat matching |
+| ESP-048 | 2026-11-25 | [Verified workflow](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45564849004) | Conditional historical replay; not untouched validation |
+
 ## Roadmap change history
 
 | Date | Change | Proof |

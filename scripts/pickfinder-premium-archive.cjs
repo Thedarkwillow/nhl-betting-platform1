@@ -28,7 +28,7 @@ function scopedResearch(fields,first,last,sport){
 function normalize(input,{now=new Date()}={}){
  if(!input||input.schema!=="pickfinder-premium-export-v1"||!BOOKS.has(input.book)||!SPORTS.has(input.sport))throw Error("partition contract");
  if(!/^\d{4}-\d\d-\d\d$/.test(input.localDay)||!["06:00","09:00","manual"].includes(input.slot))throw Error("slot required");
- if(!Array.isArray(input.pages)||input.pages.length>500||!["populated","empty","disabled","partial"].includes(input.boardState))throw Error("page contract");
+ if(!Array.isArray(input.pages)||!["populated","empty","disabled","partial"].includes(input.boardState))throw Error("page contract");
  const first=instant(input.startedAt),last=instant(input.endedAt);
  if(first>last||last>now)throw Error("attempt chronology");
  const links=new Set(),offers=new Map(),conflicts=new Set(),pageNumbers=new Set(),researchObservations=[],unpricedTierObservations=new Map();

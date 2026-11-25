@@ -27,7 +27,7 @@ jobs:
       - run: node scripts/validate-master-roadmap.cjs && node scripts/validate-execution-roadmap.cjs && node --test test/validate-master-roadmap.test.cjs test/execution-roadmap.test.cjs test/kashrock-restricted-capture.test.cjs test/kashrock-sandbox-prop-check.test.cjs
   capture:
     needs: tests
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:

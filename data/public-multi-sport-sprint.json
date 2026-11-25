@@ -267,6 +267,30 @@
         "ownerPermissionReported": true,
         "archiveRun": 45549936255
       }
+    },
+    "archiveReadiness": {
+      "asOf": "2026-11-25T05:06:05Z",
+      "archiveFiles": 2,
+      "observations": 364,
+      "uniqueNumericalProps": 92,
+      "uniqueDirectionalOffers": 184,
+      "selectionIdCandidates": 88,
+      "conflictingSelectionIds": 0,
+      "originalOffersVerified": 0,
+      "frozenPredictions": 0,
+      "decidedPredictions": 0,
+      "sourceRuns": [
+        45549936255,
+        45550346197
+      ],
+      "roundAudit": {
+        "sourceRun": 45551135471,
+        "roundRows": 168294,
+        "exactSameDemoMaps": 166,
+        "killEventDisagreements": 212,
+        "authoritativeLinks": 0
+      },
+      "productionApproved": false
     }
   },
   "validationRuns": {

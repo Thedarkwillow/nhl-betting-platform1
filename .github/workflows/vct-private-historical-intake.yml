@@ -1,0 +1,78 @@
+name: Owner-authorized VCT Reference private historical intake
+on:
+  pull_request:
+    paths: ['scripts/vct-private-historical-intake.py','test/test_vct_private_historical_intake.py','.github/workflows/vct-private-historical-intake.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/vct-private-historical-intake.py','test/test_vct_private_historical_intake.py','.github/workflows/vct-private-historical-intake.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: vct-private-historical-intake
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s test -p test_vct_private_historical_intake.py
+  collect:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Confirm private archive write scope
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
+      - run: python3 -m pip install duckdb==1.2.2
+      - name: Download bounded authorized dataset and evaluate historical context
+        env:
+          RESTRICTED_DESTINATION_VERIFIED: '1'
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 public/scripts/vct-private-historical-intake.py archive
+      - name: Commit new cache and metadata only
+        working-directory: archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          git add -f research/esports-native-history/vct-reference
+          git diff --cached --quiet && exit 0
+          test -z "$(git diff --cached --name-only --diff-filter=CDMRTUXB)"
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Archive owner-authorized VCT Reference historical source cache'
+          for attempt in 1 2 3 4 5 6; do
+            git -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push -q origin HEAD:main; then
+              git -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch -q origin main
+              git merge-base --is-ancestor HEAD origin/main
+              echo 'Private VCT Reference cache verified on remote.'
+              exit 0
+            fi
+            sleep "$((attempt*2))"
+          done
+          exit 1

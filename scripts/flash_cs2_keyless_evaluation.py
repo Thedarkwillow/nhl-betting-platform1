@@ -58,6 +58,32 @@ def graded(raw):
         return None
     keys={"player":col("player","player_name"),"event":col("event_id","game_id","series_id","match_id","event","game","series"),"market":col("stat_key","stat","market_key","market","prop_type"),"line":col("line","posted_line","book_line"),"outcome":col("outcome","result","graded_outcome"),"actual":col("actual","actual_value","actual_stat","actual_total","result_value","actual_count","settled_value"),"start":col("start_time","event_start","event_start_time","starts_at"),"captured":col("captured_at","snapshot_at","quoted_at","line_captured_at","snapshot_time","observed_at")}
     report={"rows":len(rows),"preambleLinesSkipped":preamble,"columns":fields,"recognizedFields":{k:bool(v) for k,v in keys.items()},"verifiedOriginalLines":0,"frozenModelDecisions":0,"sourceOutcomeCounts":{},"numericConsistencyChecked":0,"numericDisagreements":0,"timedPregameRows":0,"distinctContractRows":0,"conflictingContracts":0,"modelPromoted":False}
+    # A paired export has two thresholds, not a generic posted line. Derive
+    # each numeric result independently; do not assume the provider's outcome
+    # is assigned to the opening or closing threshold unless documented.
+    op,cl=col("opening_line","open_line"),col("closing_line","close_line")
+    if op and cl and all(keys[k] for k in ("player","event","market","actual","outcome")):
+        paired=defaultdict(set)
+        for r in rows:
+            if not all(r.get(keys[k]) for k in ("player","event","market")):continue
+            a,b,v=num(r.get(op)),num(r.get(cl)),num(r.get(keys["actual"]))
+            o=market(r.get(keys["outcome"]))
+            o={"over":"Higher","higher":"Higher","under":"Lower","lower":"Lower","push":"Push","tie":"Push"}.get(o)
+            if a is None or b is None or v is None or o is None:continue
+            paired[(r[keys["event"]],r[keys["player"]],r[keys["market"]])].add((a,b,v,o))
+        counts={"opening":Counter(),"closing":Counter()}
+        p={"validDistinctPairs":0,"conflictingPairs":0,"changedThresholds":0,"changedNumericOutcomes":0,"reportedMatchesOpening":0,"reportedMatchesClosing":0,"reportedMatchesNeither":0,"reportedMatchesBoth":0,"providerOutcomePhaseVerified":False,"sourceTimestampVerified":False}
+        for values in paired.values():
+            if len(values)!=1:p["conflictingPairs"]+=1;continue
+            a,b,v,o=next(iter(values))
+            side=lambda line:"Higher" if v>line else "Lower" if v<line else "Push"
+            x,y=side(a),side(b)
+            p["validDistinctPairs"]+=1;p["changedThresholds"]+=int(a!=b);p["changedNumericOutcomes"]+=int(x!=y)
+            p["reportedMatchesOpening"]+=int(o==x);p["reportedMatchesClosing"]+=int(o==y)
+            p["reportedMatchesBoth"]+=int(o==x==y);p["reportedMatchesNeither"]+=int(o!=x and o!=y)
+            counts["opening"][x]+=1;counts["closing"][y]+=1
+        report["pairedThresholdAudit"]={**p,"derivedNumericOutcomes":{k:dict(v) for k,v in counts.items()}}
+        return report
     if not all(keys[k] for k in ("player","event","market","line","outcome")):return report
     seen=defaultdict(set)
     counts=Counter()

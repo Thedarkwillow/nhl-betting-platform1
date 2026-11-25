@@ -32,22 +32,22 @@
     },
     {
       "sport": "Valorant",
-      "description": "73,950 map rows with agent, team, opponent and round count; 70,530 opening-kill/death rows and 60,680 patch rows. Agent-conditioned kills MAE 4.10569 vs 4.12247 (12,718 matched); duration challenger not approved. Opponent/team prior round exposure improved MAE 3.0167 to 2.8100 (13,788 observations); conditional on known teams. Agent/map assists MAE 2.346 vs 2.443 on 7,274 matched tests; joint kills/deaths worsened. Agent/opponent improves all three on 2,798 matched rows, conditional historical only.",
+      "description": "73,950 map rows with agent, team, opponent and round count; 70,530 opening-kill/death rows and 60,680 patch rows. Agent-conditioned kills MAE 4.10569 vs 4.12247 (12,718 matched); duration challenger not approved. Opponent/team prior round exposure improved MAE 3.0167 to 2.8100 (13,788 observations); conditional on known teams. Agent/map assists MAE 2.346 vs 2.443 on 7,274 matched tests; joint kills/deaths worsened. Agent/opponent improves all three on 2,798 matched rows, conditional historical only. 2024 subset: 11,040 rows; 1,737 paired tests each, agent mixture assists improved, kills/deaths worsened; round MAE 2.73844→2.71767.",
       "historicalRows": 73950
     },
     {
       "sport": "League of Legends",
-      "description": "200,040 historical source rows; 19,999 complete validated games, 15,623 exact series/game-number bindings, 46,263 Maps 1–2 and 23,289 Maps 1–3 player-series. Team-kill MAE 6.779→6.542; kill share 2.101→2.074; assist share 3.652→3.597. Synthetic calibration worsened; no original prop validation. Advanced historical negative-binomial/Poisson challenger reduced synthetic Brier error across all 12 market/scope groups; no verified original-line or prospective calibration. Explicit results repaired for 19,999 games. Prior-date Elo MAE kills 2.1046→2.0983, deaths 1.7164→1.7067, assists 3.6534→3.6348 (34,887 matched rows per market); patch/role adjustment worsened.",
+      "description": "200,040 historical source rows; 19,999 complete validated games, 15,623 exact series/game-number bindings, 46,263 Maps 1–2 and 23,289 Maps 1–3 player-series. Team-kill MAE 6.779→6.542; kill share 2.101→2.074; assist share 3.652→3.597. Synthetic calibration worsened; no original prop validation. Advanced historical negative-binomial/Poisson challenger reduced synthetic Brier error across all 12 market/scope groups; no verified original-line or prospective calibration. Explicit results repaired for 19,999 games. Prior-date Elo MAE kills 2.1046→2.0983, deaths 1.7164→1.7067, assists 3.6534→3.6348 (34,887 matched rows per market); patch/role adjustment worsened. Separate 2024 season: 101,910 rows, 10,189 explicit results; Elo improves three markets in 6,843 matched tests each, CS unchanged.",
       "historicalRows": 200040
     },
     {
       "sport": "Dota 2",
-      "description": "3,000 professional matches, 156 dates. Hero-conditioned historical error improved on 3,135 matched observations per market. Prior-only duration blend marginally improved assists MAE 5.535 to 5.520 (4,628); other markets did not improve. Prior team/opponent duration MAE improved 625.74 to 575.99 seconds (4,422). Separate 2024 cohort adds 30,000 player rows across 3,000 games, not pooled. Two private live batches reconcile 169 unique index games and 130 player details, 4 series with all listed details; no independently verified map ordinals. Native series diagnostic: 29,990 historical rows, 29,910 populated lane-role rows, 1,078 chronological candidate series; synthetic Brier improved 7/8 candidate scope/market groups. No independently verified map order.",
+      "description": "3,000 professional matches, 156 dates. Hero-conditioned historical error improved on 3,135 matched observations per market. Prior-only duration blend marginally improved assists MAE 5.535 to 5.520 (4,628); other markets did not improve. Prior team/opponent duration MAE improved 625.74 to 575.99 seconds (4,422). Separate 2024 cohort adds 30,000 player rows across 3,000 games, not pooled. Two private live batches reconcile 169 unique index games and 130 player details, 4 series with all listed details; no independently verified map ordinals. Native series diagnostic: 29,990 historical rows, 29,910 populated lane-role rows, 1,078 chronological candidate series; synthetic Brier improved 7/8 candidate scope/market groups. No independently verified map order. Separate early-2024 cohort: 29,940 rows, 2,994 games, 875 candidate series; observed hero conditioning improves all four matched markets (2,036 each); synthetic Brier improves 8/8 candidate scopes.",
       "historicalRows": 30000
     },
     {
       "sport": "Call of Duty",
-      "description": "Separate March 2026 bounded sample: 187 complete maps, 1,496 valid player-map rows across 13 dates. Mode-conditioned kills MAE 5.65 vs last-20 8.59; deaths MAE 5.01 vs 8.26, 388 matched observations per market. Prior cohorts remain separate. June 2026 adds 187 maps / 1,496 rows; mode-conditioned kills MAE 6.315 vs 9.389 and deaths 5.988 vs 9.252 on 480 matched observations each. September returned zero. Cohorts not pooled. May 2026 separate cohort: 1,496 rows / 187 maps, 700 paired tests; mode-conditioned kills MAE 6.444 vs 8.814, deaths 6.076 vs 8.551. Pooled March/May/June cohort has 4,488 unique rows / 33 dates; 884 matched tests, mode-conditioned kills MAE 8.880→4.827, deaths 8.682→4.385; synthetic Brier improved 4/6 groups.",
+      "description": "Separate March 2026 bounded sample: 187 complete maps, 1,496 valid player-map rows across 13 dates. Mode-conditioned kills MAE 5.65 vs last-20 8.59; deaths MAE 5.01 vs 8.26, 388 matched observations per market. Prior cohorts remain separate. June 2026 adds 187 maps / 1,496 rows; mode-conditioned kills MAE 6.315 vs 9.389 and deaths 5.988 vs 9.252 on 480 matched observations each. September returned zero. Cohorts not pooled. May 2026 separate cohort: 1,496 rows / 187 maps, 700 paired tests; mode-conditioned kills MAE 6.444 vs 8.814, deaths 6.076 vs 8.551. Pooled March/May/June cohort has 4,488 unique rows / 33 dates; 884 matched tests, mode-conditioned kills MAE 8.880→4.827, deaths 8.682→4.385; synthetic Brier improved 4/6 groups. Separate April 2026: 648 rows, 81 maps; mode-conditioned kills MAE 8.05639→6.91584, deaths 8.69005→7.14528 (140 pairs each).",
       "historicalRows": 1496
     },
     {
@@ -204,7 +204,9 @@
       "conflicts": 17,
       "singleMapCandidates": 3,
       "adjacentDateMapDiagnostics": 1,
-      "tokenBoundaryConflicts": 15
+      "tokenBoundaryConflicts": 15,
+      "conflictDistinctMaps": 2,
+      "singleEvidenceConflicts": 17
     },
     "specialistScorecards": {
       "sourceRun": 45542340820,
@@ -298,7 +300,8 @@
         "rows": 1159,
         "atLeast12Maps": 34,
         "distinctSeriesCandidates": 1,
-        "authoritativeSteamLinks": 0
+        "authoritativeSteamLinks": 0,
+        "additionalPrivateMapSamples": 4
       },
       "prospectiveAudit": {
         "sourceRun": 45553753502,
@@ -310,6 +313,46 @@
       "projectionIdCandidates": 44,
       "profileIdCandidates": 42,
       "historicalDirectoryMatches": 40
+    },
+    "separateHistoricalCohorts": {
+      "sourceRun": 45554189717,
+      "productionApproved": false,
+      "originalOffersVerified": 0,
+      "LOL": {
+        "rows": 101910,
+        "explicitResultGames": 10189,
+        "n": 6843,
+        "eloImprovedMarkets": 3,
+        "eloUnchangedMarkets": 1,
+        "patchRoleImprovedMarkets": 0
+      },
+      "DOTA2": {
+        "rows": 29940,
+        "completeGames": 2994,
+        "candidateSeries": 875,
+        "heroMatchedN": 2036,
+        "heroImprovedMarkets": 4,
+        "syntheticImprovedGroups": 8,
+        "syntheticTotalGroups": 8,
+        "verifiedMapOrdinals": 0
+      },
+      "VALORANT": {
+        "rows": 11040,
+        "n": 1737,
+        "agentImprovedMarkets": 1,
+        "agentWorsenedMarkets": 2,
+        "roundBaselineMAE": 2.738435777425416,
+        "roundCandidateMAE": 2.7176727974464954
+      },
+      "COD": {
+        "rows": 648,
+        "maps": 81,
+        "n": 140,
+        "killsBaselineMAE": 8.056389919604205,
+        "killsCandidateMAE": 6.9158440369154635,
+        "deathsBaselineMAE": 8.690046382189237,
+        "deathsCandidateMAE": 7.145276152419005
+      }
     }
   },
   "validationRuns": {

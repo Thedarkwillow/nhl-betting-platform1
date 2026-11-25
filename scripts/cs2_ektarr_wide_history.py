@@ -64,9 +64,10 @@ def parse(reader):
     rows=[r for key,b in groups.items() if seen[key]==1 for r in b]
     dates=sorted({r["date"] for r in rows})
     return rows,{"sourceRows":raw,"completeMaps":len(rows)//10,"playerMapRows":len(rows),"distinctSourcePlayers":len({r["player"] for r in rows}),"dates":len(dates),"dateMin":dates[0] if dates else None,"dateMax":dates[-1] if dates else None,"excluded":dict(excluded),"totalFlagCounts":dict(flags),"duplicateMapKeys":sum(n>1 for n in seen.values()),"sourceLocalIdsOnly":True,"teamIdentityDiagnostics":{"distinctTeamIds":len(team_names),"distinctTeamLabels":len(team_ids),"labelsWithMultipleIds":sum(len(v)>1 for v in team_ids.values()),"idsWithMultipleLabels":sum(len(v)>1 for v in team_names.values())},"gameIdPatternCounts":dict(game_patterns),"mapOrdinalVerified":False,"headshotCountsAvailable":False}
-def load_pinned_history():
-    req=urllib.request.Request(URL,headers={"User-Agent":"CS2ResearchDataAudit/1.0"})
-    with urllib.request.urlopen(req,timeout=45) as f:raw=f.read(SIZE+1)
+def load_pinned_history(raw=None):
+    if raw is None:
+        req=urllib.request.Request(URL,headers={"User-Agent":"CS2ResearchDataAudit/1.0"})
+        with urllib.request.urlopen(req,timeout=45) as f:raw=f.read(SIZE+1)
     if len(raw)!=SIZE or hashlib.sha256(raw).hexdigest()!=SHA:raise ValueError("pinned_source_changed")
     with zipfile.ZipFile(io.BytesIO(raw)) as z:
         matches=[x for x in z.infolist() if x.filename.split("/")[-1]=="cs2_all_tiers_games.csv"]

@@ -10,9 +10,10 @@ def col(cols,names):
     for n in names:
         if n in cols:return n
     raise ValueError("missing documented field")
-def vct(calendar_year=None):
+def vct(calendar_year=None,raw=None):
     import duckdb
-    raw=free.download("https://vct-reference.com/dataset/vct.duckdb",32_000_000)
+    if raw is None:raw=free.download("https://vct-reference.com/dataset/vct.duckdb",32_000_000)
+    if not isinstance(raw,bytes) or not 0<len(raw)<=32_000_000:raise ValueError("source bound")
     with tempfile.TemporaryDirectory() as d:
         p=pathlib.Path(d)/"vct.duckdb";p.write_bytes(raw)
         db=duckdb.connect(str(p),read_only=True,config={"enable_external_access":"false"})

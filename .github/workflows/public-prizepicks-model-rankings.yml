@@ -1,0 +1,57 @@
+name: Public PrizePicks model ranking research
+on:
+  pull_request:
+    paths: ['scripts/public-prizepicks-model-rankings.cjs','test/public-prizepicks-model-rankings.test.cjs','assets/pickfinder-public-evidence.js','.github/workflows/public-prizepicks-model-rankings.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/public-prizepicks-model-rankings.cjs','test/public-prizepicks-model-rankings.test.cjs','assets/pickfinder-public-evidence.js','.github/workflows/public-prizepicks-model-rankings.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '45 7,10,13,17 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: public-prizepicks-rankings-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check assets/pickfinder-public-evidence.js && node --test test/public-prizepicks-model-rankings.test.cjs test/pickfinder-public-model-validation.test.cjs test/public-nba-mirror-prospective-bridge.test.cjs
+  report:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build ranking from committed public evidence
+        run: node scripts/public-prizepicks-model-rankings.cjs .
+      - name: Commit only public derived ranking report
+        run: |
+          set -euo pipefail
+          git add -f data/prizepicks-model-rankings.json
+          git diff --cached --quiet && exit 0
+          test "$(git diff --cached --name-only)" = data/prizepicks-model-rankings.json
+          git config user.name 'Public research ranking'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Publish fresh public model research rankings or explicit abstention'
+          git fetch --quiet origin main
+          git rebase --quiet FETCH_HEAD
+          git push --quiet origin HEAD:main
+          git fetch --quiet origin main
+          git merge-base --is-ancestor HEAD FETCH_HEAD

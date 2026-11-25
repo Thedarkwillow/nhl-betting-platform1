@@ -1,0 +1,40 @@
+name: Roadmap evidence and KashRock Sandbox evaluation
+on:
+  pull_request:
+    paths: ['AGENTS.md','docs/EXECUTION_ROADMAP.md','scripts/validate-execution-roadmap.cjs','test/execution-roadmap.test.cjs','scripts/kashrock-sandbox-prop-check.cjs','test/kashrock-sandbox-prop-check.test.cjs','.github/workflows/esports-roadmap-kashrock-evaluation.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/esports-roadmap-kashrock-evaluation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kashrock-sandbox-evaluation
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/validate-execution-roadmap.cjs && node --test test/execution-roadmap.test.cjs test/kashrock-sandbox-prop-check.test.cjs
+  evaluate:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: One free Sandbox evaluation, counts only
+        env:
+          KASHROCK_API_KEY: ${{ secrets.KASHROCK_API_KEY }}
+        run: node scripts/kashrock-sandbox-prop-check.cjs

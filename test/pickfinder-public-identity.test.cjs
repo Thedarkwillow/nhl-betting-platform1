@@ -11,3 +11,11 @@ t('NHL history advances over committed games, deduplicates and keeps a bounded r
  const known=new Set(['0','1','2']);const chosen=selectNhlFinals([...rows,rows[3],{...rows[4],startAt:rows[5].startAt},{...rows[0],eventId:'future',startAt:start}],known,at);
  a.equal(chosen.length,12);a.equal(chosen[0].eventId,'3');a.ok(!chosen.some(x=>known.has(x.eventId)||x.eventId==='4'||x.eventId==='future'));a.equal(new Set(chosen.map(x=>x.eventId)).size,12);
 });
+
+t('expanded NHL history budget is bounded and rejects invalid limits',()=>{
+ const {selectNhlFinals}=require('../scripts/pickfinder-public-identity.cjs');
+ const rows=Array.from({length:45},(_,i)=>({namespace:'nhl:official',eventId:String(i),completed:true,status:'post',startAt:new Date(Date.parse(at)-(i+1)*86400000).toISOString(),teams}));
+ a.equal(selectNhlFinals(rows,new Set(),at,36).length,36);
+ a.equal(selectNhlFinals(rows,new Set(),at).length,12);
+ a.throws(()=>selectNhlFinals(rows,new Set(),at,37),/history_limit/);
+});

@@ -7,6 +7,14 @@ const {project}=require('./prizepicks-multisport-model-bridge.cjs');
 const nhl=require('../src/projections.cjs');
 const fs=require('node:fs');
 const norm=x=>typeof x==='string'?x.trim().toLowerCase():'';
+// Legacy browser collector emits null for an isolated ordinary book badge.
+// This is a research classification, not independently verified platform tier.
+function researchTier(o){
+ const tier=norm(o.tier);
+ if(['standard','goblin','demon'].includes(tier))return tier;
+ if(o.tier===null&&o.source==='pickfinder_premium'&&['prizepicks','underdog'].includes(o.book)&&typeof o.displayedPrice==='string'&&/^[+-]\d{2,4}$/.test(o.displayedPrice)&&Math.abs(Number(o.displayedPrice))>=100)return 'standard';
+ return null;
+}
 function generate(ctx){
  const clock=ctx.preparedAt,at=Date.parse(clock),native=[],rows=[],excluded={};
  const reject=k=>{excluded[k]=(excluded[k]||0)+1;};
@@ -18,7 +26,7 @@ function generate(ctx){
  for(const b of ctx.archive.latest.filter(b=>['nhl','nfl'].includes(b.m.sport)&&['prizepicks','underdog'].includes(b.m.book))){
   if(Date.parse(b.first)>at)continue;
   for(const o of b.offers){
-   const side=({higher:'Higher',lower:'Lower'})[norm(o.side)],tier=norm(o.tier);
+   const side=({higher:'Higher',lower:'Lower'})[norm(o.side)],tier=researchTier(o);
    if(!o.detailId||!o.eventId){reject('missing_source_ids');continue;}
    if(!Number.isFinite(o.line)){reject('invalid_threshold');continue;}
    if(!side){reject('invalid_direction');continue;}
@@ -36,10 +44,10 @@ function generate(ctx){
    if(!p){reject('model_scope');continue;}
    const key=JSON.stringify([b.digest,o.detailId,o.eventId,o.market,o.period,o.line,side,tier]);if(seen.has(key))continue;seen.add(key);
    const q=p.probabilities;
-   rows.push({sport:s.sport,book:b.m.book,player:s.name,playerId:s.playerId,gameId:s.gameId,team:s.team,opponent:s.opponent,startAt:s.startAt,market:p.metric,line:o.line,side,tier,projection:p.projection,probability:q?q[side.toLowerCase()]:null,pushProbability:q?.push??null,priorObservations:p.prior,method:p.method,sourceObservedAt:o.observedAt,forecastAt:clock,manifestDigest:b.digest,sourceEventId:o.eventId,sourceDetailId:o.detailId,historyDigests:s.historyDigests,modelRevision:ctx.revision,offerFresh:at-Date.parse(o.observedAt)<=300000,originalPlatformVerified:false,calibrated:false,modelApproved:false,expectedValue:null});
+   rows.push({sport:s.sport,book:b.m.book,player:s.name,playerId:s.playerId,gameId:s.gameId,team:s.team,opponent:s.opponent,startAt:s.startAt,market:p.metric,line:o.line,side,tier,sourceTier:o.tier,platformTierVerified:false,projection:p.projection,probability:q?q[side.toLowerCase()]:null,pushProbability:q?.push??null,priorObservations:p.prior,method:p.method,sourceObservedAt:o.observedAt,forecastAt:clock,manifestDigest:b.digest,sourceEventId:o.eventId,sourceDetailId:o.detailId,historyDigests:s.historyDigests,modelRevision:ctx.revision,offerFresh:at-Date.parse(o.observedAt)<=300000,originalPlatformVerified:false,calibrated:false,modelApproved:false,expectedValue:null});
   }
  }
  return {kind:'native_individual_research_v1',generatedAt:clock,modelRevision:ctx.revision,native,rows,excluded,paidRequests:0,modelApproved:false};
 }
-module.exports={generate};
+module.exports={generate,researchTier};
 if(require.main===module){const root=process.cwd(),clock=new Date().toISOString(),out=generate(fromArchive(root,clock,git(root,['rev-parse','HEAD'])));fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,excluded:out.excluded}));}

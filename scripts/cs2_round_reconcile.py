@@ -13,7 +13,7 @@ def read(f):
     if len(raw)>25_000_000 or hashlib.sha256(raw).hexdigest()!=FILES[f]:raise ValueError("pinned table changed")
     return pq.read_table(io.BytesIO(raw)).to_pylist()
 def reconcile(index,rounds,kills,native):
-    ri=defaultdict(list);ki=defaultdict(list);ix=defaultdict(list);nix=defaultdict(list);counts=Counter();accepted=[]
+    ri=defaultdict(list);ki=defaultdict(list);ix=defaultdict(list);nix=defaultdict(list);counts=Counter()
     for r in index:ix[key(r)].append(r)
     for r in rounds:ri[key(r)].append(r)
     for r in kills:ki[key(r)].append(r)
@@ -21,7 +21,19 @@ def reconcile(index,rounds,kills,native):
     for k,a in ix.items():
         if len(a)!=1:counts["duplicate_index"]+=1;continue
         m=a[0];n=m["rounds_played"];score=(m["score1"],m["score2"])
-        if not (type(n) is int and all(type(x) is int for x in score) and sum(score)==n and finished_score(*score)):counts["invalid_final"]+=1;continue
+        # The index score fields have not been proven to be per-map team scores.
+        # Require a matching, separately reconstructed MR12 regulation map instead.
+        # Do not promote the index or infer identities from same-demo agreement.
+        eid=str(m["match_id"])+"|"+str(m["map_index"]);prior=nix.get(eid,[])
+        if type(n) is not int or not 13<=n<=24:counts["invalid_round_count"]+=1;continue
+        if not prior:counts["not_in_native_regulation_cohort"]+=1;continue
+        if len(prior)!=10 or len({x.get("player") for x in prior})!=10 or any(norm(x.get("map"))!=k[2] or x["rounds"]!=n or str(x["date"])!=str(m["match_date"])[:10] for x in prior):counts["native_event_context_conflict"]+=1;continue
+        pairs=[x.get("regulationScorePair") for x in prior]
+        pair=pairs[0]
+        if not (isinstance(pair,(list,tuple)) and len(pair)==2 and all(type(v) is int and v>=0 for v in pair) and max(pair)==13 and min(pair)<=11 and sum(pair)==n and all(p==pair for p in pairs)):counts["native_regulation_score_unverified"]+=1;continue
+        index_final=all(type(v) is int and v>=0 for v in score) and sum(score)==n and finished_score(*score)
+        if index_final and sorted(score)!=sorted(pair):counts["index_native_score_conflict"]+=1;continue
+        if not index_final:counts["index_score_not_confirmed"]+=1
         rs=ri[k];slots=set();by=defaultdict(list);seen=set();bad=False
         for r in rs:
             sl,rd=r["player_slot"],r["round"]
@@ -40,11 +52,10 @@ def reconcile(index,rounds,kills,native):
             ev[a][0]+=1;ev[b][1]+=1;ev[a][2]+=int(h)
         if eventbad or any((totals[sl][0],totals[sl][1],totals[sl][3])!=tuple(ev[sl]) for sl in slots):counts["kill_event_disagreement"]+=1;continue
         counts["round_and_kill_event_agree"]+=1
-        eid=str(m["match_id"])+"|"+str(m["map_index"]);prior=nix.get(eid,[])
-        if not prior:counts["not_in_native_regulation_cohort"]+=1;continue
-        if len(prior)!=10 or any(norm(x.get("map"))!=k[2] or x["rounds"]!=n or str(x["date"])!=str(m["match_date"])[:10] for x in prior):counts["native_event_context_conflict"]+=1;continue
+
         if sorted(totals.values())!=sorted(tuple(r[v] for v in M) for r in prior):counts["native_totals_disagreement"]+=1;continue
         counts["exact_full_map_totals_agree"]+=1
+        counts["exact_totals_index_score_confirmed" if index_final else "exact_totals_index_score_unconfirmed_diagnostic"]+=1
         # Unique boxscore fingerprints can be diagnostics, never source identity authority.
         freq=Counter(totals.values());counts["unique_slot_stat_fingerprints"]+=sum(v==1 for v in freq.values())
     return dict(counts)

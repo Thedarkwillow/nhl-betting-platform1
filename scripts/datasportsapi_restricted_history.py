@@ -13,7 +13,7 @@ def classify(c):
     labels={re.sub(r"[^a-z0-9]+","-",str(c.get(k) or "").casefold()).strip("-") for k in ("name","slug")}
     hits={CODES[s] for s in labels if s in CODES}
     return next(iter(hits)) if len(hits)==1 else None
-def collect(client,now,days,previous=(),pending=None):
+def collect(client,now,days,previous=(),pending=None,retry=()):
     if pending is None:pending=[]
     known={(x.get("providerFixtureId"),x.get("providerGameId")) for x in previous if x.get("providerCompleted") is True and len(x.get("players",[]))==10}
     if days not in (2,7):raise ValueError("history_days")
@@ -45,12 +45,28 @@ def collect(client,now,days,previous=(),pending=None):
                     key=f["id"];value=(title,f)
                     if key in fixtures and fixtures[key]!=value:bad.add(key)
                     fixtures[key]=value
+        # Revisit up to three older unresolved fixtures before their free history expires.
+        retry_fixtures={}
+        for item in retry:
+            f=item.get("fixture") or {};g=item.get("game") or {};title=item.get("title")
+            key=(str(f.get("id")),str(g.get("id")))
+            t=stamp(f.get("startTime"))
+            if title not in CODES.values() or not fixture_valid(f) or not game_valid(g,now) or key in known or not t or t.date()<(now-timedelta(days=6)).date():continue
+            retry_fixtures[(title,f["id"])]=f
+            pending.append(item)
+        for (title,fid),old in sorted(retry_fixtures.items(),key=lambda x:x[1]["startTime"])[:3]:
+            if fid in fixtures or client.stopped or client.calls>=client.max_calls-2:continue
+            try:
+                fresh=client.get(f"/v2/fixtures/{fid}").get("data")
+                if fixture_valid(fresh) and fresh["id"]==fid and fresh["home"]["id"]==old["home"]["id"] and fresh["away"]["id"]==old["away"]["id"] and stamp(fresh["startTime"])==stamp(old["startTime"]):fixtures[fid]=(title,fresh)
+                else:excluded["retry_fixture_identity_mismatch"]+=1
+            except ValueError:excluded["retry_fixture_unavailable"]+=1
         for key,(title,f) in fixtures.items():
             if key in bad:continue
             counts[title+":fixtures"]+=1
             if f["status"].get("type")=="finished" and stamp(f["startTime"])<now:finished_by_title[title].append(f)
         # Rotate titles rather than allowing one title to use the entire cap.
-        queues={t:sorted(fs,key=lambda f:f["startTime"]) for t,fs in finished_by_title.items()}
+        queues={t:sorted(fs,key=lambda f:(0 if (t,f["id"]) in retry_fixtures else 1,f["startTime"])) for t,fs in finished_by_title.items()}
         while any(queues.values()) and not client.stopped and client.calls<client.max_calls-1:
             for title in sorted(queues):
                 if not queues[title] or client.stopped or client.calls>=client.max_calls-1:continue
@@ -98,6 +114,11 @@ def collect(client,now,days,previous=(),pending=None):
                 except ValueError as e:excluded[str(e) if str(e).startswith("http_") else "invalid_contract_or_limit"]+=1
     except ValueError as e:excluded[str(e) if str(e).startswith("http_") else "invalid_contract_or_limit"]+=1
     except Exception:excluded["source_unavailable"]+=1
+    unique={}
+    for x in pending:
+        key=(str(x["fixture"]["id"]),str(x["game"]["id"]))
+        if key not in known:unique[key]=x
+    pending[:]=list(unique.values())
     report.update(pendingLineups=len(pending),requests=client.calls,counts=dict(counts),excluded=dict(excluded),titleDateComplete=len(completed_days),fullHistoryVerified=False,status="sample_captured" if out else "no_verified_game_rows")
     return report,out
 def main():
@@ -105,14 +126,15 @@ def main():
     if not key:print(json.dumps({"kind":"datasportsapi_restricted_history_v1","status":"missing_key","requests":0,"rawRowsPublished":0,"paidEndpointsCalled":0}));return
     root=Path(os.environ["RUNNER_TEMP"]).resolve();dest=Path(os.environ["DATASPORTS_RESTRICTED_OUTPUT"]).resolve()
     if dest.parent!=root:raise ValueError("restricted output path")
-    now=datetime.now(timezone.utc);days=int(os.environ.get("DATASPORTS_HISTORY_DAYS","7"));previous=[];pending=[]
+    now=datetime.now(timezone.utc);days=int(os.environ.get("DATASPORTS_HISTORY_DAYS","7"));previous=[];pending=[];retry=[]
     archive_dir=os.environ.get("DATASPORTS_PREVIOUS_ARCHIVE")
     if archive_dir:
         for p in sorted(Path(archive_dir).glob("*.json"))[-60:]:
             if p.stat().st_size>8_000_000:raise ValueError("archive_size")
             doc=json.loads(p.read_text())
-            if doc.get("kind")=="datasportsapi_restricted_game_archive_v1":previous.extend(doc.get("rows",[]))
-    report,rows=collect(Client(key,max_calls=40 if days==7 else 24),now,days,previous,pending)
+            if doc.get("kind")=="datasportsapi_restricted_game_archive_v1":
+                previous.extend(doc.get("rows",[]));retry.extend(doc.get("pendingLineups",[]))
+    report,rows=collect(Client(key,max_calls=40 if days==7 else 24),now,days,previous,pending,retry)
     if rows or pending:
         fd=os.open(dest,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
         with os.fdopen(fd,"w") as f:json.dump({"kind":"datasportsapi_restricted_game_archive_v1","observedAt":now.isoformat(),"source":"DataSportsAPI","report":report,"rows":rows,"pendingLineups":pending,"publicRedistributionAllowed":False},f,allow_nan=False)

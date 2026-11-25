@@ -45,7 +45,7 @@ t('all five esports titles use existing exact-scope model, only independently ve
  a.deepEqual(mapPeriod('Maps 1-3'),[1,2,3]);a.equal(mapPeriod('Maps 2-1'),null);
 });
 t('PickFinder matches exact reviewed scope, tier, side, start and fresh observation',()=>{
- const p={detailId:'/players/nhl/p?prop=x',eventId:'e',player:row.player,market:'player_shots_on_goal',reviewed:true};
+ const p={detailId:'/players/nhl/p?prop=x',eventId:'e',player:row.player,market:'player_shots_on_goal',reviewed:true,apiStat:row.stat,apiPeriod:row.period};
  const o={...p,book:'prizepicks',sport:'nhl',line:2.5,side:'Higher',tier:'standard',startAt:start,observedAt:obs};
  const c=ctx({...scope,pickfinder:p});
  c.archive.latest=[{m:{sport:'nhl',book:'prizepicks'},first:clock,offers:[o],sportsbookQuotes:[]}];

@@ -2,6 +2,7 @@
 // Offline read-only aggregate audit. Source identifiers are never output.
 // Does not verify original availability, grade bets, or freeze predictions.
 const fs=require("node:fs"),path=require("node:path"),{execFileSync}=require("node:child_process");
+const {parseProjectionToken}=require("./prizepicks-projection-token.cjs");
 const date=x=>typeof x==="string"&&/(Z|[+-]\d\d:\d\d)$/.test(x)?Date.parse(x):NaN;
 const string=x=>typeof x==="string"&&x.length>0&&x.length<=300;
 const key=x=>JSON.stringify([x.book,x.providerEventId,x.providerPlayerId,x.market,x.maps,x.line]);
@@ -13,14 +14,14 @@ function audit(files,now){
   if(f?.kind!=="restricted_kashrock_source_observations_v1"||f.originalOffersVerified!==false||!Array.isArray(f.rows)||f.rows.length>20000){bad.files++;continue;}
   for(const x of f.rows){if(!safe(x)){bad.rows++;continue;}rows.push(x);}
  }
- const ids=new Map(),propIds=new Map(),events=new Map(),sides=new Set(),props=new Set(),markets={};let candidates=0,fixtureRows=0;
+ const ids=new Map(),projectionIds=new Map(),propIds=new Map(),events=new Map(),sides=new Set(),props=new Set(),markets={};let candidates=0,fixtureRows=0,tokenRejected=0;
  for(const x of rows){const k=key(x);props.add(k);sides.add(sideKey(x));put(propIds,x.providerPropId,k);put(events,x.providerEventId,date(x.startAt));if(x.sourceFixtureMatched===true)fixtureRows++;
-  if(typeof x.originalSelectionIdCandidate==="string"&&/^[A-Za-z0-9_-]{1,100}$/.test(x.originalSelectionIdCandidate)){candidates++;put(ids,x.originalSelectionIdCandidate,k);}
+  if(x.originalSelectionIdCandidate!=null){const t=x.book==="prizepicks"?parseProjectionToken(x.originalSelectionIdCandidate,x.side,x.line):null;if(t){candidates++;put(ids,x.originalSelectionIdCandidate,k);put(projectionIds,t.projectionIdCandidate,JSON.stringify([x.providerEventId,x.providerPlayerId,x.market,x.maps]));}else tokenRejected++;}
   const m=x.book+":"+x.market+":"+x.maps.join(",");markets[m]=(markets[m]||0)+1;
  }
  const timing={upcoming:0,startedOrUnverified:0,conflictingStart:0};
  for(const v of events.values()){if(v.size!==1)timing.conflictingStart++;else if([...v][0]>date(now))timing.upcoming++;else timing.startedOrUnverified++;}
- return {kind:"restricted_kashrock_archive_readiness_v1",archiveFiles:files.length-bad.files,archivedRows:rows.length,uniqueNumericalProps:props.size,uniqueDirectionalOffers:sides.size,selectionCandidateRows:candidates,distinctSelectionIdCandidates:ids.size,conflictingSelectionIdCandidates:[...ids.values()].filter(v=>v.size>1).length,providerPropIdsWithMultipleThresholdKeys:[...propIds.values()].filter(v=>v.size>1).length,providerEvents:events.size,sourceFixtureMatchedRows:fixtureRows,eventTiming:timing,marketObservationCounts:markets,rejected:bad,originalOffersVerified:0,independentPlayerIdentitiesVerified:0,scoringRulesVerified:0,finalResultsVerified:0,frozenPredictions:0,decidedPredictions:0,platformSettlementVerified:false,modelPromoted:false,rawRowsPublished:0,paidRequests:0};
+ return {kind:"restricted_kashrock_archive_readiness_v1",archiveFiles:files.length-bad.files,archivedRows:rows.length,uniqueNumericalProps:props.size,uniqueDirectionalOffers:sides.size,selectionCandidateRows:candidates,distinctSelectionIdCandidates:ids.size,conflictingSelectionIdCandidates:[...ids.values()].filter(v=>v.size>1).length,distinctProjectionIdCandidates:projectionIds.size,conflictingProjectionIdCandidates:[...projectionIds.values()].filter(v=>v.size>1).length,rejectedSelectionTokens:tokenRejected,providerPropIdsWithMultipleThresholdKeys:[...propIds.values()].filter(v=>v.size>1).length,providerEvents:events.size,sourceFixtureMatchedRows:fixtureRows,eventTiming:timing,marketObservationCounts:markets,rejected:bad,originalOffersVerified:0,independentPlayerIdentitiesVerified:0,scoringRulesVerified:0,finalResultsVerified:0,frozenPredictions:0,decidedPredictions:0,platformSettlementVerified:false,modelPromoted:false,rawRowsPublished:0,paidRequests:0};
 }
 function main(root){
  const dir="research/kashrock-source-captures",base=path.join(root,dir),git=a=>execFileSync("git",a,{cwd:root,encoding:"utf8",timeout:15000,maxBuffer:16*1024*1024}).trim();

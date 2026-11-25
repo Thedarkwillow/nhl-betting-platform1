@@ -15,9 +15,10 @@ function marketScope(r){
  if(maps.some((x,i)=>i&&x<=maps[i-1]))return null;
  return {market:map[m[1]],maps};
 }
+const {parseProjectionToken}=require("./prizepicks-projection-token.cjs");
 function selectionLink(r,k){
  if(k!=="prizepicks"||r.deeplink_level!=="selection"||typeof r.deeplink!=="string")return null;
- try{const u=new URL(r.deeplink);if(u.protocol!=="https:"||u.hostname!=="app.prizepicks.com")return null;const q=u.searchParams.get("projections");return /^[a-zA-Z0-9_-]{1,100}$/.test(q||"")?q:null;}catch{return null;}
+ try{const u=new URL(r.deeplink);if(u.protocol!=="https:"||u.hostname!=="app.prizepicks.com"||u.username||u.password||u.port||u.searchParams.getAll("projections").length!==1)return null;const q=u.searchParams.get("projections");const side=["over","higher"].includes(r.direction)?"Higher":["under","lower"].includes(r.direction)?"Lower":null;return parseProjectionToken(q,side,r.line)?q:null;}catch{return null;}
 }
 function fixtureRows(doc,diagnostics={}){
  const a=Array.isArray(doc)?doc:Array.isArray(doc.matches)?doc.matches:Array.isArray(doc.data)?doc.data:Array.isArray(doc.data?.matches)?doc.data.matches:doc.kr_match_id?[doc]:doc.data?.kr_match_id?[doc.data]:doc.match?.kr_match_id?[doc.match]:[];

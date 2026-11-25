@@ -154,6 +154,7 @@ jobs:
           NBA_DIRECT_SOURCE_AUTHORIZED: '1'
           NBA_HISTORICAL_MIRROR_RESEARCH: ${{ vars.NBA_MIRROR_SOURCE_AUTHORIZED == '1' && '1' || '0' }}
           NBA_ODDS_ENABLE: '0'
+          NBA_LOCKED_SOURCE_SCHEDULE: ${{ github.event.schedule }}
           LOCKED_MORNING: ${{ github.event_name == 'schedule' && (github.event.schedule == '35 6 * * *' || github.event.schedule == '35 9 * * *') }}
         run: |
           set -euo pipefail
@@ -161,7 +162,7 @@ jobs:
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           export RESEARCH_ARCHIVE_ROOT="$GITHUB_WORKSPACE/archive"
           code=public
-          if [ "$LOCKED_MORNING" = true ]; then code=candidate; fi
+          if [ "$LOCKED_MORNING" = true ]; then export NBA_LOCKED_MODEL_ROOT="$GITHUB_WORKSPACE/candidate"; fi
           node "$code/scripts/run-nba-private-research-v1.cjs" >"$log" 2>&1 || { echo "::error::NBA collection failed closed."; exit 1; }
           node - "$log" <<'NODE'
           const fs=require('fs'),r=JSON.parse(fs.readFileSync(process.argv[2],'utf8').trim().split('\n').at(-1));

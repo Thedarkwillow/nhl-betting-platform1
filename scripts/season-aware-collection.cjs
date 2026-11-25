@@ -29,6 +29,11 @@ function priority(code,signal,now=new Date()){
  const s=scheduleStatus(signal,now);
  return (s==='competition_scheduled'?0:s==='unknown'?20:40)+(preferred.includes(code)?preferred.indexOf(code):10+Object.keys(registry).indexOf(code));
 }
+function prioritySports(codes,evidence={},now=new Date()){
+ const core=['NBA','NHL','NFL'];
+ const rank=c=>core.includes(c)?core.indexOf(c):esports.has(c)&&scheduleStatus(evidence[c],now)==='competition_scheduled'?3+(preferred.includes(c)?preferred.indexOf(c):10+Object.keys(registry).indexOf(c)):100+priority(c,evidence[c],now);
+ return [...codes].sort((a,b)=>rank(a)-rank(b)||priority(a,evidence[a],now)-priority(b,evidence[b],now));
+}
 function orderedPartitions(codes,books,evidence={},now=new Date()){
  return [...codes].sort((a,b)=>priority(a,evidence[a],now)-priority(b,evidence[b],now)).flatMap(code=>books.map(book=>({code,book})));
 }
@@ -40,4 +45,4 @@ function contextGate(code,previous,current){
  const missingPrior=keys.filter(k=>typeof previous?.[k]!=='string'||!previous[k].trim());
  return {missing,missingPrior,changed,needsRevalidation:missing.length>0||missingPrior.length>0||changed.length>0,modelPromotionAllowed:false};
 }
-module.exports={registry,preferred,scheduleStatus,classify,orderedPartitions,contextGate,requiredContext};
+module.exports={registry,preferred,prioritySports,scheduleStatus,classify,orderedPartitions,contextGate,requiredContext};

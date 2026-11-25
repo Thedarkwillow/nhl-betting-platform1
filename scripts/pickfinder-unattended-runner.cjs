@@ -175,19 +175,16 @@ async function main(env=process.env){
  if(p.deep){
   const {context,page}=await open();
   const until=Date.now()+15*60000;
-  try{console.log(JSON.stringify(await stage('deep_research',()=>require('./pickfinder-deep-research.cjs').run({root,context,page,enrich,collect,limit:Infinity,shouldContinue:()=>Date.now()<until}))));}
+  try{const evidence=await discover({env});console.log(JSON.stringify(await stage('deep_research',()=>require('./pickfinder-deep-research.cjs').run({root,context,page,enrich,collect,evidence,limit:Infinity,shouldContinue:()=>Date.now()<until}))));}
   finally{await context.close();}return;
  }
  const prefix='research/pickfinder-premium/'+p.clock.day+'/'+p.expected.replace(':','');
  const deadline=Date.now()+(p.full?40:20)*60000;
  const remaining=()=>{const t=pacific(new Date());return p.reconcile?Date.now()<deadline&&t.day===p.clock.day:t.day===p.clock.day&&t.hour===p.clock.hour&&t.minute<55;};
  const evidence=await discover({env});
- const preferredTargets=orderedPartitions(SPORTS,BOOKS,evidence);
+ const preferredTargets=require('./season-aware-collection.cjs').prioritySports(SPORTS,evidence).flatMap(code=>BOOKS.map(book=>({code,book})));
  const optionalCodes=Object.keys(registry).filter(code=>!SPORTS.includes(code));
- // Adjacent NBA books reduce clock separation without asserting simultaneous capture.
- const nbaPair=BOOKS.map(book=>({book,code:'NBA'}));
- const other=preferredTargets.filter(p=>p.code!=='NBA');
- const targets=p.targeted?BOOKS.map(book=>({book,code:'CS2'})):[...nbaPair,...(p.reconcile?[...['NFL','NHL'].map(code=>({book:'prizepicks',code})),...other.filter(p=>p.book!=='prizepicks'||!['NFL','NHL'].includes(p.code))]:other)];
+ const targets=p.targeted?BOOKS.map(book=>({book,code:'CS2'})):preferredTargets;
  console.log(JSON.stringify({state:'competition_discovery',sports:Object.fromEntries(Object.keys(registry).map(code=>[code,{source:evidence[code]?.source,status:evidence[code]?.status,upcoming:evidence[code]?.upcoming}])),paidEndpointsCalled:0}));
  const attempt=crypto.randomUUID();
  const counts=[],batches=[],normalized=[],checkpointShas=[];let failed=false;

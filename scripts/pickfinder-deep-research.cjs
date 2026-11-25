@@ -82,10 +82,14 @@ async function persist(root,data){
 
  return sha;
 }
-async function run({root,context,page,enrich,collect,limit=Infinity,shouldContinue=()=>true}){
+async function run({root,context,page,enrich,collect,evidence={},limit=Infinity,shouldContinue=()=>true}){
  if(!(limit===Infinity||Number.isInteger(limit)&&limit>0))throw Error('profile budget');
  const {done,attempts}=priorDone(root),q=queue(allBatches(root),done);
- q.pending.sort((a,b)=>(attempts.get(a.key)||0)-(attempts.get(b.key)||0));
+ const policy=require('./season-aware-collection.cjs');
+ const core=new Set(['nba','nhl','nfl']),active=new Set(Object.entries(policy.registry).filter(([c,s])=>['CS2','DOTA2','VAL','LOL','COD'].includes(c)&&policy.scheduleStatus(evidence[c])==='competition_scheduled').map(([c,s])=>s));
+ const tier=x=>core.has(x.sport)?0:active.has(x.sport)?1:2;
+ const queues=[0,1,2].map(n=>q.pending.filter(x=>tier(x)===n).sort((a,b)=>(attempts.get(a.key)||0)-(attempts.get(b.key)||0)));
+ q.pending=[];while(queues.some(q=>q.length))for(const n of [0,0,0,1,1,2])if(queues[n].length)q.pending.push(queues[n].shift());
  const startedAt=new Date().toISOString(),records=[],diagnostics={};
  const premium=async p=>p.evaluate(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium')&&!!document.querySelector('button[aria-label="Open user menu"]'));
  diagnostics.controls=await page.evaluate(inventory);

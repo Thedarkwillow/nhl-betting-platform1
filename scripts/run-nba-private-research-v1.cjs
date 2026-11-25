@@ -2,11 +2,14 @@
 const fs=require("node:fs"),path=require("node:path");
 const {execFileSync}=require("node:child_process");
 const {createHash}=require("node:crypto");
-const core=require("../src/nba-research-pipeline-v1.cjs");
+const lockedRoot=process.env.NBA_LOCKED_MODEL_ROOT;
+const lockProof=lockedRoot?require("./morning-collection-lock-check.cjs").verify(fs.realpathSync(process.env.RESEARCH_ARCHIVE_ROOT),fs.realpathSync(lockedRoot),process.env.NBA_LOCKED_SOURCE_SCHEDULE,new Date().toISOString()):null;
+const core=require(lockedRoot?path.join(fs.realpathSync(lockedRoot),"src/nba-research-pipeline-v1.cjs"):"../src/nba-research-pipeline-v1.cjs");
 const {toRows}=require("./collect-live-partner-nhl-nfl.cjs");
 const {querySportsGameOdds}=require("./check-provider-api-quotas.cjs");
 const {accountAllows}=require("./collect-independent-nhl-sportsbook-fallback.cjs");
 const CODE_ROOT=path.resolve(__dirname,".."),ROOT=process.env.RESEARCH_ARCHIVE_ROOT?fs.realpathSync(process.env.RESEARCH_ARCHIVE_ROOT):CODE_ROOT,OUT=path.join(ROOT,"outputs/nba");
+const gitCodeRevision=()=>{try{return execFileSync("git",["rev-parse","HEAD"],{cwd:CODE_ROOT,encoding:"utf8",timeout:15000}).trim();}catch{return null;}};
 const stamp=t=>t.replace(/[-:.]/g,""),now=()=>new Date().toISOString();
 const pacific=t=>new Intl.DateTimeFormat("sv-SE",{timeZone:"America/Los_Angeles",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(t));
 const save=(p,d)=>{const f=path.join(OUT,p);fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,JSON.stringify(d)+"\n",{flag:"wx",mode:0o600});return f;};
@@ -204,7 +207,7 @@ async function main(){
    const starter=lineups.find(x=>x.gameId===p.gameId&&x.team===p.team);
    return {...p,injuryStatus:entries.length===1?"observed_"+entries[0].status:"unknown_not_clearance",injurySourceFirstGitVerified:false,startingLineupSourceStatus:starter?(starter.playerIds.includes(p.playerId)?"source_reported_starter":"not_reported_starter"):"unverified",liveAvailabilityConfirmed:false};
   }).filter(p=>!["observed_out","observed_doubtful","observed_questionable","observed_game-time decision"].includes(p.injuryStatus));
-  save("rankings/"+stamp(at)+".json",{kind:"nba_private_research_rankings_v1",generatedAt:at,boardCapturedAt:b.capturedAt,source:"original private partner observations",rows:rows.slice(0,500),rankedRowsBeforeExportCap:rows.length,exportCap:500,calibrated:false,prospectivelyValidated:false,highConfidenceApproved:0,actualWagersPlaced:0,verifiedEV:null,injuryStatusesVerified:false,originalAppAvailabilityVerified:false});
+  save("rankings/"+stamp(at)+".json",{kind:"nba_private_research_rankings_v1",generatedAt:at,boardCapturedAt:b.capturedAt,source:"original private partner observations",rows,rankedRowsBeforeExportCap:rows.length,exportCap:null,modelCoreRevision:lockProof?.revision??null,modelCoreTree:lockProof?.tree??null,collectorRevision:gitCodeRevision(),modelCoreOnlyLock:!!lockProof,calibrated:false,prospectivelyValidated:false,highConfidenceApproved:0,actualWagersPlaced:0,verifiedEV:null,injuryStatusesVerified:false,originalAppAvailabilityVerified:false});
  }
  const report={kind:"nba_isolated_research_readiness_v1",generatedAt:now(),status,history:logs.map(x=>({season:x.season,games:x.gameCount,rows:x.rows.length,complete:x.seasonCompletenessVerified,source:x.source,expectedRegularSeasonGames:x.expectedRegularSeasonGames??null,mirrorCountMatchesExpected:x.mirrorObservedGameCountMatchesExpected??null})),boardRows:b?.rows.length||0,officialScheduleGames:sc?.games.length||0,eligibleResearchSides:offers.length,rankedRows:rows.length,exactSportsbookComparisons:rows.filter(x=>x.benchmark).length,injurySourceLinks:inj?.links.length||0,injuryReportObservedRows:injuryDoc?.rows.length||0,notSubmittedTeams:injuryDoc?.notSubmitted.length||0,sourceReportedStartingFives:lineups.length,syntheticBacktestGroups:Object.keys(backtest?.groups||{}).length,backtestSummary:Object.fromEntries(Object.entries(backtest?.groups||{}).filter(([k])=>k.startsWith("historical_holdout|")||k.startsWith("current_season_replay|")).map(([k,x])=>[k,{n:x.n,brier:x.brier,baselineBrier:x.baselineBrier,adjustedBrier:x.adjustedBrier,adjustedN:x.adjustedN,pairedRawBrier:x.pairedRawBrier,distinctDates:x.distinctDates}])),calibrated:false,prospectiveValidationApproved:false,highConfidenceApproved:0,actualWagersPlaced:0,sharedPaidProviderRequests:0,liveLineupVerification:false,sourceRightsIndependentlyReviewed:false,mirrorArchivePrivateResearchOnly:true};
  save("health/"+stamp(report.generatedAt)+".json",report);console.log(JSON.stringify(report));

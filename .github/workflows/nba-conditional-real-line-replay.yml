@@ -1,0 +1,63 @@
+name: NBA conditional real-line retrospective replay
+on:
+  pull_request:
+    paths: ['scripts/nba-conditional-real-line-replay.cjs','test/nba-conditional-real-line-replay.test.cjs','.github/workflows/nba-conditional-real-line-replay.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/nba-conditional-real-line-replay.cjs','test/nba-conditional-real-line-replay.test.cjs','.github/workflows/nba-conditional-real-line-replay.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/nba-conditional-real-line-replay.test.cjs
+  evidence:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 402d4fceb29a2ec2f3d3b09d06ede8ba2dd4ef9a
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: official
+          persist-credentials: false
+          sparse-checkout: |
+            outputs/nba
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 74300400cf6afcad3ed8338b74705a257ef5cc98
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: provider
+          persist-credentials: false
+          sparse-checkout: |
+            outputs/nba/authorized-providers/bdl-schedule
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 1ead89bcafab7ca37ed74ea97047517101e5c033
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: results
+          persist-credentials: false
+          sparse-checkout: |
+            research/nba-final-stat-reconciliation
+      - name: Aggregate only, immutable archive audit
+        run: |
+          node scripts/nba-conditional-real-line-replay.cjs \
+            official/outputs/nba/schedule/20261124T182019390Z.json 1b418d636215d5027acf5f918880157d00e30686 \
+            provider/outputs/nba/authorized-providers/bdl-schedule/20261124T185847327Z.json e7ffbdae237fa4af09f37e6e0e7093de19e8f473 \
+            official/outputs/nba/boards/20261124T182019940Z.json 246fa2b96c0bb9ec08cd92d95d797102b3aa74d9 \
+            official/outputs/nba/history/2026-27/20261124T182018692Z.json 52c36e5efb547b3c4a3170a713afcd3de0e2a909 \
+            results/research/nba-final-stat-reconciliation/45563814358-1.json 00eea0f7a55c2dbba9007d8314f168a0a586cf45 \
+            official/outputs/nba/injury-reports/20261124T182020644Z.json 5fe82c2822be925f4e47b7b1b70d4e1dc573e864

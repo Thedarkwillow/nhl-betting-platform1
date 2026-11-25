@@ -107,3 +107,12 @@ test('full profile collection preserves visible observations and flags failed ta
  assert.equal(row.profileCollection.truncated,true);
  assert.ok(row.profileCollection.tabAudit.some(t=>t.tab==='Defense'&&t.state==='failed'));
 });
+
+test('dashboard traversal checkpoints every explicit page and never infers full filter coverage',async()=>{
+ const {traverseDashboard}=require('../scripts/pickfinder-dashboard-research.cjs');
+ let i=1,saved=[];
+ const page={url:()=> 'https://www.pickfinder.app/games',evaluate:async()=>({tables:[],cards:[{page:i}],clocks:[],controls:[],pagination:[{page:i,total:3}]}),getByRole:(role,opts)=>({count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true,click:async()=>{assert.equal(opts.name,'Next page');i++;}}),waitForFunction:async()=>{}};
+ const out=await traverseDashboard(page,'Games',{onSnapshot:async x=>saved.push(x.cards[0].page)});
+ assert.deepEqual(saved,[1,2,3]);assert.equal(out.state,'explicit_last_page_observed');assert.equal(out.filtersExhausted,false);
+ await assert.rejects(traverseDashboard(page,'Popular'),/route/);
+});

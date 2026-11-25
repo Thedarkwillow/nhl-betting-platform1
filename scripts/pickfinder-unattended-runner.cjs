@@ -170,7 +170,7 @@ async function main(env=process.env){
  if(p.deep){
   const {context,page}=await open();
   const until=Date.now()+15*60000;
-  try{console.log(JSON.stringify(await stage('deep_research',()=>require('./pickfinder-deep-research.cjs').run({root,context,page,enrich,collect,limit:20,shouldContinue:()=>Date.now()<until}))));}
+  try{console.log(JSON.stringify(await stage('deep_research',()=>require('./pickfinder-deep-research.cjs').run({root,context,page,enrich,collect,limit:Infinity,shouldContinue:()=>Date.now()<until}))));}
   finally{await context.close();}return;
  }
  const prefix='research/pickfinder-premium/'+p.clock.day+'/'+p.expected.replace(':','');

@@ -47,6 +47,25 @@ class RunnerStageError extends Error {
  constructor(stage){super(stage);this.stage=stage;}
 }
 async function stage(name,fn){try{return await fn();}catch(e){if(e instanceof RunnerStageError)throw e;throw new RunnerStageError(name);}}
+async function submitLoginStep(page,field,phase){
+ // Only use the normal visible submit control associated with this credential field.
+ const form=field.locator('xpath=ancestor::form[1]');
+ const scoped=form.locator('button[type=submit]:visible, input[type=submit]:visible, button:not([type]):visible');
+ const named=page.getByRole('button',{name:/^(sign in|log in|continue|next)(?: with (?:email|password))?(?:\s*→)?$/i,exact:true});
+ const button=await stage(phase+'_control_lookup',async()=>{
+  if(await form.count()===1){
+   const count=await scoped.count();
+   if(count===1)return scoped;
+   if(count>1)throw new RunnerStageError(phase+'_ambiguous_form_controls');
+  }
+  if(await named.count()!==1)throw new RunnerStageError(phase+'_unique_control_unavailable');
+  return named;
+ });
+ await stage(phase+'_control_visible',()=>button.waitFor({state:'visible',timeout:10000}));
+ if(new URL(page.url()).origin!==ORIGIN)throw new RunnerStageError('login_origin_not_supported');
+ // Do not force click, bypass disabled controls, or solve verification challenges.
+ await stage(phase+'_control_click',()=>button.click({timeout:15000}));
+}
 async function passwordLogin(page,env){
  if(!env.PICKFINDER_EMAIL||!env.PICKFINDER_PASSWORD)throw new RunnerStageError('login_secrets_missing');
  await stage('login_page_navigation',()=>page.goto(ORIGIN+'/sign-in',{timeout:20000}));
@@ -57,14 +76,13 @@ async function passwordLogin(page,env){
  await stage('email_field_not_visible',()=>email.waitFor({state:'visible',timeout:20000}));
  if(!sameOrigin())throw new RunnerStageError('login_origin_not_supported');
  await stage('email_field_fill',()=>email.fill(env.PICKFINDER_EMAIL));
- const submit=page.getByRole('button',{name:/^(sign in|log in|continue|next)(?:\s*→)?$/i,exact:true});
  if(!await password.isVisible()){
-  await stage('identifier_submit',async()=>{await submit.waitFor({state:'visible',timeout:10000});await submit.click();});
+  await submitLoginStep(page,email,'identifier_submit');
   await stage('password_step_unavailable_or_verification_required',()=>password.waitFor({state:'visible',timeout:20000}));
  }
  if(!sameOrigin())throw new RunnerStageError('login_origin_not_supported');
  await stage('password_field_fill',()=>password.fill(env.PICKFINDER_PASSWORD));
- await stage('password_submit',async()=>{await submit.waitFor({state:'visible',timeout:10000});await submit.click();});
+ await submitLoginStep(page,password,'password_submit');
  // No retry or alternate verification path. The provider may require an interactive challenge.
  await stage('login_completion_not_verified',()=>page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:25000}));
 }
@@ -146,5 +164,5 @@ async function main(env=process.env){
  }else failed=true;
  if(failed||counts.length!==targets.length)process.exitCode=1;
 }
-module.exports={plan,receiptValid,safeAddedFiles,partitions,passwordLogin,stage,RunnerStageError};
+module.exports={plan,receiptValid,safeAddedFiles,partitions,passwordLogin,submitLoginStep,stage,RunnerStageError};
 if(require.main===module)main().catch(e=>{console.error(JSON.stringify({state:'runner_failed',stage:e instanceof RunnerStageError?e.stage:'unclassified',rawDataLogged:false}));process.exitCode=1;});

@@ -64,3 +64,8 @@ t('retention denied by default; authorized test storage is exclusive, allowliste
  a.throws(()=>retain(result,{...options,grant,directory:process.cwd()}),/storage_not_private/);
  }finally{fs.rmSync(d,{recursive:true,force:true});}
 });
+
+t('verified team and opponent are preserved in new restricted multisport forecasts',()=>{
+ const p=evaluateOther([row],ctx(scope),clock).predictions;
+ a.equal(p.length,2);for(const x of p){a.equal(x.team,scope.team);a.equal(x.opponent,scope.opponent);}
+});

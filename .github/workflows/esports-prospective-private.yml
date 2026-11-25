@@ -92,10 +92,21 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           test -z "$(git diff --cached --name-only --diff-filter=CDMRTUXB)"
           git commit -qm 'Archive esports research forecasts before start'
-          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:main
-          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch --quiet origin main
-          git merge-base --is-ancestor HEAD origin/main
-          echo 'Private esports archive commit verified on remote.'
+          for attempt in 1 2 3 4 5 6; do
+            git -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch --quiet origin main
+            git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
+            if git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:main; then
+              git -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch --quiet origin main
+              git merge-base --is-ancestor HEAD FETCH_HEAD
+              while IFS= read -r file; do
+                test "$(git rev-parse "HEAD:$file")" = "$(git rev-parse "FETCH_HEAD:$file")"
+              done < <(git diff-tree --no-commit-id --name-only -r HEAD)
+              echo 'Private esports archive commit and file digests verified on remote.'
+              exit 0
+            fi
+            sleep "$((attempt*2))"
+          done
+          exit 1
       - name: Independent private archive audit
         if: always() && !cancelled() && steps.private_destination.outcome == 'success'
         run: node public/scripts/esports-prospective-archive.cjs archive audit

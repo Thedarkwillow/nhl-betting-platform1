@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-25T20:03:00.679Z",
+  "generatedAt": "2026-11-25T20:04:33.203Z",
   "sourceReportAt": "2026-11-25T10:01:27.262Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-25T18:14:40.630Z",
+    "sourceReportAt": "2026-11-25T20:02:58.160Z",
     "nhl": {
       "sourceEligible": false,
       "examined": 0,
@@ -218,47 +218,47 @@
         "kind": "public_nhl_standard_frozen_market_baseline_audit_v1",
         "byMarket": {
           "shotsOnGoal": {
-            "decided": 561,
-            "distinctGames": 103,
-            "modelRate": 0.491979,
-            "alwaysHigherRate": 0.438503,
-            "alwaysLowerRate": 0.561497,
-            "modelMinusLower": -0.069519,
-            "modelMinusHigher": 0.053476,
+            "decided": 568,
+            "distinctGames": 104,
+            "modelRate": 0.492958,
+            "alwaysHigherRate": 0.43838,
+            "alwaysLowerRate": 0.56162,
+            "modelMinusLower": -0.068662,
+            "modelMinusHigher": 0.054577,
             "releaseApproved": false
           },
           "points": {
-            "decided": 347,
-            "distinctGames": 96,
-            "modelRate": 0.512968,
-            "alwaysHigherRate": 0.466859,
-            "alwaysLowerRate": 0.533141,
-            "modelMinusLower": -0.020173,
-            "modelMinusHigher": 0.04611,
+            "decided": 353,
+            "distinctGames": 97,
+            "modelRate": 0.512748,
+            "alwaysHigherRate": 0.464589,
+            "alwaysLowerRate": 0.535411,
+            "modelMinusLower": -0.022663,
+            "modelMinusHigher": 0.048159,
             "releaseApproved": false
           },
           "blockedShots": {
-            "decided": 166,
-            "distinctGames": 79,
-            "modelRate": 0.475904,
-            "alwaysHigherRate": 0.475904,
-            "alwaysLowerRate": 0.524096,
-            "modelMinusLower": -0.048193,
-            "modelMinusHigher": 0,
+            "decided": 169,
+            "distinctGames": 80,
+            "modelRate": 0.473373,
+            "alwaysHigherRate": 0.47929,
+            "alwaysLowerRate": 0.52071,
+            "modelMinusLower": -0.047337,
+            "modelMinusHigher": -0.005917,
             "releaseApproved": false
           },
           "assists": {
-            "decided": 185,
-            "distinctGames": 88,
-            "modelRate": 0.52973,
-            "alwaysHigherRate": 0.508108,
-            "alwaysLowerRate": 0.491892,
-            "modelMinusLower": 0.037838,
-            "modelMinusHigher": 0.021622,
+            "decided": 188,
+            "distinctGames": 89,
+            "modelRate": 0.531915,
+            "alwaysHigherRate": 0.510638,
+            "alwaysLowerRate": 0.489362,
+            "modelMinusLower": 0.042553,
+            "modelMinusHigher": 0.021277,
             "releaseApproved": false
           }
         },
-        "decided": 1259,
+        "decided": 1278,
         "outperformanceApproved": false,
         "approvedPicks": 0
       },
@@ -275,12 +275,12 @@
       },
       "standardCalibration": {
         "kind": "public_nhl_standard_uncalibrated_future_holdout_v1",
-        "decided": 1267,
-        "distinctGames": 103,
-        "distinctDates": 15,
-        "meanUncalibratedProbability": 0.6134244435674825,
-        "observedSelectedHitRate": 0.5019731649565904,
-        "absoluteConfidenceGap": 0.111451,
+        "decided": 1286,
+        "distinctGames": 104,
+        "distinctDates": 16,
+        "meanUncalibratedProbability": 0.6133164152410577,
+        "observedSelectedHitRate": 0.5023328149300156,
+        "absoluteConfidenceGap": 0.110984,
         "minimum20DatesMet": false,
         "independentlyCalibrated": false,
         "approvedPicks": 0
@@ -378,7 +378,7 @@
     "kind": "public_expanded_ml_research_counts_v1",
     "sourceReportAt": "2026-11-24T16:52:59.817419+00:00",
     "marketEvidence": {
-      "sourceReportAt": "2026-11-25T04:54:32.012Z",
+      "sourceReportAt": "2026-11-25T20:03:02.186Z",
       "acceptedArchives": 9,
       "trackedSeries": 2231,
       "repeatedSeries": 0,
@@ -393,10 +393,10 @@
     "testedThresholds": 55,
     "thresholdsBeatingAllBaselines": 16,
     "prospective": {
-      "sourceReportAt": "2026-11-25T04:54:32.012Z",
+      "sourceReportAt": "2026-11-25T20:03:02.186Z",
       "registered": 123,
-      "decided": 0,
-      "correct": 0
+      "decided": 7,
+      "correct": 4
     },
     "historicalSyntheticOnly": true,
     "calibrationApproved": false,

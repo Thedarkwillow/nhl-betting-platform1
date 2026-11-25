@@ -7,3 +7,18 @@ test('queue resumes only current completed profile scopes',()=>{const b={book:'p
 test('board chunks retain individual records and manifest separates them',()=>{const {splitBoard}=require('../scripts/pickfinder-public-runner.cjs');const x=splitBoard({book:'prizepicks',sport:'nba',sourceDigest:'a',offers:[{line:1}],researchObservations:[],unpricedTierObservations:[],sportsbookQuotes:[]});assert.equal(x.parts.length,1);assert.equal(x.parts[0].rows.length,1);assert.equal(x.meta.offers,undefined);});
 
 test('exact shared detail scopes deduplicate across books but preserve line and context',()=>{const offer={player:'Fixture',detailId:'/players/nba/a?prop=x%3Apoints%3Ae%3A5',market:'points',eventId:'e'};const a={book:'prizepicks',sport:'nba',offers:[offer]},b={book:'underdog',sport:'nba',offers:[offer,{...offer,detailId:'/players/nba/a?prop=x%3Apoints%3Ae%3A6'},{...offer,period:'1st_half'}]};const q=queue([a,b],[]);assert.equal(q.total,3);assert.equal(q.sharedAcrossBooks,1);const shared=q.pending.find(x=>x.books.length===2);assert.deepEqual(shared.books,['prizepicks','underdog']);const p=publicProfile({...shared,research:[{origin:'profile',metric:'row 1',scope:'Stats',value:'5'}],profileCollection:{truncated:false}});assert.equal(p.bookCoverageVerified,false);assert.equal(queue([a,b],[{records:[p]}]).pending.length,2);});
+
+test('scheduled provenance must match an independently verified successful actual-hour workflow attempt',()=>{
+ const {captureOrigin}=require('../scripts/pickfinder-public-runner.cjs'),{scheduledRunMatches}=require('../scripts/pickfinder-public-morning-audit.cjs');
+ const env={GITHUB_EVENT_NAME:'schedule',GITHUB_EVENT_SCHEDULE:'7 6 * * *',GITHUB_RUN_ID:'123',GITHUB_RUN_ATTEMPT:'1',GITHUB_SHA:'a'.repeat(40)};
+ const p={expected:'06:00'},o=captureOrigin(env,p),day='2026-11-25',slot='06:00',first='2026-11-25T14:20:00Z';
+ const run={id:123,run_attempt:1,event:'schedule',head_sha:env.GITHUB_SHA,head_branch:'main',repository:{full_name:'Thedarkwillow/nhl-betting-platform1'},path:'.github/workflows/pickfinder-premium-hosted.yml',status:'completed',conclusion:'success',run_started_at:'2026-11-25T14:07:00Z'};
+ assert.equal(scheduledRunMatches(o,run,day,slot,first),true);
+ assert.equal(scheduledRunMatches(o,{...run,event:'workflow_dispatch'},day,slot,first),false);
+ assert.equal(scheduledRunMatches(o,{...run,run_started_at:'2026-11-25T17:07:00Z'},day,slot,first),false);
+ assert.equal(scheduledRunMatches(o,{...run,conclusion:'failure'},day,slot,first),false);
+ assert.equal(scheduledRunMatches(o,{...run,run_attempt:2},day,slot,first),false);
+ assert.equal(captureOrigin({...env,GITHUB_RUN_ID:'bad'},p),null);
+ assert.equal(captureOrigin(env,{expected:'09:00'}),null);
+ assert.equal(scheduledRunMatches(null,run,day,slot,first),false);
+});

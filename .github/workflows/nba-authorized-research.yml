@@ -112,6 +112,29 @@ jobs:
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           node public/scripts/grade-nba-frozen-research-v1.cjs >"$log" 2>&1 || { echo "::warning::NBA grading unavailable; outcomes not inferred."; }
+      - name: Preserve completed grade files before collection
+        working-directory: archive
+        run: |
+          set -euo pipefail
+          test -d outputs/nba/paper-grades || exit 0
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nba/paper-grades
+          git diff --cached --quiet && exit 0
+          test -z "$(git diff --cached --name-only --diff-filter=CDMRTUXB)"
+          git commit -qm 'research: append independent NBA final-stat grades'
+          for attempt in 1 2 3 4 5 6; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then
+              git fetch -q origin main
+              git merge-base --is-ancestor HEAD origin/main
+              echo 'Private NBA grade commit verified on remote.'
+              exit 0
+            fi
+            sleep "$((attempt*2))"
+          done
+          exit 1
       - name: Checkout locked morning code
         if: ${{ github.event_name == 'schedule' && (github.event.schedule == '35 6 * * *' || github.event.schedule == '35 9 * * *') }}
         uses: actions/checkout@v4
@@ -144,7 +167,6 @@ jobs:
           console.log(JSON.stringify({status:r.status,boardRows:r.boardRows,rankedRows:r.rankedRows,officialScheduleGames:r.officialScheduleGames,highConfidenceApproved:r.highConfidenceApproved}));
           NODE
       - name: Preserve private NBA outputs only
-        if: always() && !cancelled() && steps.private_destination.outcome == 'success'
         working-directory: archive
         run: |
           set -euo pipefail
@@ -153,11 +175,17 @@ jobs:
           test -d outputs/nba || exit 0
           git add -f outputs/nba
           git diff --cached --quiet && exit 0
-          git commit -qm 'research: authorized private NBA observations and final-only grading'
+          test -z "$(git diff --cached --name-only --diff-filter=CDMRTUXB)"
+          git commit -qm 'research: append authorized private NBA observations'
           for attempt in 1 2 3 4 5 6; do
             git fetch -q origin main
             git rebase -q origin/main || { git rebase --abort; exit 1; }
-            if git push -q origin HEAD:main; then exit 0; fi
+            if git push -q origin HEAD:main; then
+              git fetch -q origin main
+              git merge-base --is-ancestor HEAD origin/main
+              echo 'Private NBA observation commit verified on remote.'
+              exit 0
+            fi
             sleep "$((attempt*2))"
           done
           exit 1

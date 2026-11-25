@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Metadata-only modern pro CS2 statistical baseline. No demos or raw output."""
-import hashlib,importlib.util,json,pathlib,re,tempfile,urllib.request
+import hashlib,importlib.util,json,pathlib,re,tempfile,urllib.request,os
 from collections import defaultdict,Counter
 from datetime import datetime
 ROOT=pathlib.Path(__file__).resolve().parents[1]
@@ -133,6 +133,15 @@ def main():
     strict=[r for k,a in verified_maps.items() if all_ids[k]==1 for r in a]
     recovered=sum(k not in maps and all_ids[k]==1 for k in verified_maps)
     from esports_context_models import evaluate as context_eval
+    # Optional restricted inputs; only aggregate readiness counts leave the runner.
+    capture=os.environ.get("CS2_RESTRICTED_CAPTURE")
+    if capture:
+        from cs2_restricted_history_join import evaluate as join_eval
+        def read_restricted(var):
+            name=os.environ.get(var)
+            return json.loads(pathlib.Path(name).read_text()) if name else []
+        archive=json.loads(pathlib.Path(capture).read_text())
+        print(json.dumps(join_eval(archive,rows,read_restricted("CS2_IDENTITY_LINKS"),read_restricted("CS2_EVENT_LINKS"))))
     print(json.dumps({"kind":"opencs2_modern_map_baseline_v1","source":REPO,"revision":REV,"license":"CC BY 4.0; original rights not independently verified","assetsVerified":len(files),"metadataMapRows":sum(x["maps"] for x in files),"context":context_eval(rows,METRICS,["map"]),"regulationDiagnostic":{"completeMaps":len(strict)//10,"notInOriginalCohort":recovered,"excludedReasons":dict(strict_reasons),"baseline":evaluate(strict),"context":context_eval(strict,METRICS,["map"]),"sourceRoundWinnerAndSideTotalsVerified":True,"separateCohort":True},"completeMaps":len(rows)//10,"excludedMaps":reject,"exclusionReasons":dict(reasons),"duplicateMapsExcluded":len(bad),"baseline":evaluate(rows),"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
 if __name__=="__main__":
     try:main()

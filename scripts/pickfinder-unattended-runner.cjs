@@ -1,6 +1,6 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const {execFileSync}=require('node:child_process');
+const {execFileSync,spawn}=require('node:child_process');
 const {pacific,decide}=require('./pacific-morning-capture-gate.cjs');
 const {collect,ORIGIN}=require('./pickfinder-browser.cjs');
 const {enrich}=require('./pickfinder-player-research.cjs');
@@ -28,6 +28,22 @@ function safeAddedFiles(lines,prefix){
  return records.length>0&&records.every(r=>r.startsWith('A\t'+prefix+'/')&&!r.includes('..'));
 }
 function git(root,args){return execFileSync('git',['-C',root,...args],{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();}
+// Stream remote bytes to avoid the fixed 32 MiB stdout buffer on large boards.
+async function remoteDigest(root,ref,file){
+ const child=spawn('git',['-C',root,'show',ref+':'+file],{stdio:['ignore','pipe','ignore']});
+ const hash=crypto.createHash('sha256');
+ const exited=new Promise((resolve,reject)=>{child.once('error',reject);child.once('close',code=>code===0?resolve():reject(Error('remote blob unavailable')));});
+ const read=(async()=>{for await(const chunk of child.stdout)hash.update(chunk);})();
+ await Promise.all([exited,read]);return hash.digest('hex');
+}
+async function verifyRemoteBatch(root,base,b,ref='FETCH_HEAD'){
+ const raw=JSON.stringify(b),expected=crypto.createHash('sha256').update(raw).digest('hex');
+ const localNormalized=fs.readFileSync(path.join(root,base,'normalized.json'));
+ if(JSON.parse(localNormalized).sourceDigest!==expected)throw Error('local source digest mismatch');
+ const normalizedDigest=crypto.createHash('sha256').update(localNormalized).digest('hex');
+ if(await remoteDigest(root,ref,base+'/source.json')!==expected||
+    await remoteDigest(root,ref,base+'/normalized.json')!==normalizedDigest)throw Error('archive mismatch');
+}
 function destination(env){
  const root=fs.realpathSync(env.PICKFINDER_PRIVATE_ROOT),profile=fs.realpathSync(env.PICKFINDER_PROFILE_DIR);
  if(root===profile||profile.startsWith(root+path.sep)||root.startsWith(profile+path.sep))throw Error('separate profile required');
@@ -181,12 +197,8 @@ async function main(env=process.env){
   await stage('private_archive_push',()=>git(root,['push','origin','HEAD:refs/heads/main']));
   await stage('private_archive_fetch',()=>git(root,['fetch','origin','main']));
   await stage('private_archive_ancestry',()=>git(root,['merge-base','--is-ancestor',sha,'FETCH_HEAD']));
-  await stage('private_archive_remote_readback',()=>{
-   for(const b of batches){const base=prefix+'/'+b.book+'/'+b.sport+'/'+attempt;
-    const raw=execFileSync('git',['-C',root,'show','FETCH_HEAD:'+base+'/source.json'],{maxBuffer:32*1024*1024,stdio:['ignore','pipe','pipe']});
-    const n=JSON.parse(execFileSync('git',['-C',root,'show','FETCH_HEAD:'+base+'/normalized.json'],{maxBuffer:32*1024*1024,stdio:['ignore','pipe','pipe']}));
-    if(crypto.createHash('sha256').update(raw).digest('hex')!==n.sourceDigest||raw.toString()!==JSON.stringify(b))throw Error('archive mismatch');
-   }
+  await stage('private_archive_remote_readback',async()=>{
+   for(const b of batches)await verifyRemoteBatch(root,prefix+'/'+b.book+'/'+b.sport+'/'+attempt,b);
   });
   if(p.reconcile){const pilot=loadPilot(root);console.log(JSON.stringify({state:'fresh_reconciliation',...compare(pilot,batches)}));
    console.log(JSON.stringify({state:'prior_missing_disposition',...missingDisposition(pilot,loadVerifiedAttempt(root,'168bd736ee99157891fcf87b766ffcae49170dd2'))}));
@@ -202,5 +214,5 @@ async function main(env=process.env){
  if(p.full&&counts.some(c=>!c.traversal&&!['verified_empty_board','verified_disabled_board'].includes(c.seasonStatus)))failed=true;
  if(failed||counts.length!==targets.length)process.exitCode=1;
 }
-module.exports={plan,receiptValid,safeAddedFiles,partitions,passwordLogin,submitLoginStep,stage,RunnerStageError};
+module.exports={plan,receiptValid,safeAddedFiles,partitions,passwordLogin,submitLoginStep,stage,RunnerStageError,remoteDigest,verifyRemoteBatch};
 if(require.main===module)main().catch(e=>{console.error(JSON.stringify({state:'runner_failed',stage:e instanceof RunnerStageError?e.stage:'unclassified',rawDataLogged:false}));process.exitCode=1;});

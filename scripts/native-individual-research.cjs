@@ -94,6 +94,17 @@ function candidateOffers(ctx,reconciliation){
  }
  return rows;
 }
+function clockOfferContext(o,clockRows,at){
+ const t=target(o);if(!t)return null;
+ const a=clockRows.filter(r=>contextKey(r)===contextKey(t)&&r.clockCorroborated===true&&Date.parse(r.observedAt)<=at&&Date.parse(r.nativeStartAt)>at+900000);
+ const signatures=new Set(a.map(r=>JSON.stringify([r.nativeGameId,r.nativePlayerId,r.nativeStartAt,r.team,r.opponent])));
+ if(signatures.size!==1)return null;
+ const r=a.sort((x,y)=>Date.parse(y.observedAt)-Date.parse(x.observedAt))[0];
+ if(!r.team||!r.opponent||Date.parse(o.observedAt)>=Date.parse(r.nativeStartAt))return null;
+ const prop=new URL(o.detailId,'https://www.pickfinder.app').searchParams.get('prop')?.split(':');
+ if(prop?.length!==4||Number(prop[3])!==o.line)return null;
+ return {...r,startAt:r.nativeStartAt};
+}
 function generate(ctx,receipts=[]){
  const reconciliation=reconcileArchive(ctx,receipts);
  const clockRecovery=clockRepair.recover(ctx,receipts);
@@ -120,7 +131,10 @@ function generate(ctx,receipts=[]){
    const t=target(o),e=t?contexts.get(contextKey(t))||[]:[];
    const signatures=new Set(e.map(r=>JSON.stringify([r.team,r.opponent,Date.parse(r.startAt)])));
    if(signatures.size>1){reject('conflicting_event_context');continue;}
-   const recovered=e.sort((a,b)=>Date.parse(b.observedAt)-Date.parse(a.observedAt))[0];
+   const explicit=e.sort((a,b)=>Date.parse(b.observedAt)-Date.parse(a.observedAt))[0];
+   const corroborated=clockOfferContext(o,clockRecovery.rows,at);
+   if(explicit&&corroborated&&(Date.parse(explicit.startAt)!==Date.parse(corroborated.startAt)||norm(explicit.team)!==norm(corroborated.team)||norm(explicit.opponent)!==norm(corroborated.opponent))){reject('conflicting_recovered_context');continue;}
+   const recovered=explicit||corroborated;
    if(recovered&&o.startAt&&Date.parse(o.startAt)!==Date.parse(recovered.startAt)){reject('conflicting_event_clock');continue;}
    const startAt=o.startAt||recovered?.startAt;
    if(!Number.isFinite(Date.parse(startAt))){reject('missing_event_timestamp');continue;}
@@ -135,10 +149,10 @@ function generate(ctx,receipts=[]){
    if(!p){reject('model_scope');continue;}
    const key=JSON.stringify([b.digest,o.detailId,o.eventId,o.market,o.period,o.line,side,tier]);if(seen.has(key))continue;seen.add(key);
    const q=p.probabilities;
-   rows.push({sport:s.sport,book:b.m.book,player:s.name,playerId:s.playerId,gameId:s.gameId,team:s.team,opponent:s.opponent,startAt:s.startAt,market:p.metric,line:o.line,side,tier,sourceTier:o.tier,platformTierVerified:false,projection:p.projection,probability:q?q[side.toLowerCase()]:null,pushProbability:q?.push??null,priorObservations:p.prior,method:p.method,sourceObservedAt:o.observedAt,contextObservedAt:recovered?.observedAt??null,forecastAt:clock,manifestDigest:b.digest,sourceEventId:o.eventId,sourceDetailId:o.detailId,historyDigests:s.historyDigests,modelRevision:ctx.revision,offerFresh:at-Date.parse(o.observedAt)<=300000,originalPlatformVerified:false,calibrated:false,modelApproved:false,expectedValue:null});
+   rows.push({sport:s.sport,book:b.m.book,player:s.name,playerId:s.playerId,gameId:s.gameId,team:s.team,opponent:s.opponent,startAt:s.startAt,market:p.metric,line:o.line,side,tier,sourceTier:o.tier,platformTierVerified:false,projection:p.projection,probability:q?q[side.toLowerCase()]:null,pushProbability:q?.push??null,priorObservations:p.prior,method:p.method,sourceObservedAt:o.observedAt,contextObservedAt:recovered?.observedAt??null,clockCorroborated:!!corroborated,sourceClockVerified:false,researchOnly:true,forecastAt:clock,manifestDigest:b.digest,sourceEventId:o.eventId,sourceDetailId:o.detailId,historyDigests:s.historyDigests,modelRevision:ctx.revision,offerFresh:at-Date.parse(o.observedAt)<=300000,originalPlatformVerified:false,calibrated:false,modelApproved:false,expectedValue:null});
   }
  }
  return {kind:'native_individual_research_v1',generatedAt:clock,modelRevision:ctx.revision,native,rows,excluded,reconciliation,candidateOffers:candidateOffers(ctx,reconciliation),paidRequests:0,modelApproved:false};
 }
-module.exports={generate,researchTier,reconcileLocal,reconcileArchive,candidateOffers,reconcileIdentityOnly,clockAudit};
+module.exports={generate,researchTier,reconcileLocal,reconcileArchive,candidateOffers,reconcileIdentityOnly,clockAudit,clockOfferContext};
 if(require.main===module){const root=process.cwd(),clock=new Date().toISOString(),out=generate(fromArchive(root,clock,git(root,['rev-parse','HEAD'])),read(root,'directory'));fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,candidateOfferReferences:out.candidateOffers.length,excluded:out.excluded,reconciliation:{...out.reconciliation,rows:undefined,identityOnlyRows:undefined,clockRecoveredRows:undefined}}));}

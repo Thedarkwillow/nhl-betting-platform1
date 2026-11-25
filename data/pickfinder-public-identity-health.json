@@ -1,0 +1,112 @@
+{
+  "kind": "public_pickfinder_identity_health_v1",
+  "generatedAt": "2026-11-25T13:43:44.981Z",
+  "archiveRevision": "b5595ca77956ab9fc5f87419898b13e76f59a9e9",
+  "sourceEvents": 236,
+  "sources": {
+    "nba": {
+      "state": "source_pending",
+      "source": "espn:nba",
+      "reason": "http_400",
+      "sourceEvents": 9
+    },
+    "nfl": {
+      "state": "source_pending",
+      "source": "espn:nfl",
+      "reason": "http_400",
+      "sourceEvents": 16
+    },
+    "nhl": {
+      "state": "observed",
+      "source": "nhl:official",
+      "events": 59,
+      "upcoming": 59,
+      "rosterPlayers": 803,
+      "failedTeams": 0,
+      "sourceEvents": 14,
+      "uniqueEventCandidates": 14,
+      "uniquePlayerCandidates": 548,
+      "sourceContextCorroborated": 0,
+      "independentReviewVerified": 0
+    },
+    "mlb": {
+      "state": "no_source_events_observed"
+    },
+    "wnba": {
+      "state": "no_source_events_observed"
+    },
+    "college-football": {
+      "state": "source_pending",
+      "source": "espn:college-football",
+      "reason": "http_400",
+      "sourceEvents": 65
+    },
+    "college-basketball": {
+      "state": "source_pending",
+      "source": "espn:college-basketball",
+      "reason": "http_400",
+      "sourceEvents": 12
+    },
+    "tennis": {
+      "state": "observed",
+      "source": "espn:tennis",
+      "events": 0,
+      "upcoming": 0,
+      "rosterPlayers": 0,
+      "failedTeams": 0,
+      "sourceEvents": 42,
+      "uniqueEventCandidates": 0,
+      "uniquePlayerCandidates": 0,
+      "sourceContextCorroborated": 0,
+      "independentReviewVerified": 0
+    },
+    "soccer": {
+      "state": "source_pending",
+      "source": "espn:soccer",
+      "reason": "http_400",
+      "sourceEvents": 64
+    },
+    "cs2": {
+      "state": "fixture_source_pending",
+      "sourceEvents": 2,
+      "independentReviewVerified": 0
+    },
+    "valorant": {
+      "state": "fixture_source_pending",
+      "sourceEvents": 8,
+      "independentReviewVerified": 0
+    },
+    "dota2": {
+      "state": "fixture_source_pending",
+      "sourceEvents": 4,
+      "independentReviewVerified": 0
+    },
+    "lol": {
+      "state": "no_source_events_observed",
+      "sourceEvents": 0,
+      "independentReviewVerified": 0
+    },
+    "cod": {
+      "state": "no_source_events_observed",
+      "sourceEvents": 0,
+      "independentReviewVerified": 0
+    }
+  },
+  "nativeHistory": {
+    "nhl": {
+      "finalGames": 12,
+      "playerAppearances": 313,
+      "completeHistoricalSeasons": false
+    },
+    "dota2": {
+      "verifiedProviderMatchShapes": 6,
+      "playerRows": 60,
+      "seriesMapScopeVerified": false
+    }
+  },
+  "independentlyReviewedCrosswalks": 0,
+  "paidRequests": 0,
+  "publicRequests": 59,
+  "privateRepoUsed": false,
+  "modelApproved": false
+}

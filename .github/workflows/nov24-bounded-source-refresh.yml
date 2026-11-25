@@ -1,0 +1,130 @@
+name: November 24 bounded official result and source refresh
+on:
+  pull_request:
+    paths: ['scripts/nba-alternate-official-result-crosscheck.cjs','test/nba-alternate-official-result-crosscheck.test.cjs','.github/workflows/nov24-bounded-source-refresh.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/nba-alternate-official-result-crosscheck.cjs','test/nba-alternate-official-result-crosscheck.test.cjs','.github/workflows/nov24-bounded-source-refresh.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nov24-bounded-source-refresh
+  cancel-in-progress: false
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/nba-alternate-official-result-crosscheck.test.cjs test/nhl-nfl-partner-direct-collection.test.cjs
+  nba:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 402d4fceb29a2ec2f3d3b09d06ede8ba2dd4ef9a
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: source
+          persist-credentials: false
+          sparse-checkout: |
+            outputs/nba
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: 1ead89bcafab7ca37ed74ea97047517101e5c033
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: results
+          persist-credentials: false
+          sparse-checkout: |
+            research/nba-final-stat-reconciliation
+      - name: Alternate NBA official summary and full traditional box score
+        run: |
+          node scripts/nba-alternate-official-result-crosscheck.cjs \
+            source/outputs/nba/schedule/20261124T182019390Z.json 1b418d636215d5027acf5f918880157d00e30686 \
+            source/outputs/nba/boards/20261124T182019940Z.json 246fa2b96c0bb9ec08cd92d95d797102b3aa74d9 \
+            source/outputs/nba/history/2026-27/20261124T182018692Z.json 52c36e5efb547b3c4a3170a713afcd3de0e2a909 \
+            results/research/nba-final-stat-reconciliation/45563814358-1.json 00eea0f7a55c2dbba9007d8314f168a0a586cf45
+  fresh-and-grade:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify private destination
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/nov24-source-refresh-20261125
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: restricted
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Actual-time private partner observations, not a morning slot
+        id: capture
+        env:
+          PARTNER_CAPTURE_SLOT: manual
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/capture-public-native-morning.cjs "$GITHUB_WORKSPACE/restricted" > "$RUNNER_TEMP/capture.json"
+          node -e 'const d=require(process.argv[1]);if(d.status!=="saved_private_only"||!/^outputs\/manual-board-captures\/\d{4}-\d{2}-\d{2}\/\d{8}T\d{6}Z$/.test(d.archiveDir))throw Error("capture not verified");console.log(JSON.stringify({kind:"actual_time_partner_capture",counts:d.counts,capturedAt:d.capturedAt,originalAppVerified:false,paidRequests:0}));require("fs").appendFileSync(process.env.GITHUB_OUTPUT,"dir="+d.archiveDir+"\n")' "$RUNNER_TEMP/capture.json"
+      - name: Archive capture privately
+        if: steps.capture.outcome == 'success'
+        working-directory: restricted
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          DIR: ${{ steps.capture.outputs.dir }}
+        run: |
+          set -euo pipefail
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$DIR"
+          git commit -qm 'Archive genuine actual-time partner source observations'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:refs/heads/research/nov24-source-refresh-20261125
+          test "$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin refs/heads/research/nov24-source-refresh-20261125 | cut -f1)" = "$(git rev-parse HEAD)"
+          echo 'Private fresh capture verified.'
+      - name: Collect actual November 24 NHL finals and grade immutable frozen selections
+        if: always() && !cancelled()
+        id: grade
+        working-directory: restricted
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/collect-player-stats.cjs 2026-11-24 > "$RUNNER_TEMP/nhl-collect.log" 2>&1 || { echo 'Official NHL collection unavailable'; exit 1; }
+          node -e 'const x=require("./outputs/player-stats/2026-11-24.json");console.log(JSON.stringify({kind:"nhl_nov24_official_final_coverage",scheduled:x.scheduledGames,completed:x.completedGames,collected:x.collectedGames,playerRows:x.players.length,errors:x.errors.length}));if(x.source!=="NHL public API"||x.sourceSchemaVersion!==5||x.errors.length||x.scheduledGames<1||x.completedGames!==x.scheduledGames||x.collectedGames!==x.scheduledGames)throw Error("not all final");'
+          node scripts/build-player-history.cjs > "$RUNNER_TEMP/nhl-history.log" 2>&1
+          node scripts/build-nhl-private-ledger-and-labs.cjs > "$RUNNER_TEMP/nhl-ledger.log" 2>&1
+          node scripts/report-nhl-2026-11-21-slate-grade.cjs 2026-11-24
+      - name: Preserve official result and grade checkpoint on isolated branch
+        if: steps.grade.outcome == 'success'
+        working-directory: restricted
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/player-stats/2026-11-24.json outputs/health/nhl-2026-11-24-all-games-graded.json outputs/research/registry/nhl-precommitted-ledger-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -qm 'Archive November 24 official finals and original first-Git grading'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:refs/heads/research/nov24-source-refresh-20261125
+          test "$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin refs/heads/research/nov24-source-refresh-20261125 | cut -f1)" = "$(git rev-parse HEAD)"
+          echo 'Private November 24 grade verified.'

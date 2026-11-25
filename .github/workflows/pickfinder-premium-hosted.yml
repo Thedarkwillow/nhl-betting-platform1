@@ -51,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           cd public-source
-          node --test test/pickfinder-unattended-runner.test.cjs test/pickfinder-browser.test.cjs test/pickfinder-premium-archive.test.cjs test/pickfinder-pilot-reconcile.test.cjs scripts/test-pacific-morning-capture-gate.cjs
+          node --test test/season-aware-collection.test.cjs test/pickfinder-unattended-runner.test.cjs test/pickfinder-browser.test.cjs test/pickfinder-premium-archive.test.cjs test/pickfinder-pilot-reconcile.test.cjs scripts/test-pacific-morning-capture-gate.cjs
           node scripts/pickfinder-pilot-reconcile.cjs ../private-archive
       - name: Install pinned browser dependency before injecting credentials
         if: inputs.mode != 'audit_pilot'
@@ -82,6 +82,9 @@ jobs:
           PICKFINDER_SCHEDULE_ENABLED: ${{ vars.PICKFINDER_SCHEDULE_ENABLED }}
           PICKFINDER_HOSTED_AUTH_VERIFIED: ${{ vars.PICKFINDER_HOSTED_AUTH_VERIFIED }}
           PICKFINDER_HOSTED_CAPTURE_VERIFIED: ${{ vars.PICKFINDER_HOSTED_CAPTURE_VERIFIED }}
+          PANDASCORE_API_KEY: ${{ secrets.PANDASCORE_API_KEY || secrets.PANDASCORE_TOKEN || secrets.PANDASCORE }}
+          PANDASCORE_BETTING_DATA_AUTHORIZED: ${{ vars.PANDASCORE_BETTING_DATA_AUTHORIZED }}
+          PANDASCORE_NO_CHARGE_CONFIRMED: ${{ vars.PANDASCORE_NO_CHARGE_CONFIRMED }}
           PICKFINDER_HOSTED: '1'
           PICKFINDER_EMAIL: ${{ secrets.PICKFINDER_EMAIL }}
           PICKFINDER_PASSWORD: ${{ secrets.PICKFINDER_PASSWORD }}

@@ -1,32 +1,68 @@
 {
   "kind": "public_nba_alternate_history_audit_v1",
-  "generatedAt": "2026-11-25T14:03:03.012686+00:00",
+  "generatedAt": "2026-11-25T14:06:11.384915+00:00",
   "seasons": {
     "2024": {
-      "status": "pending",
-      "reason": "ValueError"
+      "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/nba_stats_player_game_logs/player_game_logs_2024.parquet",
+      "sha256": "dc2d5f339c7d95c7f5bd69de70aaf122d670df6459e28f02e4fb71967c24dea7",
+      "sourceRows": 28086,
+      "status": "observed",
+      "acceptedRows": 26283,
+      "games": 1230,
+      "excludedRegularSeasonRows": 118,
+      "firstGame": "2023-10-24",
+      "lastGame": "2024-04-14",
+      "expectedCompletedSeasonGames": 1230,
+      "allExpectedGamesObserved": true
     },
     "2025": {
-      "status": "pending",
-      "reason": "ValueError"
+      "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/nba_stats_player_game_logs/player_game_logs_2025.parquet",
+      "sha256": "09358c6f028bfdeea25dca4932aae7322e47f431644e334e61e8f3210f60a6a2",
+      "sourceRows": 28110,
+      "status": "observed",
+      "acceptedRows": 26088,
+      "games": 1225,
+      "excludedRegularSeasonRows": 218,
+      "firstGame": "2024-10-22",
+      "lastGame": "2025-04-13",
+      "expectedCompletedSeasonGames": 1230,
+      "allExpectedGamesObserved": false
     },
     "2026": {
-      "status": "pending",
-      "reason": "ValueError"
+      "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/nba_stats_player_game_logs/player_game_logs_2026.parquet",
+      "sha256": "54b69b0e1cd4b4d69f65b7273f4cc9370a42e9b36361baf04b2df272d5490289",
+      "sourceRows": 28572,
+      "status": "observed",
+      "acceptedRows": 26467,
+      "games": 1225,
+      "excludedRegularSeasonRows": 184,
+      "firstGame": "2025-10-21",
+      "lastGame": "2026-04-12",
+      "expectedCompletedSeasonGames": 1230,
+      "allExpectedGamesObserved": false
     },
     "2027": {
-      "status": "pending",
-      "reason": "ValueError"
+      "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/nba_stats_player_game_logs/player_game_logs_2027.parquet",
+      "sha256": "83c8e6af62ea267260155850b9140170bcd0fb6b63bf635a8e37388e198ac4ba",
+      "sourceRows": 5772,
+      "status": "observed",
+      "acceptedRows": 5729,
+      "games": 257,
+      "excludedRegularSeasonRows": 43,
+      "firstGame": "2026-10-20",
+      "lastGame": "2026-11-23",
+      "expectedCompletedSeasonGames": null,
+      "allExpectedGamesObserved": false
     }
   },
-  "acceptedRows": 0,
+  "acceptedRows": 84567,
   "nbaNativeCrosswalk": {
     "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/nba_crosswalk/nba_player_crosswalk_2027.parquet",
     "sha256": "c81e20dd19806d174ca9833589c9a259646407312a0926e65c6e071620591bc0",
     "sourceRows": 507,
     "status": "observed",
     "espnRosterPlayers": 494,
-    "nativeIdentityCandidates": 0,
+    "nativeIdentityCandidates": 446,
     "pickfinderIdentityVerified": false
   },
   "nflNativeCrosswalk": {

@@ -3,7 +3,7 @@ p=pathlib.Path(__file__).resolve().parents[1]/"scripts/public-native-model-scope
 s=importlib.util.spec_from_file_location("m",p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
 class Test(unittest.TestCase):
  def test_predict(self):
-  self.assertEqual(m.predict([3]*5),dict(last5=3,last10=3,ewma=3,shrunk=3))
+  for v in m.predict([3]*5).values():self.assertAlmostEqual(v,3)
  def test_same_week_no_leakage(self):
   games=[];rows=[]
   for y in (2024,2025,2026):

@@ -79,3 +79,14 @@ t('NFL residual challenger abstains on short samples, handles pushes and stays u
  const half=q(Array(20).fill(2),1.5,{nonnegative:true});a.equal(half.higher,1);a.equal(half.push,0);
  const mixed=q(Array.from({length:20},(_,i)=>i%3),1);a.ok(Math.abs(mixed.higher+mixed.lower+mixed.push-1)<1e-12);
 });
+
+t('NFL empirical baseline handles integer pushes, negative yardage and half-lines',()=>{
+ const {nflEmpiricalBaseline:q}=require('../scripts/prizepicks-multisport-model-bridge.cjs');
+ a.equal(q(Array(14).fill(2),2),null);
+ a.equal(q([...Array(15).fill(2),NaN],2),null);
+ const history=[...Array(5).fill(-1),...Array(5).fill(0),...Array(5).fill(1)];
+ const p=q(history,0);a.ok(Math.abs(p.higher-1/3)<1e-12);a.ok(Math.abs(p.lower-1/3)<1e-12);a.ok(Math.abs(p.push-1/3)<1e-12);
+ const h=q(history,0.5);a.equal(h.push,0);a.equal(h.higher,5.5/16);a.equal(h.lower,10.5/16);
+ a.equal(h.priorObservations,15);a.equal(h.calibrated,false);a.equal(h.modelApproved,false);
+ a.ok(q(Array(20).fill(2),1.5).higher<1);
+});

@@ -49,12 +49,13 @@ function readBoard({book, code, sport, observedAt}) {
   return {authenticated,rows,number:Number(pages?.[1]),total:Number(pages?.[2]),
     empty:table?.innerText.includes('No props found')===true};
 }
-async function collect(page,{book,code,slot='manual',maxPages=500}) {
+async function collect(page,{book,code,slot='manual',maxPages=500,shouldContinue=()=>true}) {
   if(!['prizepicks','underdog'].includes(book)||!Number.isInteger(maxPages)||maxPages<1||maxPages>500)throw Error('invalid partition');
   const sport=aliases[code]||code.toLowerCase();
   const startedAt=new Date().toISOString();
   const localDay=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(startedAt));
   const result={schema:'pickfinder-premium-export-v1',book,sport,slot,localDay,startedAt,pages:[],boardState:'partial',lastPageReached:false};
+  if(!shouldContinue())return result;
   const initial=await page.evaluate(readBoard,{book,code,sport,observedAt:startedAt});
   if(!initial.authenticated)throw Error('premium_session_unavailable');
   const button=(name)=>page.getByRole('button',{name,exact:true});
@@ -68,9 +69,9 @@ async function collect(page,{book,code,slot='manual',maxPages=500}) {
     await button('Apps '+book).waitFor({state:'visible'});
     const read=()=>page.evaluate(readBoard,{book,code,sport,observedAt:new Date().toISOString()});
     let previous='';
-    for(let n=1;n<=maxPages;n++){
+    for(let n=1;n<=maxPages&&shouldContinue();n++){
       let snapshot, stableEmpty=0, ready=false;
-      for(let retry=0;retry<24;retry++){
+      for(let retry=0;retry<24&&shouldContinue();retry++){
         snapshot=await read();
         if(!snapshot.authenticated){result.failure='session_expired';break;}
         stableEmpty=snapshot.empty?stableEmpty+1:0;
@@ -83,7 +84,7 @@ async function collect(page,{book,code,slot='manual',maxPages=500}) {
       result.pages.push({number:n,rows:snapshot.rows});
       previous=snapshot.rows[0]?.detailId;
       if(n===snapshot.total){result.lastPageReached=true;result.boardState=snapshot.empty&&n===1?'empty':'populated';break;}
-      if(n<maxPages)await button('Next page').click();
+      if(n<maxPages&&shouldContinue())await button('Next page').click();
     }
   }
   result.endedAt=new Date().toISOString();

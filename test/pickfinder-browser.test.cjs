@@ -28,3 +28,14 @@ test('duplicate across two pages is reconciled and manual observations never qua
 });
 
 test('stable authenticated explicit empty board with no pager is not a failure',async()=>{const input=await collect(session([active,...Array.from({length:4},()=>({...active,empty:true,rows:[]}))]),{book:'prizepicks',code:'NHL'});assert.equal(input.boardState,'empty');assert.equal(input.explicitEmpty,true);assert.equal(input.authenticated,true);assert.equal(normalize(input).health.appearances,0);});
+
+test('full traversal goes beyond 500 pages and archives all pages',async()=>{
+ const total=625,snapshots=[active,...Array.from({length:total},(_,i)=>({...active,number:i+1,total,rows:[{...row,detailId:'fixture-'+(i+1)}]}))];
+ const input=await collect(session(snapshots),{book:'underdog',code:'NHL'});
+ const output=normalize(input);
+ assert.equal(input.pages.length,total);assert.equal(input.lastPageReached,true);assert.equal(output.pageTraversalComplete,true);assert.equal(output.offers.length,total);assert.equal(output.fullBoardCertified,false);
+});
+test('explicit sampling remains bounded and does not claim completeness',async()=>{
+ const input=await collect(session([active,{...active,number:1,total:999,rows:[row]},{...active,number:2,total:999,rows:[{...row,detailId:'b'}]}]),{book:'underdog',code:'NHL',maxPages:2});
+ assert.equal(input.pages.length,2);assert.equal(input.lastPageReached,false);assert.equal(normalize(input).pageTraversalComplete,false);
+});

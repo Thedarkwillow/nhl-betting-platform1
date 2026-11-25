@@ -9,4 +9,5 @@ class Test(unittest.TestCase):
   self.assertEqual(a["actualPropLines"],0)
   # Change final day duration; no projected value can use that actual duration.
   b=evaluate([{**r,"rounds":100} if r["date"]=="2026-01-20" else r for r in rows])
-  self.assertEqual(a,b)
+  self.assertEqual(a['markets'],b['markets'])
+  self.assertNotEqual(a['roundForecastAudit'],b['roundForecastAudit'])

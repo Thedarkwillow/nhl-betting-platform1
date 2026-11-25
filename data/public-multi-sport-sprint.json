@@ -19,10 +19,11 @@
     },
     {
       "sport": "NBA",
-      "description": "135/135 reconstructed injury identity candidates, final four corroborated against primary ESPN rosters. Original immutable injury rows and untouched validation not verified; freeze not approved.",
+      "description": "135/135 reconstructed OUT rows corroborated against 34 dated official NBA reports; archived row and source hashes verified. Original contemporaneous archive and untouched evaluation still unavailable.",
       "historicalRows": 2093,
       "unresolvedInjuryRows": 0,
-      "originalImmutableInjuryRowsVerified": false
+      "originalImmutableInjuryRowsVerified": false,
+      "primaryDatedOutVerified": 135
     },
     {
       "sport": "CS2",
@@ -31,7 +32,7 @@
     },
     {
       "sport": "Valorant",
-      "description": "73,950 map rows with agent, team, opponent and round count; 70,530 opening-kill/death rows and 60,680 patch rows. Agent-conditioned kills MAE 4.10569 vs 4.12247 (12,718 matched); duration challenger not approved.",
+      "description": "73,950 map rows with agent, team, opponent and round count; 70,530 opening-kill/death rows and 60,680 patch rows. Agent-conditioned kills MAE 4.10569 vs 4.12247 (12,718 matched); duration challenger not approved. Opponent/team prior round exposure improved MAE 3.0167 to 2.8100 (13,788 observations); conditional on known teams.",
       "historicalRows": 73950
     },
     {
@@ -41,7 +42,7 @@
     },
     {
       "sport": "Dota 2",
-      "description": "3,000 professional matches, 156 dates. Hero-conditioned historical error improved on 3,135 matched observations per market. Prior-only duration blend marginally improved assists MAE 5.535 to 5.520 (4,628); other markets did not improve.",
+      "description": "3,000 professional matches, 156 dates. Hero-conditioned historical error improved on 3,135 matched observations per market. Prior-only duration blend marginally improved assists MAE 5.535 to 5.520 (4,628); other markets did not improve. Prior team/opponent duration MAE improved 625.74 to 575.99 seconds (4,422).",
       "historicalRows": 30000
     },
     {
@@ -220,6 +221,8 @@
     "codJune": 45538478781,
     "specialist": 45538708363,
     "exposure": 45538478739,
-    "restrictedFinal": 45538478728
+    "restrictedFinal": 45538478728,
+    "nbaPrimaryPdf": 45539564919,
+    "opponentExposure": 45539565008
   }
 }

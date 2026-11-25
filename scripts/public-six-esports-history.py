@@ -63,7 +63,8 @@ def vct():
         db.close()
     from esports_context_models import evaluate as context_eval
     from esports_exposure_research import evaluate as exposure_eval
-    return {"sourceContextFields":[k for k,_ in optional],"context":context_eval(rows,("kills","deaths","assists"),["map","agent","team","opponent","patch"]),"openingContext":context_eval([r for r in rows if "opening_kills" in r and "opening_deaths" in r],("opening_kills","opening_deaths"),["map","agent","team","opponent","patch"]),"roundExposure":exposure_eval(rows,("kills","deaths","assists"),"rounds"),"durationNativeCoverage":sum("durationNative" in r for r in rows),"title":"VALORANT","source":"VCT Reference; user reports specific research permission; redistribution unverified","sha256":hashlib.sha256(raw).hexdigest(),"completeMaps":len(rows)//10,"baseline":free.baseline(rows),"paidRequests":0}
+    from esports_opponent_strength import evaluate as strength_eval
+    return {"sourceContextFields":[k for k,_ in optional],"context":context_eval(rows,("kills","deaths","assists"),["map","agent","team","opponent","patch"]),"openingContext":context_eval([r for r in rows if "opening_kills" in r and "opening_deaths" in r],("opening_kills","opening_deaths"),["map","agent","team","opponent","patch"]),"roundExposure":exposure_eval(rows,("kills","deaths","assists"),"rounds"),"opponentStrength":strength_eval(rows,("kills","deaths","assists"),"rounds"),"durationNativeCoverage":sum("durationNative" in r for r in rows),"title":"VALORANT","source":"VCT Reference; user reports specific research permission; redistribution unverified","sha256":hashlib.sha256(raw).hexdigest(),"completeMaps":len(rows)//10,"baseline":free.baseline(rows),"paidRequests":0}
 def dota():
     # The documented Explorer endpoint provides player-match rows in one bounded read.
     sql="""SELECT m.match_id,m.start_time,m.duration,pm.account_id,pm.kills,pm.deaths,pm.assists,pm.hero_id,pm.last_hits,pm.player_slot,m.radiant_team_id,m.dire_team_id
@@ -88,7 +89,8 @@ def dota():
         if not rows:raise ValueError("no complete matches")
         from esports_context_models import evaluate as context_eval
         from esports_exposure_research import evaluate as exposure_eval
-        return {"durationExposure":exposure_eval(rows,("kills","deaths","assists"),"durationSeconds"),"lastHitExposure":exposure_eval(rows,("last_hits",),"durationSeconds"),"lastHitRows":sum("last_hits" in r for r in rows),"lastHitContext":context_eval([r for r in rows if "last_hits" in r],("last_hits",),["hero","team","opponent"]),"context":context_eval(rows,("kills","deaths","assists"),["hero","team","opponent"]),"title":"DOTA2","source":"OpenDota Explorer professional league matches","completeMatches":len(rows)//10,"baseline":free.baseline(rows),"seriesMapScopeVerified":False,"freeRequests":1}
+        from esports_opponent_strength import evaluate as strength_eval
+        return {"opponentStrength":strength_eval(rows,("kills","deaths","assists"),"durationSeconds"),"durationExposure":exposure_eval(rows,("kills","deaths","assists"),"durationSeconds"),"lastHitExposure":exposure_eval(rows,("last_hits",),"durationSeconds"),"lastHitRows":sum("last_hits" in r for r in rows),"lastHitContext":context_eval([r for r in rows if "last_hits" in r],("last_hits",),["hero","team","opponent"]),"context":context_eval(rows,("kills","deaths","assists"),["hero","team","opponent"]),"title":"DOTA2","source":"OpenDota Explorer professional league matches","completeMatches":len(rows)//10,"baseline":free.baseline(rows),"seriesMapScopeVerified":False,"freeRequests":1}
     except Exception as e:
         return {"title":"DOTA2","status":"explorer_unavailable","reason":free.safe_error(e),"fallback":free.dota()}
 def main():

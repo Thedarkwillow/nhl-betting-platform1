@@ -8,6 +8,8 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '35 15 * * *'
+    # One bounded final-evidence check after the November 25 fixtures; no provider calls.
+    - cron: '30 15 25 11 *'
 permissions:
   contents: read
 jobs:

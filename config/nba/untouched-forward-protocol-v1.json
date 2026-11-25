@@ -1,0 +1,22 @@
+{
+  "kind": "nba_untouched_forward_protocol_v1",
+  "registeredDate": "2026-11-24",
+  "prospectiveStartUTC": "2026-12-01T00:00:00Z",
+  "prospectiveEndExclusiveUTC": "2027-02-01T00:00:00Z",
+  "modelCandidate": "existing_weighted_form_baseline_and_fixed_absence_sensitivity_only",
+  "developmentDataThrough": "2026-11-24",
+  "minimumPerMarket": {
+    "decisions": 100,
+    "games": 30,
+    "dates": 10
+  },
+  "rules": [
+    "First Git addition before scheduled tip by at least 15 minutes",
+    "Require exact source offer, native game and player identity, pregame report with date/time and row provenance",
+    "No model fitting, threshold selection, or feature modification using reserved outcomes",
+    "All original registered rows accounted for; do not replace missing or losing outcomes",
+    "No model approval until independent audit and sufficient prospective evidence"
+  ],
+  "untouchedCohortCollected": false,
+  "productionApproved": false
+}

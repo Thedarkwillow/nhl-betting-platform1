@@ -1,0 +1,103 @@
+name: Nine priority guarded research
+on:
+  pull_request:
+    paths: ['.github/workflows/nine-priority-research.yml','scripts/nba_verified_absence_replay.py','scripts/esports_opponent_strength.py','src/nhl-prior-market-direction-research.cjs','scripts/nhl-nine-priority-archive-audit.cjs','config/nba/untouched-forward-protocol-v1.json']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/nine-priority-research.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python3 -m unittest discover -s test -p test_nba_verified_absence_replay.py
+      - run: python3 -m unittest discover -s test -p test_esports_opponent_strength.py
+      - run: node --check scripts/nhl-nine-priority-archive-audit.cjs && node --test test/nhl-prior-market-direction-research.test.cjs test/nhl-all-tier-exact-mass-calibration.test.cjs test/nhl-original-pair-dependence-research.test.cjs
+  nba:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: d02aa363ebbfbf5619411cf46a01efcd5ddc6299
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/nba-primary-pdf-45539564919-1
+          path: proof
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyarrow==19.0.1
+      - name: Rebuild restricted cohort and test exact lines
+        env:
+          NBA_RESTRICTED_ALL_UNMAPPED: ${{ runner.temp }}/nba-reconstructed.json
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$RUNNER_TEMP/nba-absence.log"
+          trap 'rm -f "$log" "$NBA_RESTRICTED_ALL_UNMAPPED"' EXIT
+          test "$(git -C proof rev-parse HEAD:research/nba-primary-pdf-evidence/verification.json)" = a6921e721f56a629f1c9e4dfee9bea28d93d4fbd
+          python public/scripts/reconcile-nba-dated-injury-cohort.py archive/outputs/nba/research/pinnacle-2026-10-24-to-31-nba.csv >"$log" 2>&1 || { echo "Reconstruction failed closed"; exit 1; }
+          python public/scripts/nba_verified_absence_replay.py archive/outputs/nba/research/pinnacle-2026-10-24-to-31-nba.csv "$NBA_RESTRICTED_ALL_UNMAPPED" proof/research/nba-primary-pdf-evidence/verification.json >"$log" 2>&1 || { echo "Absence replay failed closed"; exit 1; }
+          cat "$log"
+  nhl:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: RESEARCH_ARCHIVE_ROOT="$GITHUB_WORKSPACE/archive" node public/scripts/nhl-nine-priority-archive-audit.cjs
+  cod:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Bounded active competition months
+        run: |
+          set -euo pipefail
+          for month in 02 04; do
+            python3 scripts/public_cod_wiki_history.py 2026 "$month" > "$RUNNER_TEMP/cod.json"
+            cat "$RUNNER_TEMP/cod.json"
+            if ! python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d["status"] in ("bounded_sample","source_exhausted") else 1)' "$RUNNER_TEMP/cod.json"; then break; fi
+            sleep 60
+          done

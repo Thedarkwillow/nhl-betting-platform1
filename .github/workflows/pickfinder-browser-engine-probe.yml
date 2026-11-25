@@ -1,0 +1,51 @@
+name: PickFinder browser engine comparison
+on:
+  pull_request:
+    paths: ['scripts/pickfinder-browser-engine-probe.cjs', '.github/workflows/pickfinder-browser-engine-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.event_name == 'workflow_dispatch' && 'pickfinder-hosted-capture' || format('pickfinder-engine-fixture-{0}', github.event.pull_request.number) }}
+  cancel-in-progress: false
+jobs:
+  fixture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          npm install --prefix "$RUNNER_TEMP/engine-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2 selenium-webdriver@4.27.0
+          "$RUNNER_TEMP/engine-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Compare real browsers on synthetic fixture
+        env:
+          NODE_PATH: ${{ runner.temp }}/engine-deps/node_modules
+        run: node scripts/pickfinder-browser-engine-probe.cjs
+  live:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1'
+    needs: fixture
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          npm install --prefix "$RUNNER_TEMP/engine-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2 selenium-webdriver@4.27.0
+          "$RUNNER_TEMP/engine-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Read-only authenticated comparison (no archive writes)
+        env:
+          NODE_PATH: ${{ runner.temp }}/engine-deps/node_modules
+          PICKFINDER_AUTOMATION_AUTHORIZED: ${{ vars.PICKFINDER_AUTOMATION_AUTHORIZED }}
+          PICKFINDER_EMAIL: ${{ secrets.PICKFINDER_EMAIL }}
+          PICKFINDER_PASSWORD: ${{ secrets.PICKFINDER_PASSWORD }}
+          PICKFINDER_STORAGE_STATE: ${{ secrets.PICKFINDER_STORAGE_STATE }}
+        run: node scripts/pickfinder-browser-engine-probe.cjs live

@@ -8,10 +8,11 @@ function readSections({tab,origin,observedAt,context}) {
       metric:parts.length===1?metric:metric+' part '+(i+1),window,value:!part||part==='-'?null:part}));
   }
   if(origin==='prop_history'){
-    const note=[...document.querySelectorAll('p')].find(p=>p.innerText.includes('past 6 months'));
+    const note=[...document.querySelectorAll('p')].find(p=>/past\s+\d+\s+(?:days|weeks|months|years)/i.test(p.innerText)&&/main lines/i.test(p.innerText));
+    const window=note?.innerText.match(/past\s+\d+\s+(?:days|weeks|months|years)/i)?.[0]||null;
     for(const card of note?.nextElementSibling?.children||[]){
       const names=[...card.querySelectorAll('img[alt]')].map(img=>img.alt).join(', ');
-      add('historical result',names||'displayed history',card.innerText,'past 6 months, main lines');
+      add('historical result',names||'displayed history',card.innerText,window?window+', main lines':null);
     }
     return fields;
   }
@@ -27,7 +28,12 @@ function readSections({tab,origin,observedAt,context}) {
     let i=0;
     for(const tr of table.querySelectorAll('tbody tr')){
       const cells=[...tr.cells].map(c=>({value:c.innerText.trim()||null,labels:[...c.querySelectorAll('img[alt]')].map(e=>e.alt)}));
-      add('row '+(++i),header.slice(0,500),JSON.stringify(cells),headers.includes('Date')?document.body.innerText.match(/Gamelog - (Last \d+ Games)/i)?.[1]||null:null);
+      const index=++i;
+      if(origin==='line_movement'&&isMovement){
+        // Keep the app label, quoted sides and source-displayed time together; never infer year/timezone or book.
+        for(const name of ['Line','App','Time']){const at=headers.indexOf(name);const cell=cells[at];if(cell)add('movement '+name.toLowerCase(),'movement row '+index,JSON.stringify(cell));}
+      }
+      add('row '+index,header.slice(0,500),JSON.stringify(cells),headers.includes('Date')?document.body.innerText.match(/Gamelog - (Last \d+ Games)/i)?.[1]||null:null);
     }
   }
   if(origin==='profile'){
@@ -50,8 +56,8 @@ async function enrich(page,row,{navigate}){
   const context={period:row.period,mapRange:row.mapRange,gameMode:row.gameMode};
   const collect=async(tab,origin)=>groups.push(await page.evaluate(readSections,{tab,origin,observedAt:new Date().toISOString(),context}));
   await collect('Player overview','profile');
-  for(const name of ['Matchup','Rankings','Injuries','Player Stats','Maps','Team Form']){
-    const target=page.getByRole('tab',{name,exact:true}).first();
+  for(const name of ['Matchup','Defense','Shooting','Similar','Rankings','Injuries','Player Stats','Maps','Team Form']){
+    const target=page.getByRole('tab',{name,exact:true}).or(page.getByRole('button',{name,exact:true})).first();
     if(await target.isVisible()){
       await target.click();
       await collect(name,'profile');

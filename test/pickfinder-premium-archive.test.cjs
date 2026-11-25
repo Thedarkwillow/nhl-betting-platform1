@@ -49,3 +49,14 @@ test("unpriced tier, absent badge and mixed-book groups remain unresolved with s
  const x=input(),r=row();r.apps=[];r.appEvidence=[{book:"prizepicks",icons:["prizepicks","goblin"],tier:"goblin",line:28.5}];x.pages[0].rows=[r,{...r,detailId:"b",appEvidence:[]},{...r,detailId:"c",appEvidence:[{book:"prizepicks",icons:["prizepicks","underdog"],line:28.5}]}];
  const y=normalize(x,{now});assert.equal(y.offers.length,0);assert.equal(y.health.unresolvedEvidence.tierWithoutExplicitPrice,1);assert.equal(y.health.unresolvedEvidence.bookBadgeMissing,1);assert.equal(y.health.unresolvedEvidence.ambiguousBookGroup,1);
 });
+
+test("profile history retains market and event scope without certifying platform or timestamp",()=>{
+ const x=input(),r=x.pages[0].rows[0];r.research=[{origin:"line_movement",tab:"Line Movement",metric:"movement time",scope:"movement row 1",observedAt,value:'{"value":"11/25 1:05AM","labels":[]}'},{origin:"prop_history",tab:"Prop History",metric:"historical result",scope:"displayed history",window:"past 3 months, main lines",observedAt,value:"Line: 4.5 Actual: 6"}];
+ const y=normalize(x,{now});assert.equal(y.researchObservations[0].market,"kills");assert.equal(y.researchObservations[0].eventId,"event");assert.equal(y.researchObservations[0].boardBook,"prizepicks");assert.equal(y.researchObservations[0].value,r.research[0].value);assert.equal(y.researchObservations[1].window,"past 3 months, main lines");assert.equal(y.researchObservations[0].modelInputsApproved,false);
+});
+test("player history reader recognizes displayed three-month main-line window",()=>{
+ const {readSections}=require("../scripts/pickfinder-player-research.cjs");
+ const old=global.document;
+ try{global.document={querySelectorAll:()=>[{innerText:"Lines from the past 3 months. Only main lines are shown (no goblins or demons).",nextElementSibling:{children:[{innerText:"11/23 Line: 4.5 Actual: 6",querySelectorAll:()=>[]}]}}]};const fields=readSections({tab:"Prop History",origin:"prop_history",observedAt,context:{}});assert.equal(fields.length,1);assert.equal(fields[0].window,"past 3 months, main lines");assert.match(fields[0].value,/4.5/);}
+ finally{global.document=old;}
+});

@@ -4,7 +4,8 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const {execFileSync}=require('node:child_process');
 const SEED='aef07d2aecb75388c6757c9cc5844b2113d6a0ac';
 const ROOT='research/pickfinder-premium-deep';
-const {traverseDashboard,inspectCapabilities,verifiedNavigation}=require('./pickfinder-dashboard-research.cjs');
+const {traverseDashboardFilters,inspectCapabilities,verifiedNavigation}=require('./pickfinder-dashboard-research.cjs');
+const {VERSION}=require('./pickfinder-research-coverage.cjs');
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const git=(root,args)=>execFileSync('git',['-C',root,...args],{maxBuffer:128*1024*1024,stdio:['ignore','pipe','pipe']});
 function scope(book,row){
@@ -51,7 +52,7 @@ function allBatches(root){
  return base;
 }
 function summarizeCheckpoints(checkpoints){
- const done=new Set(),attempts=new Map(),scopes=new Map();let files=0,invalid=0,records=0,dashboardSnapshots=0,summaryFiles=0,failedAttempts=0,partialAttempts=0,fields=0;
+ const done=new Set(),expandedDone=new Set(),attempts=new Map(),scopes=new Map(),expandedAttempts=new Map(),featureScopes=new Map();let files=0,invalid=0,records=0,dashboardSnapshots=0,summaryFiles=0,failedAttempts=0,partialAttempts=0,fields=0;
  for(const b of checkpoints){
   files++;if(b?.seed!==SEED||b?.schema!=='pickfinder-deep-v1'||!Array.isArray(b.records)){invalid++;continue;}
   dashboardSnapshots+=Array.isArray(b.dashboardSnapshots)?b.dashboardSnapshots.length:0;
@@ -59,13 +60,14 @@ function summarizeCheckpoints(checkpoints){
   for(const r of b.records){
    const s=scope(r?.book,r);if(!s||hash(JSON.stringify(s))!==r.key){invalid++;continue;}
    records++;attempts.set(r.key,(attempts.get(r.key)||0)+1);scopes.set(r.key,s.sport);
+   if(r.profileCollection?.coverageVersion===VERSION){expandedAttempts.set(r.key,(expandedAttempts.get(r.key)||0)+1);for(const [feature,entry] of Object.entries(r.profileCollection.featureCoverage||{})){if(entry.state!=='observed_label_and_value')continue;const k=s.sport+':'+feature;const set=featureScopes.get(k)||new Set();set.add(r.key);featureScopes.set(k,set);}}
    if(r.status==='failed')failedAttempts++;
-   if(r.status==='sampled'&&r.profileCollection?.truncated===false&&Array.isArray(r.research)&&r.research.length&&!r.profileCollection?.tabAudit?.some(t=>t.state==='failed')){done.add(r.key);fields+=r.research.length;}
+   if(r.status==='sampled'&&r.profileCollection?.truncated===false&&Array.isArray(r.research)&&r.research.length&&!r.profileCollection?.tabAudit?.some(t=>t.state==='failed')){done.add(r.key);fields+=r.research.length;if(r.profileCollection?.coverageVersion===VERSION)expandedDone.add(r.key);}
    else partialAttempts++;
   }
  }
  const bySport={};for(const [key,sport] of scopes){const b=bySport[sport]??={attemptedScopes:0,completeScopes:0};b.attemptedScopes++;if(done.has(key))b.completeScopes++;}
- return {done,attempts,summary:{checkpointFiles:files,invalidCheckpointsOrRecords:invalid,profileAttempts:records,uniqueAttemptedScopes:attempts.size,completeScopes:done.size,incompleteScopes:attempts.size-done.size,failedAttempts,partialAttempts,completeAttemptFields:fields,dashboardSnapshots,summaryFiles,bySport,rawRowsPublished:0,modelInputsApproved:false}};
+ return {done,expandedDone,attempts,expandedAttempts,summary:{expandedCompleteScopes:expandedDone.size,expandedAttemptedScopes:expandedAttempts.size,featureObservedScopeCounts:Object.fromEntries([...featureScopes].map(([k,v])=>[k,v.size])),checkpointFiles:files,invalidCheckpointsOrRecords:invalid,profileAttempts:records,uniqueAttemptedScopes:attempts.size,completeScopes:done.size,incompleteScopes:attempts.size-done.size,failedAttempts,partialAttempts,completeAttemptFields:fields,dashboardSnapshots,summaryFiles,bySport,rawRowsPublished:0,modelInputsApproved:false}};
 }
 function priorDone(root,ref='HEAD'){
  if(!['HEAD','FETCH_HEAD'].includes(ref))throw Error('invalid archive ref');
@@ -106,7 +108,7 @@ async function persist(root,data){
 }
 async function run({root,context,page,enrich,collect,evidence={},limit=Infinity,shouldContinue=()=>true}){
  if(!(limit===Infinity||Number.isInteger(limit)&&limit>0))throw Error('profile budget');
- const {done,attempts,summary}=await checked('checkpoint_inventory',()=>priorDone(root));
+ const {expandedDone:done,expandedAttempts:attempts,summary}=await checked('checkpoint_inventory',()=>priorDone(root));
  const q=await checked('board_archive_queue',()=>queue(allBatches(root),done));
  console.log(JSON.stringify({state:'deep_resume_inventory',...summary,queueTotal:q.total,remaining:q.pending.length}));
  if(summary.invalidCheckpointsOrRecords)throw new DeepFailure('checkpoint_inventory_invalid');
@@ -134,7 +136,7 @@ async function run({root,context,page,enrich,collect,evidence={},limit=Infinity,
    await page.waitForFunction(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium'),null,{timeout:12000});
    if(!await premium(page))throw Error('session unavailable');
    let tables=0,cards=0,clocks=0;
-   const traversal=await traverseDashboard(page,name,{shouldContinue,onSnapshot:async snapshot=>{
+   const traversal=await traverseDashboardFilters(page,name,{shouldContinue,onSnapshot:async snapshot=>{
     tables+=snapshot.tables.length;cards+=snapshot.cards.length;clocks+=snapshot.clocks.length;
     await persist(root,{schema:'pickfinder-deep-v1',seed:SEED,startedAt,finishedAt:new Date().toISOString(),diagnostics:{},dashboardSnapshots:[snapshot],records:[],modelInputsApproved:false,originalOffersVerified:false});
    }});
@@ -169,7 +171,7 @@ async function run({root,context,page,enrich,collect,evidence={},limit=Infinity,
   if(!shouldContinue())break;
   const row={...item,research:[]};
   try{
-   await enrich(detail,row,{maxFields:Infinity,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(new URL(detail.url()).origin!=='https://www.pickfinder.app'||!await premium(detail))throw Error('session unavailable');}});
+   await enrich(detail,row,{maxFields:Infinity,expanded:true,shouldContinue,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(new URL(detail.url()).origin!=='https://www.pickfinder.app'||!await premium(detail))throw Error('session unavailable');}});
    records.push({...item,status:row.research.length?'sampled':'empty',profileCollection:row.profileCollection,research:row.research});
   }catch{records.push({...item,status:'failed',profileCollection:row.profileCollection,research:row.research});}
   phase='profile_checkpoint';

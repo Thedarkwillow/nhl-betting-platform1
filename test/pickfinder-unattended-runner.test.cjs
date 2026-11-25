@@ -146,3 +146,26 @@ test('sanitized deep failure propagates substage without raw error text',async()
  const {DeepFailure}=require('../scripts/pickfinder-deep-research.cjs');
  await assert.rejects(stage('deep_research',()=>{throw new DeepFailure('checkpoint_rebase');}),/deep_research_checkpoint_rebase/);
 });
+
+test('sport coverage needs nonempty observed values and does not treat unrelated labels as verified',()=>{
+ const {coverage,VERSION,eligible}=require('../scripts/pickfinder-research-coverage.cjs');
+ assert.equal(VERSION,'sport-filter-v2');
+ const c=coverage('nhl',[{tab:'Shot Attempts',value:'4'},{tab:'Goalie Matchup',value:null},{tab:'Line Combinations',value:'fixture'}]);
+ assert.equal(c.shot_attempts.state,'observed_label_and_value');assert.equal(c.goalie_matchups.state,'not_observed');assert.equal(c.line_combinations.observations,1);
+ assert.equal(eligible([{label:'Account',options:[{value:'1'}]},{label:'Map',options:[{value:'1'}]},{label:'Map',options:[{value:'2'}]}]).length,0);
+});
+test('native filters enumerate selected combinations without certifying custom UI coverage',async()=>{
+ const {traverseNativeFilters}=require('../scripts/pickfinder-research-coverage.cjs');
+ const controls=['Map','Mode'].map((label,index)=>({index,label,value:'a',options:[{value:'a',label:'A'},{value:'b',label:'B'}]}));
+ const saved=[];const r=await traverseNativeFilters(null,{read:async()=>structuredClone(controls),set:async(x,v)=>{controls[x.index].value=v;},onState:async s=>saved.push(s.map(x=>x.value).join(''))});
+ assert.deepEqual(saved,['aa','ab','ba','bb']);assert.equal(r.nativeCombinationsExhausted,true);assert.equal(r.allFilterCombinationsVerified,false);assert.deepEqual(controls.map(x=>x.value),['a','a']);
+});
+test('legacy checkpoint is not complete for expanded research version',()=>{
+ const {scope,summarizeCheckpoints}=require('../scripts/pickfinder-deep-research.cjs');
+ const r={book:'prizepicks',sport:'nba',player:'fixture',market:'points',eventId:'e',detailId:'/players/nba/p?prop=x'};
+ const key=require('node:crypto').createHash('sha256').update(JSON.stringify(scope(r.book,r))).digest('hex');
+ const p={...r,key,status:'sampled',profileCollection:{truncated:false},research:[{value:'fixture'}]};
+ const doc=records=>({schema:'pickfinder-deep-v1',seed:'aef07d2aecb75388c6757c9cc5844b2113d6a0ac',records});
+ assert.equal(summarizeCheckpoints([doc([p])]).expandedDone.size,0);
+ assert.equal(summarizeCheckpoints([doc([{...p,profileCollection:{truncated:false,coverageVersion:'sport-filter-v2'}}])]).expandedDone.size,1);
+});

@@ -1,4 +1,5 @@
 'use strict';
+const {traverseNativeFilters}=require('./pickfinder-research-coverage.cjs');
 // Capture visible sporting tables and cards only, without account details or actions.
 async function captureDashboard(page,name){
  if(!['Games','Discrepancies','Popular'].includes(name))throw Error('dashboard scope');
@@ -20,14 +21,14 @@ async function captureDashboard(page,name){
  return {name,path:url.pathname,observedAt,...snapshot,originalOffersVerified:false,modelInputsApproved:false};
 }
 
-async function traverseDashboard(page,name,{shouldContinue=()=>true,onSnapshot=async()=>{}}={}){
+async function traverseDashboard(page,name,{shouldContinue=()=>true,onSnapshot=async()=>{},filterSelection=null}={}){
  const seen=new Set();let pages=0,state='unverified_pagination';
  while(shouldContinue()){
   const x=await captureDashboard(page,name),scopes=[...new Map(x.pagination.map(p=>[p.page+':'+p.total,p])).values()];
   const p=scopes.length===1?scopes[0]:null;
   const fingerprint=JSON.stringify([p,x.tables,x.cards,x.clocks]);
   if(seen.has(fingerprint)){state='repeated_page';break;}
-  seen.add(fingerprint);await onSnapshot(x);pages++;
+  seen.add(fingerprint);await onSnapshot({...x,filterSelection});pages++;
   if(!p||!Number.isSafeInteger(p.page)||!Number.isSafeInteger(p.total)||p.page<1||p.total<p.page){state='pagination_not_explicit';break;}
   if(p.page===p.total){state='explicit_last_page_observed';break;}
   const next=page.getByRole('button',{name:'Next page',exact:true});
@@ -59,4 +60,12 @@ async function verifiedNavigation(page,name,allowed){
  const unique=[...new Set(candidates)].filter(s=>{try{const u=new URL(s);return u.origin==='https://www.pickfinder.app'&&allowed.includes(u.pathname)&&!u.search&&!u.hash;}catch{return false;}});
  return unique.length===1?unique[0]:null;
 }
-module.exports={captureDashboard,traverseDashboard,inspectCapabilities,verifiedNavigation};
+async function traverseDashboardFilters(page,name,{shouldContinue=()=>true,onSnapshot=async()=>{}}={}){
+ const defaultTraversal=await traverseDashboard(page,name,{shouldContinue,onSnapshot});
+ const filterAudit=await traverseNativeFilters(page,{shouldContinue,maxMs:60000,onState:async selection=>{
+  const x=await traverseDashboard(page,name,{shouldContinue,onSnapshot,filterSelection:selection});
+  if(x.state!=='explicit_last_page_observed')throw Error('filter pagination incomplete');
+ }});
+ return {...defaultTraversal,filterAudit,filtersExhausted:false,allDashboardDataVerified:false};
+}
+module.exports={captureDashboard,traverseDashboard,traverseDashboardFilters,inspectCapabilities,verifiedNavigation};

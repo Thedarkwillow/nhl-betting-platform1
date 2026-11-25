@@ -1,0 +1,3 @@
+"use strict";
+const test=require("node:test"),assert=require("node:assert/strict"),{assess}=require("../src/nhl-original-pair-dependence-research.cjs");
+test("distinct original players, one pair per game market; small cohort no fitted claims",()=>{const rows=[1,2,3].map(playerId=>({playerId,gameId:1,market:"assists",line:.5,gameStartAt:"2026-11-24T20:00:00Z",outcome:{status:"decided",side:"Higher"},shadow:{variants:{champion:{status:"research_only",probabilities:{higher:.6,lower:.4}}},decisions:{champion:{side:"Higher"}}}}));const r=assess(rows);assert.equal(r.markets.assists.pairs,1);assert.equal(r.markets.assists.scored,0);assert.equal(r.originalJointForecastFrozen,false);});

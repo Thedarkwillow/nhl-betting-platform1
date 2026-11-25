@@ -126,7 +126,7 @@ def exact_alias_candidate(aliases,nid,espn_team_ids,known_espn_ids,ids,reverse):
     if known_espn_ids and known_espn_ids!={eid}:return None
     if (ids.get(nid) and ids[nid]!={eid}) or (reverse.get(eid) and reverse[eid]!={nid}):return None
     return eid
-def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,historical=None,supplemental=(),aliases=(),restricted_review=None):
+def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,historical=None,supplemental=(),aliases=(),restricted_review=None,all_unmapped=None):
     historical=historical or {}
     gameoffers={}
     for r in offers:
@@ -237,6 +237,8 @@ def reconcile(offers,schedule,gamecross,cross,injuries,espnroster,nbaroster,hist
                 metrics["explicitOutRows"]+=1
                 if old(r):metrics["oldExactMapped"]+=1;continue
                 metrics["oldUnmapped"]+=1
+                if all_unmapped is not None:
+                    all_unmapped.append({"team":team,"home":h,"away":a,"reportAt":latest.isoformat(),"cutoffAt":cutoff.isoformat(),"reportName":str(r.get("report_player_name") or ""),"nbaReportId":ident(r.get("person_id")),"nbaGameId":n})
                 nm=names(r["report_player_name"])
                 if not nm:methods["missingName"]+=1;record_pending(r,e,n,team,latest,cutoff,"missingName");continue
                 er=[x for x in e_by[(e,team)] if names(x["athlete_display_name"])&nm and ident(x["athlete_id"])]
@@ -303,7 +305,9 @@ def main():
     except Exception: aliases=[];alias_status="unavailable_or_changed"
     review_path=os.environ.get("NBA_RESTRICTED_IDENTITY_REVIEW")
     pending=[] if review_path else None
-    x=reconcile(offers,t[(e,"nba_schedule_2027.parquet")],t[(e,"nba_schedule_crosswalk_2027.parquet")],t[(e,"nba_player_crosswalk_2027.parquet")],t[(n,"injury_report_2027.parquet")],t[(e,"game_rosters_2027.parquet")],t[(n,"game_rosters_2027.parquet")],historical=historical,supplemental=supplemental,aliases=aliases,restricted_review=pending)
+    all_path=os.environ.get("NBA_RESTRICTED_ALL_UNMAPPED")
+    all_rows=[] if all_path else None
+    x=reconcile(offers,t[(e,"nba_schedule_2027.parquet")],t[(e,"nba_schedule_crosswalk_2027.parquet")],t[(e,"nba_player_crosswalk_2027.parquet")],t[(n,"injury_report_2027.parquet")],t[(e,"game_rosters_2027.parquet")],t[(n,"game_rosters_2027.parquet")],historical=historical,supplemental=supplemental,aliases=aliases,restricted_review=pending,all_unmapped=all_rows)
     x["supplementalSourceStatus"]=source_status
     x["supplementalRosterRows"]=len(supplemental)
     x["supplementalAliasSourceStatus"]=alias_status
@@ -314,5 +318,11 @@ def main():
         if dest.parent!=root:raise ValueError("restricted review destination")
         fd=os.open(dest,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
         with os.fdopen(fd,"w") as f:json.dump({"kind":"nba_reconstructed_pending_identity_review_v1","originalImmutableRowsVerified":False,"rows":pending,"rawRowsPublished":0},f)
+    if all_path:
+        if not x["originalAggregateReproduced"] or len(all_rows)!=135:raise ValueError("all cohort accounting")
+        dest=pathlib.Path(all_path).resolve()
+        if dest.parent!=pathlib.Path(os.environ["RUNNER_TEMP"]).resolve():raise ValueError("restricted destination")
+        fd=os.open(dest,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+        with os.fdopen(fd,"w") as f:json.dump({"kind":"nba_reconstructed_all_unmapped_v1","rows":all_rows,"originalImmutableRowsVerified":False},f)
     print(json.dumps(x))
 if __name__=="__main__":main()

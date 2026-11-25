@@ -1,0 +1,36 @@
+name: Dota organizer map evidence
+on:
+  pull_request:
+    paths: ['scripts/dota-organizer-map-proof.cjs','test/dota-organizer-map-proof.test.cjs','.github/workflows/dota-organizer-map-proof.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/dota-organizer-map-proof.cjs','test/dota-organizer-map-proof.test.cjs','.github/workflows/dota-organizer-map-proof.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/dota-organizer-map-proof.test.cjs test/dota-series-archive-review.test.cjs
+  evidence:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: fe3207e69198659fdb6e1ba86b1f509105a04053
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: restricted
+          persist-credentials: false
+      - name: Evaluate pinned private archive; aggregate only
+        run: node scripts/dota-organizer-map-proof.cjs restricted/research/esports-free-providers/45544586381-1.json 9957f9b7af5150e57b45e09cf96ebc46cc7f42d9

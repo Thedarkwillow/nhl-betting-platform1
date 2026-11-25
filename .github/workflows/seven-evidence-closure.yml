@@ -52,7 +52,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$RUNNER_TEMP/private-nba.log"
-          trap 'rm -f "$log" "$NBA_RESTRICTED_ALL_UNMAPPED" "$RUNNER_TEMP/nba-primary-pdf-evidence.json"' EXIT
+          trap 'rm -f "$log" "$NBA_RESTRICTED_ALL_UNMAPPED"' EXIT
           python public/scripts/reconcile-nba-dated-injury-cohort.py archive/outputs/nba/research/pinnacle-2026-10-24-to-31-nba.csv >"$log" 2>&1 || { echo "Reconstruction failed closed"; exit 1; }
           python public/scripts/nba_primary_pdf_cohort_audit.py "$NBA_RESTRICTED_ALL_UNMAPPED" "$RUNNER_TEMP/nba-primary-pdf-evidence.json" >"$log" 2>&1 || { echo "Primary source audit failed closed"; exit 1; }
           python - "$RUNNER_TEMP/nba-primary-pdf-evidence.json" <<'PY'
@@ -61,6 +61,29 @@ jobs:
           assert x["kind"]=="nba_primary_pdf_reconstructed_cohort_v1" and x["reconstructedRows"]==135 and x["rawRowsPublished"]==0 and x["freezeApproved"] is False
           print(json.dumps(x))
           PY
+      - name: Retain source hashes and row-verification statuses in restricted archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          file="$RUNNER_TEMP/nba-primary-pdf-evidence.json"
+          trap 'rm -f "$file"' EXIT
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          cd archive
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config core.hooksPath /dev/null
+          branch="research/nba-primary-pdf-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git switch -c "$branch"
+          mkdir -p research/nba-primary-pdf-evidence
+          install -m 600 "$file" research/nba-primary-pdf-evidence/verification.json
+          git add research/nba-primary-pdf-evidence/verification.json
+          git commit -qm 'Preserve dated primary NBA report verification evidence'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin "HEAD:refs/heads/$branch"
+          remote="$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin "refs/heads/$branch" | cut -f1)"
+          test "$remote" = "$(git rev-parse HEAD)"
+          echo 'Restricted primary NBA report evidence committed and verified.'
   original-research:
     needs: tests
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

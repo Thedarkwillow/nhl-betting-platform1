@@ -9,39 +9,43 @@ def time_at(s):
     if t.tzinfo is None:raise ValueError("clock")
     return t.astimezone(ET)
 def url_for(t):return "https://ak-static.cms.nba.com/referee/injury/Injury-Report_"+t.strftime("%Y-%m-%d_%I_%M%p")+".pdf"
-def extract(raw,t):
-    import pdfplumber
+def parse_pages(pages,t):
     expected="Injury Report: "+t.strftime("%m/%d/%y %I:%M %p")
     current_match=current_team=current_day=None;out=[]
-    with pdfplumber.open(io.BytesIO(raw)) as pdf:
-        if not 1<=len(pdf.pages)<=20:raise ValueError("page count")
-        for page in pdf.pages:
-            text=page.extract_text() or ""
-            if norm(expected) not in norm(text):raise ValueError("timestamp header")
-            words=page.extract_words(x_tolerance=2,y_tolerance=2)
-            by=[]
-            for w in sorted(words,key=lambda w:(w["top"],w["x0"])):
-                if not by or abs(w["top"]-by[-1][0]["top"])>3:by.append([w])
-                else:by[-1].append(w)
-            edges=None
-            for line in by:
-                line.sort(key=lambda w:w["x0"])
-                labels={w["text"]:w["x0"] for w in line}
-                if all(k in labels for k in ("Matchup","Team","Player","Current","Reason")):
-                    edges=[labels[k]-4 for k in ("Matchup","Team","Player","Current","Reason")]
-                    continue
-                if edges is None:continue
-                cols=[[] for _ in range(6)]
-                for w in line:
-                    col=sum(w["x0"]>=x for x in edges);cols[col].append(w["text"])
-                d,match,team,player,status,_=[" ".join(x).strip() for x in cols]
-                dates=re.findall(r"\d{2}/\d{2}/\d{4}",d)
-                if dates:current_day=datetime.datetime.strptime(dates[0],"%m/%d/%Y").date().isoformat();current_match=current_team=None
-                if re.fullmatch(r"[A-Z]{2,3}@[A-Z]{2,3}",match):current_match=match;current_team=None
-                if team:current_team=team
-                if current_day and current_match and current_team and player and status in ("Out","Available","Questionable","Doubtful","Probable"):
-                    out.append((current_day,current_match,norm(current_team),norm(player),status))
+    if not 1<=len(pages)<=20:raise ValueError("page count")
+    edges=None
+    for page in pages:
+        text=page.extract_text() or ""
+        if norm(expected) not in norm(text):raise ValueError("timestamp header")
+        words=page.extract_words(x_tolerance=2,y_tolerance=2)
+        by=[]
+        for w in sorted(words,key=lambda w:(w["top"],w["x0"])):
+            if not by or abs(w["top"]-by[-1][0]["top"])>3:by.append([w])
+            else:by[-1].append(w)
+        for line in by:
+            line.sort(key=lambda w:w["x0"])
+            label=" ".join(w["text"] for w in line)
+            if label.startswith("Injury Report:") or re.fullmatch(r"Page \d+ of \d+",label):continue
+            labels={w["text"]:w["x0"] for w in line}
+            if all(k in labels for k in ("Matchup","Team","Player","Current","Reason")):
+                edges=[labels[k]-4 for k in ("Matchup","Team","Player","Current","Reason")]
+                continue
+            if edges is None:continue
+            cols=[[] for _ in range(6)]
+            for w in line:
+                col=sum(w["x0"]>=x for x in edges);cols[col].append(w["text"])
+            d,match,team,player,status,_=[" ".join(x).strip() for x in cols]
+            dates=re.findall(r"\d{2}/\d{2}/\d{4}",d)
+            if dates:current_day=datetime.datetime.strptime(dates[0],"%m/%d/%Y").date().isoformat();current_match=current_team=None
+            if re.fullmatch(r"[A-Z]{2,3}@[A-Z]{2,3}",match):current_match=match;current_team=None
+            if team:current_team=team
+            if current_day and current_match and current_team and player and status in ("Out","Available","Questionable","Doubtful","Probable"):
+                out.append((current_day,current_match,norm(current_team),norm(player),status))
     return out
+
+def extract(raw,t):
+    import pdfplumber
+    with pdfplumber.open(io.BytesIO(raw)) as pdf:return parse_pages(pdf.pages,t)
 def verify(rows,fetch):
     by=collections.defaultdict(list);counts=collections.Counter();evidence=[]
     for r in rows:

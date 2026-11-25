@@ -1,0 +1,97 @@
+name: Esports free three provider collection
+on:
+  pull_request:
+    paths: ['scripts/esports-free-source-adapters.cjs','test/esports-free-source-adapters.test.cjs','.github/workflows/esports-free-three-provider-collection.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/esports-free-three-provider-collection.yml','scripts/esports-free-source-adapters.cjs']
+  workflow_dispatch:
+  schedule:
+    - cron: '20 16 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: esports-free-three-provider-collection
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/esports-free-source-adapters.test.cjs test/esports-research-v1.test.cjs
+  collect:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Verify restricted archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: restricted
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - name: Load existing private provider archive
+        working-directory: restricted
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          branch=research/esports-free-providers
+          if git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote --exit-code origin "refs/heads/$branch" >/dev/null; then
+            git -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch --quiet origin "refs/heads/$branch"
+            git switch --detach FETCH_HEAD
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Collect bounded free source-native records
+        env:
+          RESTRICTED_DESTINATION_VERIFIED: '1'
+          PANDASCORE_API_KEY: ${{ secrets.PANDASCORE_API_KEY || secrets.PANDASCORE_TOKEN || secrets.PANDASCORE }}
+          GRID_API_KEY: ${{ secrets.GRID_API_KEY || secrets.RIOT_GRID_API_KEY || secrets.GRID }}
+          PANDASCORE_BETTING_DATA_AUTHORIZED: ${{ vars.PANDASCORE_BETTING_DATA_AUTHORIZED }}
+          PANDASCORE_NO_CHARGE_CONFIRMED: ${{ vars.PANDASCORE_NO_CHARGE_CONFIRMED }}
+          GRID_BETTING_DATA_AUTHORIZED: ${{ vars.GRID_BETTING_DATA_AUTHORIZED }}
+          GRID_NO_CHARGE_CONFIRMED: ${{ vars.GRID_NO_CHARGE_CONFIRMED }}
+        run: node public/scripts/esports-free-source-adapters.cjs restricted "$RUNNER_TEMP/esports-free-provider-observations.json"
+      - name: Persist restricted source observations
+        working-directory: restricted
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          file="$RUNNER_TEMP/esports-free-provider-observations.json"
+          trap 'rm -f "$file"' EXIT
+          test -f "$file" || { echo 'No valid source records available'; exit 0; }
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          dest="research/esports-free-providers/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.json"
+          mkdir -p "$(dirname "$dest")"
+          test ! -e "$dest"
+          install -m 600 "$file" "$dest"
+          git add -f "$dest"
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config core.hooksPath /dev/null
+          git commit -qm 'Archive free source-native esports observations'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:refs/heads/research/esports-free-providers
+          test "$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin refs/heads/research/esports-free-providers | cut -f1)" = "$(git rev-parse HEAD)"
+          echo 'Private provider archive commit verified.'

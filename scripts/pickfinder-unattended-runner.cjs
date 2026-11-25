@@ -156,7 +156,7 @@ async function main(env=process.env){
    if(!remaining()){failed=true;break;}
    try{
     await stage('board_navigation',()=>page.goto(ORIGIN+'/props',{timeout:20000}));
-    const batch=await stage('board_collection',()=>collect(page,{book,code,slot:p.expected,maxPages:p.full?500:p.reconcile?2:500,shouldContinue:remaining}));
+    const batch=await stage('board_collection',()=>collect(page,{book,code,slot:p.expected,maxPages:p.reconcile&&!p.full?2:Infinity,shouldContinue:remaining}));
     // A bounded profile sample preserves board coverage. Separate deep research is still required.
     const sample=batch.pages.flatMap(pg=>pg.rows).find(r=>r.apps.length);
     if(sample&&remaining())try{await enrich(detail,sample,{navigate:url=>detail.goto(url,{timeout:8000})});}catch{sample.profileCollection={status:'unavailable'};}

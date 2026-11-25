@@ -23,5 +23,23 @@
   add(mount,'p','Audit observed '+new Date(a.generatedAt).toLocaleString()+'. Historical candidate offers: '+n(o.historyCandidates)+' · Independently reviewed matches: '+n(o.independentlyReviewedOfferMatches)+' · Original board clock corroboration: '+n(o.boardNativeClockCorroborated??o.sourceContextCorroborated)+'. These measures are distinct.');
   add(mount,'p','Reviewed receipt scopes: '+n(bridge.reviewedReceiptScopes)+' · Explicit crosswalk rows: '+n(bridge.explicitCrosswalkRows)+' · New automated research forecasts: '+n(bridge.newForecastRows)+' · Intake status: '+(bridge.reason||'Pending')+'. Original-platform verification and model approval remain separate.');
  }catch{add(mount,'p','NBA alternate-history audit unavailable; automated intake not certified.');}
+ try{
+  const res=await fetch('./data/prizepicks-model-rankings.json',{cache:'no-store'});if(!res.ok)throw Error();
+  const m=await res.json();if(m.kind!=='public_prizepicks_model_ranking_v1'||m.researchOnly!==true||m.modelApproved!==false)throw Error();
+  const now=Date.now(),at=Date.parse(m.generatedAt);
+  if(!Number.isFinite(at)||at>now||now-at>1800000)throw Error();
+  add(mount,'h3','PrizePicks — model-ranked research');
+  add(mount,'p','Conditional raw model estimates, not calibrated win probabilities. Separate tiers, no verified payouts or expected value.');
+  const rows=(m.rows||[]).filter(x=>x.book==='prizepicks'&&x.calibrated===false&&x.modelApproved===false&&x.originalPlatformVerified===false&&Date.parse(x.gameStartAt)>now+900000&&Date.parse(x.observedAt)<=now&&now-Date.parse(x.observedAt)<=1800000);
+  if(!rows.length)add(mount,'p','No eligible fresh model-ranked rows. Unverified props remain withheld.');
+  for(const tier of ['standard','goblin','demon']){
+   const list=rows.filter(x=>x.tier===tier);if(!list.length)continue;
+   add(mount,'h4',tier);
+   const table=add(mount,'table',''),head=add(table,'thead',''),hr=add(head,'tr','');
+   for(const h of ['Rank','Player','Selection','Projection','Raw estimate','Market benchmark'])add(hr,'th',h);
+   const body=add(table,'tbody','');for(const x of list){const tr=add(body,'tr','');for(const v of [x.rankWithinTier,x.player,x.side+' '+x.line+' '+x.market,Number(x.projection).toFixed(2),(100*x.rawConditionalEstimate).toFixed(1)+'%',x.marketEstimate===null?'Unavailable':(100*x.marketEstimate).toFixed(1)+'%'])add(tr,'td',v);}
+  }
+ }catch{add(mount,'p','Fresh model ranking report unavailable; no stale ranking displayed.');}
+
  }catch{mount.textContent='Public PickFinder validation report is pending. Existing NHL/NFL research remains unchanged.';}
 })();

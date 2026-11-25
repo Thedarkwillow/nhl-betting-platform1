@@ -1,0 +1,61 @@
+name: Public-only PickFinder research validation
+on:
+  pull_request:
+    paths: ['scripts/pickfinder-public-evidence-audit.cjs','scripts/pickfinder-public-model-validation.cjs','test/pickfinder-public-model-validation.test.cjs','.github/workflows/pickfinder-public-model-validation.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/pickfinder-public-evidence-audit.cjs','scripts/pickfinder-public-model-validation.cjs','.github/workflows/pickfinder-public-model-validation.yml']
+  schedule:
+    - cron: '35 5,7,10,13,17,23 * * *'
+      timezone: America/Los_Angeles
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: public-pickfinder-validation-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/pickfinder-public-model-validation.test.cjs test/nba-research-pipeline-v1.test.cjs test/pickfinder-quote-features.test.cjs
+  validate:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/pickfinder-public-model-validation.cjs .
+      - name: Archive public research report and verified source evidence
+        run: |
+          set -euo pipefail
+          git add -f data/pickfinder-public-research-health.json
+          if test -d research/pickfinder-public-validation-v1; then git add -f research/pickfinder-public-validation-v1; fi
+          git diff --cached --quiet && exit 0
+          test -z "$(git diff --cached --name-only --diff-filter=CDRTUXB)"
+          git config user.name 'Public research validation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Publish public PickFinder evidence validation'
+          for i in 1 2 3 4 5 6; do
+            git fetch --quiet origin main
+            git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
+            if git push --quiet origin HEAD:main; then
+              git fetch --quiet origin main
+              git merge-base --is-ancestor HEAD FETCH_HEAD
+              echo 'Public validation archived.'
+              exit 0
+            fi
+            sleep "$((2*i))"
+          done
+          exit 1

@@ -36,11 +36,11 @@ function readBoard({book, code, sport, observedAt}) {
         state:Number.isFinite(line)?'book_badge_observed':'line_missing'});
       if(!Number.isFinite(line)||icons.filter(i=>i===book).length!==1||icons.some(i=>![book,'goblin','demon'].includes(i))||icons.includes('goblin')&&icons.includes('demon'))continue;
       // Parse explicit side+price from a book-isolated group, including split text nodes.
-      const matches=[...display.matchAll(/(?:^|\s)(O|U|Higher|Lower|Over|Under)\s*([+-]\d{2,4})(?=\s|$)/gi)];
+      const matches=[...display.matchAll(/(?:^|\s)(O|U|Higher|Lower|Over|Under)\s*(?:(\d+(?:\.\d+)?)\s+)?\(?([+-]\d{2,4})\)?(?=\s|$)/gi)].filter(m=>Math.abs(Number(m[3]))>=100&&(m[2]===undefined||Number(m[2])===line));
       for(const m of matches){
         const side=/^(o|over|higher)$/i.test(m[1])?'Higher':'Lower';
-        if(!apps.some(a=>a.side===side&&a.displayedPrice===m[2]&&a.tier===tier))
-          apps.push({book,line,side,displayedPrice:m[2],tier});
+        if(!apps.some(a=>a.side===side&&a.displayedPrice===m[3]&&a.tier===tier))
+          apps.push({book,line,side,displayedPrice:m[3],tier});
       }
     }
     // Keep competitor quotes distinct from the selected fantasy book. The board's line
@@ -64,7 +64,10 @@ function readBoard({book, code, sport, observedAt}) {
         value:!value || value==='-'?null:value,scope:'displayed prop',observedAt,
         window:/^(L5|L10|L15|Avg L10|H2H|SZN)$/.test(metric)?metric:null});
     }
-    rows.push({sport:rawSport===code.toLowerCase()||code==='DOTA2'&&['dota-2','dota_2'].includes(rawSport)?sport:rawSport,player:a.querySelector('p')?.innerText,
+    const eventTimes=[...new Set([...(tr.querySelectorAll?.('time[datetime]')||[])].map(t=>t.getAttribute('datetime')).filter(t=>typeof t==='string'&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(t)&&Number.isFinite(Date.parse(t))))];
+    // A single explicitly labeled game/start time only; never infer a clock from event ID.
+    const startAt=eventTimes.length===1&&[...(tr.querySelectorAll?.('time[datetime]')||[])].some(t=>/^(?:game|match|event|scheduled)\s*(?:start|time)/i.test(t.getAttribute('aria-label')||t.getAttribute('title')||''))?eventTimes[0]:null;
+    rows.push({startAt,sport:rawSport===code.toLowerCase()||code==='DOTA2'&&['dota-2','dota_2'].includes(rawSport)?sport:rawSport,player:a.querySelector('p')?.innerText,
       market,eventId:parts[2],detailId:u.pathname+'?'+u.search.slice(1).split('&').filter(part=>part.startsWith('prop=')).join('&'),
       period:market?.match(/^(\d+(?:st|nd|rd|th)_(?:half|quarter|period))/)?.[1]||null,
       mapRange:market?.match(/^(.*?maps?)_player/)?.[1]||null,gameMode:null,

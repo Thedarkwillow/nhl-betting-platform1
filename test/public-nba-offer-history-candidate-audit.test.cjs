@@ -1,0 +1,12 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),{audit}=require('../scripts/public-nba-offer-history-candidate-audit.cjs');
+const clock='2026-11-25T14:00:00Z',start='2026-11-25T23:00:00Z',obs='2026-11-25T13:00:00Z';
+const roster=[{playerId:'1',name:'Alpha Player',teamId:'a',team:'BOS'},{playerId:'2',name:'Beta Player',teamId:'b',team:'NYK'}];
+const event={sport:'nba',namespace:'espn:nba',eventId:'10',status:'pre',startAt:start,teams:[{id:'a',abbr:'BOS'},{id:'b',abbr:'NYK'}]};
+const offers=roster.map((p,i)=>({sport:'nba',player:p.name,book:'prizepicks',detailId:'fixture-'+i,eventId:'source-event',market:'player_points',line:20.5,side:'Higher',observedAt:obs,startAt:start}));
+const fields=offers.flatMap((o,i)=>['Team','Opponent'].map((metric,j)=>({origin:'board',detailId:o.detailId,observedAt:obs,metric,value:roster[(i+j)%2].team,startAt:start})));
+const payload={kind:'nba_offer_history_candidate_input_v1',crosswalk:[['1','101'],['2','102']],facts:{events:[event],roster},history:roster.flatMap((p,i)=>Array.from({length:12},(_,j)=>({playerId:101+i,player:p.name,team:p.team,gameDate:'2026-11-'+String(j+1).padStart(2,'0'),points:20})))};
+const archive=(os,fs)=>({invalid:[],latest:[{m:{sport:'nba',book:'prizepicks'},first:'2026-11-25T13:30:00Z',digest:'fixture',offers:os,unpricedTierObservations:[],researchObservations:fs}]});
+test('links individual candidate offers but does not certify original platform or production',()=>{const a=audit(archive(offers,fields),payload,clock);assert.equal(a.historyCandidates,2);assert.equal(a.sourceContextCorroborated,2);assert.equal(a.modelApproved,false);assert.equal(a.independentlyReviewedPickfinderCrosswalks,0);});
+test('missing game context is never promoted',()=>{const a=audit(archive(offers.map(o=>({...o,startAt:null})),[]),payload,clock);assert.equal(a.historyCandidates,2);assert.equal(a.sourceContextCorroborated,0);});
+test('insufficient prior history is excluded',()=>{const a=audit(archive(offers,fields),{...payload,history:[]},clock);assert.equal(a.historyCandidates,0);});

@@ -9,9 +9,9 @@ function invocation(env,now=new Date()){
  if(env.GITHUB_EVENT_NAME==='schedule'&&/^[0-9]+ (6|9) \* \* \*$/.test(env.GITHUB_EVENT_SCHEDULE))return decide({eventName:'schedule',schedule:env.GITHUB_EVENT_SCHEDULE,now});
  if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&['capture_0600','capture_0900'].includes(env.REQUESTED_MODE))return decide({eventName:'workflow_dispatch',mode:env.REQUESTED_MODE,now});
  const clock=pacific(now),mode=env.REQUESTED_MODE||'board_and_deep';
- if(!['board_and_deep','deep_research_now','probe_now','nba_context_only'].includes(mode))throw Error('mode');
+ if(!['board_and_deep','deep_research_now','probe_now','nba_context_only','features_only','boards_only'].includes(mode))throw Error('mode');
  if([6,9].includes(clock.hour))return {allowed:false,state:'protect_morning_hour',clock};
- return {allowed:true,expected:'manual',clock,deep:mode==='deep_research_now'||mode==='nba_context_only',contextOnly:mode==='nba_context_only',probe:mode==='probe_now'};
+ return {allowed:true,expected:'manual',clock,deep:['deep_research_now','nba_context_only','features_only'].includes(mode),contextOnly:mode==='nba_context_only',featuresOnly:mode==='features_only',boardsOnly:mode==='boards_only',probe:mode==='probe_now'};
 }
 function profileWorkers(env,p){return env.GITHUB_EVENT_NAME==='workflow_dispatch'&&env.REQUESTED_MODE==='deep_research_now'&&p.expected==='manual'&&p.deep&&!p.contextOnly?2:1;}
 function captureOrigin(env,policy){
@@ -81,7 +81,7 @@ async function main(root,env=process.env){
    }catch{errors++;console.log(JSON.stringify({state:'public_board_partition_pending',code,book}));if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
   }}
   // Morning board acquisition is independent of deep research and must never delay next slot.
-  if(p.expected!=='manual')return;
+  if(p.expected!=='manual'||p.boardsOnly)return;
   // Capture game context before the potentially very long deep-profile queue.
   // Time-box this independently and never consume a protected morning window.
   if(alive()){
@@ -159,6 +159,7 @@ async function main(root,env=process.env){
     console.log(JSON.stringify({state:'public_dashboard_pass',name,snapshots,filtersExhausted:result.filtersExhausted===true}));
    }catch{errors++;console.log(JSON.stringify({state:'public_dashboard_pending',name}));}
   }
+  if(p.featuresOnly)return;
   const q=queue(read(root,'board-parts'),read(root,'profiles'));console.log(JSON.stringify({state:'public_deep_queue',total:q.total,completed:q.done,remaining:q.pending.length,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
   // Explicit manual deep runs alone trial two isolated tabs; all archives remain serialized.
   // Never increase parallelism in the protected morning board or scheduled collection paths.

@@ -1,7 +1,7 @@
 {
   "kind": "public_pickfinder_identity_health_v1",
-  "generatedAt": "2026-11-25T23:35:02.801Z",
-  "archiveRevision": "ee500d28bdf8f50ffe3e08f3dd88eaab66288338",
+  "generatedAt": "2026-11-25T23:39:14.300Z",
+  "archiveRevision": "4347a5699cd9c3a0426dc6ab9d06cc0e325ffbdc",
   "sourceEvents": 240,
   "sources": {
     "nba": {
@@ -67,11 +67,11 @@
       "source": "espn:college-basketball",
       "events": 101,
       "upcoming": 95,
-      "rosterPlayers": 605,
+      "rosterPlayers": 612,
       "failedTeams": 0,
       "sourceEvents": 15,
       "uniqueEventCandidates": 1,
-      "uniquePlayerCandidates": 35,
+      "uniquePlayerCandidates": 28,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -130,7 +130,7 @@
   "nativeHistory": {
     "nhl": {
       "finalGames": 36,
-      "playerAppearances": 936,
+      "playerAppearances": 935,
       "completeHistoricalSeasons": false
     },
     "dota2": {

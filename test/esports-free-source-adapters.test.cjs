@@ -25,3 +25,26 @@ test("credentials alone do not permit restricted usage or charges",async()=>{
  assert.equal(p.report.requests,0);assert.equal(g.report.requests,0);
  assert.equal(p.report.credentialConfigured,true);assert.equal(g.report.credentialConfigured,true);
 });
+
+test("GRID four-title identities and provider-native maps never imply independent settlement",()=>{
+ const base={id:"series",startTimeScheduled:"2026-11-25T00:00:00Z",teams:[{baseInfo:{id:"a",name:"A"}},{baseInfo:{id:"b",name:"B"}}]};
+ for(const [name,title] of [["CS2","CS2"],["Counter-Strike 2","CS2"],["Dota 2","DOTA2"],["LoL","LOL"],["Valorant","VALORANT"]]){
+  const f=gridSeries({...base,title:{id:"1",nameShortened:name}});assert.equal(f.title,title);assert.deepEqual(f.teamNames,["A","B"]);
+ }
+ assert.equal(gridSeries({...base,title:{nameShortened:"COD"}}),null);
+ const f=gridSeries({...base,title:{nameShortened:"CS2"}}),teams=[{id:"a",won:true},{id:"b",won:false}];
+ const game={id:"g1",sequenceNumber:1,started:true,finished:true,teams:teams.map((t,i)=>({...t,players:Array.from({length:5},(_,j)=>({id:String(i*5+j),name:"player"+(i*5+j),kills:2,deaths:1}))}))};
+ const series={id:"series",valid:true,started:true,finished:true,teams,games:[game]};
+ const g=gridState(series,f).games[0];
+ assert.equal(g.providerMapOrdinal,1);assert.equal(g.providerReportedGameFinal,true);assert.equal(g.providerWinnerTeamId,"a");assert.equal(g.players[0].providerPlayerName,"player0");
+ assert.equal(g.mapOrdinal,null);assert.equal(g.individualGameFinalVerified,false);assert.equal(gridState(series,f).originalOfferMatched,false);
+ assert.equal(gridState({...series,games:[{...game,finished:false}]},f).games[0].providerReportedGameFinal,false);
+ assert.throws(()=>gridState({...series,valid:false},f));
+ assert.throws(()=>gridState({...series,games:[game,{...game,id:"g2"}]},f));
+ assert.throws(()=>gridState({...series,games:[{...game,sequenceNumber:2}]},f));
+ assert.throws(()=>gridState({...series,games:[game,{...game,sequenceNumber:2}]},f));
+});
+test("GRID permission alone still preserves zero-charge gate",async()=>{
+ const g=await collectGrid({GRID_API_KEY:"test",GRID_BETTING_DATA_AUTHORIZED:"1"},()=>{throw Error("must not call");});
+ assert.equal(g.report.requests,0);assert.equal(g.report.authorizedNoCharge,false);
+});

@@ -1,0 +1,24 @@
+name: Esports authorized final evidence daily audit
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '50 16 * * *'
+permissions:
+  contents: read
+jobs:
+  audit:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - run: python3 scripts/esports_authorized_final_archive_audit.py archive

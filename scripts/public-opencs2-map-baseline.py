@@ -7,7 +7,8 @@ ROOT=pathlib.Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location("free",ROOT/"scripts/public-eight-free-history.py")
 free=importlib.util.module_from_spec(spec);spec.loader.exec_module(free)
 REPO="blanchon/opencs2_dataset_demo"
-REV="912a363098feec3f220e41d68634d2f71676c28b"
+REV=os.environ.get("CS2_DEMO_METADATA_REV","912a363098feec3f220e41d68634d2f71676c28b")
+if not re.fullmatch(r"[0-9a-f]{40}",REV):raise ValueError("pinned demo revision required")
 METRICS=("kills","deaths","assists","headshots")
 def counts(p):
     vals=tuple(p.get(k) for k in METRICS)
@@ -73,7 +74,7 @@ def map_rows(m,reason=None,verified_regulation=False):
         values=player_total(by[pid],n)
         if values is None:return reject("player_total_conflict_or_missing")
         i,person,team=identities[pid]
-        batch.append({"event":str(mid)+"|"+str(mp),"player":pid,"date":day,"map":m.get("map_name") or x.get("map_name") or x.get("map"),"sourceTeamSlot":i,"sourceAlias":person.get("name") if isinstance(person.get("name"),str) else None,"sourceTeamLabel":team.get("name") if isinstance(team.get("name"),str) else None,"rounds":n,"regulationScorePair":sorted(regulation_team_score(m)) if verified_regulation else None,**dict(zip(METRICS,values))})
+        batch.append({"event":str(mid)+"|"+str(mp),"player":pid,"date":day,"map":m.get("map_name") or x.get("map_name") or x.get("map"),"sourceTeamSlot":i,"sourceAlias":person.get("name") if isinstance(person.get("name"),str) else None,"sourceTeamLabel":team.get("name") if isinstance(team.get("name"),str) else None,"rounds":n,"regulationScorePair":sorted(regulation_team_score(m)) if verified_regulation else None,"teamScore":regulation_team_score(m)[int(str(team.get("side_start")).lower()=="t")] if verified_regulation and str(team.get("side_start")).lower() in ("ct","t") and {str(t.get("side_start")).lower() for t in teams}=={"ct","t"} else None,**dict(zip(METRICS,values))})
     return batch
 def evaluate(rows):
     # chronological prior-date-only holdout; all maps on a day withheld together
@@ -136,6 +137,9 @@ def main():
     if os.environ.get("CS2_INDEPENDENT_IDENTITY_AUDIT")=="1":
         from cs2_independent_steam_audit import run
         run(strict)
+    if os.environ.get("CS2_STATIC_HLTV_RESEARCH")=="1":
+        from cs2_static_hltv_research import run as static_run
+        static_run(strict)
     from cs2_headshot_history import evaluate as hs_eval
     print(json.dumps({"kind":"cs2_native_headshot_research_v1","original":hs_eval(rows),"regulation":hs_eval(strict),"cohortsKeptSeparate":True,"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}),flush=True)
     recovered=sum(k not in maps and all_ids[k]==1 for k in verified_maps)

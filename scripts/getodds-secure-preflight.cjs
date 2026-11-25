@@ -43,6 +43,39 @@ function summarize(source,doc,now=Date.now()){
  }
  return {status:"bounded_sample",...stats};
 }
+// Metadata-only MCP negotiation, no tools/call. Do not expose session IDs,
+// tool descriptions, or server responses in the public workflow log.
+async function mcpMetadata(key,fetcher){
+ let session=null,version="2025-03-26",requests=0;
+ async function rpc(message){
+  requests++;
+  const headers={Authorization:"Bearer "+key,Accept:"application/json, text/event-stream","Content-Type":"application/json","MCP-Protocol-Version":version};
+  if(session)headers["Mcp-Session-Id"]=session;
+  const r=await fetcher(ROOT+"/api/mcp",{method:"POST",headers,body:JSON.stringify({jsonrpc:"2.0",...message}),redirect:"error",signal:AbortSignal.timeout(18000)});
+  if(!r.ok){await r.body?.cancel();return {status:r.status};}
+  const sid=r.headers.get("mcp-session-id");if(sid&&sid.length<=512)session=sid;
+  if(!r.body)return {status:r.status};
+  const reader=r.body.getReader();let bytes=0;const chunks=[];
+  try{for(;;){const {done,value}=await reader.read();if(done)break;bytes+=value.length;if(bytes>250000){await reader.cancel();throw Error("metadata bound");}chunks.push(Buffer.from(value));}}finally{reader.releaseLock();}
+  const raw=Buffer.concat(chunks).toString("utf8");
+  let body;try{body=JSON.parse(raw);}catch{
+   for(const l of raw.split(/\r?\n/)){if(!l.startsWith("data:"))continue;try{const j=JSON.parse(l.slice(5));if(j.id===message.id){body=j;break;}}catch{}}
+  }
+  return {status:r.status,result:body?.result,error:!!body?.error};
+ }
+ try{
+  const init=await rpc({id:1,method:"initialize",params:{protocolVersion:version,capabilities:{},clientInfo:{name:"bounded-account-audit",version:"1.0"}}});
+  if(!init.result)return {requests,httpStatus:init.status,status:"initialize_unavailable"};
+  if(["2024-11-05","2025-03-26","2025-06-18","2025-11-25"].includes(init.result.protocolVersion))version=init.result.protocolVersion;
+  const notice=await rpc({method:"notifications/initialized"});
+  if(notice.status>=400)return {requests,httpStatus:notice.status,status:"initialization_notice_failed"};
+  const list=await rpc({id:2,method:"tools/list",params:{}});
+  const tools=list.result?.tools;
+  if(!Array.isArray(tools)||tools.length>200)return {requests,httpStatus:list.status,status:"tool_list_unavailable"};
+  const hints={};for(const s of SOURCES)hints[s]=tools.filter(t=>typeof t?.name==="string"&&t.name.toLowerCase().includes(s)).length;
+  return {requests,httpStatus:list.status,status:"metadata_received",toolCount:tools.length,sourceNamedToolCounts:hints,sourceGrantsIndependentlyProven:false,hasMore:!!list.result.nextCursor};
+ }catch{return {requests,status:"metadata_request_failed"};}
+}
 async function run(env=process.env,fetcher=fetch){
  const key=env.GETODDS_API_KEY||env.GETODDS_API;
  const report={kind:"getodds_secure_account_preflight_v1",observedAt:new Date().toISOString(),credentialConfigured:!!key,metadataRequests:0,dataRequests:0,paidRequestsAuthorized:false,originalOperatorVerified:false,rawRowsPublished:0,sources:{}};
@@ -51,6 +84,7 @@ async function run(env=process.env,fetcher=fetch){
  try{report.metadataRequests++;meta=await bounded("/v4/sports",key,fetcher);report.metadata={httpStatus:meta.status,quota:meta.quota};}catch{report.status="metadata_request_failed";return report;}
  if(meta.status!==200){report.status=meta.status===401?"invalid_or_revoked_key":"metadata_unavailable";return report;}
  report.status="metadata_response_received";
+ report.mcp=await mcpMetadata(key,fetcher);report.metadataRequests+=report.mcp.requests;
  const sports=Array.isArray(meta.body)?meta.body:Array.isArray(meta.body?.data)?meta.body.data:[];
  const known=["basketball_nba","americanfootball_nfl","icehockey_nhl","esports_cs2","esports_dota2","esports_lol","esports_valorant","esports_cod"];
  report.generalSports=sports.map(x=>x?.key).filter(x=>known.includes(x));
@@ -69,4 +103,4 @@ async function run(env=process.env,fetcher=fetch){
  report.status="bounded_probe_completed";return report;
 }
 if(require.main===module)run().then(x=>console.log(JSON.stringify(x))).catch(()=>{console.log(JSON.stringify({kind:"getodds_secure_account_preflight_v1",status:"unexpected_failure"}));process.exitCode=1;});
-module.exports={quota,freeBudget,summarize,run};
+module.exports={quota,freeBudget,summarize,run,mcpMetadata};

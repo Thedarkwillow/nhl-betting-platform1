@@ -15,6 +15,7 @@ const scheduledResearchPilot=env=>env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFI
 function plan(env,now=new Date()){
  if(env.PICKFINDER_AUTOMATION_AUTHORIZED!=='1')throw Error('authorization_required');
  if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='probe_now')return {probe:true};
+ if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='cs2_reconcile_now'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')return {allowed:true,reconcile:true,full:true,targeted:true,expected:'manual',clock:pacific(now)};
  if(['workflow_dispatch','push'].includes(env.GITHUB_EVENT_NAME)&&env.REQUESTED_MODE==='deep_research_now'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')return {allowed:true,reconcile:true,deep:true,expected:'manual',clock:pacific(now)};
  if((env.GITHUB_EVENT_NAME==='workflow_dispatch'||env.GITHUB_EVENT_NAME==='push'&&env.PICKFINDER_PRIOR_AUTH_PROOF==='1')&&['reconcile_now','full_reconcile_now'].includes(env.REQUESTED_MODE))return {allowed:true,reconcile:true,full:env.REQUESTED_MODE==='full_reconcile_now',expected:'manual',clock:pacific(now)};
  if(env.GITHUB_EVENT_NAME==='schedule'&&env.PICKFINDER_SCHEDULE_ENABLED!=='1'&&!scheduledResearchPilot(env))return {allowed:false,state:'schedule_disabled'};
@@ -152,7 +153,7 @@ async function main(env=process.env){
  // Adjacent NBA books reduce clock separation without asserting simultaneous capture.
  const nbaPair=BOOKS.map(book=>({book,code:'NBA'}));
  const other=preferredTargets.filter(p=>p.code!=='NBA');
- const targets=[...nbaPair,...(p.reconcile?[...['NFL','NHL'].map(code=>({book:'prizepicks',code})),...other.filter(p=>p.book!=='prizepicks'||!['NFL','NHL'].includes(p.code))]:other)];
+ const targets=p.targeted?BOOKS.map(book=>({book,code:'CS2'})):[...nbaPair,...(p.reconcile?[...['NFL','NHL'].map(code=>({book:'prizepicks',code})),...other.filter(p=>p.book!=='prizepicks'||!['NFL','NHL'].includes(p.code))]:other)];
  console.log(JSON.stringify({state:'competition_discovery',sports:Object.fromEntries(Object.keys(registry).map(code=>[code,{source:evidence[code]?.source,status:evidence[code]?.status,upcoming:evidence[code]?.upcoming}])),paidEndpointsCalled:0}));
  const attempt=crypto.randomUUID();
  const counts=[],batches=[],normalized=[];let failed=false;
@@ -161,7 +162,7 @@ async function main(env=process.env){
  try{
   const detail=await context.newPage();detail.setDefaultTimeout(5000);
   // Probe optional league controls only after verified authentication. Missing optional sports are not proof of an offseason.
-  for(const code of optionalCodes){const b=page.getByRole('button',{name:code,exact:true});if(await b.count()===1&&await b.isVisible())targets.push(...BOOKS.map(book=>({code,book})));else console.log(JSON.stringify({state:'optional_board_not_exposed',code,competition:'unknown'}));}
+  for(const code of p.targeted?[]:optionalCodes){const b=page.getByRole('button',{name:code,exact:true});if(await b.count()===1&&await b.isVisible())targets.push(...BOOKS.map(book=>({code,book})));else console.log(JSON.stringify({state:'optional_board_not_exposed',code,competition:'unknown'}));}
   for(const {book,code} of targets){
    if(!remaining()){failed=true;break;}
    try{
@@ -174,10 +175,10 @@ async function main(env=process.env){
     const summary=await stage('partition_archive_validation',()=>archive(batch,root,attempt));
     batches.push(batch);normalized.push(normalize(batch));
     const health=classify({boardState:batch.boardState,offers:summary.health.distinctOfferKeys,pages:summary.health.pages,authenticated:batch.authenticated===true,explicitEmpty:batch.explicitEmpty===true,disabledConfirmed:batch.disabledConfirmed===true,failure:batch.failure,schedule:evidence[code]});
-    counts.push({book,code,seasonStatus:health.state,competition:health.competition,boardState:summary.boardState,withinSlot:summary.withinSlot,offers:summary.health.distinctOfferKeys,unresolved:summary.health.unresolvedRows,unresolvedEvidence:summary.health.unresolvedEvidence,pages:summary.health.pages,traversal:summary.pageTraversalComplete});
+    counts.push({book,code,seasonStatus:health.state,competition:health.competition,boardState:summary.boardState,withinSlot:summary.withinSlot,offers:summary.health.distinctOfferKeys,unresolved:summary.health.unresolvedRows,unresolvedEvidence:summary.health.unresolvedEvidence,pages:summary.health.pages,traversal:summary.pageTraversalComplete,failure:batch.failure||null});
     if(batch.failure==='session_expired'){failed=true;break;}
     if(!p.reconcile&&(!summary.withinSlot||!health.healthy||summary.health.unresolvedRows||summary.health.priceConflictKeys||summary.health.repeatOrUnresolvedLinks))failed=true;
-    if(p.reconcile&&summary.boardState==='partial'&&!summary.health.pages)failed=true;
+    if(p.reconcile&&summary.boardState==='partial')failed=true;
    }catch(e){counts.push({book,code,state:'partition_failed',stage:e instanceof RunnerStageError?e.stage:'unclassified'});failed=true;}
    console.log(JSON.stringify({state:'partition_status',...counts.at(-1)}));
   }
@@ -195,7 +196,7 @@ async function main(env=process.env){
     try{git(root,['rebase','FETCH_HEAD']);}catch(e){try{git(root,['rebase','--abort']);}catch{}throw e;}
     const revision=git(root,['rev-parse','HEAD']);
     if(!safeAddedFiles(git(root,['diff-tree','--no-commit-id','--name-status','-r',revision]),prefix))throw Error('rebased commit not append-only');
-    try{git(root,['push','origin','HEAD:refs/heads/main']);return revision;}catch(e){if(attempt===2)throw e;await new Promise(resolve=>setTimeout(resolve,2000*(attempt+1)));}
+    try{git(root,['push','origin','HEAD:refs/heads/main']);return revision;}catch(e){const detail=String(e?.stderr||'');const category=/non-fast-forward|fetch first|failed to push some refs/i.test(detail)?'remote_rejected_or_advanced':/authentication failed|permission denied|403/i.test(detail)?'permission_or_authentication':/large files|exceeds.*limit|GH001/i.test(detail)?'file_size_rejected':'other_git_failure';console.log(JSON.stringify({state:'private_archive_push_retry',attempt:attempt+1,category,rawDataLogged:false}));if(attempt===2)throw e;await new Promise(resolve=>setTimeout(resolve,2000*(attempt+1)));}
    }
    throw Error('archive push retry exhausted');
   });

@@ -1,0 +1,88 @@
+name: Esports nine priority and prop source evidence
+on:
+  pull_request:
+    paths: ['.github/workflows/esports-nine-prop-evidence.yml','scripts/dota_series_model_research.py','scripts/lol_strength_patch_research.py','scripts/valorant_pregame_agent_research.py','scripts/cod_pooled_mode_research.py','scripts/esports-kashrock-free-sample.cjs','scripts/cs2_round_table_preflight.py']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/esports-nine-prop-evidence.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m py_compile scripts/dota_series_model_research.py scripts/lol_strength_patch_research.py scripts/valorant_pregame_agent_research.py scripts/cod_pooled_mode_research.py scripts/cs2_round_table_preflight.py
+      - run: python3 -m unittest discover -s test -p test_lol_specialist_research.py
+      - run: node --check scripts/esports-kashrock-free-sample.cjs && node --test test/esports-zero-credit-coverage.test.cjs test/esports-authenticated-export.test.cjs test/esports-prospective-archive.test.cjs
+  props:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Read authenticated free metadata only
+        env:
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+          UNDERDOG_API_KEY: ${{ secrets.UNDERDOG_API_KEY }}
+        run: node scripts/esports-zero-credit-coverage.cjs
+      - run: node scripts/esports-kashrock-free-sample.cjs
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          path: archive
+          fetch-depth: 0
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          persist-credentials: false
+      - run: node scripts/esports-prospective-archive.cjs archive audit
+  dota-cod:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install scipy==1.15.3
+      - run: python scripts/dota_series_model_research.py
+      - run: python scripts/cod_pooled_mode_research.py
+  lol-valorant:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install duckdb==1.2.2
+      - run: python scripts/lol_strength_patch_research.py
+      - run: python scripts/valorant_pregame_agent_research.py
+  cs2:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyarrow==19.0.1
+      - run: python scripts/cs2_round_table_preflight.py

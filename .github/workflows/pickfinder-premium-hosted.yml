@@ -68,38 +68,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh api repos/Thedarkwillow/nhl-betting-platform1/actions/runs/45591219482 --jq '[.conclusion,.head_sha,.name] | @tsv' | grep -Fx 
-        if: inputs.mode != 'audit_pilot'
-        env:
-          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
-          GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
-          REQUESTED_MODE: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-reconcile]') && 'reconcile_now' || github.event_name == 'push' && 'probe_now' || inputs.mode }}
-          PICKFINDER_PRIOR_AUTH_PROOF: ${{ steps.prior-auth.outputs.verified }}
-          PICKFINDER_AUTOMATION_AUTHORIZED: ${{ vars.PICKFINDER_AUTOMATION_AUTHORIZED }}
-          PICKFINDER_SCHEDULE_ENABLED: ${{ vars.PICKFINDER_SCHEDULE_ENABLED }}
-          PICKFINDER_HOSTED_AUTH_VERIFIED: ${{ vars.PICKFINDER_HOSTED_AUTH_VERIFIED }}
-          PICKFINDER_HOSTED_CAPTURE_VERIFIED: ${{ vars.PICKFINDER_HOSTED_CAPTURE_VERIFIED }}
-          PICKFINDER_HOSTED: '1'
-          PICKFINDER_EMAIL: ${{ secrets.PICKFINDER_EMAIL }}
-          PICKFINDER_PASSWORD: ${{ secrets.PICKFINDER_PASSWORD }}
-          PICKFINDER_STORAGE_STATE: ${{ secrets.PICKFINDER_STORAGE_STATE }}
-          PICKFINDER_PROFILE_DIR: ${{ runner.temp }}/pickfinder-profile
-          PICKFINDER_PRIVATE_ROOT: ${{ github.workspace }}/private-archive
-          NODE_PATH: ${{ runner.temp }}/pickfinder-deps/node_modules
-        run: |
-          set -euo pipefail
-          node public-source/scripts/pickfinder-unattended-runner.cjs
-      - name: Remove temporary profile
-        if: always()
-        run: rm -rf "$RUNNER_TEMP/pickfinder-profile"
-success\t55407e80b8513377b0b06c75298a7435c0f64bf9\tPickFinder Premium public orchestration'
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform1/actions/runs/45591219482 --jq .conclusion)" = success
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform1/actions/runs/45591219482 --jq .head_sha)" = 55407e80b8513377b0b06c75298a7435c0f64bf9
           echo 'verified=1' >> "$GITHUB_OUTPUT"
       - name: Authorized private research capture (scoped Continue control diagnostics)
         if: inputs.mode != 'audit_pilot'
         env:
           GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
-          REQUESTED_MODE: ${{ github.event_name == 'push' && 'probe_now' || inputs.mode }}
+          REQUESTED_MODE: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[pickfinder-reconcile]') && 'reconcile_now' || github.event_name == 'push' && 'probe_now' || inputs.mode }}
+          PICKFINDER_PRIOR_AUTH_PROOF: ${{ steps.prior-auth.outputs.verified }}
           PICKFINDER_AUTOMATION_AUTHORIZED: ${{ vars.PICKFINDER_AUTOMATION_AUTHORIZED }}
           PICKFINDER_SCHEDULE_ENABLED: ${{ vars.PICKFINDER_SCHEDULE_ENABLED }}
           PICKFINDER_HOSTED_AUTH_VERIFIED: ${{ vars.PICKFINDER_HOSTED_AUTH_VERIFIED }}

@@ -1,0 +1,5 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),{evaluate}=require('../scripts/public-nba-mirror-model-evaluation.cjs');
+const rows=Array.from({length:25},(_,i)=>({gameId:22400001+i,playerId:7,player:'Fixture',gameDate:'2024-11-'+String(i+1).padStart(2,'0'),team:'BOS',opponent:'NYK',home:true,wl:'W',minutes:30,points:20,rebounds:5,assists:4,threePointersMade:2,steals:1,blocks:0,turnovers:2,pointsReboundsAssists:29,pointsRebounds:25,pointsAssists:24,reboundsAssists:9}));
+test('runs the existing NBA chronological evaluator using mirror rows only',()=>{const r=evaluate({kind:'nba_alternate_mirror_model_input_v1',rows});assert.equal(r.inputPlayerGames,25);assert.ok(Object.keys(r.retrospective.groups).length);assert.equal(r.retrospective.actualHistoricalOffers,false);assert.equal(r.modelApproved,false);assert.equal(r.rawRowsPublished,0)});
+test('rejects duplicate and inconsistent statistics',()=>{assert.throws(()=>evaluate({kind:'nba_alternate_mirror_model_input_v1',rows:[rows[0],rows[0]]}));assert.throws(()=>evaluate({kind:'nba_alternate_mirror_model_input_v1',rows:[{...rows[0],pointsReboundsAssists:99}]}))});

@@ -1,10 +1,10 @@
 name: Public NBA alternate history and native identity audit
 on:
   pull_request:
-    paths: ['scripts/public-nba-alternate-history-audit.py','test/test_public_nba_alternate_history_audit.py','.github/workflows/public-nba-alternate-history-audit.yml']
+    paths: ['scripts/public-nba-alternate-history-audit.py','scripts/public-nba-mirror-model-evaluation.cjs','test/public-nba-mirror-model-evaluation.test.cjs','test/test_public_nba_alternate_history_audit.py','.github/workflows/public-nba-alternate-history-audit.yml']
   push:
     branches: [main]
-    paths: ['scripts/public-nba-alternate-history-audit.py','.github/workflows/public-nba-alternate-history-audit.yml']
+    paths: ['scripts/public-nba-alternate-history-audit.py','scripts/public-nba-mirror-model-evaluation.cjs','test/public-nba-mirror-model-evaluation.test.cjs','.github/workflows/public-nba-alternate-history-audit.yml']
   schedule:
     - cron: '50 5,10,17 * * *'
       timezone: America/Los_Angeles
@@ -21,6 +21,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/public-nba-mirror-model-evaluation.test.cjs
       - run: python -m unittest discover -s test -p test_public_nba_alternate_history_audit.py
   audit:
     needs: test
@@ -34,6 +38,9 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

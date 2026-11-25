@@ -1,0 +1,42 @@
+name: NBA public schedule corroboration diagnostic
+on:
+  pull_request:
+    paths: ['scripts/nba-public-schedule-corroboration.cjs','test/nba-public-schedule-corroboration.test.cjs','.github/workflows/nba-public-schedule-corroboration.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/nba-public-schedule-corroboration.cjs','test/nba-public-schedule-corroboration.test.cjs','.github/workflows/nba-public-schedule-corroboration.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/nba-public-schedule-corroboration.test.cjs test/nba-research-pipeline-v1.test.cjs
+  diagnostic:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.NBA_DIRECT_SOURCE_AUTHORIZED == '1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Verify private archive
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: archive
+          persist-credentials: false
+          sparse-checkout: outputs/nba
+      - name: Corroborate dated official game pages against archived provider schedule
+        run: node public/scripts/nba-public-schedule-corroboration.cjs archive

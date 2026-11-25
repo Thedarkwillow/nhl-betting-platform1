@@ -1,6 +1,6 @@
 {
   "kind": "public_nba_alternate_history_audit_v1",
-  "generatedAt": "2026-11-25T15:04:25.364734+00:00",
+  "generatedAt": "2026-11-25T15:10:52.398979+00:00",
   "seasons": {
     "2024": {
       "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/nba_stats_player_game_logs/player_game_logs_2024.parquet",
@@ -2360,10 +2360,13 @@
   },
   "prospectiveBridge": {
     "kind": "nba_mirror_prospective_bridge_v1",
-    "generatedAt": "2026-11-25T15:04:22.612Z",
-    "reviewedCrosswalkRows": 0,
+    "generatedAt": "2026-11-25T15:10:48.477Z",
+    "reviewedCrosswalkRows": 1095,
+    "explicitCrosswalkRows": 0,
+    "reviewedReceiptScopes": 1095,
+    "immutableGameReviewReceipts": 1,
     "newForecastRows": 0,
-    "reason": "no_independently_reviewed_crosswalk",
+    "reason": "no_fresh_eligible_offers",
     "forecastDigest": null,
     "earliestGameStartAt": null,
     "rawHistoryRowsPublished": 0,

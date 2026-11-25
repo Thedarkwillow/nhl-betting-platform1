@@ -68,7 +68,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [nhl, nba, nba-low-count]
+        mode: [nhl, nba, nba-low-count, nba-espn]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

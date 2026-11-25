@@ -1,6 +1,6 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict");
-const {quota,freeBudget,summarize,run}=require("../scripts/getodds-secure-preflight.cjs");
+const {quota,freeBudget,summarize,run,observations,compareCandidates,quotaTransition}=require("../scripts/getodds-secure-preflight.cjs");
 test("quota missing values never imply zero or free allowance",()=>{
  const q=quota(new Headers());assert.equal(q.remaining,null);assert.equal(freeBudget(q,true),false);
  assert.equal(freeBudget({last:0,used:3,remaining:97},false),false);
@@ -16,11 +16,11 @@ test("without confirmed free allowance metadata only",async()=>{
  const urls=[];
  const mock=async(u,o)=>{urls.push(u);assert.equal(o.redirect,"error");if(u.endsWith("/v4/sports"))return new Response("[]",{headers:{"x-requests-used":"0","x-requests-remaining":"100","x-requests-last":"0"}});return new Response("",{status:403});};
  const r=await run({GETODDS_API_KEY:"synthetic"},mock);
- assert.equal(r.dataRequests,0);assert.equal(r.status,"data_probe_blocked_free_allowance_not_proven");assert.equal(urls.length,2);
+ assert.equal(r.dataRequests,0);assert.equal(r.status,"data_probe_blocked_free_allowance_not_proven");assert.equal(urls.length,1);
 });
 test("bounded source requests with explicit confirmed free allowance",async()=>{
  let dataCalls=0;
- const mock=async(u,o)=>{if(u.endsWith("/v4/sports"))return new Response("[]",{headers:{"x-requests-used":"0","x-requests-remaining":"100","x-requests-last":"0"}});if(u.endsWith("/api/mcp"))return new Response("",{status:403});dataCalls++;return new Response(JSON.stringify({data:[],meta:{complete:false}}),{headers:{"x-requests-used":String(dataCalls),"x-requests-remaining":String(100-dataCalls),"x-requests-last":"1"}});};
+ const mock=async(u,o)=>{if(u.endsWith("/v4/sports"))return new Response("[]",{headers:{"x-requests-used":String(dataCalls),"x-requests-remaining":String(100-dataCalls),"x-requests-last":"0"}});dataCalls++;return new Response(JSON.stringify({data:[],meta:{complete:false}}),{headers:{"x-requests-used":String(dataCalls),"x-requests-remaining":String(100-dataCalls),"x-requests-last":"1"}});};
  const r=await run({GETODDS_API_KEY:"synthetic",GETODDS_FREE_PLAN_CONFIRMED:"1"},mock);
  assert.equal(r.dataRequests,2);assert.equal(r.sources.prizepicks.httpStatus,200);assert.equal(r.sources.underdog.sample.rows,0);
 });
@@ -34,8 +34,26 @@ test("existing GETODDSAPI alias authenticates without printing the key",async()=
 test("stop after first sample if the returned charge or daily allowance changes",async()=>{
  for(const q of [{"x-requests-used":"2","x-requests-remaining":"98","x-requests-last":"2"},{"x-requests-used":"1","x-requests-remaining":"999","x-requests-last":"1"}]){
   let calls=0;
-  const mock=async(u)=>{if(u.endsWith("/v4/sports"))return new Response("[]",{headers:{"x-requests-used":"0","x-requests-remaining":"100","x-requests-last":"0"}});if(u.endsWith("/api/mcp"))return new Response("",{status:403});calls++;return new Response(JSON.stringify({data:[]}),{headers:q});};
+  const mock=async(u)=>{if(u.endsWith("/v4/sports"))return new Response("[]",{headers:{"x-requests-used":String(calls?2:0),"x-requests-remaining":String(calls?(q["x-requests-remaining"]==="999"?999:98):100),"x-requests-last":"0"}});calls++;return new Response(JSON.stringify({data:[]}),{headers:q});};
   const result=await run({GETODDSAPI:"synthetic",GETODDS_FREE_PLAN_CONFIRMED:"1"},mock);
   assert.equal(calls,1);assert.equal(result.stoppedAfterSource,"prizepicks");
  }
+});
+
+test("missing market headers trigger a refreshed quota check, not a second unguarded request",async()=>{
+ let calls=0,metadata=0;const archive=[];
+ const mock=async u=>{
+  if(u.endsWith("/v4/sports")){metadata++;return new Response("[]",{headers:{"x-requests-used":String(calls),"x-requests-remaining":String(100-calls),"x-requests-last":"0"}});}
+  const source=calls++===0?"prizepicks":"underdog";
+  return new Response(JSON.stringify({data:[{source,id:source==="prizepicks"?"pp_123":"ud_456",line:15.5,league:"NBA",player:{id:"7",name:"Example Player"},market:{stat:"Points",period:"Full game"},observed_at:"2026-11-25T00:00:00Z"}],meta:{complete:false}}));
+ };
+ const r=await run({GETODDSAPI:"synthetic",GETODDS_FREE_PLAN_CONFIRMED:"1"},mock,archive,{kind:"restricted_kashrock_hltv_identity_and_projection_candidate_review_v1",projectionCandidates:[{projectionIdCandidate:"123",line:15.5}]});
+ assert.equal(calls,2);assert.equal(metadata,3);assert.equal(archive.length,2);assert.equal(r.sources.underdog.quotaRefreshVerified,true);
+ assert.equal(r.crossSourceCandidateAudit.exactCandidateIdMatches,1);assert.equal(r.crossSourceCandidateAudit.fullyVerifiedOriginalOffers,0);
+ assert.equal(JSON.stringify(r).includes("Example Player"),false);
+});
+test("quota refresh rejects reset, missing values, or unexplained charges",()=>{
+ const before={used:10,remaining:90,last:0};
+ assert.equal(quotaTransition(before,{used:11,remaining:89,last:0}),true);
+ for(const after of [{used:0,remaining:100,last:0},{used:12,remaining:88,last:0},{used:null,remaining:null,last:0}])assert.equal(quotaTransition(before,after),false);
 });

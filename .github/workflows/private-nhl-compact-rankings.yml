@@ -1,9 +1,11 @@
 name: Private NHL compact ranking export and validation
 on:
+  pull_request:
+    paths: ['scripts/export-private-nhl-compact.cjs','test/nhl-compact-private-export.test.cjs','.github/workflows/private-nhl-compact-rankings.yml']
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['.github/workflows/private-nhl-compact-rankings.yml']
+    paths: ['.github/workflows/private-nhl-compact-rankings.yml','scripts/export-private-nhl-compact.cjs']
   workflow_run:
     workflows:
       - 'Private pregame NHL freeze on public free runner'
@@ -20,11 +22,26 @@ concurrency:
   group: private-nhl-compact-ranking-export
   cancel-in-progress: false
 jobs:
+  test-public:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check scripts/export-private-nhl-compact.cjs && node --test test/nhl-compact-private-export.test.cjs
   export-private:
-    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    needs: test-public
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'))
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
       - uses: actions/checkout@v4
         with:
           repository: Thedarkwillow/nhl-betting-platform
@@ -35,33 +52,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Test exact reviewed development revision without exposing private logs
-        working-directory: private
-        shell: bash
-        run: |
-          set -euo pipefail
-          umask 077
-          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          # Only owner-authored pinned revision; no external PR code or inputs.
-          # Once merged, main is the source of truth; no fallback if its tests fail.
-          if test ! -f scripts/export-private-nhl-compact.cjs; then
-            pin=c105230dec19b443982a52fe760771d7db0e9295
-            git fetch -q origin "$pin"
-            git show "$pin:scripts/export-private-nhl-compact.cjs" > scripts/export-private-nhl-compact.cjs
-            git show "$pin:test/nhl-compact-private-export.test.cjs" > test/nhl-compact-private-export.test.cjs
-          fi
-          if ! node --check scripts/export-private-nhl-compact.cjs >"$log" 2>&1 || ! node --test test/nhl-compact-private-export.test.cjs >"$log" 2>&1; then
-            echo '::error::Private compact export test failed; no output published.'
-            exit 1
-          fi
-          echo 'PASS: private compact ranking tests.'
       - name: Derive current compact tier files from Git-backed originals, no provider calls
         working-directory: private
         shell: bash
         run: |
           set -euo pipefail
           umask 077
-          node scripts/export-private-nhl-compact.cjs
+          export RESEARCH_ARCHIVE_ROOT="$GITHUB_WORKSPACE/private"
+          node "$GITHUB_WORKSPACE/public/scripts/export-private-nhl-compact.cjs"
           dir=outputs/research/compact-nhl
           for name in standard goblin demon status; do
             test -s "$dir/latest-$name.json"
@@ -73,9 +71,9 @@ jobs:
           git add -f "$dir/latest-standard.json" "$dir/latest-goblin.json" "$dir/latest-demon.json" "$dir/latest-status.json"
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'data: private compact NHL tier research and calibration status' >/dev/null
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4 5; do
             git fetch -q origin main
-            git -c rebase.autoStash=true rebase -q origin/main || { git rebase --abort; exit 1; }
+            if ! git rebase -q origin/main; then git rebase --abort; echo 'Concurrent derivative archive conflict; retrying from latest originals.'; git reset --hard -q origin/main; node "$GITHUB_WORKSPACE/public/scripts/export-private-nhl-compact.cjs"; git add -f "$dir/latest-standard.json" "$dir/latest-goblin.json" "$dir/latest-demon.json" "$dir/latest-status.json"; git diff --cached --quiet && exit 0; git commit -qm 'data: refreshed private compact derivatives'; fi
             if git push -q origin HEAD:main; then
               echo 'PASS: bounded private derivative files archived.'
               exit 0

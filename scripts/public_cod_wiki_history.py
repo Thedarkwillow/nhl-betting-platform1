@@ -29,7 +29,7 @@ def parse(rows):
     for a in groups.values():
         teams=Counter(r["team"] for r in a)
         if len(a)!=8 or len({r["player"] for r in a})!=8 or sorted(teams.values())!=[4,4] or len({(r["date"],r["edition"],r["mode"]) for r in a})!=1:continue
-        if any(r["opponent"] not in teams or r["win"] not in ("0","1") for r in a) or len({r["team"] for r in a if r["win"]=="1"})!=1 or sum(r["win"]=="1" for r in a)!=4:continue
+        if any(r["opponent"] not in teams or r["opponent"]==r["team"] or r["win"] not in ("0","1") for r in a) or len({r["team"] for r in a if r["win"]=="1"})!=1 or sum(r["win"]=="1" for r in a)!=4:continue
         clean.extend(a)
     return clean,excluded,len(groups)
 def main():
@@ -39,9 +39,9 @@ def main():
     start=year+"-01-01";end="2026-01-01" if year=="2025" else "2026-11-25"
     if len(sys.argv)>2:
         month=sys.argv[2]
-        if month not in ("03","06","09"):raise ValueError("invalid bounded window")
+        if month not in tuple(f"{i:02d}" for i in range(1,13)):raise ValueError("invalid bounded window")
         start=year+"-"+month+"-01"
-        end=min(end,year+f"-{int(month)+1:02d}-01")
+        end=min(end,f"{int(year)+1}-01-01" if month=="12" else year+f"-{int(month)+1:02d}-01")
     fields="Date,SeriesId,GameNumber,PlayerLink,Team,TeamVs,GameTitle,Gamemode,Win,Kills,Deaths,TournamentPage,UniqueLine"
     try:
         # Bounded contiguous chronological sample; not a full modern archive.
@@ -57,5 +57,5 @@ def main():
             if len(page)<500:status="source_exhausted";break
     except Exception as e:status="source_unavailable_or_partial_"+("http_"+str(e.code) if isinstance(e,urllib.error.HTTPError) else type(e).__name__)
     clean,excluded,groups=parse(rows)
-    print(json.dumps({"kind":"modern_cod_wiki_baseline_v1","source":"Call of Duty Esports Wiki, CC BY-SA 3.0; https://cod-esports.fandom.com/wiki/Stats_Hub","status":status,"year":year,"windowStart":start,"windowEndExclusive":end,"pages":pages,"rawRowsRead":len(rows),"completeMaps":len(clean)//8,"invalidRows":excluded,"candidateMaps":groups,"context":evaluate(clean,("kills","deaths"),["mode","team","opponent"],["edition"]),"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
+    print(json.dumps({"kind":"modern_cod_wiki_baseline_v1","source":"Call of Duty Esports Wiki, CC BY-SA 3.0; https://cod-esports.fandom.com/wiki/Stats_Hub","status":status,"year":year,"windowStart":start,"windowEndExclusive":end,"pages":pages,"rawRowsRead":len(rows),"completeMaps":len(clean)//8,"invalidRows":excluded,"candidateMaps":groups,"modeCounts":dict(Counter(r["mode"] for r in clean)),"context":evaluate(clean,("kills","deaths"),["mode","team","opponent"],["edition"]),"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
 if __name__=="__main__":main()

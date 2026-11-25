@@ -5,7 +5,7 @@ const fs=require("node:fs"),path=require("node:path"),{execFileSync}=require("no
 const {assessNhlOpponentOpportunity}=require("../src/nhl-opponent-opportunity-gate-v1.cjs");
 const {assess:assessMultifactor}=require("../src/nhl-multifactor-position-matchup-v1.cjs");
 const {beforeFreeze}=require("../src/archived-prop-market-benchmark.cjs");
-const ROOT=path.resolve(__dirname,".."),DIR="outputs/research/snapshots",OUT="outputs/research/compact-nhl";
+const ROOT=process.env.RESEARCH_ARCHIVE_ROOT?fs.realpathSync(process.env.RESEARCH_ARCHIVE_ROOT):path.resolve(__dirname,".."),DIR="outputs/research/snapshots",OUT="outputs/research/compact-nhl";
 const TIERS=["Standard","Goblin","Demon"],dt=x=>typeof x==="string"?Date.parse(x):NaN;
 const key=p=>JSON.stringify([p.gameId,p.playerId,p.market,p.line,p.tier]);
 const round=x=>Number.isFinite(x)?Number(x.toFixed(4)):null;
@@ -108,9 +108,18 @@ function loadEvidence(git,asOf){
   });
  return {opponentAttemptArchives,oddsArchives};
 }
+function encodeBounded(doc,limit=24000){
+ const copy={...doc};if(Array.isArray(doc.rows))copy.rows=[...doc.rows];
+ let data=JSON.stringify(copy)+"\n";
+ while(Buffer.byteLength(data)>limit&&copy.rows?.length){copy.rows.pop();copy.byteLimitTruncated=true;data=JSON.stringify(copy)+"\n";}
+ if(Buffer.byteLength(data)>limit)throw Error("compact_size");
+ return data;
+}
 function main(){
+ let stage="snapshot_scan";
+ try{
  const now=new Date().toISOString(),git=args=>execFileSync("git",args,{cwd:ROOT,encoding:"utf8",timeout:30000,maxBuffer:128*1024*1024}).trim();
- const candidates=fs.readdirSync(path.join(ROOT,DIR)).filter(n=>/^\d{8}T\d{6}Z\.json$/.test(n)).sort().reverse();
+ const candidates=fs.existsSync(path.join(ROOT,DIR))?fs.readdirSync(path.join(ROOT,DIR)).filter(n=>/^\d{8}T\d{6,9}Z\.json$/.test(n)).sort((a,b)=>b.replace("Z","").padEnd(20,"0").localeCompare(a.replace("Z","").padEnd(20,"0"))):[];
  let s=null,sourcePath=null,sourceSha=null,firstCommittedAt=null;
  for(const n of candidates.slice(0,20)){
   const rel=DIR+"/"+n,commits=git(["log","--format=%H","--",rel]).split("\n").filter(Boolean);
@@ -120,15 +129,20 @@ function main(){
   s=candidate;sourcePath=rel;sourceSha=sha;firstCommittedAt=git(["show","-s","--format=%cI",sha]);break;
  }
  let validation=null;try{validation=JSON.parse(fs.readFileSync(path.join(ROOT,"outputs/health/nhl-prospective-validation-latest.json"),"utf8"));}catch{}
+ stage="opponent_archive";
  const {opponentAttemptArchives,oddsArchives}=loadEvidence(git,s?.generatedAt);
+ stage="summarize";
  const out=summarize(s,{now,firstCommittedAt,sourcePath,sourceSha,validation,opponentAttemptArchives,oddsArchives});
+ stage="encode";
+ const encoded=Object.entries({...out.snapshots,status:out.health}).map(([k,v])=>[k,encodeBounded(v)]);
+ stage="write";
  fs.mkdirSync(path.join(ROOT,OUT),{recursive:true});
- for(const [k,v] of Object.entries({...out.snapshots,status:out.health})){
-  const data=JSON.stringify(v,null,2)+"\n";if(Buffer.byteLength(data)>24000)throw Error("Compact export exceeded byte limit");
+ for(const [k,data] of encoded){
   const dest=path.join(ROOT,OUT,"latest-"+k.toLowerCase()+".json");
   fs.writeFileSync(dest+".tmp",data,{mode:0o600});fs.renameSync(dest+".tmp",dest);
  }
  console.log(JSON.stringify({kind:out.health.kind,sourceFresh:out.health.sourceFresh,eligibleByTier:out.health.eligibleByTier,calibrated:out.health.calibrated}));
+ }catch(e){console.error(JSON.stringify({kind:"compact_export_failure_v1",stage,errorClass:["TypeError","SyntaxError","RangeError"].includes(e?.name)?e.name:"Error",sizeLimit:e?.message==="compact_size"}));throw Error("compact_export_failed");}
 }
 if(require.main===module)try{main();}catch{console.error("Compact NHL export failed closed");process.exitCode=1;}
-module.exports={summarize,loadEvidence};
+module.exports={summarize,loadEvidence,encodeBounded};

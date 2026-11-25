@@ -1,10 +1,10 @@
 name: Restricted esports crosswalk and history audit
 on:
   pull_request:
-    paths: ['scripts/esports_independent_crosswalk.py','test/test_esports_independent_crosswalk.py','scripts/esports_result_contract.py','test/test_esports_result_contract.py','scripts/public-opencs2-map-baseline.py','.github/workflows/esports-restricted-crosswalk-audit.yml']
+    paths: ['scripts/esports_restricted_final_audit.py','scripts/esports_independent_crosswalk.py','test/test_esports_independent_crosswalk.py','scripts/esports_result_contract.py','test/test_esports_result_contract.py','scripts/public-opencs2-map-baseline.py','.github/workflows/esports-restricted-crosswalk-audit.yml']
   push:
     branches: [main]
-    paths: ['.github/workflows/esports-restricted-crosswalk-audit.yml']
+    paths: ['.github/workflows/esports-restricted-crosswalk-audit.yml','scripts/esports_restricted_final_audit.py']
   workflow_dispatch:
   schedule:
     - cron: '35 15 * * *'

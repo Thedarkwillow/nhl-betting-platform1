@@ -1,0 +1,39 @@
+name: Bounded additional COD history
+on:
+  pull_request:
+    paths: ['scripts/public_cod_wiki_history.py','.github/workflows/guarded-monthly-cod-history.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/guarded-monthly-cod-history.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: bounded-cod-history
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s test -p test_esports_context_models.py
+  research:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Collect two separate bounded months, stop after any refusal
+        run: |
+          set -euo pipefail
+          for month in 06 09; do
+            python3 scripts/public_cod_wiki_history.py 2026 "$month" > "$RUNNER_TEMP/cod.json"
+            cat "$RUNNER_TEMP/cod.json"
+            if ! python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d["status"] in ("bounded_sample","source_exhausted") else 1)' "$RUNNER_TEMP/cod.json"; then break; fi
+            sleep 60
+          done

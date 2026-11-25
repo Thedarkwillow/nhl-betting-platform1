@@ -27,25 +27,33 @@ def vct():
         needed={"match_id","game_id","player_id","kills_all","deaths_all","assists_all"}
         if not needed<=cols["player_map"]:raise ValueError("player-map schema")
         optional=[]
-        for field,names in (("agent",("agent","agent_name")),("team",("team_id",)),("opening_kills",("fk_all","first_kills_all")),("opening_deaths",("fd_all","first_deaths_all"))):
+        for field,names in (("agent",("agents","agent","agent_name")),("team",("team_id",)),("opening_kills",("fk_all","first_kills_all")),("opening_deaths",("fd_all","first_deaths_all"))):
             colname=next((n for n in names if n in cols["player_map"]),None)
             if colname:optional.append((field,colname))
         extra="".join(',pm."'+n+'"' for _,n in optional)
         q=f"""select cast(m."{stamp}" as varchar),cast(pm.match_id as varchar),cast(pm.game_id as varchar),cast(pm.player_id as varchar),
-                    pm.kills_all,pm.deaths_all,pm.assists_all,mp.map_name{extra}
+                    pm.kills_all,pm.deaths_all,pm.assists_all,mp.map_name,m.patch,m.team0_id,m.team1_id,pm.team_idx,mp.score0,mp.score1,mp.duration{extra}
               from player_map pm join matches m using(match_id)
               join maps mp using(match_id,game_id)
               where m.listing_status='Completed' and m.is_showmatch=false
               and pm.kills_all is not null and pm.deaths_all is not null and pm.assists_all is not null
               order by 1,2,3,4"""
         rows=[];maps=defaultdict(list)
-        for dt,mid,gid,pid,k,d,a,mapname,*extras in db.execute(q).fetchall():
+        for dt,mid,gid,pid,k,d,a,mapname,patch,t0,t1,slot,s0,s1,duration,*extras in db.execute(q).fetchall():
             try:
                 day=(datetime.fromtimestamp(float(dt)/(1000 if float(dt)>1e12 else 1),timezone.utc).date().isoformat() if str(dt).replace(".","",1).isdigit() else str(dt)[:10]);datetime.strptime(day,"%Y-%m-%d")
                 if not all(x is not None and float(x).is_integer() and x>=0 for x in (k,d,a)):continue
                 row=dict(event=mid+"|"+gid,player=pid,date=day,map=mapname,kills=int(k),deaths=int(d),assists=int(a))
+                if patch is not None:row["patch"]=str(patch)
+                if slot in (0,1) and t0 is not None and t1 is not None and t0!=t1:
+                    row["team"]=str((t0,t1)[slot]);row["opponent"]=str((t1,t0)[slot])
+                if all(type(x) is int and x>=0 for x in (s0,s1)) and max(s0,s1)>=13 and s0!=s1:row["rounds"]=s0+s1
+                if type(duration) is int and duration>0:row["durationNative"]=duration
                 for (key,_),value in zip(optional,extras):
-                    if key in ("agent","team") and value is not None:row[key]=str(value)
+                    if key=="agent" and value is not None:
+                        if isinstance(value,list) and len(value)==1 and isinstance(value[0],str):row[key]=value[0]
+                        elif isinstance(value,str) and value.strip() and not any(x in value for x in ("[","]",",",";","|")):row[key]=value.strip()
+                    elif key=="team" and value is not None and "team" not in row:row[key]=str(value)
                     elif key in ("opening_kills","opening_deaths") and type(value) is int and value>=0:row[key]=value
                 maps[(mid,gid)].append(row)
             except (TypeError,ValueError):continue
@@ -54,7 +62,8 @@ def vct():
         if not rows:raise ValueError("no complete map rows")
         db.close()
     from esports_context_models import evaluate as context_eval
-    return {"sourceContextFields":[k for k,_ in optional],"context":context_eval(rows,("kills","deaths","assists"),["map","agent","team"]),"title":"VALORANT","source":"VCT Reference; user reports specific research permission; redistribution unverified","sha256":hashlib.sha256(raw).hexdigest(),"completeMaps":len(rows)//10,"baseline":free.baseline(rows),"paidRequests":0}
+    from esports_exposure_research import evaluate as exposure_eval
+    return {"sourceContextFields":[k for k,_ in optional],"context":context_eval(rows,("kills","deaths","assists"),["map","agent","team","opponent","patch"]),"openingContext":context_eval([r for r in rows if "opening_kills" in r and "opening_deaths" in r],("opening_kills","opening_deaths"),["map","agent","team","opponent","patch"]),"roundExposure":exposure_eval(rows,("kills","deaths","assists"),"rounds"),"durationNativeCoverage":sum("durationNative" in r for r in rows),"title":"VALORANT","source":"VCT Reference; user reports specific research permission; redistribution unverified","sha256":hashlib.sha256(raw).hexdigest(),"completeMaps":len(rows)//10,"baseline":free.baseline(rows),"paidRequests":0}
 def dota():
     # The documented Explorer endpoint provides player-match rows in one bounded read.
     sql="""SELECT m.match_id,m.start_time,m.duration,pm.account_id,pm.kills,pm.deaths,pm.assists,pm.hero_id,pm.last_hits
@@ -75,7 +84,8 @@ def dota():
         rows=[r for g in groups.values() if len(g)==10 and len({x["player"] for x in g})==10 for r in g]
         if not rows:raise ValueError("no complete matches")
         from esports_context_models import evaluate as context_eval
-        return {"lastHitRows":sum("last_hits" in r for r in rows),"lastHitContext":context_eval([r for r in rows if "last_hits" in r],("last_hits",),["hero"]),"context":context_eval(rows,("kills","deaths","assists"),["hero"]),"title":"DOTA2","source":"OpenDota Explorer professional league matches","completeMatches":len(rows)//10,"baseline":free.baseline(rows),"seriesMapScopeVerified":False,"freeRequests":1}
+        from esports_exposure_research import evaluate as exposure_eval
+        return {"durationExposure":exposure_eval(rows,("kills","deaths","assists"),"durationSeconds"),"lastHitExposure":exposure_eval(rows,("last_hits",),"durationSeconds"),"lastHitRows":sum("last_hits" in r for r in rows),"lastHitContext":context_eval([r for r in rows if "last_hits" in r],("last_hits",),["hero"]),"context":context_eval(rows,("kills","deaths","assists"),["hero"]),"title":"DOTA2","source":"OpenDota Explorer professional league matches","completeMatches":len(rows)//10,"baseline":free.baseline(rows),"seriesMapScopeVerified":False,"freeRequests":1}
     except Exception as e:
         return {"title":"DOTA2","status":"explorer_unavailable","reason":free.safe_error(e),"fallback":free.dota()}
 def main():

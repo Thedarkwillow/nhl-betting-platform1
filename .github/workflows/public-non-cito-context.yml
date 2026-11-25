@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'scripts/esports_context_models.py'
+      - 'scripts/esports_exposure_research.py'
+      - 'test/test_esports_exposure_research.py'
       - 'scripts/public_cod_wiki_history.py'
       - 'scripts/public-opencs2-map-baseline.py'
       - 'scripts/public-six-esports-history.py'
@@ -11,7 +13,7 @@ on:
       - '.github/workflows/public-non-cito-context.yml'
   push:
     branches: [main]
-    paths: ['.github/workflows/public-non-cito-context.yml','scripts/esports_context_models.py']
+    paths: ['.github/workflows/public-non-cito-context.yml','scripts/esports_context_models.py','scripts/public-six-esports-history.py','scripts/esports_exposure_research.py']
   workflow_dispatch:
 permissions:
   contents: read
@@ -27,6 +29,7 @@ jobs:
         with:
           node-version: '22'
       - run: python3 -m unittest discover -s test -p test_esports_context_models.py
+      - run: python3 -m unittest discover -s test -p test_esports_exposure_research.py
       - run: python3 -m unittest discover -s test -p test_opencs2_map_baseline.py
       - run: python3 -m py_compile scripts/public-six-esports-history.py scripts/public-eight-free-history.py scripts/public-opencs2-map-baseline.py
       - run: node --test test/esports-research-v1.test.cjs test/esports-authenticated-export.test.cjs test/nhl-standard-triple-challenger.test.cjs test/nhl-sog-opportunity-challengers.test.cjs

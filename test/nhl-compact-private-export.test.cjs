@@ -45,3 +45,5 @@ test("compact audit preserves no approval and counts missing evidence without in
  assert.equal(a.incorporatedBenchmark,0);
  assert.equal(a.missingMatchupReasons.market_specific_opponent_opportunity_unverified,1);
 });
+
+test("compact serialization preserves total eligibility and only drops tail rows",()=>{const {encodeBounded}=require("../scripts/export-private-nhl-compact.cjs");const doc={totalEligible:20,rows:Array.from({length:10},(_,i)=>({id:i,text:"a".repeat(500)})),calibrated:false};const a=JSON.parse(encodeBounded(doc,1500));assert.equal(a.totalEligible,20);assert.equal(a.rows[0].id,0);assert.ok(a.rows.length<10);assert.equal(a.byteLimitTruncated,true);assert.equal(doc.rows.length,10);assert.equal(a.calibrated,false);});

@@ -63,6 +63,7 @@ async function persist(root,data){
  const target=path.join(root,prefix);
  fs.mkdirSync(target,{recursive:true,mode:0o700});
  const file=prefix+'/research.json',raw=JSON.stringify(data);
+ if(Buffer.byteLength(raw)>8_000_000)throw Error('profile snapshot exceeds safe file size');
  fs.writeFileSync(path.join(root,file),raw,{flag:'wx',mode:0o600});
  git(root,['add','--',file]);const staged=git(root,['diff','--cached','--name-status']).toString().trim();
  if(staged!=='A\t'+file)throw Error('append-only research required');
@@ -121,13 +122,13 @@ async function run({root,context,page,enrich,collect,limit=Infinity,shouldContin
   if(!shouldContinue())break;
   const row={...item,research:[]};
   try{
-   await enrich(detail,row,{maxFields:2000,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(new URL(detail.url()).origin!=='https://www.pickfinder.app'||!await premium(detail))throw Error('session unavailable');}});
+   await enrich(detail,row,{maxFields:Infinity,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(new URL(detail.url()).origin!=='https://www.pickfinder.app'||!await premium(detail))throw Error('session unavailable');}});
    records.push({...item,status:row.research.length?'sampled':'empty',profileCollection:row.profileCollection,research:row.research});
   }catch{records.push({...item,status:'failed',profileCollection:row.profileCollection,research:row.research});}
   await persist(root,{schema:'pickfinder-deep-v1',seed:SEED,startedAt,finishedAt:new Date().toISOString(),diagnostics:{},dashboardSnapshots:[],records:[records.at(-1)],modelInputsApproved:false,originalOffersVerified:false});
   if(!await premium(detail).catch(()=>false))break;
  }
- const finishedAt=new Date().toISOString(),id=crypto.randomUUID(),prefix=ROOT+'/'+SEED+'/'+id;
+ const finishedAt=new Date().toISOString();
  const data={schema:'pickfinder-deep-v1',seed:SEED,startedAt,finishedAt,diagnostics,dashboardSnapshots:[],records:[],modelInputsApproved:false,originalOffersVerified:false};
  const sha=await persist(root,data);
  const sampled=records.filter(r=>r.status==='sampled').length,complete=records.filter(r=>r.status==='sampled'&&r.profileCollection?.truncated===false).length;

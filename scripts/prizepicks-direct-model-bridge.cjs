@@ -4,7 +4,7 @@
 const nba=require('../src/nba-research-pipeline-v1.cjs');
 const {indexReviews}=require('./pickfinder-reviewed-game-context.cjs');
 const {gameReviewReceipts}=require('./public-nba-mirror-prospective-bridge.cjs');
-const {history}=require('./pickfinder-public-model-validation.cjs');
+const {history,aliases}=require('./pickfinder-public-model-validation.cjs');
 const {load,quotes,scope}=require('./pickfinder-public-evidence-audit.cjs');
 const dt=Date.parse,hash=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 const rev=x=>typeof x==='string'&&/^[a-f0-9]{40}$/.test(x);
@@ -31,7 +31,7 @@ function prepare({historyRows,historyDigests,schedule,receipts,archive,clock,rev
   const matches=schedule.games.filter(x=>x.gameId===gid&&x.status===1&&dt(x.startAt)===dt(g.scheduleStartAt)&&dt(x.startAt)>at+900000&&x.home===g.home&&x.away===g.away);
   if(matches.length!==1)continue;
   const key=JSON.stringify([nba.norm(r.player),team,opp]),a=players.get(key)||[];
-  a.push({id,gid,start:matches[0].startAt,receipt:sources.get(k),name:r.player});players.set(key,a);
+  a.push({id,gid,start:matches[0].startAt,receipt:sources.get(k),name:r.player,eventId:g.eventId,playerPath:r.playerPath});players.set(key,a);
  }
  return {h:nba.indexHistory([{rows:historyRows}]),historyDigests:[...historyDigests],players,schedule,archive,revision,preparedAt:clock};
 }
@@ -57,18 +57,24 @@ function evaluate(rows,context,clock){
    if(!['Higher','Lower'].includes(side)||s?.available!==true||!['standard','goblin','demon'].includes(s.tier)||side==='Lower'&&s.tier!=='standard')continue;
    const k=JSON.stringify([p.id,p.gid,metric,row.line,side,s.tier]);
    if(seen.has(k)){reject('duplicate_direction');continue;}seen.add(k);
-   predictions.push({sport:'NBA',nativePlayerId:p.id,nativeGameId:p.gid,player:row.player,market:metric,line:row.line,side,tier:s.tier,projection:projection.projection,rawConditionalEstimate:side==='Higher'?projection.higher:1-projection.higher,forecastAt:clock,sourceObservedAt:row.observedAt,gameStartAt:p.start,modelRevision:context.revision,identityEvidenceSha256:p.receipt.digest,historyDigests:context.historyDigests,providerOfferId:row.providerOfferId,originalPlatformVerified:false,calibrated:false,expectedValue:null,modelApproved:false,restricted:true});
+   const corroboration=context.archive.latest.filter(b=>b.m.sport==='nba'&&b.m.book==='prizepicks'&&dt(b.first)<=at).flatMap(b=>(b.offers||[]).filter(o=>{let u;try{u=new URL(o.detailId,'https://www.pickfinder.app');}catch{return false;}return u.origin==='https://www.pickfinder.app'&&u.pathname===p.playerPath&&o.eventId===p.eventId&&o.player===p.name&&aliases[o.market]===metric&&!o.period&&!o.mapRange&&!o.gameMode&&o.book==='prizepicks'&&o.line===row.line&&o.side===side&&o.tier===s.tier&&dt(o.startAt)===dt(p.start)&&fresh(o.observedAt,at,300000)&&Math.abs(dt(o.observedAt)-dt(row.observedAt))<=300000;}).map(o=>({o,b})));
+   const q=corroboration.length===1?quotes(corroboration[0].o,corroboration[0].b.sportsbookQuotes||[],clock):[];
+   const marketBenchmark=q.length?q.reduce((sum,x)=>sum+(side==='Higher'?x.higher:1-x.higher),0)/q.length:null;
+   predictions.push({sport:'NBA',nativePlayerId:p.id,nativeGameId:p.gid,player:row.player,market:metric,line:row.line,side,tier:s.tier,projection:projection.projection,rawConditionalEstimate:side==='Higher'?projection.higher:1-projection.higher,forecastAt:clock,sourceObservedAt:row.observedAt,gameStartAt:p.start,modelRevision:context.revision,identityEvidenceSha256:p.receipt.digest,historyDigests:context.historyDigests,providerOfferId:row.providerOfferId,originalPlatformVerified:false,calibrated:false,expectedValue:null,modelApproved:false,restricted:true,pickfinderCorroborated:corroboration.length===1,matchedSportsbooks:q.length,marketBenchmark});
   }
  }
  predictions.sort((a,b)=>a.tier.localeCompare(b.tier)||b.rawConditionalEstimate-a.rawConditionalEstimate);
  return {predictions,excluded};
 }
 function summarize(result){
- const byTier={};for(const p of result.predictions)byTier[p.tier]=(byTier[p.tier]||0)+1;
- return {kind:'restricted_prizepicks_model_bridge_v1',predictedDirections:result.predictions.length,byTier,excluded:result.excluded,rawRowsPublished:0,individualForecastsPublished:0,individualForecastsPersisted:0,modelApproved:false,calibrated:false,originalPlatformVerified:false};
+ const byTier={};let corroborated=0,marketBenchmarked=0;for(const p of result.predictions){byTier[p.tier]=(byTier[p.tier]||0)+1;if(p.pickfinderCorroborated)corroborated++;if(p.matchedSportsbooks>0)marketBenchmarked++;}
+ return {kind:'restricted_prizepicks_model_bridge_v1',predictedDirections:result.predictions.length,byTier,pickfinderCorroboratedDirections:corroborated,marketBenchmarkedDirections:marketBenchmarked,excluded:result.excluded,rawRowsPublished:0,individualForecastsPublished:0,individualForecastsPersisted:0,modelApproved:false,calibrated:false,originalPlatformVerified:false};
 }
-function fromCommitted(root,payload,clock,revision){
+async function fromCommitted(root,payload,clock,revision,{refreshSchedule=false}={}){
  const schedules=history(root,'nba-schedule').filter(x=>dt(x.first)<=dt(clock)&&dt(x.doc.capturedAt)<=dt(x.first)+999).sort((a,b)=>dt(b.doc.capturedAt)-dt(a.doc.capturedAt));
- return prepare({historyRows:payload.rows,historyDigests:payload.digests,schedule:schedules[0]?.doc,receipts:gameReviewReceipts(root,clock),archive:load(root),clock,revision});
+ let schedule=schedules[0]?.doc;
+ if(refreshSchedule&&!fresh(schedule?.capturedAt,dt(clock),3600000)){schedule=await require('./nba-official-preview-schedule.cjs').collect(eastern(clock),clock);clock=new Date().toISOString();}
+ return prepare({historyRows:payload.rows,historyDigests:payload.digests,schedule,receipts:gameReviewReceipts(root,clock),archive:load(root),clock,revision});
 }
 module.exports={prepare,evaluate,summarize,fromCommitted};
+if(require.main===module)(async()=>{const fs=require('node:fs'),{execFileSync}=require('node:child_process');const payload=JSON.parse(fs.readFileSync(0,'utf8'));if(payload.kind!=='nba_mirror_prospective_input_v1')throw Error('context_kind');const root=process.cwd(),clock=new Date().toISOString(),revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();const context=await fromCommitted(root,payload,clock,revision,{refreshSchedule:true});console.log(JSON.stringify({kind:'direct_model_context_preflight_v1',historyRows:context.h.rows.length,reviewedPlayerScopes:context.players.size,scheduleGames:context.schedule.games.length,sourceScheduleAt:context.schedule.capturedAt,paidRequests:0,rawRowsPublished:0,modelApproved:false}));if(!context.players.size)process.exitCode=1;})().catch(()=>{console.error('Direct model context preflight failed closed');process.exitCode=1;});

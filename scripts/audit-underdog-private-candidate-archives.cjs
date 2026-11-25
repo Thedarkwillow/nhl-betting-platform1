@@ -26,5 +26,5 @@ function audit(docs){
  }
  return {kind:"private_underdog_offline_candidate_archive_audit_v1",bySport:report,rejectedArchives:rejected,unknownRejectedRawRowsWereNotArchived:true,countsAreObservationsNotDistinctOffers:true,paidRequests:0,publicRows:0,productionEligible:false};
 }
-if(require.main===module){const dir=path.resolve(__dirname,"../outputs/research/underdog-bounded-candidates");const files=fs.readdirSync(dir).filter(n=>/^\d{8}T\d{9}Z-(NHL|NFL)\.json$/.test(n));const out=audit(files.map(n=>JSON.parse(fs.readFileSync(path.join(dir,n),"utf8"))));if(!out.bySport.NHL.archives||!out.bySport.NFL.archives||out.rejectedArchives)throw Error("Archived evidence incomplete");console.log(JSON.stringify(out));}
+if(require.main===module){const dir=path.resolve(process.env.RESEARCH_ARCHIVE_ROOT||path.resolve(__dirname,".."),"outputs/research/underdog-bounded-candidates");const files=fs.readdirSync(dir).filter(n=>/^\d{8}T\d{9}Z-(NHL|NFL)\.json$/.test(n));const out=audit(files.map(n=>JSON.parse(fs.readFileSync(path.join(dir,n),"utf8"))));if(!out.bySport.NHL.archives||!out.bySport.NFL.archives||out.rejectedArchives)throw Error("Archived evidence incomplete");console.log(JSON.stringify(out));}
 module.exports={audit,conflictingNormalizedPlayerCrosswalk};

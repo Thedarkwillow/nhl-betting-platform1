@@ -1,0 +1,29 @@
+name: Native individual NHL NFL research
+on:
+  pull_request:
+    paths: ['scripts/native-individual-research.cjs','scripts/prizepicks-multisport-model-bridge.cjs','test/native-individual-research.test.cjs','.github/workflows/native-individual-research.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/native-individual-research.cjs','scripts/prizepicks-multisport-model-bridge.cjs']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/native-individual-research.test.cjs
+      - run: node scripts/native-individual-research.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: individual-research
+          path: individual-research/forecasts.json
+          if-no-files-found: error

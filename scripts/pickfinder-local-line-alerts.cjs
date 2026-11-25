@@ -2,8 +2,14 @@
 // Local research-only line comparisons. No notifications, wagers, or external account writes.
 const crypto=require('node:crypto');
 const scopeKeys=['book','sport','player','market','eventId','detailId','tier','side'];
-function exactScope(a,b){return scopeKeys.every(k=>a[k]===b[k]);}
-function validScope(x){return x&&['prizepicks','underdog'].includes(x.book)&&['Higher','Lower'].includes(x.side)&&['standard','goblin','demon'].includes(x.tier)&&scopeKeys.every(k=>typeof x[k]==='string'&&x[k].length>0);}
+function stableDetail(x){
+ try{const u=new URL(x,'https://www.pickfinder.app');if(u.origin!=='https://www.pickfinder.app'||!u.pathname.startsWith('/players/'))return null;
+ const parts=u.searchParams.get('prop')?.split(':');if(!parts||parts.length<3)return null;
+ if(parts.length>=4&&parts[3]!==''&&Number.isFinite(Number(parts[3])))parts[3]='[line]';
+ return JSON.stringify([u.pathname,parts]);}catch{return null;}
+}
+function exactScope(a,b){return scopeKeys.every(k=>k==='detailId'?stableDetail(a[k])!==null&&stableDetail(a[k])===stableDetail(b[k]):a[k]===b[k]);}
+function validScope(x){return x&&['prizepicks','underdog'].includes(x.book)&&['Higher','Lower'].includes(x.side)&&['standard','goblin','demon'].includes(x.tier)&&scopeKeys.every(k=>typeof x[k]==='string'&&x[k].length>0)&&stableDetail(x.detailId)!==null;}
 function evaluateRules(rules,observations,{now=Date.now(),maxAgeMs=3600000}={}){
  if(!Array.isArray(rules)||!Array.isArray(observations)||!Number.isFinite(now)||!Number.isFinite(maxAgeMs)||maxAgeMs<=0)throw Error('invalid alert input');
  const output=[];const ids=new Set();
@@ -29,6 +35,6 @@ function observationsFromBatches(batches){
 }
 module.exports={evaluateRules,observationsFromBatches};
 if(require.main===module){
- try{const fs=require('node:fs');const [root,rulesFile]=process.argv.slice(2);const rules=JSON.parse(fs.readFileSync(rulesFile,'utf8'));const results=evaluateRules(rules,observationsFromBatches(require('./pickfinder-deep-research.cjs').allBatches(root)));const states={};for(const r of results)states[r.state]=(states[r.state]||0)+1;console.log(JSON.stringify({state:'local_line_alert_dry_run',rules:results.length,states,notificationsSent:0,rawRowsPublished:0}));}
+ try{const fs=require('node:fs');const [root,rulesFile]=process.argv.slice(2);const rules=JSON.parse(fs.readFileSync(rulesFile,'utf8'));const results=evaluateRules(rules,rules.some(r=>r.enabled===true)?observationsFromBatches(require('./pickfinder-deep-research.cjs').allBatches(root)):[]);const states={};for(const r of results)states[r.state]=(states[r.state]||0)+1;console.log(JSON.stringify({state:'local_line_alert_dry_run',rules:results.length,states,notificationsSent:0,rawRowsPublished:0}));}
  catch{console.error(JSON.stringify({state:'local_line_alert_dry_run_failed',rawRowsPublished:0}));process.exitCode=1;}
 }

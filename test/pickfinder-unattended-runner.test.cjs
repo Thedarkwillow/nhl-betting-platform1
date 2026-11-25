@@ -199,10 +199,10 @@ test('custom listbox verifies choices and restores original without claiming all
 });
 test('local alerts use exact scope and fresh explicit price; never send notifications',()=>{
  const {evaluateRules}=require('../scripts/pickfinder-local-line-alerts.cjs');
- const scope={book:'prizepicks',sport:'nba',player:'fixture',market:'points',eventId:'event',detailId:'/players/nba/p?prop=x',tier:'standard',side:'Higher'};
+ const scope={book:'prizepicks',sport:'nba',player:'fixture',market:'points',eventId:'event',detailId:'/players/nba/p?prop=a:points:event:10',tier:'standard',side:'Higher'};
  const r={...scope,id:'fixture',enabled:true,condition:'cross_up',target:10};const now=Date.parse('2026-11-25T12:00:00Z');
  const row=(line,observedAt,extra={})=>({...scope,line,observedAt,explicitPrice:true,...extra});
- const a=[row(9,'2026-11-25T11:50:00Z'),row(10,'2026-11-25T11:55:00Z'),row(99,'2026-11-25T11:59:00Z',{book:'underdog'})];
+ const a=[row(9,'2026-11-25T11:50:00Z',{detailId:'/players/nba/p?prop=a:points:event:9'}),row(10,'2026-11-25T11:55:00Z'),row(99,'2026-11-25T11:59:00Z',{book:'underdog'})];
  assert.equal(evaluateRules([r],a,{now})[0].state,'condition_met');assert.equal(evaluateRules([r],a,{now})[0].notificationSent,false);
  assert.equal(evaluateRules([r],a.map(x=>({...x,explicitPrice:false})),{now})[0].state,'no_fresh_evidence');
  assert.equal(evaluateRules([r],[...a,row(11,'2026-11-25T11:55:00Z')],{now})[0].state,'ambiguous_latest');

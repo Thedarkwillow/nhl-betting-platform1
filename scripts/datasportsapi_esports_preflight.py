@@ -106,5 +106,11 @@ def main():
     if not key:
         print(json.dumps({"kind":"datasportsapi_esports_preflight_v1","status":"missing_key","requests":0,"paidEndpointsCalled":0,"rawRowsPublished":0}))
         return
-    print(json.dumps(audit(Client(key),datetime.now(timezone.utc))))
+    from datasportsapi_quota_guard import blocked_until,read_docs
+    now=datetime.now(timezone.utc)
+    blocked=blocked_until(read_docs(os.environ.get("DATASPORTS_PREVIOUS_ARCHIVE")),now)
+    if blocked:
+        print(json.dumps({"kind":"datasportsapi_esports_preflight_v1","status":"quota_cooldown","blockedUntil":blocked.isoformat(),"requests":0,"rawRowsPublished":0,"paidEndpointsCalled":0}))
+        return
+    print(json.dumps(audit(Client(key),now)))
 if __name__=="__main__":main()

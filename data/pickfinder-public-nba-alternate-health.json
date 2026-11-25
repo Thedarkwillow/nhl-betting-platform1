@@ -1,6 +1,6 @@
 {
   "kind": "public_nba_alternate_history_audit_v1",
-  "generatedAt": "2026-11-25T14:49:34.069763+00:00",
+  "generatedAt": "2026-11-25T15:04:25.364734+00:00",
   "seasons": {
     "2024": {
       "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/nba_stats_player_game_logs/player_game_logs_2024.parquet",
@@ -2360,7 +2360,7 @@
   },
   "prospectiveBridge": {
     "kind": "nba_mirror_prospective_bridge_v1",
-    "generatedAt": "2026-11-25T14:49:31.410Z",
+    "generatedAt": "2026-11-25T15:04:22.612Z",
     "reviewedCrosswalkRows": 0,
     "newForecastRows": 0,
     "reason": "no_independently_reviewed_crosswalk",
@@ -2379,6 +2379,11 @@
     "independentlyReviewedOfferMatches": 2488,
     "unresolvedHistoryCandidates": 0,
     "sourceContextCorroborated": 0,
+    "boardNativeClockCorroborated": 0,
+    "reviewedOrBoardContext": 2488,
+    "reviewedProfileContextKeys": 106,
+    "missingReviewedAndBoardContext": 0,
+    "contextCountSemantics": "sourceContextCorroborated requires the original board clock; independentlyReviewedOfferMatches requires the separate reviewed receipt; reviewedOrBoardContext is their union; none certifies first-party offers or automated crosswalk intake",
     "profileContextCandidates": 0,
     "profileContextPlayerEventKeys": 0,
     "byBook": {
@@ -2395,46 +2400,67 @@
         "byMarket": {
           "steals": {
             "historyCandidates": 102,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 102,
+            "reviewedOrBoardContext": 102
           },
           "threePointersMade": {
             "historyCandidates": 194,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 194,
+            "reviewedOrBoardContext": 194
           },
           "points": {
             "historyCandidates": 204,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 204,
+            "reviewedOrBoardContext": 204
           },
           "pointsReboundsAssists": {
             "historyCandidates": 208,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 208,
+            "reviewedOrBoardContext": 208
           },
           "assists": {
             "historyCandidates": 124,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 124,
+            "reviewedOrBoardContext": 124
           },
           "reboundsAssists": {
             "historyCandidates": 118,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 118,
+            "reviewedOrBoardContext": 118
           },
           "rebounds": {
             "historyCandidates": 202,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 202,
+            "reviewedOrBoardContext": 202
           },
           "pointsAssists": {
             "historyCandidates": 66,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 66,
+            "reviewedOrBoardContext": 66
           },
           "pointsRebounds": {
             "historyCandidates": 90,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 90,
+            "reviewedOrBoardContext": 90
           },
           "blocks": {
             "historyCandidates": 8,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 8,
+            "reviewedOrBoardContext": 8
           }
         },
-        "independentlyReviewedOfferMatches": 1316
+        "independentlyReviewedOfferMatches": 1316,
+        "reviewedOrBoardContext": 1316
       },
       "prizepicks": {
         "offers": 2458,
@@ -2449,50 +2475,73 @@
         "byMarket": {
           "points": {
             "historyCandidates": 201,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 201,
+            "reviewedOrBoardContext": 201
           },
           "threePointersMade": {
             "historyCandidates": 56,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 56,
+            "reviewedOrBoardContext": 56
           },
           "reboundsAssists": {
             "historyCandidates": 110,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 110,
+            "reviewedOrBoardContext": 110
           },
           "turnovers": {
             "historyCandidates": 50,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 50,
+            "reviewedOrBoardContext": 50
           },
           "rebounds": {
             "historyCandidates": 128,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 128,
+            "reviewedOrBoardContext": 128
           },
           "assists": {
             "historyCandidates": 81,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 81,
+            "reviewedOrBoardContext": 81
           },
           "pointsAssists": {
             "historyCandidates": 147,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 147,
+            "reviewedOrBoardContext": 147
           },
           "pointsRebounds": {
             "historyCandidates": 171,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 171,
+            "reviewedOrBoardContext": 171
           },
           "pointsReboundsAssists": {
             "historyCandidates": 198,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 198,
+            "reviewedOrBoardContext": 198
           },
           "steals": {
             "historyCandidates": 16,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 16,
+            "reviewedOrBoardContext": 16
           },
           "blocks": {
             "historyCandidates": 14,
-            "sourceContextCorroborated": 0
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 14,
+            "reviewedOrBoardContext": 14
           }
         },
-        "independentlyReviewedOfferMatches": 1172
+        "independentlyReviewedOfferMatches": 1172,
+        "reviewedOrBoardContext": 1172
       }
     },
     "independentlyReviewedPickfinderCrosswalks": 0,

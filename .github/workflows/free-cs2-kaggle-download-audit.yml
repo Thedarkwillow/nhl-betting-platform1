@@ -1,0 +1,17 @@
+name: Free licensed CS2 download audit
+on:
+  pull_request:
+    paths: ['scripts/free_cs2_kaggle_download_audit.py','.github/workflows/free-cs2-kaggle-download-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m py_compile scripts/free_cs2_kaggle_download_audit.py
+      - run: python3 scripts/free_cs2_kaggle_download_audit.py

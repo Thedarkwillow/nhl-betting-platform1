@@ -1,0 +1,57 @@
+name: Public native NFL model and identity scope validation
+on:
+  pull_request:
+    paths: ['scripts/public-native-model-scope-validation.py','test/test_public_native_model_scope_validation.py','.github/workflows/public-native-model-scope-validation.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/public-native-model-scope-validation.py','.github/workflows/public-native-model-scope-validation.yml']
+  schedule:
+    - cron: '50 7,11,18 * * *'
+      timezone: America/Los_Angeles
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: public-native-model-scope-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python -m unittest discover -s test -p test_public_native_model_scope_validation.py
+  audit:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - run: python scripts/public-native-model-scope-validation.py
+      - name: Publish counts and retrospective metrics
+        run: |
+          set -euo pipefail
+          git add -f data/public-native-model-scope-health.json
+          git diff --cached --quiet && exit 0
+          test "$(git diff --cached --name-only)" = data/public-native-model-scope-health.json
+          git config user.name 'Public native model evidence'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Publish public archive retrospective and scope audit'
+          for i in 1 2 3 4 5 6; do
+            git fetch --quiet origin main
+            git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
+            if git push --quiet origin HEAD:main; then
+              git fetch --quiet origin main
+              git merge-base --is-ancestor HEAD FETCH_HEAD
+              exit 0
+            fi
+            sleep "$((2*i))"
+          done
+          exit 1

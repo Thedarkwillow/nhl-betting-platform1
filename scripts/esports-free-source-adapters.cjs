@@ -45,27 +45,35 @@ function pandaFixture(x,title,now){
  return {provider:"pandascore",title,providerSeriesId:String(x.id),scheduledStartAt:iso(start),endAt:end===null?null:iso(end),teamIds:teams,tournamentId:id(x.tournament_id)?String(x.tournament_id):null,status:x.status,bestOf:id(x.number_of_games)?x.number_of_games:null,results:score,winnerTeamId:winner,providerReportedFinal:final,mapPlayerStatsAvailable:false,originalOfferMatched:false};
 }
 function gridSeries(x){
- const title=x?.title?.nameShortened?.toLowerCase(),sport=title==="lol"||title==="league of legends"?"LOL":title==="valorant"?"VALORANT":null;
+ const title=x?.title?.nameShortened?.trim().toLowerCase(),sport=Object.keys(slug).filter(k=>k!=="COD").find(k=>slug[k].includes(title)|| (k==="CS2"&&["counter-strike 2","counter strike 2","cs:go"].includes(title))||(k==="LOL"&&title==="league of legends")||(k==="DOTA2"&&["dota 2","dota"].includes(title)))||null;
  if(!sport||!text(x.id)||at(x.startTimeScheduled)===null||!Array.isArray(x.teams)||x.teams.length!==2||x.teams.some(t=>!text(t.baseInfo?.id))||x.teams[0].baseInfo.id===x.teams[1].baseInfo.id)return null;
- return {provider:"riot_grid",title:sport,providerSeriesId:x.id,scheduledStartAt:iso(at(x.startTimeScheduled)),teamIds:x.teams.map(t=>t.baseInfo.id),tournamentId:text(x.tournament?.id)?x.tournament.id:null,originalOfferMatched:false};
+ return {provider:["LOL","VALORANT"].includes(sport)?"riot_grid":"grid",title:sport,providerSeriesId:x.id,scheduledStartAt:iso(at(x.startTimeScheduled)),teamIds:x.teams.map(t=>t.baseInfo.id),teamNames:x.teams.map(t=>text(t.baseInfo.name)?t.baseInfo.name:null),providerTitleId:text(x.title.id)?x.title.id:null,tournamentId:text(x.tournament?.id)?x.tournament.id:null,originalOfferMatched:false};
 }
 function gridState(x,fixture){
- if(x?.id!==fixture.providerSeriesId||x.started!==true||x.finished!==true||!Array.isArray(x.teams)||x.teams.length!==2||!Array.isArray(x.games)||!x.games.length||x.games.length>7)throw Error("series not final");
+ if(x?.id!==fixture.providerSeriesId||x.valid===false||x.started!==true||x.finished!==true||!Array.isArray(x.teams)||x.teams.length!==2||!Array.isArray(x.games)||!x.games.length||x.games.length>7)throw Error("series not final");
  if(JSON.stringify(x.teams.map(t=>t.id).sort())!==JSON.stringify([...fixture.teamIds].sort())||x.teams.filter(t=>t.won===true).length!==1)throw Error("series team mismatch");
- const games=[];
+ const games=[],ordinals=new Set(),gameIds=new Set();
  for(const g of x.games){
   if(!Array.isArray(g.teams)||g.teams.length!==2||JSON.stringify(g.teams.map(t=>t.id).sort())!==JSON.stringify([...fixture.teamIds].sort()))throw Error("game team mismatch");
   const players=g.teams.flatMap(t=>{
    if(!Array.isArray(t.players)||t.players.length!==5)throw Error("roster");
    return t.players.map(p=>{
     if(!text(p.id)||!cnt(p.kills)||!cnt(p.deaths))throw Error("stats");
-    return {providerPlayerId:p.id,providerTeamId:t.id,kills:p.kills,deaths:p.deaths};
+    return {providerPlayerId:p.id,providerPlayerName:text(p.name)?p.name:null,providerTeamId:t.id,kills:p.kills,deaths:p.deaths};
    });
   });
   if(new Set(players.map(p=>p.providerPlayerId)).size!==10)throw Error("player conflict");
-  // The documented minimal state query has no explicit map ordinal or individual game final flag.
-  games.push({mapOrdinal:null,individualGameFinalVerified:false,players});
+  const ordinal=g.sequenceNumber,gameId=text(g.id)?g.id:null;
+  if(ordinal!==undefined&&(!id(ordinal)||ordinal>7||ordinals.has(ordinal)))throw Error("native map ordinal conflict");
+  if(ordinal!==undefined)ordinals.add(ordinal);
+  if(gameId&&gameIds.has(gameId))throw Error("native game ID conflict");
+  if(gameId)gameIds.add(gameId);
+  const winners=g.teams.filter(t=>t.won===true);
+  const nativeFinal=x.valid===true&&g.started===true&&g.finished===true&&winners.length===1&&g.teams.every(t=>typeof t.won==="boolean")&&!!gameId&&id(ordinal);
+  // Keep source-native ordinal and final distinct from independent platform/identity verification.
+  games.push({providerGameId:gameId,providerMapOrdinal:id(ordinal)?ordinal:null,providerReportedGameFinal:nativeFinal,providerWinnerTeamId:nativeFinal?winners[0].id:null,mapOrdinal:null,individualGameFinalVerified:false,players});
  }
+ if(ordinals.size&& (ordinals.size!==games.length||games.some((_,i)=>!ordinals.has(i+1))))throw Error("incomplete native map ordinal sequence");
  return {fixture,providerReportedSeriesFinal:true,winnerTeamId:x.teams.find(t=>t.won===true).id,games,originalOfferMatched:false};
 }
 function previousIds(root){
@@ -152,7 +160,7 @@ async function collectPanda(env,client=fetch){
 }
 async function collectGrid(env,client=fetch){
  const key=env.GRID_API_KEY||env.RIOT_GRID_API_KEY||env.GRID,allowed=env.GRID_BETTING_DATA_AUTHORIZED==="1"&&env.GRID_NO_CHARGE_CONFIRMED==="1";
- const report={provider:"Riot GRID",credentialConfigured:!!key,authorizedNoCharge:allowed,requests:0,fixtures:0,finalSeries:0,playerGameRows:0,status:"not_called"},data={fixtures:[],finals:[],sourceDigests:[]};
+ const report={provider:"GRID",credentialConfigured:!!key,authorizedNoCharge:allowed,requests:0,fixtures:0,finalSeries:0,playerGameRows:0,providerFinalMaps:0,bySport:{},status:"not_called"},data={fixtures:[],finals:[],sourceDigests:[]};
  if(!key||!allowed){report.status=!key?"missing_credential":"awaiting_permitted_no_charge_access";return {report,data};}
  const headers={"x-api-key":key,"Content-Type":"application/json",Accept:"application/json"};
  const query=async (url,query)=>{report.requests++;const q=await request(url,{method:"POST",headers,body:JSON.stringify({query})},client);if(q.data?.errors?.length||!q.data?.data)throw Error("graphql");return {data:q.data.data,digest:q.digest};};
@@ -162,15 +170,17 @@ async function collectGrid(env,client=fetch){
   if(!Array.isArray(q.data.allSeries?.edges)||q.data.allSeries.edges.length>20)throw Error("fixture list");
   const seen=new Set();for(const e of q.data.allSeries.edges){const f=gridSeries(e.node);if(f&&!seen.has(f.providerSeriesId)){seen.add(f.providerSeriesId);data.fixtures.push(f);}}
   data.sourceDigests.push({endpoint:"central-data",sha256:q.digest});
-  for(const f of data.fixtures.filter(x=>Date.parse(x.scheduledStartAt)<now-3600000).slice(0,2)){
+  const past=data.fixtures.filter(x=>Date.parse(x.scheduledStartAt)<now-3600000).sort((a,b)=>Date.parse(b.scheduledStartAt)-Date.parse(a.scheduledStartAt));
+  const first=past[0],second=first&&(past.find(x=>x.title!==first.title)||past[1]);
+  for(const f of [first,second].filter(Boolean)){
    await pause();
-   const s=await query("https://api-op.grid.gg/live-data-feed/series-state/graphql",`query { seriesState(id:${JSON.stringify(f.providerSeriesId)}) { id started finished teams { id name won } games { teams { id players { id name kills deaths } } } } }`);
+   const s=await query("https://api-op.grid.gg/live-data-feed/series-state/graphql",`query { seriesState(id:${JSON.stringify(f.providerSeriesId)}) { id valid started finished teams { id name won } games { id sequenceNumber started finished teams { id won players { id name kills deaths } } } } }`);
    if(s.data.seriesState?.finished!==true)continue;
    const final=gridState(s.data.seriesState,f);data.finals.push({...final,sourceDocumentSha256:s.digest});
   }
   report.status=data.fixtures.length?"fixture_and_state_check_completed":"no_supported_series";
  }catch(e){report.status=failure(e);}
- finally{report.fixtures=data.fixtures.length;report.finalSeries=data.finals.length;report.playerGameRows=data.finals.reduce((n,f)=>n+f.games.reduce((s,g)=>s+g.players.length,0),0);}
+ finally{report.fixtures=data.fixtures.length;report.finalSeries=data.finals.length;report.playerGameRows=data.finals.reduce((n,f)=>n+f.games.reduce((s,g)=>s+g.players.length,0),0);report.providerFinalMaps=data.finals.flatMap(f=>f.games).filter(g=>g.providerReportedGameFinal).length;for(const title of ["CS2","DOTA2","LOL","VALORANT"]){const finals=data.finals.filter(f=>f.fixture.title===title);report.bySport[title]={fixtures:data.fixtures.filter(f=>f.title===title).length,finalSeries:finals.length,providerFinalMaps:finals.flatMap(f=>f.games).filter(g=>g.providerReportedGameFinal).length};}}
  return {report,data};
 }
 async function main(){

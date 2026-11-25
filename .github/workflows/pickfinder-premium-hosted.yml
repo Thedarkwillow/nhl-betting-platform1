@@ -26,7 +26,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   run:
-    if: github.repository == 'Thedarkwillow/nhl-betting-platform1' && github.ref == 'refs/heads/main' && (inputs.mode == 'audit_pilot' || (vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (contains(github.event.head_commit.message, '[pickfinder-probe]') || contains(github.event.head_commit.message, '[pickfinder-reconcile]') || contains(github.event.head_commit.message, '[pickfinder-deep]') || contains(github.event.head_commit.message, '[pickfinder-cs2]') || contains(github.event.head_commit.message, '[pickfinder-nfl]'))) || (github.event_name == 'schedule'))))
+    # Owner-directed private pause; restore original condition only when authorized:
+    # if: github.repository == 'Thedarkwillow/nhl-betting-platform1' && github.ref == 'refs/heads/main' && (inputs.mode == 'audit_pilot' || (vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (contains(github.event.head_commit.message, '[pickfinder-probe]') || contains(github.event.head_commit.message, '[pickfinder-reconcile]') || contains(github.event.head_commit.message, '[pickfinder-deep]') || contains(github.event.head_commit.message, '[pickfinder-cs2]') || contains(github.event.head_commit.message, '[pickfinder-nfl]'))) || (github.event_name == 'schedule'))))
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     steps:

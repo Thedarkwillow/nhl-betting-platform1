@@ -8,7 +8,9 @@ permissions:
   contents: read
 jobs:
   audit:
-    if: github.repository == 'Thedarkwillow/nhl-betting-platform1' && github.ref == 'refs/heads/main'
+    # Owner-directed private pause; restore original condition only when authorized:
+    # if: github.repository == 'Thedarkwillow/nhl-betting-platform1' && github.ref == 'refs/heads/main'
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:

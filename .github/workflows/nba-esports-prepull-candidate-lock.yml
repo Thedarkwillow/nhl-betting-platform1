@@ -25,7 +25,9 @@ jobs:
           persist-credentials: false
       - run: node --test test/nba-esports-prepull-candidate-lock.test.cjs test/nba-research-pipeline-v1.test.cjs test/esports-prospective-archive.test.cjs
   preflight:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # Owner-directed private pause; restore original condition only when authorized:
+    # if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: ${{ false }}
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 10

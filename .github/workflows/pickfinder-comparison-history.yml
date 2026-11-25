@@ -28,7 +28,9 @@ jobs:
           assert m['summarize'](p)=={'tables':1,'rows':2,'headedTables':1,'headerRows':1,'playerLinks':0}
           PY
   archive:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'Thedarkwillow/nhl-betting-platform1'
+    # Owner-directed private pause; restore original condition only when authorized:
+    # if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'Thedarkwillow/nhl-betting-platform1'
+    if: ${{ false }}
     needs: test
     runs-on: ubuntu-24.04
     timeout-minutes: 25

@@ -146,7 +146,8 @@ async function run({root,context,page,enrich,collect,evidence={},limit=Infinity,
  const offsets=[0,0,0];q.pending=[];while(queues.some((q,i)=>offsets[i]<q.length))for(const n of [0,0,0,1,1,2])if(offsets[n]<queues[n].length)q.pending.push(queues[n][offsets[n]++]);
  const startedAt=new Date().toISOString(),records=[],diagnostics={};
  let persistedProfiles=0,persistedComplete=0,phase='dashboard_inventory';
- const buffer=checkpointBuffer({write:rows=>persist(root,{schema:'pickfinder-deep-v1',seed:SEED,startedAt,finishedAt:new Date().toISOString(),diagnostics:{},dashboardSnapshots:[],records:rows,modelInputsApproved:false,originalOffersVerified:false}),onVerified:r=>{progress.record(r);persistedProfiles++;if(r.status==='sampled'&&r.profileCollection?.truncated===false)persistedComplete++;}});
+ const timings={profileMs:0,archiveMs:0,archiveTransactions:0,profileAttempts:0};
+ const buffer=checkpointBuffer({write:async rows=>{const t=Date.now();await persist(root,{schema:'pickfinder-deep-v1',seed:SEED,startedAt,finishedAt:new Date().toISOString(),diagnostics:{},dashboardSnapshots:[],records:rows,modelInputsApproved:false,originalOffersVerified:false});timings.archiveMs+=Date.now()-t;timings.archiveTransactions++;},onVerified:r=>{progress.record(r);persistedProfiles++;if(r.status==='sampled'&&r.profileCollection?.truncated===false)persistedComplete++;}});
  try{
  const premium=async p=>p.evaluate(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium')&&!!document.querySelector('button[aria-label="Open user menu"]'));
  diagnostics.controls=await page.evaluate(inventory);
@@ -193,11 +194,12 @@ async function run({root,context,page,enrich,collect,evidence={},limit=Infinity,
  const detail=await context.newPage();detail.setDefaultTimeout(5000);
  for(const item of q.pending.slice(0,limit)){
   if(!shouldContinue())break;
-  const row={...item,research:[]};
+  const row={...item,research:[]};const profileStarted=Date.now();
   try{
    await enrich(detail,row,{maxFields:Infinity,expanded:true,shouldContinue,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(new URL(detail.url()).origin!=='https://www.pickfinder.app'||!await premium(detail))throw Error('session unavailable');}});
    records.push({...item,status:row.research.length?'sampled':'empty',profileCollection:row.profileCollection,research:row.research});
   }catch{records.push({...item,status:'failed',profileCollection:row.profileCollection,research:row.research});}
+  timings.profileMs+=Date.now()-profileStarted;timings.profileAttempts++;
   phase='profile_checkpoint';
   await buffer.add(records.at(-1));
   console.log(JSON.stringify({state:'deep_profile_buffered',attemptedThisRun:records.length,remotelyVerified:persistedProfiles,pendingCheckpoint:buffer.size(),rawRowsPublished:0}));
@@ -209,6 +211,7 @@ async function run({root,context,page,enrich,collect,evidence={},limit=Infinity,
  const data={schema:'pickfinder-deep-v1',seed:SEED,startedAt,finishedAt,diagnostics,dashboardSnapshots:[],records:[],modelInputsApproved:false,originalOffersVerified:false};
  const sha=await persist(root,data);
  progress.report('finished',true);
+ console.log(JSON.stringify({state:'deep_throughput_benchmark',...timings,remotelyVerified:persistedProfiles,completed:persistedComplete,elapsedMs:Date.now()-Date.parse(startedAt),rawRowsPublished:0}));
  const sampled=records.filter(r=>r.status==='sampled').length,complete=records.filter(r=>r.status==='sampled'&&r.profileCollection?.truncated===false).length;
  return {state:'deep_research_verified',sha,queueTotal:q.total,priorSampled:done.size,attempted:records.length,sampled,completeUntruncatedProfiles:complete,remaining:q.pending.length-complete,diagnostics,rawRowsPublished:0,modelInputsApproved:false};
  }catch(e){let stage=e instanceof DeepFailure?e.deepStage:phase;if(!buffer.failed()){try{await buffer.flush();}catch(err){stage=err instanceof DeepFailure?err.deepStage:'profile_checkpoint_flush';}}progress.report('partial',true);console.log(JSON.stringify({state:'deep_research_partial',stage,persistedProfiles,persistedComplete,remaining:q.pending.length-persistedComplete,rawRowsPublished:0,modelInputsApproved:false}));throw new DeepFailure(stage);}

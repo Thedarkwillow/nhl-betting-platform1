@@ -24,7 +24,9 @@ jobs:
       - run: python scripts/pickfinder-public-directory.py --test
   collect:
     needs: test
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1'
+    # Owner-directed private pause; restore original condition only when authorized:
+    # if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1'
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:

@@ -1,10 +1,10 @@
 name: NBA and esports morning archive health
 on:
   pull_request:
-    paths: ['scripts/morning-private-archive-health.cjs','test/morning-private-archive-health.test.cjs','.github/workflows/morning-private-archive-health.yml']
+    paths: ['scripts/pickfinder-morning-archive-audit.cjs','test/pickfinder-morning-archive-audit.test.cjs','scripts/morning-private-archive-health.cjs','test/morning-private-archive-health.test.cjs','.github/workflows/morning-private-archive-health.yml']
   push:
     branches: [main]
-    paths: ['scripts/morning-private-archive-health.cjs','test/morning-private-archive-health.test.cjs','.github/workflows/morning-private-archive-health.yml']
+    paths: ['scripts/pickfinder-morning-archive-audit.cjs','test/pickfinder-morning-archive-audit.test.cjs','scripts/morning-private-archive-health.cjs','test/morning-private-archive-health.test.cjs','.github/workflows/morning-private-archive-health.yml']
   schedule:
     - cron: '20 7 * * *'
       timezone: America/Los_Angeles
@@ -33,10 +33,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - run: node --test test/morning-private-archive-health.test.cjs test/nba-esports-prepull-candidate-lock.test.cjs
+      - run: node --test test/morning-private-archive-health.test.cjs test/nba-esports-prepull-candidate-lock.test.cjs test/pickfinder-morning-archive-audit.test.cjs
   audit:
     needs: test
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    # Owner-directed private pause; restore original condition only when authorized:
+    # if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -75,6 +77,7 @@ jobs:
               *) echo 'Scheduled health check delayed outside audit hour; no slot inferred'; exit 1 ;;
             esac
           fi
+          node public/scripts/pickfinder-morning-archive-audit.cjs archive "$AUDIT_DAY" "$AUDIT_SLOT"
           node public/scripts/morning-private-archive-health.cjs archive "$AUDIT_DAY" "$AUDIT_SLOT"
       - name: Inspect separate existing free-provider archive
         if: always() && !cancelled() && steps.private_destination.outcome == 'success'

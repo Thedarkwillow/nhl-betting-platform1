@@ -19,6 +19,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   refresh:
+    # Owner-directed private pause.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

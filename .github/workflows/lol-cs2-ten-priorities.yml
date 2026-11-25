@@ -4,7 +4,7 @@ on:
     paths: ['scripts/lol_specialist_research.py','scripts/cs2_csapi_identity_preflight.py','test/test_lol_specialist_research.py','.github/workflows/lol-cs2-ten-priorities.yml']
   push:
     branches: [main]
-    paths: ['.github/workflows/lol-cs2-ten-priorities.yml']
+    paths: ['.github/workflows/lol-cs2-ten-priorities.yml','scripts/cs2_csapi_identity_preflight.py','scripts/lol_specialist_research.py']
   workflow_dispatch:
 permissions:
   contents: read

@@ -1,0 +1,49 @@
+name: NFL probability replay and NHL history readiness
+on:
+  pull_request:
+    paths: ['scripts/replay-nfl-empirical-probabilities.cjs','test/replay-nfl-empirical-probabilities.test.cjs','scripts/pickfinder-public-identity.cjs','.github/workflows/nfl-nhl-zero-credit-research.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/replay-nfl-empirical-probabilities.cjs','test/replay-nfl-empirical-probabilities.test.cjs','scripts/pickfinder-public-identity.cjs','.github/workflows/nfl-nhl-zero-credit-research.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  nfl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/replay-nfl-empirical-probabilities.test.cjs test/prizepicks-multisport-model-bridge.test.cjs
+      - name: Replay committed public NFL history
+        run: node scripts/replay-nfl-empirical-probabilities.cjs > nfl-replay.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nfl-synthetic-probability-replay
+          path: nfl-replay.json
+          if-no-files-found: error
+  nhl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/pickfinder-public-identity.test.cjs test/prizepicks-native-context-readiness.test.cjs
+      - name: Inspect existing committed model inputs
+        run: node scripts/prizepicks-native-context-readiness.cjs > context-readiness.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: multisport-context-readiness
+          path: context-readiness.json
+          if-no-files-found: error

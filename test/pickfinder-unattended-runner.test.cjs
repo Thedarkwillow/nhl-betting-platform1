@@ -116,3 +116,16 @@ test('dashboard traversal checkpoints every explicit page and never infers full 
  assert.deepEqual(saved,[1,2,3]);assert.equal(out.state,'explicit_last_page_observed');assert.equal(out.filtersExhausted,false);
  await assert.rejects(traverseDashboard(page,'Popular'),/route/);
 });
+
+test('verified unpriced modifier scopes enter research queue without inventing an offer',()=>{
+ const {queue}=require('../scripts/pickfinder-deep-research.cjs');
+ const r={sport:'nba',player:'fixture',market:'points',eventId:'e',detailId:'/players/nba/p?prop=a:b:c',apps:[],appEvidence:[{book:'prizepicks',line:12,tier:'goblin',icons:['prizepicks','goblin']}]};
+ const q=queue([{book:'prizepicks',sport:'nba',pages:[{rows:[r,{...r,detailId:'/players/nba/q?prop=a:b:c',appEvidence:[{...r.appEvidence[0],icons:['prizepicks','goblin','demon']}]}]}]}]);
+ assert.equal(q.total,1);assert.equal(r.apps.length,0);
+});
+test('dashboard duplicate links are accepted only for one safe destination',async()=>{
+ const {verifiedNavigation}=require('../scripts/pickfinder-dashboard-research.cjs');
+ const good='https://www.pickfinder.app/games';
+ assert.equal(await verifiedNavigation({evaluate:async()=>[good,good]},'Games',['/games']),good);
+ assert.equal(await verifiedNavigation({evaluate:async()=>['https://example.com/games']},'Games',['/games']),null);
+});

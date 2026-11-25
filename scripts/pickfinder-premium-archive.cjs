@@ -1,0 +1,80 @@
+"use strict";
+// Validates a normalized authorized Premium browser export, not a browser/login implementation.
+// No network, credentials, wagering, model inputs or first-party offer certification.
+const fs=require("node:fs"),crypto=require("node:crypto");
+const {pacific,WINDOWS}=require("./pacific-morning-capture-gate.cjs");
+const BOOKS=new Set(["prizepicks","underdog"]);
+const SPORTS=new Set(["nba","nfl","nhl","mlb","wnba","college-football","college-basketball","tennis","soccer","cs2","valorant","lol","dota2","cod"]);
+const text=v=>typeof v==="string"&&v.trim().length>0&&v.length<=512;
+const finite=v=>typeof v==="number"&&Number.isFinite(v);
+function instant(v){
+ if(typeof v!=="string"||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(v))throw Error("timestamp required");
+ const t=new Date(v);if(!Number.isFinite(t.getTime()))throw Error("invalid timestamp");return t;
+}
+function inSlot(t,day,slot){const p=pacific(t);return p.day===day&&WINDOWS[String(p.hour)]===slot;}
+function normalize(input,{now=new Date()}={}){
+ if(!input||input.schema!=="pickfinder-premium-export-v1"||!BOOKS.has(input.book)||!SPORTS.has(input.sport))throw Error("partition contract");
+ if(!/^\d{4}-\d\d-\d\d$/.test(input.localDay)||!["06:00","09:00"].includes(input.slot))throw Error("slot required");
+ if(!Array.isArray(input.pages)||input.pages.length>500||!["populated","empty","disabled","partial"].includes(input.boardState))throw Error("page contract");
+ const first=instant(input.startedAt),last=instant(input.endedAt);
+ if(first>last||last>now)throw Error("attempt chronology");
+ const links=new Set(),offers=new Map(),conflicts=new Set(),pageNumbers=new Set();
+ let appearances=0,unresolvedRows=0,wrongSport=0,crossHourRows=0;
+ for(const page of input.pages){
+  if(!Number.isInteger(page.number)||page.number<1||pageNumbers.has(page.number)||!Array.isArray(page.rows)||page.rows.length>500)throw Error("page shape");
+  pageNumbers.add(page.number);
+  for(const row of page.rows){
+   appearances++;
+   if(!row||row.sport!==input.sport){wrongSport++;continue;}
+   if(!text(row.detailId)||!text(row.player)||!text(row.market)||!Array.isArray(row.apps)||row.apps.length>100){unresolvedRows++;continue;}
+   const observed=instant(row.observedAt);
+   if(observed<first||observed>last)throw Error("row outside attempt");
+   links.add(row.detailId);
+   if(!inSlot(observed,input.localDay,input.slot))crossHourRows++;
+   let matched=0;
+   for(const a of row.apps){
+    if(!a||a.book!==input.book)continue;
+    if(!finite(a.line)||!["Higher","Lower"].includes(a.side)){continue;}
+    matched++;
+    const offer={source:"pickfinder_premium",book:input.book,sport:input.sport,detailId:row.detailId,player:row.player,eventId:text(row.eventId)?row.eventId:null,market:row.market,period:text(row.period)?row.period:null,line:a.line,tier:text(a.tier)?a.tier:null,side:a.side,displayedPrice:text(a.displayedPrice)?a.displayedPrice:null,observedAt:observed.toISOString(),startAt:row.startAt?instant(row.startAt).toISOString():null,teamMoneylinePercent:finite(row.teamMoneylinePercent)&&row.teamMoneylinePercent>=0&&row.teamMoneylinePercent<=100?row.teamMoneylinePercent:null,originalPlatformVerified:false,eligibleForLockedModel:false};
+    const key=JSON.stringify([offer.detailId,offer.eventId,offer.player,offer.market,offer.period,offer.line,offer.tier,offer.side]);
+    const previous=offers.get(key);
+    if(previous&&previous.displayedPrice!==offer.displayedPrice)conflicts.add(key);
+    if(!previous||offer.observedAt>previous.observedAt)offers.set(key,offer);
+   }
+   if(!matched)unresolvedRows++;
+  }
+ }
+ const declaredPages=input.displayedPageCount;
+ const contiguous=Number.isInteger(declaredPages)&&declaredPages>0&&declaredPages===pageNumbers.size&&Array.from({length:pageNumbers.size},(_,i)=>pageNumbers.has(i+1)).every(Boolean);
+ const repeatLinks=appearances-wrongSport-links.size;
+ const withinSlot=inSlot(first,input.localDay,input.slot)&&inSlot(last,input.localDay,input.slot)&&crossHourRows===0;
+ const pageTraversalComplete=input.boardState==="populated"&&contiguous&&input.lastPageReached===true;
+ const reasons=[];
+ if(!withinSlot)reasons.push("outside_requested_hour");
+ if(input.boardState==="populated"&&!pageTraversalComplete)reasons.push("incomplete_page_traversal");
+ if(repeatLinks>0)reasons.push("duplicate_or_unresolved_detail_links");
+ if(wrongSport||unresolvedRows||conflicts.size)reasons.push("unresolved_rows_or_price_changes");
+ if(input.sport==="soccer"&&links.size>=9999)reasons.push("possible_display_cap_requires_partition_reconciliation");
+ if(input.boardState==="empty"&&appearances!==0||input.boardState==="disabled"&&appearances!==0)reasons.push("inconsistent_board_state");
+ // A mutable UI traversal is not proof of full-board completeness, even when contiguous.
+ return {schema:"pickfinder-premium-normalized-v1",book:input.book,sport:input.sport,localDay:input.localDay,slot:input.slot,firstObservedAt:first.toISOString(),lastObservedAt:last.toISOString(),boardState:input.boardState,withinSlot,pageTraversalComplete,fullBoardCertified:false,originalOffersVerified:0,modelInputsApproved:false,health:{pages:pageNumbers.size,appearances,distinctDetailLinks:links.size,repeatOrUnresolvedLinks:repeatLinks,distinctOfferKeys:offers.size,priceConflictKeys:conflicts.size,wrongSport,unresolvedRows,crossHourRows,reasons},offers:[...offers.values()]};
+}
+function archive(input,root,attemptId,opts){
+ if(process.env.RESTRICTED_DESTINATION_VERIFIED!=="1"||!fs.existsSync(root+"/.git"))throw Error("verified private archive required");
+ if(!/^[A-Za-z0-9_-]{1,80}$/.test(attemptId))throw Error("invalid attempt identifier");
+ const result=normalize(input,opts),raw=JSON.stringify(input),digest=crypto.createHash("sha256").update(raw).digest("hex");
+ const path=require("node:path"),base=path.resolve(root,"research","pickfinder-premium",result.localDay,result.slot.replace(":",""),result.book,result.sport);
+ let cur=path.resolve(root);
+ for(const part of path.relative(cur,base).split(path.sep)){cur=path.join(cur,part);if(fs.existsSync(cur)){if(fs.lstatSync(cur).isSymbolicLink()||!fs.lstatSync(cur).isDirectory())throw Error("unsafe archive path");}else fs.mkdirSync(cur,{mode:0o700});}
+ const dest=path.join(base,attemptId);fs.mkdirSync(dest,{mode:0o700});
+ fs.writeFileSync(path.join(dest,"source.json"),raw,{flag:"wx",mode:0o600});
+ fs.writeFileSync(path.join(dest,"normalized.json"),JSON.stringify({...result,sourceDigest:digest}),{flag:"wx",mode:0o600});
+ const {offers,...summary}=result;return {...summary,sourceDigest:digest,rawRowsPublished:0};
+}
+module.exports={normalize,archive};
+if(require.main===module){
+ try{if(process.argv.length!==5)throw Error("usage: input.json private-root attempt-id");
+ const result=archive(JSON.parse(fs.readFileSync(process.argv[2],"utf8")),process.argv[3],process.argv[4]);console.log(JSON.stringify(result));}
+ catch(e){console.error("PickFinder export rejected: "+e.name);process.exitCode=1;}
+}

@@ -31,7 +31,7 @@ def fetch(tag,stem,season):
 def normalize(rows,season,today):
     games=collections.defaultdict(list);seen=set();bad=set();excluded=0
     for x in rows:
-        if x.get("season_type")!="Regular Season": continue
+        if x.get("season_type")!="regular-season": continue
         try:
             g=x["game_id"];p=pid(x["player_id"]);day=dt.date.fromisoformat(str(x["game_date"])[:10])
             t=team(x["team_abbreviation"]);m=re.fullmatch(r"([A-Z]{2,3}) (vs\.|@) ([A-Z]{2,3})",x["matchup"])
@@ -99,11 +99,12 @@ def nfl_join(facts,history,at):
 def main():
     today=dt.datetime.now(dt.timezone.utc).date();history=[];seasons={}
     for season in SEASONS:
+        meta={}
         try:
             raw,meta=fetch("nba_stats_player_game_logs","player_game_logs",season)
             rows,excluded=normalize(raw,season,today);history.extend(rows);games=len({x["game"] for x in rows})
             seasons[str(season)]={**meta,"status":"observed","acceptedRows":len(rows),"games":games,"excludedRegularSeasonRows":excluded,"firstGame":min(x["day"] for x in rows),"lastGame":max(x["day"] for x in rows),"expectedCompletedSeasonGames":1230 if season<2027 else None,"allExpectedGamesObserved":season<2027 and games==1230}
-        except Exception as e:seasons[str(season)]={"status":"pending","reason":type(e).__name__}
+        except Exception as e:seasons[str(season)]={**meta,"status":"pending","reason":type(e).__name__,"stage":"schema_or_normalization" if meta else "download_or_decode"}
     cross={"status":"pending"}
     try:
         data,meta=fetch("nba_crosswalk","nba_player_crosswalk",2027);facts=native_facts("nba")

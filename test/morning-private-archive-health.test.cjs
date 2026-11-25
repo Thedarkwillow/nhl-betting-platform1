@@ -35,3 +35,15 @@ test("observed archives do not certify provenance; late data and wrong revision 
  assert.equal(r.sports.CS2.status,"slot_binding_not_verified");
  assert.equal(r.sports.CS2.slotForecastCertified,false);
 });
+
+test("receipt binds exact original ranking bytes and same immutable first commit to scheduled model",()=>{
+ const {validRankingReceipt}=require("../scripts/morning-private-archive-health.cjs");
+ const tree="a".repeat(40),l={...lock,doc:{...lock.doc,candidateTree:tree}};
+ const f={first:"2026-11-25T14:40:00Z",commit:"b".repeat(40),rel:"outputs/nba/rankings/20261125T143600000Z.json",digest:"c".repeat(64),doc:{generatedAt:"2026-11-25T14:36:00Z"}};
+ const receipt={first:f.first,commit:f.commit,doc:{kind:"nba_locked_ranking_receipt_v1",rankingPath:f.rel,rankingSha256:f.digest,generatedAt:"2026-11-25T14:37:00Z",pacificDate:day,slot,modelRevision:pin,candidateTree:tree,lockFirstGitAt:l.first,originalAppAvailabilityVerified:false,calibrationApproved:false,forecastFreezeVerified:false}};
+ assert.equal(validRankingReceipt(f,receipt,l,day,slot,at),true);
+ assert.equal(validRankingReceipt({...f,digest:"d".repeat(64)},receipt,l,day,slot,at),false);
+ assert.equal(validRankingReceipt(f,{...receipt,commit:"e".repeat(40)},l,day,slot,at),false);
+ assert.equal(validRankingReceipt(f,{...receipt,doc:{...receipt.doc,slot:"09:00"}},l,day,slot,at),false);
+ assert.equal(validRankingReceipt(f,{...receipt,doc:{...receipt.doc,calibrationApproved:true}},l,day,slot,at),false);
+});

@@ -1,0 +1,65 @@
+name: PickFinder comparison and historical evidence
+on:
+  pull_request:
+    paths: ['scripts/pickfinder-archive-comparison-history.cjs','scripts/pickfinder-free-research.py','test/pickfinder-archive-comparison-history.test.cjs','.github/workflows/pickfinder-comparison-history.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/pickfinder-comparison-history.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/pickfinder-archive-comparison-history.test.cjs
+      - name: Test free research parser on synthetic data
+        run: |
+          python - <<'PY'
+          import runpy
+          m=runpy.run_path('scripts/pickfinder-free-research.py')
+          p=m['parse']('<h2>Fixture</h2><table><tr><th>Team</th></tr><tr><td>A</td></tr></table>')
+          assert m['summarize'](p)=={'tables':1,'rows':2,'headedTables':1,'headerRows':1}
+          PY
+  archive:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'Thedarkwillow/nhl-betting-platform1'
+    needs: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: public
+          persist-credentials: false
+      - name: Check private source visibility
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .visibility)" = private
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: main
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: archive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node public/scripts/pickfinder-archive-comparison-history.cjs archive
+  public-page-probe:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1'
+    needs: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python scripts/pickfinder-free-research.py --authorized

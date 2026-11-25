@@ -61,9 +61,10 @@ async function run({root,context,page,enrich,collect,limit=20,shouldContinue=()=
    const href=await links.getAttribute('href'),u=new URL(href,'https://www.pickfinder.app');
    if(!href||u.origin!=='https://www.pickfinder.app'||!['/games','/discrepancies','/popular'].includes(u.pathname)){diagnostics.dashboards[name]={state:'route_not_verified'};continue;}
    await page.goto(u.href,{timeout:15000});
+   await page.waitForFunction(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium'),null,{timeout:12000});
    if(!await premium(page))throw Error('session unavailable');
    diagnostics.dashboards[name]={state:'visible_route',controls:await page.evaluate(inventory)};
-  }catch{diagnostics.dashboards[name]={state:'unverified'};if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
+  }catch{diagnostics.dashboards[name]={state:'unverified'};await page.goto('https://www.pickfinder.app/props',{timeout:20000});await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:15000});if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
  }
  for(const code of ['DOTA2','SOCCER']){
   if(!shouldContinue())break;
@@ -78,7 +79,7 @@ async function run({root,context,page,enrich,collect,limit=20,shouldContinue=()=
   if(!shouldContinue())break;
   const row={...item,research:[]};
   try{
-   await enrich(detail,row,{maxFields:2000,navigate:async url=>{await detail.goto(url,{timeout:10000});if(new URL(detail.url()).origin!=='https://www.pickfinder.app'||!await premium(detail))throw Error('session unavailable');}});
+   await enrich(detail,row,{maxFields:2000,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(new URL(detail.url()).origin!=='https://www.pickfinder.app'||!await premium(detail))throw Error('session unavailable');}});
    records.push({...item,status:row.research.length?'sampled':'empty',profileCollection:row.profileCollection,research:row.research});
   }catch{records.push({...item,status:'failed',research:[]});if(!await premium(detail).catch(()=>false))break;}
  }

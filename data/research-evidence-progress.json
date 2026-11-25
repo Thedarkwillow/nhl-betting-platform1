@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-25T01:12:27.111Z",
-  "sourceReportAt": "2026-11-25T01:08:42.946Z",
+  "generatedAt": "2026-11-25T01:25:27.232Z",
+  "sourceReportAt": "2026-11-25T01:12:28.653Z",
   "periodHistory": {
     "accountedDays": 261,
     "calendarDays": 261,
@@ -74,7 +74,7 @@
     "verifiedROI": null
   },
   "validationSample": {
-    "sourceReportAt": "2026-11-25T01:06:12.596Z",
+    "sourceReportAt": "2026-11-25T01:12:25.423Z",
     "nhlStandardFrozenDecisions": 1267,
     "nhlStandardFrozenGames": 103,
     "nhlStandardFrozenPacificSlates": 15,
@@ -147,7 +147,7 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-25T01:05:53.678Z",
+    "sourceReportAt": "2026-11-25T01:24:29.302Z",
     "nhl": {
       "sourceEligible": false,
       "examined": 0,

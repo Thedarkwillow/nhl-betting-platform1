@@ -15,7 +15,7 @@ test('review receipt derives exact full-game scope but cannot supply missing boa
  const player={eventId,player:'Fixture',playerPath,sourceUrl:'https://www.pickfinder.app'+detailId,nbaPlayerId:'7',espnPlayerId:'8',team:'BOS',opponent:'NYK',displayedMatchup:'BOS vs NYK',independentRosterVerified:true,observedAt:'2026-11-25T13:11:00Z'};
  const doc={schema:'pickfinder-independent-nba-matchup-review-v1',clockComparisonZone:'America/Los_Angeles',games:[game],records:[player]};
  const receipt={doc,digest:'c'.repeat(64),commit:'d'.repeat(40),first:'2026-11-25T13:30:00Z'};
- const archive={invalid:[],latest:[{m:{sport:'nba',book:'prizepicks',health:{unresolvedRows:0},lastObservedAt:offer.observedAt},offers:[offer],unpricedTierObservations:[],sportsbookQuotes:[],researchObservations:[],first:'2026-11-25T13:55:00Z',digest:'e'.repeat(64)}]};
+ const archive={invalid:[],manifests:[],latest:[{m:{sport:'nba',book:'prizepicks',health:{unresolvedRows:0},lastObservedAt:offer.observedAt},offers:[offer],unpricedTierObservations:[],sportsbookQuotes:[],researchObservations:[],first:'2026-11-25T13:55:00Z',digest:'e'.repeat(64)}]};
  const args={archive,schedule:input.schedule,clock,receipts:[receipt]};
  const derived=reviewedScopes(args);assert.equal(derived.length,1);assert.equal(derived[0].nativePlayerId,7);assert.equal(derived[0].identityEvidenceSha256,receipt.digest);
  assert.equal(reviewedScopes({...args,receipts:[{...receipt,doc:{...doc,records:[{...player,independentRosterVerified:false}]}}]}).length,0);

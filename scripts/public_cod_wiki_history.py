@@ -37,6 +37,10 @@ def main():
     year=sys.argv[1] if len(sys.argv)>1 else "2025"
     if year not in ("2025","2026"):raise ValueError("invalid year")
     start=year+"-01-01";end="2026-01-01" if year=="2025" else "2026-11-25"
+    if len(sys.argv)>2:
+        month=sys.argv[2]
+        if month not in ("03","06","09"):raise ValueError("invalid bounded window")
+        start=year+"-"+month+"-01"
     fields="Date,SeriesId,GameNumber,PlayerLink,Team,TeamVs,GameTitle,Gamemode,Win,Kills,Deaths,TournamentPage,UniqueLine"
     try:
         # Bounded contiguous chronological sample; not a full modern archive.
@@ -49,5 +53,5 @@ def main():
             if len(page)<500:status="source_exhausted";break
     except Exception as e:status="source_unavailable_or_partial_"+type(e).__name__
     clean,excluded,groups=parse(rows)
-    print(json.dumps({"kind":"modern_cod_wiki_baseline_v1","source":"Call of Duty Esports Wiki, CC BY-SA 3.0; https://cod-esports.fandom.com/wiki/Stats_Hub","status":status,"year":year,"pages":pages,"rawRowsRead":len(rows),"completeMaps":len(clean)//8,"invalidRows":excluded,"candidateMaps":groups,"context":evaluate(clean,("kills","deaths"),["mode"],["edition"]),"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
+    print(json.dumps({"kind":"modern_cod_wiki_baseline_v1","source":"Call of Duty Esports Wiki, CC BY-SA 3.0; https://cod-esports.fandom.com/wiki/Stats_Hub","status":status,"year":year,"windowStart":start,"windowEndExclusive":end,"pages":pages,"rawRowsRead":len(rows),"completeMaps":len(clean)//8,"invalidRows":excluded,"candidateMaps":groups,"context":evaluate(clean,("kills","deaths"),["mode","team","opponent"],["edition"]),"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}))
 if __name__=="__main__":main()

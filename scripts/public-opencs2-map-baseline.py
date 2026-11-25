@@ -136,6 +136,8 @@ def main():
     if os.environ.get("CS2_INDEPENDENT_IDENTITY_AUDIT")=="1":
         from cs2_independent_steam_audit import run
         run(strict)
+    from cs2_headshot_history import evaluate as hs_eval
+    print(json.dumps({"kind":"cs2_native_headshot_research_v1","original":hs_eval(rows),"regulation":hs_eval(strict),"cohortsKeptSeparate":True,"paidRequests":0,"rawRowsPublished":0,"modelPromoted":False}),flush=True)
     recovered=sum(k not in maps and all_ids[k]==1 for k in verified_maps)
     from esports_scope_history import evaluate as scope_eval
     print(json.dumps({"kind":"cs2_exact_scope_history_v1","originalCohort":[scope_eval(rows,METRICS,x) for x in ((1,),(2,),(1,2))],"regulationDiagnosticCohort":[scope_eval(strict,METRICS,x) for x in ((1,),(2,),(1,2))],"cohortsKeptSeparate":True,"paidRequests":0,"rawRowsPublished":0}))

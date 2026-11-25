@@ -4,3 +4,5 @@ function rows(days){return Array.from({length:days},(_,i)=>Array.from({length:20
 test("rolling calibration never uses current day or insufficient previous dates",()=>{a.deepEqual(evaluate(rows(5)).markets,{});const r=evaluate(rows(6));a.equal(r.markets.shotsOnGoal.n,20);a.equal(r.markets.shotsOnGoal.dates,1);a.ok(r.markets.shotsOnGoal.calibratedBrier<r.markets.shotsOnGoal.championBrier);a.equal(r.originalForecastFrozen,false);a.equal(r.modelPromoted,false);});
 
 test("lag sensitivity excludes previous calendar day",()=>{a.deepEqual(evaluate(rows(6),{minimumDayGap:2}).markets,{});const r=evaluate(rows(7),{minimumDayGap:2});a.equal(r.markets.shotsOnGoal.n,20);a.equal(r.minimumDayGap,2);a.equal(r.finalAvailabilityTimestampVerified,false);});
+
+test("same cohort market-prior and shrinkage metrics",()=>{const q=evaluate(rows(7),{minimumDayGap:2}).markets.shotsOnGoal;a.equal(q.n,20);a.ok(q.marketPriorBrier<.25);a.ok(q.halfShrinkBrier<.25);a.ok(Number.isFinite(q.marketPriorLogLoss));a.equal(q.marketPriorCorrect,12);});

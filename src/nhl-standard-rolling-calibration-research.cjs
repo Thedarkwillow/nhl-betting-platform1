@@ -28,11 +28,13 @@ function evaluate(rows,{minimumDayGap=1}={}){
    const h=hist(r.market),b=h.bins[r.bin];
    if(h.n<100||h.days.size<5||b.n<10)continue;
    const base=(h.yes+10)/(h.n+20),p=clamp((b.yes+30*base)/(b.n+30)),y=r.y;
-   const q=byMarket[r.market]??={n:0,days:new Set(),championBrierSum:0,calibratedBrierSum:0,championCorrect:0,calibratedCorrect:0,alwaysHigher:0,alwaysLower:0};
+   const q=byMarket[r.market]??={n:0,days:new Set(),championBrierSum:0,calibratedBrierSum:0,baseBrierSum:0,shrunkBrierSum:0,championLogLoss:0,calibratedLogLoss:0,baseLogLoss:0,shrunkLogLoss:0,championCorrect:0,calibratedCorrect:0,baseCorrect:0,shrunkCorrect:0,alwaysHigher:0,alwaysLower:0};
+   const shrunk=clamp((p+base)/2),loss=x=>y?-Math.log(x):-Math.log1p(-x);
+   q.baseBrierSum+=(base-y)**2;q.shrunkBrierSum+=(shrunk-y)**2;q.championLogLoss+=loss(r.p);q.calibratedLogLoss+=loss(p);q.baseLogLoss+=loss(base);q.shrunkLogLoss+=loss(shrunk);q.baseCorrect+=Number((base>=.5)===Boolean(y));q.shrunkCorrect+=Number((shrunk>=.5)===Boolean(y));
    q.n++;q.days.add(day);q.championBrierSum+=(r.p-y)**2;q.calibratedBrierSum+=(p-y)**2;q.championCorrect+=Number((r.p>=.5)===Boolean(y));q.calibratedCorrect+=Number((p>=.5)===Boolean(y));q.alwaysHigher+=y;q.alwaysLower+=1-y;
   }
   pending.push({day,batch});
  }
- return {kind:"nhl_rolling_calibration_research_v1",priorDatesOnly:true,minimumDayGap,finalAvailabilityTimestampVerified:false,originalForecastFrozen:false,productionEligible:false,markets:Object.fromEntries(Object.entries(byMarket).map(([m,q])=>[m,{n:q.n,dates:q.days.size,championBrier:q.championBrierSum/q.n,calibratedBrier:q.calibratedBrierSum/q.n,neutralBrier:.25,championCorrect:q.championCorrect,calibratedCorrect:q.calibratedCorrect,alwaysHigher:q.alwaysHigher,alwaysLower:q.alwaysLower}])),modelPromoted:false};
+ return {kind:"nhl_rolling_calibration_research_v1",priorDatesOnly:true,minimumDayGap,finalAvailabilityTimestampVerified:false,originalForecastFrozen:false,productionEligible:false,markets:Object.fromEntries(Object.entries(byMarket).map(([m,q])=>[m,{n:q.n,dates:q.days.size,championBrier:q.championBrierSum/q.n,calibratedBrier:q.calibratedBrierSum/q.n,neutralBrier:.25,marketPriorBrier:q.baseBrierSum/q.n,halfShrinkBrier:q.shrunkBrierSum/q.n,championLogLoss:q.championLogLoss/q.n,calibratedLogLoss:q.calibratedLogLoss/q.n,marketPriorLogLoss:q.baseLogLoss/q.n,halfShrinkLogLoss:q.shrunkLogLoss/q.n,marketPriorCorrect:q.baseCorrect,halfShrinkCorrect:q.shrunkCorrect,championCorrect:q.championCorrect,calibratedCorrect:q.calibratedCorrect,alwaysHigher:q.alwaysHigher,alwaysLower:q.alwaysLower}])),modelPromoted:false};
 }
 module.exports={evaluate};

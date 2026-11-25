@@ -1,13 +1,16 @@
 name: Independent CS2 Steam overlap research
 on:
   pull_request:
-    paths: ['scripts/cs2_independent_steam_audit.py','scripts/public-opencs2-map-baseline.py','scripts/cs2_ektarr_wide_history.py','test/test_cs2_independent_steam_audit.py','.github/workflows/cs2-independent-steam-audit.yml']
+    paths: ['scripts/cs2_independent_steam_audit.py','scripts/esports_identity_registry.py','test/test_esports_identity_registry.py','scripts/public-opencs2-map-baseline.py','scripts/cs2_ektarr_wide_history.py','test/test_cs2_independent_steam_audit.py','.github/workflows/cs2-independent-steam-audit.yml']
   push:
     branches: [main]
     paths: ['.github/workflows/cs2-independent-steam-audit.yml']
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('steam-registry-pr-{0}', github.event.pull_request.number) || 'datasportsapi-esports-preflight' }}
+  cancel-in-progress: false
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -16,6 +19,7 @@ jobs:
         with:
           persist-credentials: false
       - run: python3 -m unittest discover -s test -p test_cs2_independent_steam_audit.py
+      - run: python3 -m unittest discover -s test -p test_esports_identity_registry.py
       - run: python3 -m unittest discover -s test -p test_opencs2_map_baseline.py
   audit:
     needs: tests
@@ -30,9 +34,24 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install pyarrow==19.0.1
+      - name: Verify restricted evidence destination
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
+      - uses: actions/checkout@v4
+        with:
+          repository: Thedarkwillow/nhl-betting-platform
+          ref: research/datasportsapi-esports-history
+          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+          path: restricted
+          persist-credentials: false
       - name: Compare pinned metadata only
         env:
           CS2_INDEPENDENT_IDENTITY_AUDIT: '1'
+          ESPORTS_IDENTITY_EVIDENCE_OUTPUT: ${{ runner.temp }}/esports-identity-evidence.json
         run: |
           set -euo pipefail
           python scripts/public-opencs2-map-baseline.py > "$RUNNER_TEMP/steam-overlap.log"
@@ -42,4 +61,40 @@ jobs:
           m=[r for r in rows if r.get("kind")=="cs2_independent_steam_overlap_v1"]
           assert len(m)==1, "Independent overlap audit did not complete"
           print(json.dumps(m[0]))
+          for r in rows:
+              if r.get('kind') in ('esports_identity_registry_v1','cs2_native_namespace_audit_v1','cs2_native_headshot_research_v1'):print(json.dumps(r))
           PY
+      - name: Commit evidence and rebuild cumulative private registry
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test -f "$RUNNER_TEMP/esports-identity-evidence.json"
+          cd restricted
+          git config user.name 'Research archive automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config core.hooksPath /dev/null
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch --quiet origin refs/heads/research/datasportsapi-esports-history
+          git switch --detach FETCH_HEAD
+          mkdir -p research/esports-identity-registry/evidence
+          dest="research/esports-identity-registry/evidence/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
+          test ! -e "$dest"
+          install -m 600 "$RUNNER_TEMP/esports-identity-evidence.json" "$dest"
+          PYTHONPATH="$GITHUB_WORKSPACE/scripts" python - <<'PY'
+          import json
+          from pathlib import Path
+          from esports_identity_registry import build,write_exclusive
+          root=Path('research/esports-identity-registry')
+          docs=[json.loads(p.read_text()) for p in sorted((root/'evidence').glob('*.json'))]
+          r=build(docs)
+          import os
+          write_exclusive(root/('snapshot-'+os.environ['GITHUB_RUN_ID']+'-'+os.environ['GITHUB_RUN_ATTEMPT']+'.json'),r)
+          print(json.dumps({k:v for k,v in r.items() if k!='links'}))
+          PY
+          git add research/esports-identity-registry
+          git commit -qm 'Archive cumulative esports identity registry evidence'
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:refs/heads/research/datasportsapi-esports-history
+          test "$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote origin refs/heads/research/datasportsapi-esports-history | cut -f1)" = "$(git rev-parse HEAD)"
+          echo 'Restricted registry commit verified.'

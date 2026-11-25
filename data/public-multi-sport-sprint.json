@@ -27,12 +27,12 @@
     },
     {
       "sport": "CS2",
-      "description": "102,900 source-local player-map records, 10,290 maps. Repaired team context yields 17,520 retrospective test observations per market; opponent-adjusted MAE improves kills, deaths and assists. Separate Steam-native headshot cohort is not added to this total. No authoritative cross-provider player link or original-line approval. Independent demo/Kaggle audit: 17 conflicts, 3 single-map candidates, zero authoritative links; 15 token-boundary alias conflicts and one adjacent-date map diagnostic. Regulation-only headshot fixed recent blend MAE 2.361 vs 2.375 over 324 observations; original cohort did not improve. Separate pinned static HLTV export: 21,870 rows, 2,187 complete maps, 423 exact map overlaps, 34 repeated-map identity candidates; no authoritative links.",
+      "description": "102,900 source-local player-map records, 10,290 maps. Repaired team context yields 17,520 retrospective test observations per market; opponent-adjusted MAE improves kills, deaths and assists. Separate Steam-native headshot cohort is not added to this total. No authoritative cross-provider player link or original-line approval. Independent demo/Kaggle audit: 17 conflicts, 3 single-map candidates, zero authoritative links; 15 token-boundary alias conflicts and one adjacent-date map diagnostic. Regulation-only headshot fixed recent blend MAE 2.361 vs 2.375 over 324 observations; original cohort did not improve. Separate pinned static HLTV export: 21,870 rows, 2,187 complete maps, 423 exact map overlaps, 34 repeated-map identity candidates; no authoritative links. Of 34 repeated-map candidates, 17 have distinct-match corroboration; not authoritative.",
       "historicalRows": 102900
     },
     {
       "sport": "Valorant",
-      "description": "73,950 map rows with agent, team, opponent and round count; 70,530 opening-kill/death rows and 60,680 patch rows. Agent-conditioned kills MAE 4.10569 vs 4.12247 (12,718 matched); duration challenger not approved. Opponent/team prior round exposure improved MAE 3.0167 to 2.8100 (13,788 observations); conditional on known teams.",
+      "description": "73,950 map rows with agent, team, opponent and round count; 70,530 opening-kill/death rows and 60,680 patch rows. Agent-conditioned kills MAE 4.10569 vs 4.12247 (12,718 matched); duration challenger not approved. Opponent/team prior round exposure improved MAE 3.0167 to 2.8100 (13,788 observations); conditional on known teams. Agent/map assists MAE 2.346 vs 2.443 on 7,274 matched tests; joint kills/deaths worsened. Agent/opponent improves all three on 2,798 matched rows, conditional historical only.",
       "historicalRows": 73950
     },
     {
@@ -42,12 +42,12 @@
     },
     {
       "sport": "Dota 2",
-      "description": "3,000 professional matches, 156 dates. Hero-conditioned historical error improved on 3,135 matched observations per market. Prior-only duration blend marginally improved assists MAE 5.535 to 5.520 (4,628); other markets did not improve. Prior team/opponent duration MAE improved 625.74 to 575.99 seconds (4,422).",
+      "description": "3,000 professional matches, 156 dates. Hero-conditioned historical error improved on 3,135 matched observations per market. Prior-only duration blend marginally improved assists MAE 5.535 to 5.520 (4,628); other markets did not improve. Prior team/opponent duration MAE improved 625.74 to 575.99 seconds (4,422). Separate 2024 cohort adds 30,000 player rows across 3,000 games, not pooled. Two private live batches reconcile 169 unique index games and 130 player details, 4 series with all listed details; no independently verified map ordinals.",
       "historicalRows": 30000
     },
     {
       "sport": "Call of Duty",
-      "description": "Separate March 2026 bounded sample: 187 complete maps, 1,496 valid player-map rows across 13 dates. Mode-conditioned kills MAE 5.65 vs last-20 8.59; deaths MAE 5.01 vs 8.26, 388 matched observations per market. Prior cohorts remain separate. June 2026 adds 187 maps / 1,496 rows; mode-conditioned kills MAE 6.315 vs 9.389 and deaths 5.988 vs 9.252 on 480 matched observations each. September returned zero. Cohorts not pooled.",
+      "description": "Separate March 2026 bounded sample: 187 complete maps, 1,496 valid player-map rows across 13 dates. Mode-conditioned kills MAE 5.65 vs last-20 8.59; deaths MAE 5.01 vs 8.26, 388 matched observations per market. Prior cohorts remain separate. June 2026 adds 187 maps / 1,496 rows; mode-conditioned kills MAE 6.315 vs 9.389 and deaths 5.988 vs 9.252 on 480 matched observations each. September returned zero. Cohorts not pooled. May 2026 separate cohort: 1,496 rows / 187 maps, 700 paired tests; mode-conditioned kills MAE 6.444 vs 8.814, deaths 6.076 vs 8.551.",
       "historicalRows": 1496
     },
     {
@@ -230,6 +230,28 @@
         "repeatedMapCandidates": 34
       },
       "advancedSourceRun": 45543382743
+    },
+    "latestSourceEvidence": {
+      "collectionRun": 45546951253,
+      "historyRun": 45546951289,
+      "observedAt": "2026-11-25T04:29:33.473Z",
+      "openDota": {
+        "uniqueIndexGames": 169,
+        "archiveGameDetails": 13,
+        "archivePlayerRows": 130,
+        "seriesWithEveryListedDetail": 4,
+        "verifiedMapOrdinals": 0
+      },
+      "credentialConfigured": {
+        "PandaScore": true,
+        "GRID": true
+      },
+      "permittedAccessConfirmed": {
+        "PandaScore": false,
+        "GRID": false
+      },
+      "authenticatedOffers": 0,
+      "frozenDecisions": 0
     }
   },
   "validationRuns": {
@@ -250,6 +272,8 @@
     "nbaPrimaryPdf": 45539564919,
     "opponentExposure": 45539565008,
     "lolCs2Specialists": 45542340820,
-    "esportsAdvanced": 45543382743
+    "esportsAdvanced": 45543382743,
+    "esportsSourceFollowup": 45546951289,
+    "freeProviders": 45546951253
   }
 }

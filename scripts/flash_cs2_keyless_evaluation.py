@@ -38,17 +38,26 @@ def sample(doc,now):
         else:stale+=1
     return {"rows":len(rows),"distinctNumericLines":len(seen),"futureStartCandidates":future,"alreadyStarted":stale,"invalidRows":ex,"providerReportedTotal":doc.get("totalAvailable") if type(doc.get("totalAvailable")) is int else None,"originalOffersVerified":0,"quoteFreshnessVerified":False}
 def graded(raw):
-    reader=csv.DictReader(io.StringIO(raw.decode("utf-8-sig")))
+    text=raw.decode("utf-8-sig")
+    lines=text.splitlines(keepends=True)
+    preamble=0
+    while lines and (not lines[0].strip() or lines[0].lstrip().startswith("#")):
+        lines.pop(0);preamble+=1
+    if not lines:raise ValueError("missing_csv_header")
+    reader=csv.DictReader(io.StringIO("".join(lines)))
     fields=reader.fieldnames or []
     if len(fields)>60 or len(set(fields))!=len(fields):raise ValueError("csv_contract")
     rows=list(reader)
     if len(rows)>10000:raise ValueError("row_cap")
     def col(*names):
         norm=lambda s:re.sub("[^a-z0-9]","",s.lower())
-        matching=[f for f in fields if norm(f) in {norm(n) for n in names}]
-        return matching[0] if len(matching)==1 else None
-    keys={"player":col("player","player_name"),"event":col("event_id","game_id","series_id"),"market":col("stat","stat_key","market_key","market"),"line":col("line","posted_line","book_line"),"outcome":col("outcome","result","graded_outcome"),"actual":col("actual","actual_value","actual_stat","actual_total","result_value"),"start":col("start_time","event_start","event_start_time","starts_at"),"captured":col("captured_at","snapshot_at","quoted_at","line_captured_at")}
-    report={"rows":len(rows),"columns":fields,"recognizedFields":{k:bool(v) for k,v in keys.items()},"verifiedOriginalLines":0,"frozenModelDecisions":0,"sourceOutcomeCounts":{},"numericConsistencyChecked":0,"numericDisagreements":0,"timedPregameRows":0,"distinctContractRows":0,"conflictingContracts":0,"modelPromoted":False}
+        for name in names:
+            matching=[f for f in fields if norm(f)==norm(name)]
+            if len(matching)==1:return matching[0]
+            if len(matching)>1:return None
+        return None
+    keys={"player":col("player","player_name"),"event":col("event_id","game_id","series_id","match_id","event","game","series"),"market":col("stat_key","stat","market_key","market","prop_type"),"line":col("line","posted_line","book_line"),"outcome":col("outcome","result","graded_outcome"),"actual":col("actual","actual_value","actual_stat","actual_total","result_value","actual_count","settled_value"),"start":col("start_time","event_start","event_start_time","starts_at"),"captured":col("captured_at","snapshot_at","quoted_at","line_captured_at","snapshot_time","observed_at")}
+    report={"rows":len(rows),"preambleLinesSkipped":preamble,"columns":fields,"recognizedFields":{k:bool(v) for k,v in keys.items()},"verifiedOriginalLines":0,"frozenModelDecisions":0,"sourceOutcomeCounts":{},"numericConsistencyChecked":0,"numericDisagreements":0,"timedPregameRows":0,"distinctContractRows":0,"conflictingContracts":0,"modelPromoted":False}
     if not all(keys[k] for k in ("player","event","market","line","outcome")):return report
     seen=defaultdict(set)
     counts=Counter()

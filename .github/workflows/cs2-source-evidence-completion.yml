@@ -54,7 +54,7 @@ jobs:
       - name: Review conflict aliases and professional-profile claims
         run: |
           umask 077
-          python scripts/cs2_conflict_profile_audit.py registry/research/esports-identity-registry/snapshot-45539564986-1.json restricted/research/kashrock-source-captures/hltv-steam-secondary-profile-review-v2-20261125.json "$RUNNER_TEMP/conflict-review.json"
+          python scripts/cs2_conflict_profile_audit.py registry/research/esports-identity-registry/snapshot-45539564986-1.json restricted/research/kashrock-source-captures/hltv-steam-secondary-profile-review-v2-20261125.json "$RUNNER_TEMP/conflict-review.json" restricted/research/kashrock-source-captures/identity-projection-candidate-review-20261125.json restricted/research/kashrock-source-captures/cs2-conflict-public-account-review-20261125.json
       - name: Preserve private review
         working-directory: restricted
         env:

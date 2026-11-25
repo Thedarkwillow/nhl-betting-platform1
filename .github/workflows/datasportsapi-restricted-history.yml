@@ -1,12 +1,12 @@
 name: DataSportsAPI restricted esports history
 on:
   pull_request:
-    paths: ['scripts/datasportsapi_restricted_history.py','test/test_datasportsapi_restricted_history.py','scripts/datasportsapi_esports_preflight.py','.github/workflows/datasportsapi-restricted-history.yml']
+    paths: ['scripts/datasportsapi_restricted_history.py','scripts/datasportsapi_quota_guard.py','test/test_datasportsapi_restricted_history.py','scripts/datasportsapi_esports_preflight.py','.github/workflows/datasportsapi-restricted-history.yml']
   push:
     branches: [main]
     paths: ['.github/workflows/datasportsapi-restricted-history.yml','scripts/datasportsapi_restricted_history.py']
   schedule:
-    - cron: '15 14 * * *'
+    - cron: '20 0 * * *'
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,6 +21,7 @@ jobs:
         with:
           persist-credentials: false
       - run: python3 -m unittest discover -s test -p test_datasportsapi_restricted_history.py
+      - run: python3 -m unittest discover -s test -p test_datasportsapi_quota_guard.py
   collect:
     needs: test
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

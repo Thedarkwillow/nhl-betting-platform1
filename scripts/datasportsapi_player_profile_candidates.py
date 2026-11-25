@@ -1,5 +1,7 @@
 """Bounded current-profile corroboration; no authoritative Steam join inferred."""
 import json,os,sys,urllib.parse
+from datetime import datetime,timezone
+from datasportsapi_quota_guard import read_docs,blocked_until,quota_result
 from pathlib import Path
 from collections import Counter
 from datasportsapi_esports_preflight import Client,valid_id
@@ -27,14 +29,23 @@ def search(client,review,capture):
         except Exception:counts["source_unavailable"]+=1
     pairs=one_to_one({(r["steamIdCandidate"],r["providerPlayerId"]) for r in rows})
     rows=[r for r in rows if (r["steamIdCandidate"],r["providerPlayerId"]) in pairs]
-    return {"kind":"datasportsapi_player_profile_candidates_v1","candidateCount":len(pairs),"requests":client.calls,"excluded":dict(counts),"rawRowsPublished":0,"paidRequests":0,"authoritativeCrosswalkVerified":False},rows
+    return {"kind":"datasportsapi_player_profile_candidates_v1",**quota_result(client,datetime.now(timezone.utc)),"candidateCount":len(pairs),"requests":client.calls,"excluded":dict(counts),"rawRowsPublished":0,"paidRequests":0,"authoritativeCrosswalkVerified":False},rows
 if __name__=="__main__":
     key=os.environ.get("DATASPORTSAPI_API_KEY","").strip()
     if not key:print(json.dumps({"kind":"datasportsapi_player_profile_candidates_v1","status":"missing_key","requests":0}));sys.exit(0)
     review=json.loads(Path(sys.argv[1]).read_text());capture=json.loads(Path(sys.argv[2]).read_text())
+    now=datetime.now(timezone.utc)
+    blocked=blocked_until(read_docs(os.environ.get("DATASPORTS_PREVIOUS_ARCHIVE")),now)
+    if blocked:
+        print(json.dumps({"kind":"datasportsapi_player_profile_candidates_v1","status":"quota_cooldown","blockedUntil":blocked.isoformat(),"requests":0,"paidRequests":0,"rawRowsPublished":0}))
+        sys.exit(0)
     report,rows=search(Client(key,max_calls=10),review,capture)
     p=Path(os.environ["DATASPORTS_IDENTITY_OUTPUT"]).resolve()
     if p.parent!=Path(os.environ["RUNNER_TEMP"]).resolve():raise ValueError("restricted_output")
     fd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
     with os.fdopen(fd,"w") as f:json.dump({"report":report,"candidates":rows},f)
+    if report.get("blockedUntil"):
+        q=Path(os.environ["RUNNER_TEMP"])/"datasportsapi-profile-quota.json"
+        fd=os.open(q,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+        with os.fdopen(fd,"w") as f:json.dump({"kind":"datasportsapi_quota_checkpoint_v1","source":"DataSportsAPI","observedAt":datetime.now(timezone.utc).isoformat(),**{k:report[k] for k in ("rateLimitReason","rateLimitRetryAfterSeconds","blockedUntil")}},f)
     print(json.dumps(report))

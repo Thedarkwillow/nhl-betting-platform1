@@ -46,9 +46,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: Thedarkwillow/nhl-betting-platform
-          ref: ${{ github.ref == 'refs/heads/main' && 'main' || '1d5551bffcd7cb88e3c94c3aaf7fbfa521668ba0' }}
-          token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           persist-credentials: false
           fetch-depth: 1
       - uses: actions/setup-node@v4

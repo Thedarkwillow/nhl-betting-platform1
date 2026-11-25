@@ -75,6 +75,7 @@ jobs:
       - name: Check reviewed player profiles using bounded free endpoints
         env:
           DATASPORTSAPI_API_KEY: ${{ secrets.DATASPORTSAPI || secrets.DATASPORTSAPI_API_KEY }}
+          DATASPORTS_PREVIOUS_ARCHIVE: restricted/research/datasportsapi-esports-history
           DATASPORTS_IDENTITY_OUTPUT: ${{ runner.temp }}/cs2-profile-candidates.json
         run: python3 scripts/datasportsapi_player_profile_candidates.py reviewed/esports-diagnostic-capture-20261124/identity-review.json reviewed/esports-diagnostic-capture-20261124/normalized.json
       - name: Store identity evidence only in private archive
@@ -101,6 +102,14 @@ jobs:
             install -m 600 "$profiles" "$profile_dest"
             git add "$profile_dest"
             rm -f "$profiles"
+          fi
+          quota="$RUNNER_TEMP/datasportsapi-profile-quota.json"
+          if test -f "$quota"; then
+            qdest="research/datasportsapi-esports-history/quota-profile-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
+            mkdir -p research/datasportsapi-esports-history
+            install -m 600 "$quota" "$qdest"
+            git add "$qdest"
+            rm -f "$quota"
           fi
           git commit -qm 'Archive restricted CS2 cross-source identity evidence'
           git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:refs/heads/research/datasportsapi-esports-history

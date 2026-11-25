@@ -30,7 +30,9 @@ on:
         type: string
         default: '2026-11-23'
   schedule:
-    - cron: '35 6,9 * * *'
+    - cron: '35 6 * * *'
+      timezone: America/Los_Angeles
+    - cron: '35 9 * * *'
       timezone: America/Los_Angeles
     - cron: '15 15,16,18,19 * * *'
       timezone: America/Los_Angeles
@@ -94,18 +96,71 @@ jobs:
         run: |
           python -m pip install 'pyarrow>=18,<24'
           command -v pdftotext || { sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils; }
-      - name: Authorized NBA-only source capture and prospective grading
+      - name: Confirm authorized private archive
+        id: private_destination
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .private)" = true
+          test "$(gh api repos/Thedarkwillow/nhl-betting-platform --jq .permissions.push)" = true
+      - name: Independent NBA final-stat grading
+        env:
+          RESEARCH_ARCHIVE_ROOT: ${{ github.workspace }}/archive
+        run: |
+          set -euo pipefail
+          umask 077
+          log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+          node public/scripts/grade-nba-frozen-research-v1.cjs >"$log" 2>&1 || { echo "::warning::NBA grading unavailable; outcomes not inferred."; }
+      - name: Preserve completed grade files before collection
+        working-directory: archive
+        run: |
+          set -euo pipefail
+          test -d outputs/nba/paper-grades || exit 0
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f outputs/nba/paper-grades
+          git diff --cached --quiet && exit 0
+          test -z "$(git diff --cached --name-only --diff-filter=CDMRTUXB)"
+          git commit -qm 'research: append independent NBA final-stat grades'
+          for attempt in 1 2 3 4 5 6; do
+            git fetch -q origin main
+            git rebase -q origin/main || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then
+              git fetch -q origin main
+              git merge-base --is-ancestor HEAD origin/main
+              echo 'Private NBA grade commit verified on remote.'
+              exit 0
+            fi
+            sleep "$((attempt*2))"
+          done
+          exit 1
+      - name: Checkout locked morning code
+        if: ${{ github.event_name == 'schedule' && (github.event.schedule == '35 6 * * *' || github.event.schedule == '35 9 * * *') }}
+        uses: actions/checkout@v4
+        with:
+          ref: f063be9e64f19028c59efbdcaf5b28f35210ea3d
+          path: candidate
+          persist-credentials: false
+      - name: Verify morning collection lock and exact revision
+        if: ${{ github.event_name == 'schedule' && (github.event.schedule == '35 6 * * *' || github.event.schedule == '35 9 * * *') }}
+        env:
+          SOURCE_SCHEDULE: ${{ github.event.schedule }}
+        run: node public/scripts/morning-collection-lock-check.cjs archive candidate "$SOURCE_SCHEDULE"
+      - name: Authorized NBA-only source capture
         env:
           NBA_DIRECT_SOURCE_AUTHORIZED: '1'
           NBA_HISTORICAL_MIRROR_RESEARCH: ${{ vars.NBA_MIRROR_SOURCE_AUTHORIZED == '1' && '1' || '0' }}
           NBA_ODDS_ENABLE: '0'
+          LOCKED_MORNING: ${{ github.event_name == 'schedule' && (github.event.schedule == '35 6 * * *' || github.event.schedule == '35 9 * * *') }}
         run: |
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           export RESEARCH_ARCHIVE_ROOT="$GITHUB_WORKSPACE/archive"
-          node public/scripts/grade-nba-frozen-research-v1.cjs >"$log" 2>&1 || { echo "::warning::NBA grading unavailable; outcomes not inferred."; }
-          node public/scripts/run-nba-private-research-v1.cjs >"$log" 2>&1 || { echo "::error::NBA collection failed closed."; exit 1; }
+          code=public
+          if [ "$LOCKED_MORNING" = true ]; then code=candidate; fi
+          node "$code/scripts/run-nba-private-research-v1.cjs" >"$log" 2>&1 || { echo "::error::NBA collection failed closed."; exit 1; }
           node - "$log" <<'NODE'
           const fs=require('fs'),r=JSON.parse(fs.readFileSync(process.argv[2],'utf8').trim().split('\n').at(-1));
           if(r.kind!=='nba_isolated_research_readiness_v1'||r.sharedPaidProviderRequests!==0||r.actualWagersPlaced!==0||r.highConfidenceApproved!==0)throw Error('NBA research contract');
@@ -120,11 +175,17 @@ jobs:
           test -d outputs/nba || exit 0
           git add -f outputs/nba
           git diff --cached --quiet && exit 0
-          git commit -qm 'research: authorized private NBA observations and final-only grading'
+          test -z "$(git diff --cached --name-only --diff-filter=CDMRTUXB)"
+          git commit -qm 'research: append authorized private NBA observations'
           for attempt in 1 2 3 4 5 6; do
             git fetch -q origin main
             git rebase -q origin/main || { git rebase --abort; exit 1; }
-            if git push -q origin HEAD:main; then exit 0; fi
+            if git push -q origin HEAD:main; then
+              git fetch -q origin main
+              git merge-base --is-ancestor HEAD origin/main
+              echo 'Private NBA observation commit verified on remote.'
+              exit 0
+            fi
             sleep "$((attempt*2))"
           done
           exit 1

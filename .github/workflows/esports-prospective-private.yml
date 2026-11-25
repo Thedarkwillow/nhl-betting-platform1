@@ -7,7 +7,11 @@ on:
     paths: ['.github/workflows/esports-prospective-private.yml','scripts/esports-prospective-archive.cjs','test/esports-prospective-archive.test.cjs']
   workflow_dispatch:
   schedule:
-    - cron: '35 6,9,12,16 * * *'
+    - cron: '35 6 * * *'
+      timezone: America/Los_Angeles
+    - cron: '35 9 * * *'
+      timezone: America/Los_Angeles
+    - cron: '35 12,16 * * *'
       timezone: America/Los_Angeles
 permissions:
   contents: read
@@ -36,6 +40,7 @@ jobs:
           path: public
           persist-credentials: false
       - name: Verify restricted destination
+        id: private_destination
         env:
           GH_TOKEN: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
         run: |
@@ -53,7 +58,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node public/scripts/esports-prospective-archive.cjs archive freeze
+      - name: Checkout locked morning code
+        if: ${{ github.event_name == 'schedule' && (github.event.schedule == '35 6 * * *' || github.event.schedule == '35 9 * * *') }}
+        uses: actions/checkout@v4
+        with:
+          ref: f063be9e64f19028c59efbdcaf5b28f35210ea3d
+          path: candidate
+          persist-credentials: false
+      - name: Verify morning collection lock and exact revision
+        if: ${{ github.event_name == 'schedule' && (github.event.schedule == '35 6 * * *' || github.event.schedule == '35 9 * * *') }}
+        env:
+          SOURCE_SCHEDULE: ${{ github.event.schedule }}
+        run: node public/scripts/morning-collection-lock-check.cjs archive candidate "$SOURCE_SCHEDULE"
+      - name: Existing private research archive routine
+        env:
+          LOCKED_MORNING: ${{ github.event_name == 'schedule' && (github.event.schedule == '35 6 * * *' || github.event.schedule == '35 9 * * *') }}
+        run: |
+          set -euo pipefail
+          code=public
+          if [ "$LOCKED_MORNING" = true ]; then code=candidate; fi
+          node "$code/scripts/esports-prospective-archive.cjs" archive freeze
       - name: Commit only immutable private forecast files
         working-directory: archive
         env:
@@ -66,6 +90,12 @@ jobs:
           git diff --cached --quiet && exit 0
           git config user.name 'Research archive automation'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          test -z "$(git diff --cached --name-only --diff-filter=CDMRTUXB)"
           git commit -qm 'Archive esports research forecasts before start'
           git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push --quiet origin HEAD:main
-      - run: node public/scripts/esports-prospective-archive.cjs archive audit
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch --quiet origin main
+          git merge-base --is-ancestor HEAD origin/main
+          echo 'Private esports archive commit verified on remote.'
+      - name: Independent private archive audit
+        if: always() && !cancelled() && steps.private_destination.outcome == 'success'
+        run: node public/scripts/esports-prospective-archive.cjs archive audit

@@ -1,0 +1,25 @@
+name: Morning collection lock provenance offline tests
+on:
+  pull_request:
+    paths:
+      - 'scripts/morning-collection-lock-check.cjs'
+      - 'test/morning-collection-lock-check.test.cjs'
+      - '.github/workflows/nba-authorized-research.yml'
+      - '.github/workflows/esports-prospective-private.yml'
+      - '.github/workflows/morning-collection-lock-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/morning-collection-lock-check.cjs'
+      - 'test/morning-collection-lock-check.test.cjs'
+      - '.github/workflows/morning-collection-lock-check.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/morning-collection-lock-check.test.cjs test/nba-esports-prepull-candidate-lock.test.cjs test/morning-private-archive-health.test.cjs

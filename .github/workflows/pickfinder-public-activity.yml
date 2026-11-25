@@ -1,0 +1,57 @@
+name: Public PickFinder activity readiness
+on:
+  pull_request:
+    paths: ['scripts/pickfinder-public-activity.cjs','test/pickfinder-public-activity.test.cjs','.github/workflows/pickfinder-public-activity.yml','assets/pickfinder-public-evidence.js']
+  push:
+    branches: [main]
+    paths: ['scripts/pickfinder-public-activity.cjs','test/pickfinder-public-activity.test.cjs','.github/workflows/pickfinder-public-activity.yml']
+  workflow_run:
+    workflows: ['PickFinder Premium public orchestration','Public-only PickFinder research validation']
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: public-pickfinder-activity-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+jobs:
+  test:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.sha }}
+      - run: node --check assets/pickfinder-public-evidence.js && node --test test/pickfinder-public-activity.test.cjs test/pickfinder-public-runner.test.cjs test/pickfinder-public-model-validation.test.cjs
+  report:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build zero-request report
+        run: node scripts/pickfinder-public-activity.cjs .
+      - name: Publish only derived activity
+        run: |
+          set -euo pipefail
+          git add -f data/pickfinder-public-activity.json
+          git diff --cached --quiet && exit 0
+          test "$(git diff --cached --name-only)" = data/pickfinder-public-activity.json
+          git config user.name 'Public research activity'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Publish public PickFinder board activity and readiness'
+          git fetch --quiet origin main
+          git rebase --quiet FETCH_HEAD
+          git push --quiet origin HEAD:main
+          git fetch --quiet origin main
+          git merge-base --is-ancestor HEAD FETCH_HEAD

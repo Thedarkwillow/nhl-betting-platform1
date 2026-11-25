@@ -119,7 +119,7 @@ def collect(client,now,days,previous=(),pending=None,retry=()):
         key=(str(x["fixture"]["id"]),str(x["game"]["id"]))
         if key not in known:unique[key]=x
     pending[:]=list(unique.values())
-    report.update(rateLimitRetryAfterSeconds=getattr(client,"rateLimitRetryAfterSeconds",None),pendingLineups=len(pending),requests=client.calls,counts=dict(counts),excluded=dict(excluded),titleDateComplete=len(completed_days),fullHistoryVerified=False,status="sample_captured" if out else "no_verified_game_rows")
+    report.update(quotaRemaining=getattr(client,"quotaRemaining",None),quotaResetSeconds=getattr(client,"quotaResetSeconds",None),rateLimitRetryAfterSeconds=getattr(client,"rateLimitRetryAfterSeconds",None),pendingLineups=len(pending),requests=client.calls,counts=dict(counts),excluded=dict(excluded),titleDateComplete=len(completed_days),fullHistoryVerified=False,status="sample_captured" if out else "no_verified_game_rows")
     return report,out
 def main():
     key=os.environ.get("DATASPORTSAPI_API_KEY","").strip()

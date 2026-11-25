@@ -36,6 +36,26 @@ function prepare({historyRows,historyDigests,schedule,receipts,archive,clock,rev
  }
  return {h:nba.indexHistory([{rows:historyRows}]),historyDigests:[...historyDigests],players,schedule,archive,revision,preparedAt:clock};
 }
+// Aggregate-only coverage audit. No new forecasts or eligibility changes.
+function auditRosterHistory(candidates,context,clock){
+ const counts={candidates:0,reviewedCrosswalk:0,priorHistoryReady:0,excluded:{}},seen=new Set(),cut=eastern(clock);
+ const reject=k=>{counts.excluded[k]=(counts.excluded[k]||0)+1;};
+ for(const c of candidates){
+  if(c.sport!=='nba'||c.state!=='native_roster_only_candidate'||c.nativeNamespace!=='espn:nba')continue;
+  const k=JSON.stringify([c.eventId,c.playerPath,c.nativePlayerId,c.nativeGameId]);if(seen.has(k))continue;seen.add(k);counts.candidates++;
+  const team=nba.teams(c.team),opp=nba.teams(c.opponent);
+  const matches=(context.players.get(JSON.stringify([nba.norm(c.player),team,opp]))||[]).filter(p=>p.eventId===c.eventId&&p.playerPath===c.playerPath&&dt(p.start)===dt(c.nativeStartAt)&&p.receipt.doc.records.some(r=>r.eventId===c.eventId&&r.playerPath===c.playerPath&&String(r.espnPlayerId)===String(c.nativePlayerId)&&Number(r.nbaPlayerId)===p.id)&&p.receipt.doc.games.some(g=>g.eventId===c.eventId&&String(g.espnGameId)===String(c.nativeGameId)&&Number(g.nbaGameId)===p.gid));
+  const unique=new Map(matches.map(p=>[JSON.stringify([p.id,p.gid,p.start]),p]));
+  if(unique.size!==1){reject('missing_or_ambiguous_reviewed_crosswalk');continue;}
+  counts.reviewedCrosswalk++;
+  const p=[...unique.values()][0],logs=(context.h.players.get(p.id)||[]).filter(x=>x.gameDate<cut),latest=logs.at(-1);
+  if(!latest||latest.team!==team||nba.norm(latest.player)!==nba.norm(c.player)||dt(cut)-dt(latest.gameDate)>45*86400000){reject('history_identity_or_team');continue;}
+  const prev=logs.filter(x=>x.team===team).slice(-30);
+  if(prev.length<12||prev.slice(-5).some(x=>!Number.isFinite(x.minutes))||prev.slice(-5).reduce((sum,x)=>sum+x.minutes,0)/5<8){reject('insufficient_prior_history');continue;}
+  counts.priorHistoryReady++;
+ }
+ return {...counts,sourceClockVerified:false,modelApproved:false,paidRequests:0};
+}
 function evaluate(rows,context,clock){
  const at=dt(clock),excluded={},predictions=[],seen=new Set();
  if(!Number.isFinite(at)||!Array.isArray(rows))throw Error('input');
@@ -85,7 +105,10 @@ async function fromCommitted(root,payload,clock,revision,{refreshSchedule=false}
  const archive=load(root);
  const context=prepare({historyRows:payload.rows,historyDigests:payload.digests,schedule,receipts:gameReviewReceipts(root,clock),archive,clock,revision});
  context.other=require('./prizepicks-native-context-readiness.cjs').fromArchive(root,clock,revision,archive);
+ const {reconcileArchive}=require('./native-individual-research.cjs');
+ const candidates=reconcileArchive(context.other,require('./pickfinder-public-archive.cjs').read(root,'directory'));
+ context.rosterHistoryAudit=auditRosterHistory(candidates.identityOnlyRows,context,clock);
  return context;
 }
-module.exports={prepare,evaluate,summarize,fromCommitted};
-if(require.main===module)(async()=>{const fs=require('node:fs'),{execFileSync}=require('node:child_process');const payload=JSON.parse(fs.readFileSync(0,'utf8'));if(payload.kind!=='nba_mirror_prospective_input_v1')throw Error('context_kind');const root=process.cwd(),clock=new Date().toISOString(),revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();const context=await fromCommitted(root,payload,clock,revision,{refreshSchedule:true});console.log(JSON.stringify({kind:'direct_model_context_preflight_v1',historyRows:context.h.rows.length,reviewedPlayerScopes:context.players.size,scheduleGames:context.schedule.games.length,sourceScheduleAt:context.schedule.capturedAt,otherSportReadiness:context.other.status,paidRequests:0,rawRowsPublished:0,modelApproved:false}));if(!context.players.size)process.exitCode=1;})().catch(()=>{console.error('Direct model context preflight failed closed');process.exitCode=1;});
+module.exports={prepare,evaluate,summarize,fromCommitted,auditRosterHistory};
+if(require.main===module)(async()=>{const fs=require('node:fs'),{execFileSync}=require('node:child_process');const payload=JSON.parse(fs.readFileSync(0,'utf8'));if(payload.kind!=='nba_mirror_prospective_input_v1')throw Error('context_kind');const root=process.cwd(),clock=new Date().toISOString(),revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();const context=await fromCommitted(root,payload,clock,revision,{refreshSchedule:true});console.log(JSON.stringify({kind:'direct_model_context_preflight_v1',historyRows:context.h.rows.length,reviewedPlayerScopes:context.players.size,scheduleGames:context.schedule.games.length,sourceScheduleAt:context.schedule.capturedAt,otherSportReadiness:context.other.status,rosterHistoryAudit:context.rosterHistoryAudit,paidRequests:0,rawRowsPublished:0,modelApproved:false}));if(!context.players.size)process.exitCode=1;})().catch(()=>{console.error('Direct model context preflight failed closed');process.exitCode=1;});

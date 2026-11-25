@@ -1,10 +1,10 @@
 name: CS2 round reconciliation and Valorant prior agent mixture
 on:
   pull_request:
-    paths: ['scripts/cs2_round_reconcile.py','scripts/public-opencs2-map-baseline.py','scripts/valorant_pregame_agent_research.py','.github/workflows/esports-round-reconcile-and-agent-mixture.yml']
+    paths: ['scripts/cs2_round_reconcile.py','scripts/public-opencs2-map-baseline.py','scripts/valorant_pregame_agent_research.py','test/test_opencs2_map_baseline.py','.github/workflows/esports-round-reconcile-and-agent-mixture.yml']
   push:
     branches: [main]
-    paths: ['.github/workflows/esports-round-reconcile-and-agent-mixture.yml']
+    paths: ['.github/workflows/esports-round-reconcile-and-agent-mixture.yml','scripts/cs2_round_reconcile.py','test/test_opencs2_map_baseline.py']
   workflow_dispatch:
 permissions:
   contents: read

@@ -106,8 +106,19 @@ async function collectDota(root,client=fetch){
   }
   report.chronologicalSeriesCandidates=ordered;report.ambiguousSeries=ambiguous;
   report.indexRecords=data.index.length;report.seriesIdRecords=data.index.filter(r=>r.providerSeriesId).length;data.sourceDigests.push({endpoint:"proMatches",sha256:q.digest});
-  const prior=previousIds(root);report.skippedArchived=data.index.filter(x=>prior.has(x.providerGameId)).length;
-  for(const x of data.index.filter(x=>!prior.has(x.providerGameId)).slice(0,8)){
+  const {archive:reviewArchive,choose}=require("./dota-series-archive-review.cjs");
+  const prior=previousIds(root),review=reviewArchive(root);
+  report.skippedArchived=data.index.filter(x=>prior.has(x.providerGameId)).length;
+  const union=new Map(review.index);
+  for(const x of data.index){
+   const old=union.get(x.providerGameId);
+   if(!review.bad.has(x.providerGameId)&&(!old||JSON.stringify(old)===JSON.stringify(x)))union.set(x.providerGameId,x);
+   else union.delete(x.providerGameId);
+  }
+  const selected=choose(union.values(),prior,8);
+  report.selectedOlderSeriesGames=selected.filter(x=>!data.index.some(y=>x.providerGameId===y.providerGameId)).length;
+  for(const x of selected){
+   if(!data.index.some(y=>y.providerGameId===x.providerGameId))data.index.push(x);
    await pause();report.requests++;
    try{
     const r=await request("https://api.opendota.com/api/matches/"+x.providerGameId,{},client);

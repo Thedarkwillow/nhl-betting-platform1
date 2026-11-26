@@ -138,3 +138,49 @@ test('NBA history-only runner excludes unrelated context and discovery prepasses
  assert.ok(src.includes('if(!p.historyRepair&&alive()){\n   const until=Date.now()+90000,gameAlive='));
  assert.ok(src.includes('if(!p.historyRepair&&alive()&&!p.featuresOnly){'));
 });
+
+test('historical prop table is collected without treating unrelated stat or movement tables as results',()=>{
+ const {readSections}=require('../scripts/pickfinder-player-research.cjs');
+ const th=x=>({innerText:x,tagName:'TH',rowSpan:1,colSpan:1});
+ const table=(headers,values)=>({getClientRects:()=>[{}],querySelectorAll:s=>s==='thead th'?headers.map(th):s==='thead tr'?[{cells:headers.map(th)}]:s==='tbody tr'?[{cells:values.map(innerText=>({innerText,querySelectorAll:()=>[]}))}]:[]});
+ const tables=[table(['Date','Prop Line','Result'],['2026-11-20','5.5','7']),table(['Date','PTS','REB'],['2026-11-20','20','5']),table(['App','Time','Line','Result'],['DraftKings','12:00','5.5','7'])];
+ const prior=global.document;
+ try{
+  global.document={body:{innerText:''},querySelectorAll:s=>s==='table'?tables:[]};
+  const fields=readSections({tab:'Prop History',origin:'prop_history',observedAt:'2026-11-26T20:00:00Z',context:{}});
+  assert.equal(fields.length,1);assert.equal(fields[0].scope,'Date | Prop Line | Result');assert.equal(fields[0].headerLayout,'span-grid-v1');
+  assert.equal(JSON.parse(fields[0].value)[2].value,'7');
+ }finally{if(prior===undefined)delete global.document;else global.document=prior;}
+});
+test('multi-row sporting headers align spans and preserve period-specific labels',()=>{
+ const {readSections}=require('../scripts/pickfinder-player-research.cjs');
+ const th=(innerText,rowSpan=1,colSpan=1)=>({innerText,tagName:'TH',rowSpan,colSpan});
+ const headerRows=[{cells:[th('Date',2),th('Opponent',2),th('Stats',1,2),th('First Half',1,2)]},{cells:[th('PTS'),th('REB'),th('PTS'),th('REB')]}];
+ const table={getClientRects:()=>[{}],querySelectorAll:s=>s==='thead tr'?headerRows:s==='thead th'?headerRows.flatMap(r=>r.cells):s==='tbody tr'?[{cells:['11/20','TOR','24','8','10','4'].map(innerText=>({innerText,querySelectorAll:()=>[]}))}]:[]};
+ const prior=global.document;
+ try{
+  global.document={body:{innerText:''},querySelectorAll:s=>s==='table'?[table]:[]};
+  const fields=readSections({tab:'Game Log',origin:'profile',observedAt:'2026-11-26T20:00:00Z',context:{}});
+  assert.equal(fields[0].scope,'Date | Opponent | PTS | REB | First Half / PTS | First Half / REB');
+  assert.equal(fields[0].headerLayout,'span-grid-v1');assert.equal(JSON.parse(fields[0].value).length,6);
+ }finally{if(prior===undefined)delete global.document;else global.document=prior;}
+});
+test('header repair cannot clear a different malformed row or an incomplete replay',()=>{
+ const b={book:'prizepicks',sport:'nba',offers:[{player:'Fixture',detailId:'/players/nba/a?prop=x%3Apoints%3Ae%3A5',market:'points',eventId:'e'}]};
+ const x=queue([b],[]).pending[0],stamp='2026-11-25T20:00:00Z',later='2026-11-25T21:00:00Z';
+ const row=(metric,scope,observedAt,headerLayout)=>({origin:'profile',tab:'Game Log',metric,scope,value:'[{"value":"11/20"},{"value":"TOR"},{"value":"5"}]',observedAt,headerLayout});
+ const record=(fields,truncated=false)=>publicProfile({...x,research:fields,profileCollection:{truncated}});
+ const old=record([row('row 1','Date | Opp',stamp),row('row 2','Date | Opp',stamp)]);
+ const fixed1=row('row 1','Date | Opp | PTS',later,'span-grid-v1'),fixed2={...fixed1,metric:'row 2'};
+ assert.equal(queue([b],[{records:[old,record([fixed1])]}]).repairPending.length,1);
+ assert.equal(queue([b],[{records:[old,record([fixed1,fixed2],true)]}]).repairPending.length,1);
+ assert.equal(queue([b],[{records:[old,record([fixed1,fixed2])]}]).repairPending.length,0);
+});
+test('notification menu follows only explicit same-origin allowlisted link',async()=>{
+ const {inspectTool}=require('../scripts/pickfinder-tool-schema.cjs');let opened=false,route='https://www.pickfinder.app/props';const visits=[];
+ const menu={count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true,click:async()=>{opened=true;}};
+ const page={url:()=>route,locator:()=>({evaluateAll:async()=>[]}),getByRole:(role,o)=>{assert.equal(o.name,'Open user menu');return menu;},goto:async u=>{route=u;visits.push(u);},evaluate:async(fn,args)=>args.allowed?(opened&&args.name==='Notifications'?['https://www.pickfinder.app/settings/notifications','https://example.com/settings/notifications']:[]):{verified:true,controls:[{label:'Notifications',kind:'h2',disabled:false,inputType:null}]}};
+ const x=await inspectTool(page,'alerts',async()=>true);
+ assert.equal(x.state,'read_only_schema_observed');assert.equal(x.method,'user_menu_link');assert.equal(x.mutations,0);
+ assert.deepEqual(visits,['https://www.pickfinder.app/settings/notifications']);
+});

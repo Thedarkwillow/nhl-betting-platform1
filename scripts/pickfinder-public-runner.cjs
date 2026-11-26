@@ -40,7 +40,23 @@ function sharedScope(s){
  return {sport,player,market,eventId,detailId:u.pathname+'?'+u.searchParams.toString(),period:s.period??null,mapRange:s.mapRange??null,gameMode:s.gameMode??null};
 }
 function queue(boards,profiles){
- const done=new Set(),attempted=new Map();for(const b of profiles)for(const r of b.records||[]){const scope=sharedScope(r);if(!scope)continue;const key=sha(JSON.stringify(scope));attempted.set(key,(attempted.get(key)||0)+1);if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&r.research?.length)done.add(key);}
+ const done=new Set(),attempted=new Map(),repairs=new Map(),aligned=new Map();
+ for(const b of profiles)for(const r of b.records||[]){
+  const scope=sharedScope(r);if(!scope)continue;
+  const key=sha(JSON.stringify(scope));attempted.set(key,(attempted.get(key)||0)+1);
+  if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&r.research?.length)done.add(key);
+  if(r.sport!=='nba')continue;
+  for(const f of require('./pickfinder-native-history-reconciliation.cjs').structuredFields(r.research||[])){
+   if(f.origin!=='profile'||!/^row \d+$/.test(f.metric||'')||!(/(?:^| \| )(?:Date|Game Date)(?: \| |$)/i.test(f.scope||'')))continue;
+   let cells;try{cells=JSON.parse(f.value);}catch{continue;}
+   if(!Array.isArray(cells)||!Number.isFinite(Date.parse(f.observedAt)))continue;
+   const n=String(f.scope||'').split(' | ').length,at=Date.parse(f.observedAt);
+   if(n!==cells.length||String(f.scope).endsWith('[header truncated]'))repairs.set(key,Math.max(repairs.get(key)||0,at));
+   else if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&String(f.scope).length>500)aligned.set(key,Math.max(aligned.get(key)||0,at));
+  }
+ }
+ const repairKeys=new Set([...repairs].filter(([k,at])=>(aligned.get(k)||0)<=at).map(([k])=>k));
+ for(const k of repairKeys)done.delete(k);
  const q=new Map();let references=0;
  for(const b of boards)for(const o of [...b.offers||[],...b.unpricedTierObservations||[],...(['offers','unpricedTierObservations'].includes(b.field)?b.rows:[])]){
   if(!['prizepicks','underdog'].includes(b.book))continue;
@@ -51,9 +67,9 @@ function queue(boards,profiles){
  }
  const groups=new Map();for(const x of q.values())if(!done.has(x.key)){const a=groups.get(x.sport)||[];a.push(x);groups.set(x.sport,a);}
  const order=['nba','nhl','nfl','cs2','dota2','valorant','lol','cod',...groups.keys()];const sports=[...new Set(order)].filter(s=>groups.has(s));
- for(const a of groups.values())a.sort((x,y)=>(attempted.get(x.key)||0)-(attempted.get(y.key)||0));
+ for(const a of groups.values())a.sort((x,y)=>Number(repairKeys.has(y.key))-Number(repairKeys.has(x.key))||(attempted.get(x.key)||0)-(attempted.get(y.key)||0));
  const i=new Map(),pending=[];while(sports.some(s=>(i.get(s)||0)<groups.get(s).length))for(const s of sports){const n=i.get(s)||0;if(n<groups.get(s).length){pending.push(groups.get(s)[n]);i.set(s,n+1);}}
- return {total:q.size,done:[...done].filter(k=>q.has(k)).length,pending,offerReferences:references,sharedAcrossBooks:[...q.values()].filter(x=>x.books.length>1).length};
+ return {total:q.size,done:[...done].filter(k=>q.has(k)).length,pending,malformedHistoryPending:[...repairKeys].filter(k=>q.has(k)).length,offerReferences:references,sharedAcrossBooks:[...q.values()].filter(x=>x.books.length>1).length};
 }
 function publicProfile(row){
  const fields=[];for(const f of row.research||[]){
@@ -169,7 +185,7 @@ async function main(root,env=process.env){
    }catch{errors++;console.log(JSON.stringify({state:'public_dashboard_pending',name}));}
   }
   if(p.featuresOnly)return;
-  const q=queue(read(root,'board-parts'),read(root,'profiles'));console.log(JSON.stringify({state:'public_deep_queue',total:q.total,completed:q.done,remaining:q.pending.length,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
+  const q=queue(read(root,'board-parts'),read(root,'profiles'));console.log(JSON.stringify({state:'public_deep_queue',total:q.total,completed:q.done,remaining:q.pending.length,malformedHistoryPending:q.malformedHistoryPending,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
   // Explicit manual deep runs alone trial two isolated tabs; all archives remain serialized.
   // Never increase parallelism in the protected morning board or scheduled collection paths.
   const workers=profileWorkers(env,p),pages=[];

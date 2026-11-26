@@ -110,3 +110,16 @@ test('feature inspector opens only a unique named navigation control and verifie
  assert.equal((await inspectTool(missing,'alerts',async()=>true)).state,'panel_or_route_unverified');
  assert.equal((await inspectTool(page,'alerts',async()=>false)).state,'session_or_route_unverified');
 });
+
+test('malformed NBA historical header requeues only affected scopes until newer aligned evidence',()=>{
+ const b={book:'prizepicks',sport:'nba',offers:[{player:'Fixture',detailId:'/players/nba/a?prop=x%3Apoints%3Ae%3A5',market:'points',eventId:'e'},{player:'Other',detailId:'/players/nba/b?prop=y%3Apoints%3Ae%3A5',market:'points',eventId:'e'}]};
+ const q=queue([b],[]),x=q.pending.find(p=>p.player==='Fixture'),y=q.pending.find(p=>p.player==='Other');
+ const heads=['Date','Opponent',...Array.from({length:87},(_,i)=>'Sport stat '+i)];
+ const f={origin:'profile',tab:'Game Log',metric:'row 1',scope:heads.slice(0,59).join(' | '),value:JSON.stringify(heads.map(()=>({value:'1'}))),observedAt:'2026-11-25T20:00:00Z'};
+ const make=(x,f)=>publicProfile({...x,research:[f],profileCollection:{truncated:false}});
+ const old=make(x,f),other=make(y,{...f,scope:'Date | PTS',value:'[{"value":"11/20"},{"value":"12"}]'});
+ let p=queue([b],[{records:[old,other]}]);
+ assert.equal(p.malformedHistoryPending,1);assert.equal(p.pending.length,1);assert.equal(p.pending[0].player,'Fixture');
+ const fixed=make(x,{...f,scope:heads.join(' | '),observedAt:'2026-11-25T21:00:00Z'});
+ p=queue([b],[{records:[old,other,fixed]}]);assert.equal(p.malformedHistoryPending,0);assert.equal(p.pending.length,0);
+});

@@ -61,10 +61,10 @@ function readBoard({book, code, sport, observedAt}) {
         const texts=[display,...[group,...group.querySelectorAll('[aria-label],[title]')].flatMap(e=>[e.getAttribute('aria-label'),e.getAttribute('title')])].filter(t=>typeof t==='string'&&t.length<=400);
         const thresholds=new Set(texts.flatMap(t=>[...t.matchAll(/\b(?:sportsbook\s+)?(?:line|threshold)\s*[:=]\s*(\d+(?:\.\d+)?)(?=\s|[,;)]|$)/gi)].map(m=>Number(m[1]))));
         const explicit=thresholds.size===1?[...thresholds][0]:null;
-        for(const t of texts)for(const m of t.matchAll(/(?:^|[\s,;])(?:O|Over|Higher|U|Under|Lower)\s*(\d+(?:\.\d+)?)\s*\(?([+-]\d{2,4})\)?(?=\s|[,;]|$)/gi)){
-          if(Math.abs(Number(m[2]))<100)continue;
-          const side=/^(?:O|Over|Higher)\s*/i.test(m[0].trim())?'Higher':'Lower';
-          const price=m[2],quoteLine=Number(m[1]);
+        for(const t of texts)for(const m of t.matchAll(/(?:^|[\s,;])(O|Over|Higher|U|Under|Lower)\s*(\d+(?:\.\d+)?)\s*\(?([+-]\d{2,4})\)?(?=\s|[,;]|$)/gi)){
+          if(Math.abs(Number(m[3]))<100)continue;
+          const side=/^(?:O|Over|Higher)$/i.test(m[1])?'Higher':'Lower';
+          const price=m[3],quoteLine=Number(m[2]);
           if(!prices.some(p=>p.side===side&&p.price===price&&p.quoteLine===quoteLine))prices.push({side,price,quoteLine});
         }
         if(explicit!==null&&prices.every(p=>p.quoteLine===null||p.quoteLine===explicit))for(const p of prices)if(p.quoteLine===null)p.quoteLine=explicit;

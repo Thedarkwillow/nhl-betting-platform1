@@ -1,6 +1,6 @@
 {
   "kind": "public_native_model_scope_validation_v1",
-  "generatedAt": "2026-11-25T23:49:39.350993+00:00",
+  "generatedAt": "2026-11-26T11:33:57.484412+00:00",
   "nfl": {
     "inputPlayerGames": 47962,
     "conflictingPlayerGames": 0,
@@ -351,34 +351,34 @@
   },
   "identity": {
     "nba": {
-      "eventCandidates": 8,
-      "playerCandidates": 125,
+      "eventCandidates": 2,
+      "playerCandidates": 70,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 126,
+      "missingSourceEventClock": 78,
       "missingTeam": 0,
       "missingOpponent": 0,
-      "ambiguousEvent": 13,
-      "ambiguousPlayer": 1
+      "ambiguousEvent": 52,
+      "ambiguousPlayer": 8
     },
     "nfl": {
-      "eventCandidates": 5,
-      "playerCandidates": 234,
+      "eventCandidates": 4,
+      "playerCandidates": 184,
       "sourceContextCorroborated": 0,
       "missingSourceEventClock": 522,
       "missingTeam": 0,
       "missingOpponent": 0,
-      "ambiguousEvent": 280,
-      "ambiguousPlayer": 288
+      "ambiguousEvent": 334,
+      "ambiguousPlayer": 338
     },
     "nhl": {
-      "eventCandidates": 14,
-      "playerCandidates": 568,
+      "eventCandidates": 0,
+      "playerCandidates": 78,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 587,
+      "missingSourceEventClock": 80,
       "missingTeam": 0,
       "missingOpponent": 0,
-      "ambiguousEvent": 0,
-      "ambiguousPlayer": 19
+      "ambiguousEvent": 80,
+      "ambiguousPlayer": 2
     },
     "college-football": {
       "eventCandidates": 20,
@@ -391,14 +391,14 @@
       "ambiguousPlayer": 894
     },
     "college-basketball": {
-      "eventCandidates": 1,
-      "playerCandidates": 28,
+      "eventCandidates": 0,
+      "playerCandidates": 21,
       "sourceContextCorroborated": 0,
       "missingSourceEventClock": 102,
       "missingTeam": 6,
       "missingOpponent": 6,
-      "ambiguousEvent": 93,
-      "ambiguousPlayer": 74
+      "ambiguousEvent": 102,
+      "ambiguousPlayer": 81
     },
     "tennis": {
       "eventCandidates": 0,

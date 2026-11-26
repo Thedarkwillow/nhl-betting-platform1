@@ -7,6 +7,7 @@ const labels={builder:/^(?:pick builder|add pick|remove pick|payout|potential pa
 // Only an exact, visible, non-submit navigation button may be opened. Never click
 // a player star, create alert, export, connect Discord, or any form control.
 async function navigationButton(page,names){
+ if(typeof page.locator!=='function')return null; // missing browser capability: fail closed
  const selector='header button,nav button,aside button,header [role=button],nav [role=button],aside [role=button]';
  const buttons=page.locator(selector);
  const indices=await buttons.evaluateAll((els,names)=>els.flatMap((e,i)=>{

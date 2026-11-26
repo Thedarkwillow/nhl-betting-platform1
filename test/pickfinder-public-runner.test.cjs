@@ -131,3 +131,10 @@ test('NBA history repair is manual and protects both morning capture windows',()
  for(const h of [13,14,16,17])assert.equal(invocation(e,new Date('2026-11-25T'+h+':01:00Z')).allowed,false);
  assert.throws(()=>invocation({...e,GITHUB_EVENT_NAME:'push'},new Date('2026-11-25T20:00:00Z')),/manual repair only/);
 });
+
+test('NBA history-only runner excludes unrelated context and discovery prepasses',()=>{
+ const fs=require('node:fs'),src=fs.readFileSync(require.resolve('../scripts/pickfinder-public-runner.cjs'),'utf8');
+ assert.ok(src.includes('const evidence=p.historyRepair?null:await discover({env});'));
+ assert.ok(src.includes('if(!p.historyRepair&&alive()){\n   const until=Date.now()+90000,gameAlive='));
+ assert.ok(src.includes('if(!p.historyRepair&&alive()&&!p.featuresOnly){'));
+});

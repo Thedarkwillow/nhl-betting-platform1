@@ -95,7 +95,7 @@ async function main(root,env=process.env){
  let boards=0,profiles=0,archiveMs=0,transactions=0,profileMs=0,errors=0;const write=async(kind,data)=>{const t=Date.now();const receipt=await persist(root,kind,data);archiveMs+=Date.now()-t;transactions++;return receipt;};
  try{
   if(p.probe){console.log(JSON.stringify({state:'public_hosted_auth_verified',accountDataPublished:false}));return;}
-  const evidence=await discover({env});
+  const evidence=p.historyRepair?null:await discover({env});
   if(!p.deep){for(const code of prioritySports(CORE,evidence))for(const book of BOOKS){
    if(!alive())break;
    try{await page.goto(ORIGIN+'/props',{timeout:20000});const names=code==='DOTA2'?['DOTA2','Dota 2']:[code];let visible=false;for(const name of names){const b=page.getByRole('button',{name,exact:true});if(await b.count()===1&&await b.isVisible())visible=true;}if(!visible){console.log(JSON.stringify({state:'public_board_not_exposed',code,book,competition:'unknown'}));continue;}
@@ -109,7 +109,7 @@ async function main(root,env=process.env){
   if(p.expected!=='manual'||p.boardsOnly)return;
   // Capture game context before the potentially very long deep-profile queue.
   // Time-box this independently and never consume a protected morning window.
-  if(alive()){
+  if(!p.historyRepair&&alive()){
    const until=Date.now()+90000,gameAlive=()=>alive()&&Date.now()<until;
    try{
     await page.goto(ORIGIN+'/props',{timeout:15000});
@@ -133,7 +133,7 @@ async function main(root,env=process.env){
     }
    }catch{errors++;console.log(JSON.stringify({state:'public_game_context_pending'}));}
   }
-  if(alive()&&!p.featuresOnly){
+  if(!p.historyRepair&&alive()&&!p.featuresOnly){
    const until=Date.now()+(p.contextOnly?25:5)*60000,contextAlive=()=>alive()&&Date.now()<until;
    const q=gameContext.queue(load(root),read(root,'directory'),new Date().toISOString());
    const detail=await context.newPage();detail.setDefaultTimeout(5000);

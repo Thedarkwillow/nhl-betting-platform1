@@ -1,10 +1,10 @@
 name: Private witnessed forecast cohort grading
 on:
   pull_request:
-    paths: ['scripts/prizepicks-vault-grade-cohort.cjs','scripts/prizepicks-restricted-nba-grade.cjs','test/prizepicks-vault-grade-cohort.test.cjs','.github/workflows/prizepicks-vault-grade-cohort.yml']
+    paths: ['scripts/nba-bounded-official-final.cjs','test/nba-bounded-official-final.test.cjs','scripts/prizepicks-vault-grade-cohort.cjs','scripts/prizepicks-restricted-nba-grade.cjs','test/prizepicks-vault-grade-cohort.test.cjs','.github/workflows/prizepicks-vault-grade-cohort.yml']
   push:
     branches: [main]
-    paths: ['scripts/prizepicks-vault-grade-cohort.cjs','.github/workflows/prizepicks-vault-grade-cohort.yml']
+    paths: ['scripts/nba-bounded-official-final.cjs','test/nba-bounded-official-final.test.cjs','scripts/prizepicks-vault-grade-cohort.cjs','.github/workflows/prizepicks-vault-grade-cohort.yml']
   schedule:
     - cron: '35 4,22 * * *'
       timezone: America/Los_Angeles
@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test test/prizepicks-vault-grade-cohort.test.cjs test/prizepicks-native-context-readiness.test.cjs
+      - run: node --test test/nba-bounded-official-final.test.cjs test/prizepicks-vault-grade-cohort.test.cjs test/prizepicks-native-context-readiness.test.cjs
   audit_and_grade:
     needs: test
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

@@ -36,7 +36,10 @@ function readSections({tab,origin,observedAt,context}) {
         // Keep the app label, quoted sides and source-displayed time together; never infer year/timezone or book.
         for(const name of ['Line','App','Time']){const at=headers.indexOf(name);const cell=cells[at];if(cell)add('movement '+name.toLowerCase(),'movement row '+index,JSON.stringify(cell));}
       }
-      add('row '+index,header.slice(0,500),JSON.stringify(cells),headers.includes('Date')?document.body.innerText.match(/Gamelog - (Last \d+ Games)/i)?.[1]||null:null);
+      // Keep complete headers when they fit the public sporting-evidence limit.
+      // Oversize headers stay explicitly unaligned, never positionally guessed.
+      const scope=header.length<=4000?header:header.slice(0,500)+' | [header truncated]';
+      add('row '+index,scope,JSON.stringify(cells),headers.includes('Date')?document.body.innerText.match(/Gamelog - (Last \d+ Games)/i)?.[1]||null:null);
     }
   }
   if(origin==='profile'){

@@ -147,3 +147,31 @@ test('esports explicit hyphen range recovers only source-labeled map scope',()=>
  assert.deepEqual(esportsScope({sport:'cs2',market:m,detailId:'/players/cs2/fixture?prop=a:'+m+':b:10'}).maps,[1,2]);
  assert.equal(esportsScope({sport:'cs2',market:m,detailId:'https://example.com/players/cs2/fixture?prop=a:'+m+':b:10'}),null);
 });
+
+test('observed first-N map identifiers preserve explicit source scope without approving fantasy scoring',()=>{
+ const {esportsScope}=require('../scripts/pickfinder-archived-model-inputs.cjs');
+ const o={sport:'cs2',market:'1st_2_maps_player_headshots',mapRange:'1st_2_maps'};
+ assert.deepEqual(esportsScope(o).maps,[1,2]);
+ assert.equal(esportsScope(o).market,'headshotKills');
+ assert.equal(esportsScope(o).modelApproved,false);
+ assert.deepEqual(esportsScope({...o,market:'1st_1_maps_player_kills',mapRange:'1st_1_maps'}).maps,[1]);
+ assert.equal(esportsScope({...o,sport:'dota2',market:'1st_2_maps_player_fantasy_score_underdog_'}),null);
+ assert.equal(esportsScope({...o,mapRange:'2_maps'}),null);
+});
+
+test('public sporting tables retain complete bounded headings while legacy scope stays bounded',()=>{
+ const {readSections}=require('../scripts/pickfinder-player-research.cjs');
+ const headers=['Date','Opponent',...Array.from({length:87},(_,i)=>'Sport stat '+i)];
+ const table={getClientRects:()=>[{}],querySelectorAll:s=>s==='thead th'?headers.map(innerText=>({innerText})):s==='tbody tr'?[{cells:headers.map(()=>({innerText:'1',querySelectorAll:()=>[]}))}]:[]};
+ const prior=global.document;
+ try{
+  global.document={body:{innerText:''},querySelectorAll:s=>s==='table'?[table]:[]};
+  const p={tab:'Game Log',origin:'profile',observedAt,context:{}};
+  const all=readSections({...p,fullSportingHeaders:true});
+  assert.equal(all[0].scope.split(' | ').length,89);
+  assert.ok(all.every(f=>f.scope===all[0].scope));
+  const legacy=readSections(p);
+  assert.ok(legacy[0].scope.length<=512);
+  assert.ok(legacy[0].scope.endsWith('[header truncated]'));
+ }finally{if(prior===undefined)delete global.document;else global.document=prior;}
+});

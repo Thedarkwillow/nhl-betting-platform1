@@ -181,7 +181,7 @@ async function main(root,env=process.env){
     const items=q.pending.slice(i,i+workers);
     const results=await Promise.allSettled(items.map(async(item,n)=>{
      const detail=pages[n],row={...item,research:[]},t=Date.now();attemptedProfiles++;
-     try{await enrich(detail,row,{expanded:true,maxFields:Infinity,shouldContinue:alive,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(!await premium(detail))throw Error('session');}});}catch{row.profileCollection={truncated:true};}
+     try{await enrich(detail,row,{expanded:true,fullSportingHeaders:true,maxFields:Infinity,shouldContinue:alive,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(!await premium(detail))throw Error('session');}});}catch{row.profileCollection={truncated:true};}
      return {record:publicProfile(row),elapsed:Date.now()-t,authenticated:await premium(detail).catch(()=>false)};
     }));
     let failed=false;for(const x of results){if(x.status!=='fulfilled'){failed=true;continue;}const {record,elapsed,authenticated}=x.value;profileMs+=elapsed;await buffer.add(record);if(record.status==='sampled'&&record.truncated===false)nontruncated++;if(!authenticated)failed=true;}

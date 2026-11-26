@@ -51,10 +51,11 @@ function quoteInventory(rows){
 function esportsScope(o){
  const title={cs2:'CS2',valorant:'VALORANT',dota2:'DOTA2',lol:'LOL',cod:'COD'}[o.sport];
  if(!title)return null;
- const match=/^((?:maps?_[1-7](?:[_-][1-7])?|[1-7](?:[_-][1-7])?_maps?))_player_(.+)$/.exec(o.market||'');
+ const match=/^((?:maps?_[1-7](?:[_-][1-7])?|[1-7](?:[_-][1-7])?_maps?|1st_[1-7]_maps))_player_(.+)$/.exec(o.market||'');
  if(!match||o.period!=null||o.mapRange!=null&&match[1]!==o.mapRange)return null;
  if(o.mapRange==null){let u;try{u=new URL(o.detailId,'https://www.pickfinder.app');}catch{return null;}const p=u.searchParams.getAll('prop');if(u.origin!=='https://www.pickfinder.app'||!u.pathname.startsWith('/players/')||p.length!==1||p[0].split(':')[1]!==o.market)return null;}
- const nums=match[1].match(/[1-7]/g).map(Number);
+ const first=/^1st_([1-7])_maps$/.exec(match[1]);
+ const nums=first?(Number(first[1])===1?[1]:[1,Number(first[1])]):match[1].match(/[1-7]/g).map(Number);
  if(nums.length===2&&nums[0]>=nums[1])return null;
  const maps=nums.length===1?nums:Array.from({length:nums[1]-nums[0]+1},(_,i)=>nums[0]+i);
  const market={kills:'kills',headshots:'headshotKills',headshot_kills:'headshotKills',assists:'assists',deaths:'deaths','kills_+_assists':'killsPlusAssists',creep_score:'creepScore',last_hits:'lastHits'}[match[2]];

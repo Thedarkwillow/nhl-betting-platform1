@@ -100,9 +100,23 @@ function* committedProfiles(root){
   yield {doc:JSON.parse(raw),digest,first};
  }
 }
-function run(root,clock=new Date().toISOString()){
- const p=auditProfiles(committedProfiles(root),clock),b=auditBoards(load(root),clock);
- return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,nativeHistory:nativeHistory.fromArchive(root,committedProfiles(root),clock).summary,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
+// The packet is an inspection artifact, not a review receipt. It contains
+// only already-authorized sporting facts and pointers to their immutable archives.
+function reviewPacket(h,clock){
+ const by=new Map();
+ for(const x of h.rows.values()){
+  const p=nativeHistory.profilePath(x.sport,x.sourceDetailId);if(!p)continue;
+  const k=key([x.sport,p,x.playerId]),a=by.get(k)||new Map();
+  const fact=key([x.eventId,x.market,x.value,x.nativeDigest,x.profileDigest]);
+  if(!a.has(fact))a.set(fact,{eventId:x.eventId,market:x.market,value:x.value,officialStartAt:x.officialStartAt,officialGameDate:x.officialGameDate,sourceDate:x.sourceDate,nativeDigest:x.nativeDigest,profileDigest:x.profileDigest,nativeAvailableAt:x.nativeAvailableAt,profileAvailableAt:x.profileAvailableAt});
+  by.set(k,a);
+ }
+ return {kind:'pickfinder_historical_identity_review_packet_v1',generatedAt:clock,rows:h.identityCandidates.map(c=>({...c,facts:[...(by.get(key([c.sport,c.profilePath,c.nativePlayerId]))||new Map()).values()],independentReviewVerified:false})),modelApproved:false,reviewReceipt:false};
 }
-module.exports={classify,auditProfiles,auditBoards,quoteInventory,esportsScope,run};
-if(require.main===module)console.log(JSON.stringify(run(process.cwd())));
+function run(root,clock=new Date().toISOString(),{packetPath=null}={}){
+ const p=auditProfiles(committedProfiles(root),clock),b=auditBoards(load(root),clock),h=nativeHistory.fromArchive(root,committedProfiles(root),clock);
+ if(packetPath)fs.writeFileSync(packetPath,JSON.stringify(reviewPacket(h,clock),null,2)+'\n',{flag:'wx'});
+ return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,nativeHistory:h.summary,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
+}
+module.exports={classify,auditProfiles,auditBoards,quoteInventory,esportsScope,committedProfiles,reviewPacket,run};
+if(require.main===module)console.log(JSON.stringify(run(process.cwd(),new Date().toISOString(),{packetPath:process.argv[2]||null})));

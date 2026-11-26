@@ -1,7 +1,7 @@
 {
   "kind": "public_pickfinder_identity_health_v1",
-  "generatedAt": "2026-11-26T13:55:24.409Z",
-  "archiveRevision": "af624b2ff7c0379086a6d3613f786e3f39acbff8",
+  "generatedAt": "2026-11-26T23:53:23.515Z",
+  "archiveRevision": "b7b0c5b4ce1090508a9bdc567e4a9f356c6d63c2",
   "sourceEvents": 221,
   "sources": {
     "nba": {
@@ -9,7 +9,7 @@
       "source": "espn:nba",
       "events": 26,
       "upcoming": 26,
-      "rosterPlayers": 494,
+      "rosterPlayers": 512,
       "failedTeams": 0,
       "sourceEvents": 11,
       "uniqueEventCandidates": 10,
@@ -21,12 +21,12 @@
       "state": "observed",
       "source": "espn:nfl",
       "events": 14,
-      "upcoming": 14,
-      "rosterPlayers": 629,
+      "upcoming": 12,
+      "rosterPlayers": 1767,
       "failedTeams": 0,
       "sourceEvents": 15,
-      "uniqueEventCandidates": 4,
-      "uniquePlayerCandidates": 184,
+      "uniqueEventCandidates": 11,
+      "uniquePlayerCandidates": 327,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -35,7 +35,7 @@
       "source": "nhl:official",
       "events": 48,
       "upcoming": 48,
-      "rosterPlayers": 804,
+      "rosterPlayers": 806,
       "failedTeams": 0,
       "sourceEvents": 4,
       "uniqueEventCandidates": 4,
@@ -66,12 +66,12 @@
       "state": "observed",
       "source": "espn:college-basketball",
       "events": 96,
-      "upcoming": 96,
-      "rosterPlayers": 613,
+      "upcoming": 90,
+      "rosterPlayers": 611,
       "failedTeams": 0,
       "sourceEvents": 15,
-      "uniqueEventCandidates": 7,
-      "uniquePlayerCandidates": 61,
+      "uniqueEventCandidates": 2,
+      "uniquePlayerCandidates": 23,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -130,7 +130,7 @@
   "nativeHistory": {
     "nhl": {
       "finalGames": 36,
-      "playerAppearances": 932,
+      "playerAppearances": 927,
       "completeHistoricalSeasons": false
     },
     "dota2": {
@@ -141,7 +141,7 @@
   },
   "independentlyReviewedCrosswalks": 0,
   "paidRequests": 0,
-  "publicRequests": 224,
+  "publicRequests": 239,
   "privateRepoUsed": false,
   "modelApproved": false
 }

@@ -1,6 +1,6 @@
 {
   "kind": "public_pickfinder_activity_readiness_v1",
-  "generatedAt": "2026-11-26T01:59:42.294Z",
+  "generatedAt": "2026-11-26T02:11:18.709Z",
   "archiveInvalid": 0,
   "events": [
     {
@@ -735,7 +735,7 @@
   "readiness": {
     "nba/prizepicks": {
       "observedAt": "2026-11-25T17:19:33.925Z",
-      "ageMs": 31208369,
+      "ageMs": 31904784,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 3469,
@@ -744,7 +744,7 @@
     },
     "nba/underdog": {
       "observedAt": "2026-11-25T17:21:04.151Z",
-      "ageMs": 31118143,
+      "ageMs": 31814558,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 2036,
@@ -753,7 +753,7 @@
     },
     "nhl/prizepicks": {
       "observedAt": "2026-11-25T17:22:50.491Z",
-      "ageMs": 31011803,
+      "ageMs": 31708218,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 938,
@@ -762,7 +762,7 @@
     },
     "nhl/underdog": {
       "observedAt": "2026-11-25T17:24:03.693Z",
-      "ageMs": 30938601,
+      "ageMs": 31635016,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 2850,
@@ -771,7 +771,7 @@
     },
     "nfl/prizepicks": {
       "observedAt": "2026-11-25T17:26:54.482Z",
-      "ageMs": 30767812,
+      "ageMs": 31464227,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 2713,
@@ -780,7 +780,7 @@
     },
     "nfl/underdog": {
       "observedAt": "2026-11-25T17:29:02.919Z",
-      "ageMs": 30639375,
+      "ageMs": 31335790,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 5936,
@@ -789,7 +789,7 @@
     },
     "cs2/prizepicks": {
       "observedAt": "2026-11-25T17:29:40.768Z",
-      "ageMs": 30601526,
+      "ageMs": 31297941,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 226,
@@ -798,7 +798,7 @@
     },
     "cs2/underdog": {
       "observedAt": "2026-11-25T17:29:52.740Z",
-      "ageMs": 30589554,
+      "ageMs": 31285969,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 376,
@@ -807,7 +807,7 @@
     },
     "dota2/prizepicks": {
       "observedAt": "2026-11-25T17:30:01.121Z",
-      "ageMs": 30581173,
+      "ageMs": 31277588,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 40,
@@ -816,7 +816,7 @@
     },
     "dota2/underdog": {
       "observedAt": "2026-11-25T17:30:10.228Z",
-      "ageMs": 30572066,
+      "ageMs": 31268481,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 30,
@@ -825,7 +825,7 @@
     },
     "valorant/prizepicks": {
       "observedAt": "2026-11-25T17:30:19.223Z",
-      "ageMs": 30563071,
+      "ageMs": 31259486,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -834,7 +834,7 @@
     },
     "valorant/underdog": {
       "observedAt": "2026-11-25T17:30:22.100Z",
-      "ageMs": 30560194,
+      "ageMs": 31256609,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 11,
@@ -843,7 +843,7 @@
     },
     "lol/prizepicks": {
       "observedAt": "2026-11-25T17:30:31.308Z",
-      "ageMs": 30550986,
+      "ageMs": 31247401,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -852,7 +852,7 @@
     },
     "lol/underdog": {
       "observedAt": "2026-11-25T17:30:34.945Z",
-      "ageMs": 30547349,
+      "ageMs": 31243764,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -861,7 +861,7 @@
     },
     "cod/prizepicks": {
       "observedAt": "2026-11-25T17:30:38.804Z",
-      "ageMs": 30543490,
+      "ageMs": 31239905,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -870,7 +870,7 @@
     },
     "cod/underdog": {
       "observedAt": "2026-11-25T17:30:42.439Z",
-      "ageMs": 30539855,
+      "ageMs": 31236270,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -880,7 +880,7 @@
   },
   "cache": {
     "state": "historical_cache_shadow_audit",
-    "generatedAt": "2026-11-26T01:59:42.294Z",
+    "generatedAt": "2026-11-26T02:11:18.709Z",
     "profiles": 1070,
     "fields": 527267,
     "candidates": 0,

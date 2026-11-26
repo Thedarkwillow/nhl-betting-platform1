@@ -21,29 +21,34 @@ function priorSeason(selection,now){
  return {start,end,label:v};
 }
 function stable(x){if(Array.isArray(x))return x.map(stable);if(x&&typeof x==='object')return Object.fromEntries(Object.keys(x).sort().map(k=>[k,stable(x[k])]));return x;}
-function candidate(record,f,now){
- if(record.coverageVersion!==VERSION||record.truncated!==false||record.status!=='sampled'||f.origin!=='profile'||!/^row \d+$/.test(f.metric||'')||!record.sport||!record.market||!record.player)return null;
- const seen=Date.parse(f.observedAt);if(!Number.isFinite(seen)||seen>+now)return null;
- let u;try{u=new URL(record.detailId,'https://www.pickfinder.app');}catch{return null;}
- if(u.origin!=='https://www.pickfinder.app'||!/^\/players\/[^/]+\/[^/]+$/.test(u.pathname))return null;
- const season=priorSeason(f.filterSelection,now);if(!season)return null;
- if(!/game\s*log|player stats|historical stats/i.test(f.tab||'')||/line|odds|payout|hit rate|projection|average|result/i.test(f.scope||''))return null;
- const headers=String(f.scope||'').split(' | ');if(headers.filter(h=>norm(h)==='date').length!==1||headers.length<2||new Set(headers).size!==headers.length)return null;
- let cells;try{cells=JSON.parse(f.value);}catch{return null;}
- if(!Array.isArray(cells)||cells.length!==headers.length||cells.some(c=>!c||typeof c.value!=='string'))return null;
+function candidate(record,f,now,diagnostic){
+ const reject=reason=>{if(diagnostic)diagnostic(reason);return null;};
+ if(record.coverageVersion!==VERSION)return reject('coverage_version');
+ if(record.truncated!==false)return reject('truncated_profile');
+ if(record.status!=='sampled')return reject('profile_status');
+ if(f.origin!=='profile'||!/^row \d+$/.test(f.metric||''))return reject('not_profile_row');
+ if(!record.sport||!record.market||!record.player)return reject('missing_scope');
+ const seen=Date.parse(f.observedAt);if(!Number.isFinite(seen)||seen>+now)return reject('observation_clock');
+ let u;try{u=new URL(record.detailId,'https://www.pickfinder.app');}catch{return reject('profile_route');}
+ if(u.origin!=='https://www.pickfinder.app'||!/^\/players\/[^/]+\/[^/]+$/.test(u.pathname))return reject('profile_route');
+ const season=priorSeason(f.filterSelection,now);if(!season)return reject('prior_season_unverified');
+ if(!/game\s*log|player stats|historical stats/i.test(f.tab||'')||/line|odds|payout|hit rate|projection|average|result/i.test(f.scope||''))return reject('not_game_log_scope');
+ const headers=String(f.scope||'').split(' | ');if(headers.filter(h=>norm(h)==='date').length!==1||headers.length<2||new Set(headers).size!==headers.length)return reject('date_header_or_columns');
+ let cells;try{cells=JSON.parse(f.value);}catch{return reject('row_json');}
+ if(!Array.isArray(cells)||cells.length!==headers.length||cells.some(c=>!c||typeof c.value!=='string'))return reject('row_shape');
  const date=day(cells[headers.findIndex(h=>norm(h)==='date')].value);
- if(!date||+new Date(date+'T23:59:59Z')>=seen||+date.slice(0,4)<season.start||+date.slice(0,4)>season.end)return null;
+ if(!date||+new Date(date+'T23:59:59Z')>=seen||+date.slice(0,4)<season.start||+date.slice(0,4)>season.end)return reject('game_date_unverified');
  // Do not conflate different filters, period, map, mode, or market. Exact cells are compared.
  const identity={sport:record.sport,profile:u.pathname,player:record.player,market:record.market,period:f.period??record.period??null,mapRange:f.mapRange??record.mapRange??null,gameMode:f.gameMode??record.gameMode??null,season:season.label,date,tab:f.tab,headers,window:f.window??null,filters:stable(f.filterSelection)};
  return {key:sha(JSON.stringify(stable(identity))),digest:sha(JSON.stringify(stable(cells))),seen,sport:record.sport};
 }
 function buildIndex(documents,now=new Date()){
  const index=new Map();let fields=0,candidates=0,duplicates=0,conflicts=0,profiles=0;
- const bySport={};
+ const bySport={},rejectionReasons={};
  for(const doc of documents)for(const r of doc.records||[]){
   profiles++;
   for(const f of r.research||[]){
-   fields++;const c=candidate(r,f,now);if(!c)continue;candidates++;
+   fields++;const c=candidate(r,f,now,reason=>{rejectionReasons[reason]=(rejectionReasons[reason]||0)+1;});if(!c)continue;candidates++;
    const sport=bySport[c.sport]??={candidates:0,duplicateObservations:0,conflictedKeys:0};sport.candidates++;
    const prev=index.get(c.key);
    if(!prev){index.set(c.key,{digest:c.digest,seen:c.seen,conflict:false,sport:c.sport,field:f});continue;}
@@ -51,7 +56,7 @@ function buildIndex(documents,now=new Date()){
    else if(!prev.conflict){prev.conflict=true;conflicts++;sport.conflictedKeys++;}
   }
  }
- return {index,summary:{state:'historical_cache_shadow_audit',generatedAt:now.toISOString(),profiles,fields,candidates,duplicateObservations:duplicates,distinctKeys:index.size,conflictedKeys:conflicts,nonconflictingKeys:index.size-conflicts,bySport,requestsSkipped:0,completeSeasonCertified:false,modelInputsApproved:false}};
+ return {index,summary:{state:'historical_cache_shadow_audit',generatedAt:now.toISOString(),profiles,fields,candidates,duplicateObservations:duplicates,distinctKeys:index.size,conflictedKeys:conflicts,nonconflictingKeys:index.size-conflicts,bySport,rejectionReasons,requestsSkipped:0,completeSeasonCertified:false,modelInputsApproved:false}};
 }
 function audit(documents,now=new Date()){return buildIndex(documents,now).summary;}
 // Consumers can reuse only an exact previously observed historical fact. No collection scope is skipped.

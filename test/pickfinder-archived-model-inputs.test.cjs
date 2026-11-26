@@ -120,3 +120,30 @@ test('historical identity evidence requires multiple distinct games and rejects 
  assert.equal(make([x,{...x,eventId:'2'},{...x,sourceDetailId:'/players/nhl/another'}]).summary.multipleGameCandidates,0);
  assert.equal(make([x,{...x,eventId:'2',sourceDetailId:'https://example.com/players/nhl/fixture'}]).summary.multipleGameCandidates,0);
 });
+
+test('reviewed history intake requires exact independent evidence and preserves as-of gate',()=>{
+ const {identityEvidence,reviewedHistory,historyForModel}=require('../scripts/pickfinder-native-history-reconciliation.cjs');
+ const nativeDigest='a'.repeat(64),profileDigest='b'.repeat(64),first='2026-11-25T20:30:00Z',verifiedAt='2026-11-25T21:00:00Z';
+ const x={sport:'nhl',sourceDetailId:'/players/nhl/fixture?prop=a:b:c',sourcePlayer:'Fixture',playerId:'9',eventId:'1',market:'sog',value:4,officialStartAt:'2026-11-20T00:00:00Z',nativeDigest,profileDigest,nativeAvailableAt:'2026-11-24T10:00:00Z',profileObservedAt:observedAt,profileAvailableAt:first};
+ const rows=new Map([['a',x],['b',{...x,eventId:'2',officialStartAt:'2026-11-21T00:00:00Z'}]]);
+ const groups=identityEvidence(rows,clock).reviewCandidates;
+ const review={sport:'nhl',profilePath:'/players/nhl/fixture',nativePlayerId:'9',sourcePlayer:'Fixture',identityEvidenceSha256:'c'.repeat(64),independentReviewVerified:true,verifiedAt,nativeDigests:[nativeDigest],profileDigests:[profileDigest]};
+ const h={digest:'d'.repeat(64),first:verifiedAt,doc:{rows:[review]}};
+ assert.equal(reviewedHistory(rows,groups,[],clock).index.size,0);
+ assert.equal(reviewedHistory(rows,groups,[{...h,doc:{rows:[{...review,independentReviewVerified:false}]}}],clock).index.size,0);
+ const c=reviewedHistory(rows,groups,[h],clock);
+ assert.equal(c.index.size,2);
+ const q={sport:'nhl',playerId:'9',market:'sog',gameStartAt:'2026-11-26T00:00:00Z'};
+ assert.equal(historyForModel(c.index,{...q,asOf:first}).length,0);
+ assert.equal(historyForModel(c.index,{...q,asOf:clock}).length,2);
+ assert.equal([...c.index.values()][0].modelApproved,false);
+});
+test('esports explicit hyphen range recovers only source-labeled map scope',()=>{
+ const {esportsScope}=require('../scripts/pickfinder-archived-model-inputs.cjs');
+ const o={sport:'cs2',market:'1-2_maps_player_kills',mapRange:'1-2_maps'};
+ assert.deepEqual(esportsScope(o).maps,[1,2]);
+ assert.equal(esportsScope({...o,mapRange:'1_maps'}),null);
+ const m='maps_1-2_player_kills';
+ assert.deepEqual(esportsScope({sport:'cs2',market:m,detailId:'/players/cs2/fixture?prop=a:'+m+':b:10'}).maps,[1,2]);
+ assert.equal(esportsScope({sport:'cs2',market:m,detailId:'https://example.com/players/cs2/fixture?prop=a:'+m+':b:10'}),null);
+});

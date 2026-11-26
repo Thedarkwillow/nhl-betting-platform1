@@ -51,8 +51,9 @@ function quoteInventory(rows){
 function esportsScope(o){
  const title={cs2:'CS2',valorant:'VALORANT',dota2:'DOTA2',lol:'LOL',cod:'COD'}[o.sport];
  if(!title)return null;
- const match=/^((?:maps?_[1-7](?:_[1-7])?|[1-7](?:_[1-7])?_maps?))_player_(.+)$/.exec(o.market||'');
- if(!match||match[1]!==o.mapRange||o.period!=null)return null;
+ const match=/^((?:maps?_[1-7](?:[_-][1-7])?|[1-7](?:[_-][1-7])?_maps?))_player_(.+)$/.exec(o.market||'');
+ if(!match||o.period!=null||o.mapRange!=null&&match[1]!==o.mapRange)return null;
+ if(o.mapRange==null){let u;try{u=new URL(o.detailId,'https://www.pickfinder.app');}catch{return null;}const p=u.searchParams.getAll('prop');if(u.origin!=='https://www.pickfinder.app'||!u.pathname.startsWith('/players/')||p.length!==1||p[0].split(':')[1]!==o.market)return null;}
  const nums=match[1].match(/[1-7]/g).map(Number);
  if(nums.length===2&&nums[0]>=nums[1])return null;
  const maps=nums.length===1?nums:Array.from({length:nums[1]-nums[0]+1},(_,i)=>nums[0]+i);
@@ -72,7 +73,7 @@ function auditBoards(archive,clock){
   for(const o of b.offers||[]){
    if(!o.detailId||!o.eventId||!Number.isFinite(o.line)||!valid(o.observedAt)||dt(o.observedAt)>dt(b.first)+999)continue;
    observations++;a.offers++;
-   if(['cs2','valorant','dota2','lol','cod'].includes(o.sport)){const e=esportsEvidence[o.sport]??={offerObservations:0,explicitSupportedScopes:0,unresolvedScopes:0,qualifiedModelInputs:0};e.offerObservations++;if(esportsScope(o))e.explicitSupportedScopes++;else e.unresolvedScopes++;}
+   if(['cs2','valorant','dota2','lol','cod'].includes(o.sport)){const e=esportsEvidence[o.sport]??={offerObservations:0,explicitSupportedScopes:0,unresolvedScopes:0,qualifiedModelInputs:0,unresolvedMarketSlugs:{}};e.offerObservations++;if(esportsScope(o))e.explicitSupportedScopes++;else {e.unresolvedScopes++;const slug=/^[a-z0-9_+ -]{1,100}$/i.test(o.market||'')?o.market:'other';const k=Object.hasOwn(e.unresolvedMarketSlugs,slug)||Object.keys(e.unresolvedMarketSlugs).length<30?slug:'other';e.unresolvedMarketSlugs[k]=(e.unresolvedMarketSlugs[k]||0)+1;}}
    // Archive availability gates eligibility; quote freshness is relative to the offer observation.
    // A later quote in the same manifest must never enter an earlier offer's feature set.
    const cut=b.first,bs=quotes(o,q.get(scope(o))||[],new Date(Math.min(dt(cut),dt(o.observedAt))).toISOString()),fs=features(o,f.get(key([o.detailId,o.eventId,o.market,o.observedAt]))||[]);

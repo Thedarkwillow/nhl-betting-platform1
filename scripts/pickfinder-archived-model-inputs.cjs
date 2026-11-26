@@ -29,11 +29,30 @@ function auditProfiles(documents,clock){
  }
  return {summary:{records,fields,invalid,bySport,cacheKeys:cache.size,usableCacheKeys:[...cache.values()].filter(x=>!x.conflict).length,conflictedCacheKeys:[...cache.values()].filter(x=>x.conflict).length},cache};
 }
+// Exact archived quote shape counts; no guessing missing book thresholds from fantasy lines.
+function quoteInventory(rows){
+ const out={observed:0,explicitThreshold:0,missingThreshold:0,missingBook:0,invalidSideOrPrice:0,exactPairs:0,conflictingPairs:0};
+ const pairs=new Map();
+ for(const q of rows){
+  if(['prizepicks','underdog'].includes(q.book))continue;
+  out.observed++;
+  if(!Number.isFinite(q.quoteLine)||q.quoteLine<0){out.missingThreshold++;continue;}
+  out.explicitThreshold++;
+  if(!q.book){out.missingBook++;continue;}
+  if(!['Higher','Lower'].includes(q.side)||typeof q.price!=='string'||!/^[+-]\d{2,4}$/.test(q.price)||Math.abs(Number(q.price))<100||!valid(q.observedAt)){out.invalidSideOrPrice++;continue;}
+  const k=key([scope(q),q.book,q.quoteLine,q.observedAt]),p=pairs.get(k)||{prices:{},conflict:false};
+  if(p.prices[q.side]&&p.prices[q.side]!==q.price)p.conflict=true;
+  p.prices[q.side]=q.price;pairs.set(k,p);
+ }
+ for(const p of pairs.values()){if(p.conflict)out.conflictingPairs++;else if(p.prices.Higher&&p.prices.Lower)out.exactPairs++;}
+ return out;
+}
 function auditBoards(archive,clock){
- const bySport={},history=new Map();let observations=0,quoteMatches=0,featureMatches=0;
+ const bySport={},history=new Map();let observations=0,quoteMatches=0,featureMatches=0;const quoteEvidence={};
  for(const b of archive.manifests){
   if(!valid(b.first)||dt(b.first)>dt(clock))continue;
   const a=bySport[b.m.sport]??={offers:0,quotes:0,features:0,explicitPregame:0};
+  const z=quoteInventory(b.sportsbookQuotes||[]),inv=quoteEvidence[b.m.sport]??={};for(const [k,v] of Object.entries(z))inv[k]=(inv[k]||0)+v;
   const q=new Map(),f=new Map();
   for(const x of b.sportsbookQuotes||[]){const k=scope(x),v=q.get(k)||[];v.push(x);q.set(k,v);}
   for(const x of b.researchObservations||[]){const k=key([x.detailId,x.eventId,x.market,x.observedAt]),v=f.get(k)||[];v.push(x);f.set(k,v);}
@@ -51,7 +70,7 @@ function auditBoards(archive,clock){
    if(!history.has(k))history.set(k,{offer:o,manifestDigest:b.digest,archiveFirst:cut,features:fs,quotes:bs,explicitPregame:pregame,originalPlatformVerified:false,modelApproved:false});
   }
  }
- return {summary:{observations,distinctObservations:history.size,quoteMatches,featureMatches,bySport},history};
+ return {summary:{observations,distinctObservations:history.size,quoteMatches,featureMatches,bySport,quoteEvidence},history};
 }
 function* committedProfiles(root){
  const dir=ROOT+'/profiles';
@@ -65,5 +84,5 @@ function run(root,clock=new Date().toISOString()){
  const p=auditProfiles(committedProfiles(root),clock),b=auditBoards(load(root),clock);
  return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,nativeHistory:nativeHistory.fromArchive(root,committedProfiles(root),clock).summary,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
 }
-module.exports={classify,auditProfiles,auditBoards,run};
+module.exports={classify,auditProfiles,auditBoards,quoteInventory,run};
 if(require.main===module)console.log(JSON.stringify(run(process.cwd())));

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-26T23:11:31.490Z",
+  "generatedAt": "2026-11-26T23:16:13.272Z",
   "sourceReportAt": "2026-11-25T10:01:27.262Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -92,7 +92,7 @@
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
     "nhlReportAt": "2026-11-26T23:02:40.505Z",
-    "nflReportAt": "2026-11-24T23:17:24.379Z",
+    "nflReportAt": "2026-11-26T23:13:36.965Z",
     "nhl": {
       "registered": 541,
       "eligible": 126,
@@ -147,27 +147,27 @@
   },
   "goblinFuture": {
     "kind": "public_goblin_independent_future_research_counts_v1",
-    "sourceReportAt": "2026-11-26T23:03:34.723Z",
+    "sourceReportAt": "2026-11-26T23:14:39.606Z",
     "nhl": {
       "sourceEligible": true,
-      "examined": 164,
-      "newCandidates": 86,
-      "newAbstentions": 78,
-      "archivedFirstGit": 1498,
+      "examined": 0,
+      "newCandidates": 0,
+      "newAbstentions": 0,
+      "archivedFirstGit": 1662,
       "duplicatesQuarantined": 108,
       "selectivePolicyRequiresNewSource": false,
       "postPolicyScreening": {
         "kind": "public_goblin_post_policy_screening_counts_v1",
-        "screened": 1263,
-        "selected": 654,
-        "abstained": 609,
+        "screened": 1427,
+        "selected": 740,
+        "abstained": 687,
         "lateOrUnverified": 0,
         "unknownStatus": 0,
         "byMarket": {
           "shotsOnGoal": {
-            "screened": 836,
-            "selected": 514,
-            "abstained": 322
+            "screened": 968,
+            "selected": 586,
+            "abstained": 382
           },
           "blockedShots": {
             "screened": 114,
@@ -175,25 +175,25 @@
             "abstained": 54
           },
           "assists": {
-            "screened": 46,
-            "selected": 12,
+            "screened": 50,
+            "selected": 16,
             "abstained": 34
           },
           "points": {
-            "screened": 267,
-            "selected": 68,
-            "abstained": 199
+            "screened": 295,
+            "selected": 78,
+            "abstained": 217
           }
         },
         "abstentionReasons": {
-          "insufficient_verified_prior_ice_time": 26,
-          "high_ice_time_or_recent_usage_uncertainty": 14,
+          "insufficient_verified_prior_ice_time": 28,
+          "high_ice_time_or_recent_usage_uncertainty": 20,
           "recent_lineup_role_or_team_not_stable": 1,
           "opponent_defensive_volume_history_unverified": 0,
           "official_pregame_scratched_or_injured": 2,
           "distribution_direction_missing": 0,
-          "model_direction_not_on_original_offered_side": 155,
-          "insufficient_uncalibrated_directional_separation": 407,
+          "model_direction_not_on_original_offered_side": 168,
+          "insufficient_uncalibrated_directional_separation": 464,
           "other_model_abstention": 4
         },
         "verifiedAccuracy": false,
@@ -202,15 +202,15 @@
       },
       "pendingOfficialTriage": {
         "kind": "public_nhl_goblin_prospective_pending_triage_v1",
-        "registered": 1498,
-        "abstained": 609,
+        "registered": 1662,
+        "abstained": 687,
         "decided": 878,
         "pushes": 0,
-        "notStarted": 0,
+        "notStarted": 86,
         "startedNoFinalWithinFourHours": 0,
         "fourHoursWithoutOfficialPlayerStat": 11,
         "conflictingOrInvalidFinal": 0,
-        "officialGradingNeeded": 11,
+        "officialGradingNeeded": 97,
         "verifiedWinRate": null,
         "approvedPicks": 0
       },
@@ -286,7 +286,7 @@
         "approvedPicks": 0
       },
       "futureDecided": 878,
-      "futureRegistered": 1498
+      "futureRegistered": 1662
     },
     "nfl": {
       "supportedOpportunityResearchImplemented": true,
@@ -427,14 +427,14 @@
   },
   "matchupEvidence": {
     "kind": "public_matchup_evidence_counts_v1",
-    "sourceReportAt": "2026-11-24T23:18:20.557Z",
+    "sourceReportAt": "2026-11-26T23:14:38.603Z",
     "rankingTables": 70,
     "completeRankingTables": 70,
-    "teamGames": 1414,
-    "reconciledPuntTeamGames": 1414,
-    "reconciledKickTeamGames": 1414,
-    "punterAppearances": 1072,
-    "kickerAppearances": 1121,
+    "teamGames": 1418,
+    "reconciledPuntTeamGames": 1418,
+    "reconciledKickTeamGames": 1418,
+    "punterAppearances": 1074,
+    "kickerAppearances": 1124,
     "historicalOnly": true,
     "modelPromoted": false,
     "approvedPicks": 0

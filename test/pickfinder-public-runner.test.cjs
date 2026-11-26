@@ -119,7 +119,15 @@ test('malformed NBA historical header requeues only affected scopes until newer 
  const make=(x,f)=>publicProfile({...x,research:[f],profileCollection:{truncated:false}});
  const old=make(x,f),other=make(y,{...f,scope:'Date | PTS',value:'[{"value":"11/20"},{"value":"12"}]'});
  let p=queue([b],[{records:[old,other]}]);
- assert.equal(p.malformedHistoryPending,1);assert.equal(p.pending.length,1);assert.equal(p.pending[0].player,'Fixture');
+ assert.equal(p.malformedHistoryPending,1);assert.equal(p.repairPending.length,1);assert.equal(p.repairPending[0].player,'Fixture');assert.equal(p.pending.length,1);assert.equal(p.pending[0].player,'Fixture');
  const fixed=make(x,{...f,scope:heads.join(' | '),observedAt:'2026-11-25T21:00:00Z'});
- p=queue([b],[{records:[old,other,fixed]}]);assert.equal(p.malformedHistoryPending,0);assert.equal(p.pending.length,0);
+ p=queue([b],[{records:[old,other,fixed]}]);assert.equal(p.malformedHistoryPending,0);assert.equal(p.repairPending.length,0);assert.equal(p.pending.length,0);
+});
+
+test('NBA history repair is manual and protects both morning capture windows',()=>{
+ const e={PICKFINDER_AUTOMATION_AUTHORIZED:'1',PICKFINDER_PUBLIC_DATA_AUTHORIZED:'1',GITHUB_EVENT_NAME:'workflow_dispatch',REQUESTED_MODE:'nba_history_repair'};
+ const p=invocation(e,new Date('2026-11-25T20:00:00Z'));
+ assert.equal(p.allowed,true);assert.equal(p.deep,true);assert.equal(p.historyRepair,true);
+ for(const h of [13,14,16,17])assert.equal(invocation(e,new Date('2026-11-25T'+h+':01:00Z')).allowed,false);
+ assert.throws(()=>invocation({...e,GITHUB_EVENT_NAME:'push'},new Date('2026-11-25T20:00:00Z')),/manual repair only/);
 });

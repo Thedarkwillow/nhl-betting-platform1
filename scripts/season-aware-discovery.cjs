@@ -17,10 +17,19 @@ async function discover({env=process.env,now=new Date(),client=fetch}={}){
  const result=Object.fromEntries(Object.keys(registry).map(code=>[code,{status:'unavailable',source:'not_configured',observedAt:at,coverageUntil:end,upcoming:0,complete:false}]));
  await Promise.all(Object.entries(espn).map(async([code,league])=>{
   try{
-   const d=await json('https://site.api.espn.com/apis/site/v2/sports/'+league+'/scoreboard?dates='+day(at)+'-'+day(end)+'&limit=100',{},client);
-   if(!Array.isArray(d.events))throw Error('schedule envelope');
-   const upcoming=d.events.filter(e=>e?.id&&Number.isFinite(Date.parse(e.date))&&Date.parse(e.date)>=+now&&Date.parse(e.date)<=Date.parse(end)&&e.status?.type?.state==='pre').length;
-   result[code]={status:'ok',source:'espn:'+league,observedAt:at,coverageUntil:end,upcoming,complete:false};
+   const dates=[...new Set([0,1,2].map(i=>day(new Date(+now+i*86400000).toISOString())))];
+   const seen=new Map(),conflicts=new Set(),failures=[];
+   for(const date of dates)try{
+    const d=await json('https://site.api.espn.com/apis/site/v2/sports/'+league+'/scoreboard?dates='+date+'&limit=100',{},client);
+    if(!Array.isArray(d.events))throw Error('schedule envelope');
+    for(const e of d.events){if(!e?.id||!Number.isFinite(Date.parse(e.date)))continue;
+     const id=String(e.id),v=[Date.parse(e.date),e.status?.type?.state],old=seen.get(id);
+     if(old&&(old[0]!==v[0]||old[1]!==v[1]))conflicts.add(id);else seen.set(id,v);
+    }
+   }catch(e){failures.push(/^http_\d{3}$/.test(e.message)?e.message:'network_or_schema');}
+   if(failures.length===dates.length){result[code].source='espn:'+league;result[code].failure=failures[0];return;}
+   const upcoming=[...seen].filter(([id,v])=>!conflicts.has(id)&&v[0]>=+now&&v[0]<=Date.parse(end)&&v[1]==='pre').length;
+   result[code]={status:'ok',source:'espn:'+league,observedAt:at,coverageUntil:end,upcoming,complete:false,daysSucceeded:dates.length-failures.length,daysFailed:failures.length,conflictingEvents:conflicts.size};
   }catch(e){result[code].source='espn:'+league;result[code].failure=/^http_\d{3}$/.test(e.message)?e.message:'network_or_schema';}
  }));
  // Official key-free NHL schedule fallback, only positive dated competition evidence.

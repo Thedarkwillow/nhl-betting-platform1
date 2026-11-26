@@ -41,6 +41,8 @@ All items below remain open until actual evidence is recorded. Public documentat
 
 - 2026-11-26 UTC — PF-07/08/16/18: proposed count-only season and date format classification for the 76,211 prior-season rejects, with synthetic regression coverage (708e591, b84089f). Preserve strict cache eligibility, original dates, model locks and no additional paid requests. Explicit date/season recovery and independent result corroboration remain pending actual archive audit. Public research health shows 23,367 sportsbook observations across latest supported partitions but zero explicit thresholds; source quote extraction and independent event clocks remain open. No model promotion or forecast modification.
 
+- 2026-11-26 UTC — PR #365 full archive audit https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45744494868 passed 13 tests; 38,157 season selections absent, 38,054 without season label; 66,291 no unique date header, 9,089 numeric dates without year, 831 other/relative dates. Zero cache candidates. Independent game matching remains open.
+
 Acceptance: inspect the official feature guide, documentation, pricing, Discord setup guide and free-research directory (https://www.pickfinder.app/blog/general/pickfinder-tutorial, https://pickfinder.gitbook.io/pickfinder, https://www.pickfinder.app/pricing, https://www.pickfinder.app/blog/general/how-to-join-the-pickfinder-member-discord, https://www.pickfinder.app/free-research), then verify authenticated features with authorized access. Publish only permitted sporting evidence or sanitized counts/diagnostics; protect account and community information. Check off individual tasks only after evidence-backed acceptance, and update related existing roadmap items without double-counting. No wagers, paid upgrades or new notification configurations were activated by this documentation change.
 
 ## 2026-11-22 — pregame role diagnostics, Standard loss audit and fresh-source refresh
@@ -1340,6 +1342,8 @@ Expansion order after existing rollout: related sport families (WNBA, CBB, WCBB,
 | ESP-072 | 2026-11-25 | [Committed archive audit](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45597696166) verified 27 source digests; no live coverage or model qualification implied. |
 
 | ESP-073 | 2026-11-25 | [Merged PR #301](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/301) · [Successful live run](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45628653344) · [Progress report](https://github.com/Thedarkwillow/nhl-betting-platform1/blob/main/data/pickfinder-public-checkpoint-progress.json) | Counts-only monitor verified; 340/40,897 sampled scopes and zero invalid files at initial publication; native log endpoint not repaired. |
+| PF-23 | 2026-11-26 | https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45743307439 ; https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45743307511 | Scoped automatic archive handoff verified; no model approval. |
+
 
 ## Roadmap change history
 

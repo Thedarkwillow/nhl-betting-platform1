@@ -33,7 +33,7 @@ test('roster, patch, map pool and format changes invalidate prior context withou
 });
 test('key-free discovery is bounded and esports credentials require no-charge and authorization flags',async()=>{
  const urls=[];const client=async url=>{urls.push(url);return new Response(JSON.stringify({events:[{id:'1',date:'2026-11-25T18:00:00Z',status:{type:{state:'pre'}}}]}))};
- const r=await discover({env:{PANDASCORE_API_KEY:'fixture'},now,client});assert.equal(urls.length,9);assert.equal(r.NBA.upcoming,1);assert.equal(r.VAL.status,'unavailable');assert.equal(r.NBA.complete,false);
+ const r=await discover({env:{PANDASCORE_API_KEY:'fixture'},now,client});assert.equal(urls.length,27);assert.equal(r.NBA.upcoming,1);assert.equal(r.VAL.status,'unavailable');assert.equal(r.NBA.complete,false);
  const bad=await discover({env:{},now,client:async()=>{throw Error('network')}});
  assert.equal(scheduleStatus(bad.NBA,now),'unknown');
 });
@@ -44,4 +44,15 @@ test('owner priority is NBA NHL NFL then independently scheduled esports without
  const {prioritySports}=require('../scripts/season-aware-collection.cjs');
  const result=prioritySports(Object.keys(registry),{VAL:{...evidence,upcoming:1},CS2:{...evidence,upcoming:1},COD:evidence},now);
  assert.deepEqual(result.slice(0,5),['NBA','NHL','NFL','CS2','VAL']);assert.equal(result.length,14);
+});
+
+test('daily ESPN requests retain partial positive evidence and reject duplicate conflicts',async()=>{
+ const event=(id,date)=>({id,date,status:{type:{state:'pre'}}});
+ const r=await discover({env:{},now,client:async url=>{
+  if(url.includes('api-web.nhle.com'))return new Response('',{status:403});
+  const d=new URL(url).searchParams.get('dates');assert.match(d,/^\\d{8}$/);
+  if(d==='20261126')return new Response('',{status:400});
+  return new Response(JSON.stringify({events:[event('one','2026-11-25T18:00:00Z'),event('conflict',d==='20261125'?'2026-11-25T20:00:00Z':'2026-11-26T20:00:00Z')]}));
+ }});
+ assert.equal(r.NBA.upcoming,1);assert.equal(r.NBA.daysSucceeded,2);assert.equal(r.NBA.daysFailed,1);assert.equal(r.NBA.conflictingEvents,1);assert.equal(r.NBA.complete,false);
 });

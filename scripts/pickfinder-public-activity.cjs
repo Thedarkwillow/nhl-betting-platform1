@@ -5,6 +5,7 @@ const {load,coverage,git}=require('./pickfinder-public-evidence-audit.cjs');
 const {read,sha}=require('./pickfinder-public-archive.cjs');
 const cache=require('./pickfinder-public-history-cache.cjs');
 const {history,gradingQueue}=require('./pickfinder-public-model-validation.cjs');
+const {run:archiveAudit}=require('./pickfinder-archived-model-inputs.cjs');
 const dt=Date.parse,valid=x=>Number.isFinite(dt(x)),digest=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 const sports=new Set(['nba','nhl','nfl','cs2','dota2','valorant','lol','cod','mlb','wnba','college-football','college-basketball','tennis','soccer']);
 const core=['nba','nhl','nfl','cs2','dota2','valorant','lol','cod'];
@@ -37,11 +38,15 @@ function build(archive,clock,{cacheSummary=null,researchCoverage=null,grading=nu
 function run(root,clock=new Date().toISOString()){
  const archive=load(root);
  const cached=cache.audit(read(root,'profiles'),new Date(clock));
+ const audit=archiveAudit(root,clock);
  const c=coverage(root);
  const frames=history(root,'nba-forecasts'),grades=history(root,'nba-grades');
  const prior=new Set(grades.flatMap(x=>(x.doc.rows||[]).map(y=>y.id)));
  const g=gradingQueue(frames,prior,clock);
  const report=build(archive,clock,{cacheSummary:cached,researchCoverage:{profileAttempts:c.profileAttempts??null,namedDashboardSnapshots:c.namedDashboardSnapshots??null,gameDialogObservations:c.gameDialogObservations??null},grading:{archivedPregameRows:g.archived,pendingNotDue:g.pendingNotDue,dueForIndependentGrade:g.selected.length,alreadyGraded:g.alreadyGraded,invalidPregameRows:g.invalid,gradeFrames:grades.length}});
+ report.historicalRecovery={generatedAt:audit.generatedAt,fields:audit.profiles.fields,candidates:audit.nativeHistory.candidates,cacheRecords:audit.nativeHistory.reusableResearchCandidates,identityCandidates:audit.nativeHistory.identityEvidence.multipleGameCandidates,reviewedIdentities:audit.nativeHistory.independentlyReviewedProviderIdentities,qualifiedCache:audit.nativeHistory.qualifiedCacheEntries,qualifiedModelInputs:audit.nativeHistory.qualifiedModelInputs,bySport:Object.fromEntries(Object.entries(audit.nativeHistory.bySport).map(([k,v])=>[k,{candidates:v.candidates}]))};
+ report.esportsScopeRecovery=audit.boards.esportsEvidence;
+ report.sportsbookThresholdEvidence=audit.boards.quoteEvidence;
  fs.writeFileSync(path.join(root,'data/pickfinder-public-activity.json'),JSON.stringify(report,null,2)+'\n');
  console.log(JSON.stringify({kind:report.kind,events:report.events.length,archiveInvalid:report.archiveInvalid,readiness:report.readiness,cache:report.cache,coverage:report.coverage,grading:report.grading,paidRequests:0}));
  return report;

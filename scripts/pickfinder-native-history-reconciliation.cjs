@@ -10,7 +10,8 @@ const hash=x=>/^[a-f0-9]{64}$/.test(x||'');
 const nativeRoot='research/pickfinder-public-identity-v1/';
 const nhlMetrics={goals:'goals',assists:'assists',points:'points','shots on goal':'sog','sog':'sog',hits:'hits','blocked shots':'blockedShots','saves':'saves'};
 const nflMetrics={'passing yards':'passing_yards','rushing yards':'rushing_yards','receiving yards':'receiving_yards','receptions':'receptions','passing touchdowns':'passing_tds','rushing touchdowns':'rushing_tds','receiving touchdowns':'receiving_tds','passing attempts':'attempts','passing completions':'completions','receiving targets':'targets'};
-function dates(t){const d=new Date(t);if(!Number.isFinite(+d))return [];return [...new Set(['UTC','America/New_York','America/Los_Angeles'].map(timeZone=>new Intl.DateTimeFormat('sv-SE',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).format(d)))];}
+const dateFormats=['UTC','America/New_York','America/Los_Angeles'].map(timeZone=>new Intl.DateTimeFormat('sv-SE',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}));
+function dates(t){const d=new Date(t);if(!Number.isFinite(+d))return [];return [...new Set(dateFormats.map(f=>f.format(d)))];}
 function nativeIndex({facts,nhlFinals,nflSeasons},clock){
  const names=new Map(),games=new Map(),conflicts=new Set();
  const at=dt(clock);
@@ -54,9 +55,9 @@ function matchRow(r,f,index,clock){
  const opp=cells[j].value.trim().replace(/^(?:vs\.?|@)\s*/i,''),v=cells[indices[0]].value.trim();
  if(!/^[A-Z]{2,4}$/.test(opp)||!/^[-]?\d+(?:\.\d+)?$/.test(v))return reject('stat_or_opponent_shape');
  const ids=index.names.get(key([r.sport,norm(r.player)]));if(ids?.size!==1)return reject('native_identity_ambiguous');
- const id=[...ids][0],matches=(index.byPlayer.get(key([r.sport,id]))||[]).filter(g=>dt(g.start)<dt(f.observedAt)&&g.opp===opp&&Number.isFinite(g.stats[m])&&g.stats[m]===Number(v)&&g.dates.some(d=>date?d===date:d.endsWith(suffix)));
+ const id=[...ids][0],matches=(index.byPlayer.get(key([r.sport,id]))||[]).filter(g=>dt(g.start)<dt(f.observedAt)&&g.opp===opp&&g.dates.some(d=>date?d===date:d.endsWith(suffix)));
  if(matches.length!==1)return reject(matches.length?'ambiguous_native_game':'no_matching_native_game');
- const g=matches[0];return {candidate:{sport:r.sport,playerId:id,eventId:g.event,officialStartAt:g.start,market:m,value:Number(v),nativeDigest:g.digest,nativeAvailableAt:g.first,profileObservedAt:f.observedAt,sourceDate:raw,sourceDateYearRecovered:!date,providerIdentityReviewed:false,modelApproved:false}};
+ const g=matches[0];if(!Number.isFinite(g.stats[m])||g.stats[m]!==Number(v))return reject('native_result_mismatch');return {candidate:{sport:r.sport,playerId:id,eventId:g.event,officialStartAt:g.start,market:m,value:Number(v),nativeDigest:g.digest,nativeAvailableAt:g.first,profileObservedAt:f.observedAt,sourceDate:raw,sourceDateYearRecovered:!date,providerIdentityReviewed:false,modelApproved:false}};
 }
 function audit(documents,index,clock){
  const rows=new Map(),bySport={};let candidates=0;

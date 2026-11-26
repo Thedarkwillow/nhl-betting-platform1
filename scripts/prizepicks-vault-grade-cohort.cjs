@@ -87,18 +87,9 @@ function reconcileNfl(rows,facts,seasons,cache=new Map()){
  }
  return out;
 }
-async function officialFinal(id,start,clock,client=fetch){
- if(!Number.isSafeInteger(id)||!Number.isFinite(dt(start))||dt(clock)-dt(start)<3*3600000)return null;
- try{
-  const r=await client('https://cdn.nba.com/static/json/liveData/boxscore/boxscore_'+String(id).padStart(10,'0')+'.json',{redirect:'error',signal:AbortSignal.timeout(15000),headers:{Accept:'application/json'}});
-  if(!r.ok)return null;const declared=Number(r.headers.get('content-length'));if(declared>4e6)return null;
-  const bytes=Buffer.from(await r.arrayBuffer());if(bytes.length>4e6)return null;
-  const observedAt=new Date().toISOString();if(!require('./grade-nba-frozen-research-v1.cjs').official(JSON.parse(bytes),id,start,observedAt))return null;
-  return {bytes,observedAt};
- }catch{return null;}
-}
+async function officialFinal(id,start,clock,client=fetch){return (await require('./nba-bounded-official-final.cjs').fetchFinal(id,start,clock,client)).final;}
 async function run({vault,root,clock=new Date().toISOString()}){
- const c=await cohort(vault,clock),summary={cohortRows:547,frames:c.frames.length,nflDirections:0,nflReconciled:0,nbaDirections:0,nbaNotDue:0,nbaGrades:0,nbaUnresolved:0,officialFinalRequests:0,privateReceiptsWritten:0,paidRequests:0,rawRowsPublished:0,modelApproved:false,serverPushTimestampVerified:false};
+ const c=await cohort(vault,clock),summary={cohortRows:547,frames:c.frames.length,nflDirections:0,nflReconciled:0,nbaDirections:0,nbaNotDue:0,nbaGrades:0,nbaUnresolved:0,officialFinalRequests:0,officialFinalSourceFailures:{},officialFinalSources:{},privateReceiptsWritten:0,paidRequests:0,rawRowsPublished:0,modelApproved:false,serverPushTimestampVerified:false};
  const facts=receipts(root,'research/pickfinder-public-identity-v1/native-facts','independent_public_sport_identity_facts_v1',c.archivedAt),seasons=receipts(root,'research/pickfinder-public-nfl-v1/season','nflverse_public_native_history_v1',c.archivedAt);
  const cache=new Map(),finals=new Map();
  for(const f of c.frames){
@@ -113,7 +104,7 @@ async function run({vault,root,clock=new Date().toISOString()}){
    if(dt(clock)-dt(start)<3*3600000){summary.nbaNotDue+=total;continue;}
    const path='grades/nba/'+f.digest+'-'+id+'.json',existing=await vault.read(path,'main',true);
    if(existing){const d=existing.doc;if(d.kind!=='restricted_nba_cohort_game_grade_v1'||d.forecastDigest!==f.digest||d.gameId!==id||!Array.isArray(d.rows)||d.rows.length>total||d.appSettlementVerified!==false)throw Error('existing_grade_invalid');summary.nbaGrades+=d.rows.length;summary.nbaUnresolved+=total-d.rows.length;continue;}
-   if(!finals.has(id)){summary.officialFinalRequests++;finals.set(id,await officialFinal(id,start,clock));}
+   if(!finals.has(id)){const evidence=await require('./nba-bounded-official-final.cjs').fetchFinal(id,start,clock);summary.officialFinalRequests+=evidence.calls;for(const [k,n] of Object.entries(evidence.failures))summary.officialFinalSourceFailures[k]=(summary.officialFinalSourceFailures[k]||0)+n;if(evidence.source)summary.officialFinalSources[evidence.source]=(summary.officialFinalSources[evidence.source]||0)+1;finals.set(id,evidence.final);}
    const final=finals.get(id);if(!final){summary.nbaUnresolved+=total;continue;}
    const result=await gradeFrame({archiveBytes:f.bytes,receipt:c.witnessCommit,verifyReceipt:async(receipt,d)=>receipt===c.witnessCommit&&d===f.digest?{digest:d,archivedAt:c.archivedAt}:null,officialFinals:new Map([[id,final]]),clock:new Date().toISOString()});
    if(result.rows.length){

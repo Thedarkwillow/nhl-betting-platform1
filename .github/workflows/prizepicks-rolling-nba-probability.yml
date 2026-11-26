@@ -1,10 +1,10 @@
 name: Rolling private NBA probability performance
 on:
   pull_request:
-    paths: ['scripts/prizepicks-rolling-nba-probability.cjs','scripts/rolling-probability-performance.cjs','scripts/prizepicks-vault-grade-cohort.cjs','test/prizepicks-rolling-nba-probability.test.cjs','.github/workflows/prizepicks-rolling-nba-probability.yml']
+    paths: ['scripts/nba-bounded-official-final.cjs','test/nba-bounded-official-final.test.cjs','scripts/prizepicks-rolling-nba-probability.cjs','scripts/rolling-probability-performance.cjs','scripts/prizepicks-vault-grade-cohort.cjs','test/prizepicks-rolling-nba-probability.test.cjs','.github/workflows/prizepicks-rolling-nba-probability.yml']
   push:
     branches: [main]
-    paths: ['scripts/prizepicks-rolling-nba-probability.cjs','scripts/rolling-probability-performance.cjs','.github/workflows/prizepicks-rolling-nba-probability.yml']
+    paths: ['scripts/nba-bounded-official-final.cjs','test/nba-bounded-official-final.test.cjs','scripts/prizepicks-rolling-nba-probability.cjs','scripts/rolling-probability-performance.cjs','.github/workflows/prizepicks-rolling-nba-probability.yml']
   workflow_run:
     workflows: ['Fast direct PrizePicksAPI capture']
     types: [completed]
@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test test/prizepicks-rolling-nba-probability.test.cjs test/rolling-probability-performance.test.cjs test/prizepicks-vault-grade-cohort.test.cjs
+      - run: node --test test/nba-bounded-official-final.test.cjs test/prizepicks-rolling-nba-probability.test.cjs test/rolling-probability-performance.test.cjs test/prizepicks-vault-grade-cohort.test.cjs
   grade:
     needs: regression
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'))

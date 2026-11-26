@@ -1,0 +1,25 @@
+name: PickFinder archived model input processing
+on:
+  pull_request:
+    paths: ['scripts/pickfinder-archived-model-inputs.cjs','test/pickfinder-archived-model-inputs.test.cjs','.github/workflows/pickfinder-archived-model-inputs.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/pickfinder-archived-model-inputs.cjs','test/pickfinder-archived-model-inputs.test.cjs','.github/workflows/pickfinder-archived-model-inputs.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/pickfinder-archived-model-inputs.test.cjs
+      - name: Process saved sporting evidence without new provider calls
+        run: node --max-old-space-size=6144 scripts/pickfinder-archived-model-inputs.cjs

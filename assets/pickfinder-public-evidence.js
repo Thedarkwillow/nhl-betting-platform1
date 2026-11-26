@@ -20,6 +20,10 @@
   const c=activity.cache||{},g=activity.grading||{};
   add(mount,'p','Historical cache: '+n(c.nonconflictingKeys)+' nonconflicting fact keys; '+n(c.conflictedKeys)+' conflicts; collection requests skipped: '+n(c.requestsSkipped)+'.');
   add(mount,'p','Independent grading queue: '+n(g.dueForIndependentGrade)+' due, '+n(g.pendingNotDue)+' not due, '+n(g.alreadyGraded)+' already graded.');
+  const h=activity.historicalRecovery;
+  if(h){add(mount,'h3','Historical research readiness');add(mount,'p',n(h.fields)+' archived fields · '+n(h.candidates)+' statistical candidates · '+n(h.cacheRecords)+' reusable research facts · '+n(h.identityCandidates)+' identity candidates · '+n(h.reviewedIdentities)+' reviewed identities · '+n(h.qualifiedModelInputs)+' qualified model inputs. Candidate counts are not approved forecasts.');}
+  for(const [sport,x] of Object.entries(activity.esportsScopeRecovery||{}))add(mount,'p',sport.toUpperCase()+': '+n(x.explicitSupportedScopes)+' / '+n(x.offerObservations)+' source scopes recognized; '+n(x.qualifiedModelInputs)+' qualified model inputs.');
+  for(const [sport,x] of Object.entries(activity.sportsbookThresholdEvidence||{}))add(mount,'p',sport.toUpperCase()+': '+n(x.explicitThreshold)+' explicit sportsbook thresholds; '+n(x.exactPairs)+' same-snapshot price pairs. Independent offer verification remains required.');
   const fresh=Object.values(activity.readiness||{}).filter(x=>x.freshCompleteBoard&&Number.isFinite(Date.parse(x.observedAt))&&Date.parse(x.observedAt)<=Date.now()&&Date.now()-Date.parse(x.observedAt)<=900000);
   add(mount,'p','Fresh complete core boards: '+fresh.length+' / '+Object.keys(activity.readiness||{}).length+'. Old observations remain history, not live availability.');
  }catch{add(mount,'p','Public activity center report pending; no native notification delivery certified.');}

@@ -86,6 +86,7 @@ function matchRow(r,f,index,clock){
  if(!namedLog&&!windowLog&&!overview)return reject('not_game_log');
  if(!Number.isFinite(dt(f.observedAt))||dt(f.observedAt)>dt(clock))return reject('observation_clock');
  const metrics=r.sport==='nhl'?nhlMetrics:nflMetrics,market=sourceMarkets[r.sport]?.[norm(r.market)]??norm(r.market),m=r.sport==='nba'?nbaMetrics[norm(r.market)]:metrics[market];if(!m)return reject('unsupported_market');
+ if(String(f.scope||'').endsWith(' | [header truncated]'))return reject('header_truncated');
  const headers=String(f.scope||'').split(' | ').map(norm),dateColumns=headers.map((x,i)=>['date','game date'].includes(x)?i:-1).filter(i=>i>=0),i=dateColumns.length===1?dateColumns[0]:-1,opponents=headers.map((x,i)=>['opponent','opp'].includes(x)?i:-1).filter(i=>i>=0),j=opponents.length===1?opponents[0]:-1;
  if(headers.some(x=>/\b(?:line|odds|projection|average|hit rate|payout)\b/.test(x)))return reject('not_final_stat_table');
  const aliases=new Set([market,norm(m),...(columnAliases[m]||[])]);

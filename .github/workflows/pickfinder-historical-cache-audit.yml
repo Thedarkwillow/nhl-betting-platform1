@@ -3,15 +3,20 @@ on:
   pull_request:
     paths: ['scripts/pickfinder-public-history-cache.cjs', 'test/pickfinder-public-runner.test.cjs', '.github/workflows/pickfinder-historical-cache-audit.yml']
   workflow_dispatch:
+  workflow_run:
+    workflows: ['PickFinder Premium public orchestration']
+    types: [completed]
 permissions:
   contents: read
 jobs:
   audit:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:

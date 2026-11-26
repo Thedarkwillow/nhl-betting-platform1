@@ -1,0 +1,47 @@
+name: Rolling private NBA probability performance
+on:
+  pull_request:
+    paths: ['scripts/prizepicks-rolling-nba-probability.cjs','scripts/rolling-probability-performance.cjs','scripts/prizepicks-vault-grade-cohort.cjs','test/prizepicks-rolling-nba-probability.test.cjs','.github/workflows/prizepicks-rolling-nba-probability.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/prizepicks-rolling-nba-probability.cjs','scripts/rolling-probability-performance.cjs','.github/workflows/prizepicks-rolling-nba-probability.yml']
+  workflow_run:
+    workflows: ['Fast direct PrizePicksAPI capture']
+    types: [completed]
+  workflow_dispatch:
+  schedule:
+    - cron: '15 4,22 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+concurrency:
+  group: rolling-private-nba-probability-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/prizepicks-rolling-nba-probability.test.cjs test/rolling-probability-performance.test.cjs test/prizepicks-vault-grade-cohort.test.cjs
+  grade:
+    needs: regression
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Witness future original frames and score only independent finals
+        env:
+          PRIZEPICKS_FORECAST_VAULT_TOKEN: ${{ secrets.PRIZEPICKS_FORECAST_VAULT_TOKEN }}
+          PRIZEPICKS_FORECAST_STORAGE_GRANT: ${{ vars.PRIZEPICKS_FORECAST_STORAGE_GRANT }}
+        run: node scripts/prizepicks-rolling-nba-probability.cjs

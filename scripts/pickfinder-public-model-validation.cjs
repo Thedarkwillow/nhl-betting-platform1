@@ -136,6 +136,8 @@ async function main(root){
  }
  a.summary.nbaShadowRows=rows.length;a.summary.independentGrading=await grade(root,now());
  a.summary.prospectiveComparisons=pairedStats(history(root,'nba-grades').flatMap(x=>x.doc.rows||[]));
+ // Only committed original forecast and grade receipts; new grades enter on the next run.
+ a.summary.rollingProbabilityPerformance=require('./rolling-probability-performance.cjs').audit(history(root,'nba-forecasts'),history(root,'nba-grades'),now());
  a.summary.competitionDiscovery=await require('./season-aware-discovery.cjs').discover({env:{}});
  a.summary.lineupResearch={sizes:[2,3,4,5,6],qualifiedUnconditionalMarginals:0,automaticLineupsApproved:false,reason:'conditional estimates cannot be used as unconditional all-hit probabilities'};
  a.summary.sportModelStatus=Object.fromEntries(['nba','nhl','nfl','cs2','valorant','dota2','lol','cod'].map(s=>[s,{boardObserved:!!a.summary.bySport[s],independentModelJoin:s==='nba'?rows.length:0,productionApproved:false}]));

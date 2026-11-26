@@ -65,3 +65,21 @@ test('historical cache exact lookup excludes conflicts',()=>{
  const x=buildIndex([{records:[r]}],now);assert.deepEqual(lookup(x.index,k).field,f);
  const y=buildIndex([{records:[r,{...r,research:[{...f,value:f.value.replace('"12"','"14"')}]}]}],now);assert.equal(lookup(y.index,k),null);assert.equal(y.summary.requestsSkipped,0);
 });
+
+test('feature authentication waits before checking and fails closed',async()=>{
+ const {waitPremium}=require('../scripts/pickfinder-public-runner.cjs');
+ const calls=[],page={getByRole:()=>({waitFor:async()=>calls.push('menu')}),waitForFunction:async()=>calls.push('premium')};
+ assert.equal(await waitPremium(page,async()=>{calls.push('verify');return true;}),true);
+ assert.deepEqual(calls,['menu','premium','verify']);
+ assert.equal(await waitPremium({...page,waitForFunction:async()=>{throw Error('timeout');}},async()=>true),false);
+ assert.equal(await waitPremium(page,async()=>false),false);
+});
+test('cache rejection counts reconcile without allowing unknown historical rows',()=>{
+ const {audit}=require('../scripts/pickfinder-public-history-cache.cjs'),{VERSION}=require('../scripts/pickfinder-research-coverage.cjs');
+ const now=new Date('2026-11-25T15:00:00Z'),f={origin:'profile',metric:'row 1',tab:'Game Log',scope:'Date | PTS',value:JSON.stringify([{value:'2024-11-01'},{value:'12'}]),observedAt:'2026-11-25T14:00:00Z',filterSelection:[{label:'season',display:'2024-25'}]};
+ const r={status:'sampled',coverageVersion:VERSION,truncated:false,sport:'nba',player:'Fixture',market:'points',detailId:'/players/nba/a',research:[f,{...f,filterSelection:[]},{...f,value:f.value.replace('2024-11-01','11/01')}]};
+ const x=audit([{records:[r,{...r,truncated:true,research:[f]}]}],now);
+ assert.equal(x.candidates,1);assert.equal(x.fields,4);
+ assert.deepEqual(x.rejectionReasons,{prior_season_unverified:1,game_date_unverified:1,truncated_profile:1});
+ assert.equal(x.requestsSkipped,0);assert.equal(x.modelInputsApproved,false);
+});

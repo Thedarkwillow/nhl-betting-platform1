@@ -50,6 +50,8 @@ test('native historical matching resolves a partial date only with unique player
  const field={origin:'profile',metric:'row 1',tab:'Game Log',scope:'Date | Opponent | SOG',value:JSON.stringify([{value:'11/20'},{value:'BOS'},{value:'4'}]),observedAt};
  const idx=make(),c=matchRow(r,field,idx,clock).candidate;
  assert.equal(c.eventId,'1');
+ assert.equal(matchRow({...r,market:'player_shots_on_goal'},field,idx,clock).candidate.eventId,'1');
+ assert.equal(matchRow({...r,market:'player_shots_on_goal_first_period'},field,idx,clock).reason,'unsupported_market');
  assert.equal(matchRow(r,{...field,tab:'Overview',window:'Last 10 Games'},idx,clock).candidate.eventId,'1');
  assert.equal(matchRow(r,{...field,tab:'Overview'},idx,clock).reason,'not_game_log');
  assert.equal(matchRow(r,{...field,tab:'Overview',window:'Last 10 Games',scope:'Date | Opponent | SOG | Line'},idx,clock).reason,'not_final_stat_table');assert.equal(c.sourceDateYearRecovered,true);assert.equal(c.providerIdentityReviewed,false);

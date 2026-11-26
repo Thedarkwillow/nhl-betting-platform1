@@ -9,7 +9,14 @@ const dt=Date.parse, norm=x=>String(x??'').trim().toLowerCase(), key=x=>JSON.str
 const hash=x=>/^[a-f0-9]{64}$/.test(x||'');
 const nativeRoot='research/pickfinder-public-identity-v1/';
 const nhlMetrics={goals:'goals',assists:'assists',points:'points','shots on goal':'sog','sog':'sog',hits:'hits','blocked shots':'blockedShots','saves':'saves'};
-const nflMetrics={'passing yards':'passing_yards','rushing yards':'rushing_yards','receiving yards':'receiving_yards','receptions':'receptions','passing touchdowns':'passing_tds','rushing touchdowns':'rushing_tds','receiving touchdowns':'receiving_tds','passing attempts':'attempts','passing completions':'completions','receiving targets':'targets'};
+const nflMetrics={'passing yards':'passing_yards','rushing yards':'rushing_yards','receiving yards':'receiving_yards','receptions':'receptions','passing touchdowns':'passing_tds','rushing touchdowns':'rushing_tds','receiving touchdowns':'receiving_tds','passing attempts':'attempts','passing completions':'completions','receiving targets':'targets','rushing attempts':'carries','interceptions thrown':'passing_interceptions'};
+// Explicit source slugs from the existing PickFinder model adapter; native stat keys
+// are intentionally separate from projection-engine metric names.
+const sourceMarkets={
+ nhl:{player_goals:'goals',player_assists:'assists',player_points:'points',player_shots_on_goal:'shots on goal',player_blocked_shots:'blocked shots',player_saves:'saves',player_hits:'hits'},
+ nfl:{player_receiving_yards:'receiving yards',player_passing_yards:'passing yards',player_rushing_yards:'rushing yards',player_rushing_attempts:'rushing attempts',player_passing_attempts:'passing attempts',player_passing_completions:'passing completions',player_passing_touchdowns:'passing touchdowns',player_pass_yds:'passing yards',player_pass_attempts:'passing attempts',player_pass_completions:'passing completions',player_pass_tds:'passing touchdowns',player_pass_interceptions:'interceptions thrown',player_rush_yds:'rushing yards',player_rush_attempts:'rushing attempts',player_reception_yds:'receiving yards',player_receptions:'receptions',player_receiving_targets:'receiving targets'}
+};
+const columnAliases={goals:['g'],assists:['a'],points:['pts'],sog:['shots','shots on goal'],blockedShots:['blk','blocks','blocked shots'],saves:['sv'],hits:['hits'],passing_yards:['pass yards','pass yds'],rushing_yards:['rush yards','rush yds'],receiving_yards:['rec yards','rec yds'],receptions:['rec'],passing_tds:['pass tds'],rushing_tds:['rush tds'],receiving_tds:['rec tds'],attempts:['pass attempts','pass att'],completions:['pass completions','pass cmp'],targets:['rec targets','tgt'],carries:['rush attempts','carries'],passing_interceptions:['pass int','interceptions thrown']};
 const dateFormats=['UTC','America/New_York','America/Los_Angeles'].map(timeZone=>new Intl.DateTimeFormat('sv-SE',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}));
 function dates(t){const d=new Date(t);if(!Number.isFinite(+d))return [];return [...new Set(dateFormats.map(f=>f.format(d)))];}
 function nativeIndex({facts,nhlFinals,nflSeasons},clock){
@@ -45,10 +52,10 @@ function matchRow(r,f,index,clock){
  const windowLog=/^Last \d{1,3} Games$/i.test(f.window||'');
  if(!namedLog&&!windowLog)return reject('not_game_log');
  if(!Number.isFinite(dt(f.observedAt))||dt(f.observedAt)>dt(clock))return reject('observation_clock');
- const metrics=r.sport==='nhl'?nhlMetrics:nflMetrics,m=metrics[norm(r.market)];if(!m)return reject('unsupported_market');
+ const metrics=r.sport==='nhl'?nhlMetrics:nflMetrics,market=sourceMarkets[r.sport]?.[norm(r.market)]??norm(r.market),m=metrics[market];if(!m)return reject('unsupported_market');
  const headers=String(f.scope||'').split(' | ').map(norm),i=headers.indexOf('date'),j=headers.indexOf('opponent');
  if(headers.some(x=>/\b(?:line|odds|projection|average|hit rate|payout)\b/.test(x)))return reject('not_final_stat_table');
- const aliases=new Set([norm(r.market),norm(m),...(m==='sog'?['sog','shots']:[])]);
+ const aliases=new Set([market,norm(m),...(columnAliases[m]||[])]);
  const indices=headers.map((x,i)=>aliases.has(x)?i:-1).filter(i=>i>=0);
  if(i<0||j<0||indices.length!==1||new Set(headers).size!==headers.length)return reject('missing_exact_columns');
  let cells;try{cells=JSON.parse(f.value)}catch{return reject('row_json');}

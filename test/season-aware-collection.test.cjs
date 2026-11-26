@@ -50,7 +50,7 @@ test('daily ESPN requests retain partial positive evidence and reject duplicate 
  const event=(id,date)=>({id,date,status:{type:{state:'pre'}}});
  const r=await discover({env:{},now,client:async url=>{
   if(url.includes('api-web.nhle.com'))return new Response('',{status:403});
-  const d=new URL(url).searchParams.get('dates');assert.match(d,/^\\d{8}$/);
+  const d=new URL(url).searchParams.get('dates');assert.match(d,/^\d{8}$/);
   if(d==='20261126')return new Response('',{status:400});
   return new Response(JSON.stringify({events:[event('one','2026-11-25T18:00:00Z'),event('conflict',d==='20261125'?'2026-11-25T20:00:00Z':'2026-11-26T20:00:00Z')]}));
  }});

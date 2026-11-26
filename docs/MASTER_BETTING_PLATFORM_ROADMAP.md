@@ -1350,6 +1350,8 @@ Expansion order after existing rollout: related sport families (WNBA, CBB, WCBB,
 
 | PF-30 | 2026-11-26 | https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45753566974 ; https://github.com/Thedarkwillow/nhl-betting-platform1/pull/376 | 1,416 supported source scopes recovered; 74 unsupported fantasy-score observations excluded. |
 
+| PF-31 | 2026-11-26 | https://github.com/Thedarkwillow/nhl-betting-platform1/pull/381 ; https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45756499362 ; https://github.com/Thedarkwillow/nhl-betting-platform1/blob/main/data/pickfinder-public-research-health.json | Restore omitted completion-log row for existing checked scoped schedule repair; recorded 27/27 dated requests in prior live evidence; no full-season or player identity approval. |
+
 ## Roadmap change history
 
 | Date | Change | Proof |

@@ -26,6 +26,13 @@ function openVault({token,grant,client=fetch}={}){
   const bytes=Buffer.from(j.content,'base64');if(bytes.length>900000)throw Error('vault_bound');
   return {bytes,sha:j.sha,doc:JSON.parse(bytes)};
  }
+ async function list(dir){
+  if(!['forecasts','witnesses/auto','grades/nba-rolling','reports/auto'].includes(dir))throw Error('list_path');
+  const a=await request('GET','/contents/'+dir+'?ref=main',undefined,true);
+  if(a===null)return [];
+  if(!Array.isArray(a)||a.length>=1000||a.some(x=>x.type!=='file'||typeof x.name!=='string'||x.path!==dir+'/'+x.name))throw Error('list_bound_or_schema');
+  return a.map(x=>x.name).sort();
+ }
  async function first(path){
   const a=await request('GET','/commits?sha=main&per_page=2&path='+encodeURIComponent(path));
   if(!Array.isArray(a)||a.length!==1||!rev(a[0].sha)||!Number.isFinite(dt(a[0].commit?.committer?.date)))throw Error('not_single_commit');
@@ -33,7 +40,7 @@ function openVault({token,grant,client=fetch}={}){
  }
  async function append(path,doc){
   // Only derived reconciliation and independent grade paths are writable.
-  if(!/^(?:reconciliation\/nfl\/[a-f0-9]{64}-[a-f0-9]{64}|grades\/nba\/[a-f0-9]{64}-\d{1,12})\.json$/.test(path))throw Error('write_path');
+  if(!/^(?:reconciliation\/nfl\/[a-f0-9]{64}-[a-f0-9]{64}|grades\/nba\/[a-f0-9]{64}-\d{1,12}|witnesses\/auto\/[a-f0-9]{64}|grades\/nba-rolling\/[a-f0-9]{64}-\d{1,12}-[a-f0-9]{64}|reports\/auto\/[a-f0-9]{64})\.json$/.test(path))throw Error('write_path');
   const bytes=Buffer.from(JSON.stringify(doc)+'\n');if(bytes.length>900000)throw Error('write_bound');
   await privateRepo();
   const old=await read(path,'main',true);
@@ -43,7 +50,7 @@ function openVault({token,grant,client=fetch}={}){
   const back=await read(path,result.commit.sha);if(!back.bytes.equals(bytes))throw Error('write_readback');
   return true;
  }
- return {privateRepo,read,first,append};
+ return {privateRepo,read,first,append,list};
 }
 async function cohort(vault,clock){
  await vault.privateRepo();

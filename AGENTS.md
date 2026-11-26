@@ -24,3 +24,6 @@
 
 ## Owner-directed public-only operation (2026-11-25)
 The owner confirmed authorization to publish PickFinder sporting evidence. Never access the private repository or use its credentials until explicitly authorized. Collect fresh authorized sporting evidence directly into public Git; never publish credentials, account data, storage state, private history, or unstructured account content. Resume collection via public-only adapters. Do not claim historical archive migration or model qualification until verified.
+
+## PickFinder model-first scope (owner direction 2026-11-25 Pacific)
+Use Premium evidence primarily for validated model inputs, historical replay, calibration, independent grading and incremental collection. Do not prioritize recreating PickFinder UI or publishing its raw research panels. Website scope remains our own model outputs and concise provenance/readiness indicators. Prioritize changing boards, odds, availability and alerts; cache unchanged historical evidence only with exact scope and provenance, never skip live evidence required for forecast eligibility. Preserve PF-01–17 and all validation requirements; no new paid usage.

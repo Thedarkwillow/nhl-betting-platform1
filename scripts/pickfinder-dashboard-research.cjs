@@ -6,7 +6,6 @@ function dashboardRoutes(name){return name==='Games'?['/games','/game-lines']:['
 async function captureDashboard(page,name){
  if(!['Games','Discrepancies','Popular'].includes(name))throw Error('dashboard scope');
  const url=new URL(page.url());if(url.origin!=='https://www.pickfinder.app'||!dashboardRoutes(name).includes(url.pathname))throw Error('route');
- const observedAt=new Date().toISOString();
  const snapshot=await page.evaluate(()=>{
   const visible=e=>e.getClientRects().length>0;
   const cell=c=>({text:c.innerText.trim().slice(0,1000),labels:[...c.querySelectorAll('img[alt]')].map(i=>i.alt.slice(0,100))});
@@ -18,9 +17,12 @@ async function captureDashboard(page,name){
   const clocks=[...document.querySelectorAll('main time[datetime]')].filter(visible).map(t=>({datetime:t.getAttribute('datetime'),label:t.innerText.trim().slice(0,100)}));
   const controls=[...document.querySelectorAll('main button,main [role=tab],main select')].filter(visible).map(e=>({label:(e.getAttribute('aria-label')||e.innerText||'').trim().slice(0,160),disabled:e.disabled===true||e.getAttribute('aria-disabled')==='true',selected:e.getAttribute('aria-selected')==='true'})).filter(x=>x.label);
   const pagination=[...document.querySelectorAll('main nav,main [aria-label="Pagination"],main [role=status]')].filter(visible).map(e=>e.innerText.trim().match(/\b(?:Page\s+)?(\d+)\s+(?:of|\/)\s+(\d+)\b/i)).filter(Boolean).map(m=>({page:Number(m[1]),total:Number(m[2])}));
-  return {tables,cards,clocks,controls,pagination};
+  const gameCards=[...document.querySelectorAll('article[data-tour-sport]')].filter(visible).flatMap(a=>{const sport=a.getAttribute('data-tour-sport');if(!/^(nba|nhl|nfl|mlb|wnba|cbb|cfb|cs2|valorant|val|dota2|lol|cod|soccer|tennis)$/i.test(sport||''))return [];const buttons=[...a.querySelectorAll('button[aria-label]')].filter(visible).map(b=>b.getAttribute('aria-label')).filter(t=>/^Matchup details, [A-Za-z0-9 .&'’@/-]{1,100}$/.test(t));return buttons.length?[{sport,matchups:buttons.slice(0,100)}]:[];});
+  const empty=[...document.querySelectorAll('main p,main [role=status]')].filter(visible).some(e=>/^(?:No (?:games|props|results|discrepancies|popular props) (?:found|available)|No (?:games|props|results) to display)\.?$/i.test(e.innerText.trim()));
+  const busy=[...document.querySelectorAll('main [aria-busy=true],main [role=progressbar]')].some(visible);
+  return {tables,cards,clocks,controls,pagination,gameCards,empty,busy};
  });
- return {name,path:url.pathname,observedAt,...snapshot,originalOffersVerified:false,modelInputsApproved:false};
+ return {name,path:url.pathname,observedAt:new Date().toISOString(),...snapshot,originalOffersVerified:false,modelInputsApproved:false};
 }
 
 // A game ID appears in the URL only after opening its matchup dialog.
@@ -56,14 +58,21 @@ async function captureGameDialogs(page,sport,shouldContinue,onGame){
   }
  }
 }
+function dashboardState(x){const data=(x.tables||[]).some(t=>t.rows?.length)||(x.cards||[]).length||(x.gameCards||[]).length;return x.busy?'loading':data?'data_observed':x.empty===true?'explicit_empty':'unverified';}
+async function readyDashboard(page,name,shouldContinue,{attempts=6,pause=ms=>new Promise(r=>setTimeout(r,ms))}={}){
+ let x;for(let i=0;i<attempts&&shouldContinue();i++){x=await captureDashboard(page,name);const state=dashboardState(x);if(state==='data_observed'||state==='explicit_empty')return {...x,dataState:state};if(i+1<attempts&&shouldContinue())await pause(1000);}
+ return null;
+}
 async function traverseDashboard(page,name,{shouldContinue=()=>true,onSnapshot=async()=>{},filterSelection=null}={}){
  const seen=new Set();let pages=0,state='unverified_pagination';
  while(shouldContinue()){
-  const x=await captureDashboard(page,name),scopes=[...new Map(x.pagination.map(p=>[p.page+':'+p.total,p])).values()];
+  const x=await readyDashboard(page,name,shouldContinue);if(!x){state='dashboard_data_unverified';break;}
+  const scopes=[...new Map(x.pagination.map(p=>[p.page+':'+p.total,p])).values()];
   const p=scopes.length===1?scopes[0]:null;
-  const fingerprint=JSON.stringify([p,x.tables,x.cards,x.clocks]);
+  const fingerprint=JSON.stringify([p,x.tables,x.cards,x.gameCards,x.clocks]);
   if(seen.has(fingerprint)){state='repeated_page';break;}
   seen.add(fingerprint);await onSnapshot({...x,filterSelection});pages++;
+  if(x.dataState==='explicit_empty'){state='explicit_empty_observed';break;}
   if(!p||!Number.isSafeInteger(p.page)||!Number.isSafeInteger(p.total)||p.page<1||p.total<p.page){state='pagination_not_explicit';break;}
   if(p.page===p.total){state='explicit_last_page_observed';break;}
   const next=page.getByRole('button',{name:'Next page',exact:true});
@@ -104,4 +113,4 @@ async function traverseDashboardFilters(page,name,{shouldContinue=()=>true,onSna
  const customFilterAudit=await traverseCustomFilters(page,{shouldContinue,maxMs:60000,onState:async selection=>{const x=await traverseDashboard(page,name,{shouldContinue,onSnapshot,filterSelection:selection});if(x.state!=='explicit_last_page_observed')throw Error('filter pagination incomplete');}});
  return {...defaultTraversal,filterAudit,customFilterAudit,filtersExhausted:false,allDashboardDataVerified:false};
 }
-module.exports={dashboardRoutes,captureGameDialogs,captureDashboard,traverseDashboard,traverseDashboardFilters,inspectCapabilities,verifiedNavigation};
+module.exports={dashboardRoutes,captureGameDialogs,captureDashboard,traverseDashboard,traverseDashboardFilters,inspectCapabilities,verifiedNavigation,dashboardState,readyDashboard};

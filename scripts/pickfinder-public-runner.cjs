@@ -164,7 +164,8 @@ async function main(root,env=process.env){
     if(!href){errors++;console.log(JSON.stringify({state:'public_dashboard_route_pending',name}));continue;}
     await page.goto(href,{timeout:15000});if(!await waitPremium(page))throw Error('session unavailable');
     let snapshots=0;const result=await traverseDashboardFilters(page,name,{shouldContinue:featureAlive,onSnapshot:async s=>{const {controls,...sports}=s;await write('dashboards',{schema:'pickfinder-public-dashboard-v1',...sports});snapshots++;}});
-    console.log(JSON.stringify({state:'public_dashboard_pass',name,snapshots,filtersExhausted:result.filtersExhausted===true}));
+    if(!snapshots){errors++;console.log(JSON.stringify({state:'public_dashboard_data_pending',name,reason:result.state}));}
+    else console.log(JSON.stringify({state:'public_dashboard_pass',name,snapshots,filtersExhausted:result.filtersExhausted===true}));
    }catch{errors++;console.log(JSON.stringify({state:'public_dashboard_pending',name}));}
   }
   if(p.featuresOnly)return;

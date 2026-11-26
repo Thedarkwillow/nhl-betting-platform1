@@ -224,3 +224,17 @@ test('live progress counts exact scoped completions separately from legacy and p
  p.page({name:'Games',pagination:[{page:1,total:3}]});p.page({name:'Games',pagination:[{page:2,total:3}]});p.page({name:'Popular',pagination:[]});
  const x=p.snapshot('fixture');assert.equal(x.totalPropScopes,3);assert.equal(x.completedPropScopes,2);assert.equal(x.remainingPropScopes,1);assert.equal(x.completedThisRun,1);assert.equal(x.legacyCompletedScopes,1);assert.equal(x.bySport.nba.completed,2);assert.equal(x.byDashboard.Games.knownScopeTotal,3);assert.equal(x.byDashboard.Popular.unknownTotalScopes,1);assert.equal(x.latestBoardSnapshots[0].rowsObserved,3);assert.equal(x.allDashboardFilterPageTotalsKnown,false);assert.ok(logs.every(z=>z.rawRowsPublished===0));
 });
+
+test('dashboard readiness distinguishes loading, explicit empty and sporting data',async()=>{
+ const {readyDashboard,dashboardState}=require('../scripts/pickfinder-dashboard-research.cjs');
+ const empty={tables:[],cards:[],gameCards:[],clocks:[],controls:[],pagination:[]};
+ assert.equal(dashboardState(empty),'unverified');
+ assert.equal(dashboardState({...empty,empty:true,busy:true}),'loading');
+ assert.equal(dashboardState({...empty,empty:true}),'explicit_empty');
+ assert.equal(dashboardState({...empty,gameCards:[{sport:'nba',matchups:['Matchup details, A vs B']}]}),'data_observed');
+ let n=0;const page={url:()=> 'https://www.pickfinder.app/games',evaluate:async()=>++n===1?empty:{...empty,cards:[{path:'/games/a'}]}};
+ const x=await readyDashboard(page,'Games',()=>true,{pause:async()=>{}});
+ assert.equal(n,2);assert.equal(x.dataState,'data_observed');
+ const missing={...page,evaluate:async()=>empty};
+ assert.equal(await readyDashboard(missing,'Games',()=>true,{attempts:2,pause:async()=>{}}),null);
+});

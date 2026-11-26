@@ -13,6 +13,17 @@ const norm=x=>typeof x==='string'?x.trim().toLowerCase():'';
 const sports=new Set(['NHL','NFL',...Object.keys(esports.TITLES)]);
 const nhlMarkets={'shots on goal':'shotsOnGoal','goals':'goals','assists':'assists','points':'points','blocked shots':'blockedShots','goalie saves':'saves','saves':'saves'};
 const nflMarkets={'pass yards':'passing_yards','passing yards':'passing_yards','pass attempts':'passing_attempts','passing attempts':'passing_attempts','pass completions':'passing_completions','passing completions':'passing_completions','pass tds':'passing_touchdowns','passing tds':'passing_touchdowns','interceptions thrown':'interceptions_thrown','rush yards':'rushing_yards','rushing yards':'rushing_yards','rush attempts':'rushing_attempts','rushing attempts':'rushing_attempts','receiving yards':'receiving_yards','rec yards':'receiving_yards','receptions':'receptions','targets':'receiving_targets','rec targets':'receiving_targets','field goals made':'fg_made','field goals attempted':'fg_attempts','extra points made':'pat_made','kicking points':'kicking_points'};
+// Exact PickFinder market aliases; no fuzzy matching or partial-period conversion.
+const pickfinderMarkets={NHL:{player_goals:'goals',player_assists:'assists',player_points:'points',player_shots_on_goal:'shots on goal',player_blocked_shots:'blocked shots',player_saves:'saves'},NFL:{player_pass_yds:'pass yards',player_pass_attempts:'pass attempts',player_pass_completions:'pass completions',player_pass_tds:'pass tds',player_pass_interceptions:'interceptions thrown',player_rush_yds:'rush yards',player_rush_attempts:'rush attempts',player_reception_yds:'receiving yards',player_receptions:'receptions',player_receiving_targets:'targets',player_field_goals:'field goals made'}};
+function pickfinderProject(o,s,clock){
+ const stat=pickfinderMarkets[s.sport]?.[o.market];
+ if(!stat)return {reason:'unmapped_market'};
+ if(o.mapRange!=null||o.gameMode!=null||o.period!=null&&!full(o.period))return {reason:'unsupported_period'};
+ // PickFinder's unqualified market namespace uses null period for full-game offers.
+ // This is research-only, not original-platform scope certification.
+ const p=project({sport:s.sport,stat,period:o.period??'full_game',line:o.line,observedAt:clock},s,clock,{researchProbabilities:true});
+ return p?{prediction:p}:{reason:'history_or_role_gate'};
+}
 const esportsMarkets={'kills':'kills','headshots':'headshotKills','headshot kills':'headshotKills','assists':'assists','deaths':'deaths','kills + assists':'killsPlusAssists','creep score':'creepScore','last hits':'lastHits'};
 const full=x=>['full game','full_game','full','game'].includes(norm(x));
 function mapPeriod(x){const m=/^maps?\s+([1-7])(?:\s*[-–]\s*([1-7]))?$/i.exec(String(x||'').trim());if(!m)return null;const a=+m[1],b=+(m[2]||m[1]);return a<=b?Array.from({length:b-a+1},(_,i)=>a+i):null;}
@@ -107,4 +118,4 @@ function nflEmpiricalBaseline(history,line){
  const n=history.length,den=n+(canPush?1.5:1);
  return {higher:(higher+0.5)/den,lower:(lower+0.5)/den,push:canPush?(push+0.5)/den:0,priorObservations:n,method:'empirical_jeffreys_v0',calibrated:false,modelApproved:false};
 }
-module.exports={evaluateOther,mapPeriod,crosscheck,nflResidualChallenger,nflEmpiricalBaseline,project};
+module.exports={evaluateOther,mapPeriod,crosscheck,nflResidualChallenger,nflEmpiricalBaseline,project,pickfinderProject};

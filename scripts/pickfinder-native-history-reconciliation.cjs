@@ -74,7 +74,7 @@ function* structuredFields(fields){
  for(let i=0;i<fields.length;i++){
   const f=fields[i],m=/^(row \d+) part 1$/.exec(f.metric||'');
   if(!m){if(!/ part \d+$/.test(f.metric||''))yield f;continue;}
-  const signature=x=>key([x.origin,x.tab,x.scope,x.observedAt,x.window??null,x.filterSelection??null,x.period??null,x.mapRange??null,x.gameMode??null]);
+  const signature=x=>key([x.origin,x.tab,x.scope,x.observedAt,x.window??null,x.filterSelection??null,x.period??null,x.mapRange??null,x.gameMode??null,x.headerLayout??null]);
   const sig=signature(f);let value=f.value,n=2;
   if(typeof value!=='string')continue;
   while(i+1<fields.length&&fields[i+1].metric===m[1]+' part '+n&&signature(fields[i+1])===sig&&typeof fields[i+1].value==='string'&&value.length<16000){value+=fields[++i].value;n++;}
@@ -215,7 +215,12 @@ function audit(documents,index,clock,reviews=[]){
   const s=bySport[r.sport]??={attempts:0,candidates:0,reasons:{}};
   for(const f of structuredFields(r.research||[])){if(f.origin!=='profile'||!/^row \d+$/.test(f.metric||''))continue;s.attempts++;if(f.reassembled)reassembledRows++;const x=matchRow(r,f,index,clock);if(!x.candidate){s.reasons[x.reason]=(s.reasons[x.reason]||0)+1;if(x.reason==='row_column_count_mismatch'){const h=s.rowColumnCounts??={};const k=Object.hasOwn(h,x.shape)||Object.keys(h).length<40?x.shape:'other';h[k]=(h[k]||0)+1;}if(x.reason==='missing_exact_columns'){const shape=columnShape(f);const h=s.columnShapes??={};const k=Object.hasOwn(h,shape)||Object.keys(h).length<40?shape:'other_shapes';h[k]=(h[k]||0)+1;}continue;}s.candidates++;candidates++;
    const c=x.candidate,k=sha(key([r.sport,r.detailId,r.market,c.playerId,c.eventId,c.market,c.value,f.filterSelection??null,f.tab,f.scope]));
-   if(!rows.has(k))rows.set(k,{...c,profileDigest:digest,profileAvailableAt:first??null,sourceDetailId:r.detailId,sourcePlayer:r.player,cacheKey:k});}
+   const next={...c,profileDigest:digest,profileAvailableAt:first??null,sourceDetailId:r.detailId,sourcePlayer:r.player,cacheKey:k},old=rows.get(k);
+   // Archive filenames are content hashes, not chronology. For an identical
+   // research fact retain the earliest valid committed evidence, not whichever
+   // hash sorts first. Invalid clocks cannot displace a valid observation.
+   const available=x=>hash(x.nativeDigest)&&hash(x.profileDigest)&&Number.isFinite(dt(x.nativeAvailableAt))&&Number.isFinite(dt(x.profileAvailableAt))&&Number.isFinite(dt(x.profileObservedAt))&&dt(x.profileObservedAt)<=dt(x.profileAvailableAt)+999&&Math.max(dt(x.nativeAvailableAt),dt(x.profileAvailableAt))<=dt(clock)?Math.max(dt(x.nativeAvailableAt),dt(x.profileAvailableAt)):Infinity;
+   if(!old||available(next)<available(old))rows.set(k,next);}
  }
  const cached=candidateCache(rows,clock),identities=identityEvidence(rows,clock),reviewed=reviewedHistory(rows,identities.reviewCandidates,reviews,clock);
  return {rows,cache:cached.index,identityCandidates:identities.reviewCandidates,reviewedCache:reviewed.index,summary:{kind:'pickfinder_native_history_candidate_reconciliation_v1',bySport,nativeCoverage:index.nativeCoverage??{},identityEvidence:identities.summary,reviewedHistory:reviewed.summary,reassembledRows,reusableResearchCandidates:cached.index.size,researchCacheConflicts:cached.conflicts,candidates,distinctCandidates:rows.size,conflictingNativeGames:index.conflicts,independentlyReviewedProviderIdentities:reviewed.summary.reviewedProfiles,qualifiedCacheEntries:reviewed.index.size,qualifiedModelInputs:0,paidRequests:0,requestsSkipped:0,modelApproved:false}};

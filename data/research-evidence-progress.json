@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-26T08:36:16.158Z",
+  "generatedAt": "2026-11-26T08:58:25.915Z",
   "sourceReportAt": "2026-11-25T10:01:27.262Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -325,12 +325,12 @@
   },
   "nhlOpponentEvidence": {
     "kind": "public_nhl_official_opponent_coverage_counts_v1",
-    "sourceReportAt": "2026-11-25T23:48:40.069Z",
-    "verifiedHistoricalConcessionGames": 140,
-    "verifiedHistoricalAttemptGames": 141,
+    "sourceReportAt": "2026-11-26T08:56:02.758Z",
+    "verifiedHistoricalConcessionGames": 151,
+    "verifiedHistoricalAttemptGames": 142,
     "byMarket": {
       "shotsOnGoal": {
-        "teamsVerified": 28,
+        "teamsVerified": 32,
         "teamsWithFourOrMore": 32,
         "teamsEvaluated": 32,
         "minimumPriorGames": 8
@@ -342,13 +342,13 @@
         "minimumPriorGames": 8
       },
       "points": {
-        "teamsVerified": 23,
+        "teamsVerified": 30,
         "teamsWithFourOrMore": 32,
         "teamsEvaluated": 32,
         "minimumPriorGames": 8
       },
       "assists": {
-        "teamsVerified": 23,
+        "teamsVerified": 30,
         "teamsWithFourOrMore": 32,
         "teamsEvaluated": 32,
         "minimumPriorGames": 8
@@ -378,7 +378,7 @@
     "kind": "public_expanded_ml_research_counts_v1",
     "sourceReportAt": "2026-11-24T16:52:59.817419+00:00",
     "marketEvidence": {
-      "sourceReportAt": "2026-11-26T02:53:50.078Z",
+      "sourceReportAt": "2026-11-26T08:57:00.942Z",
       "acceptedArchives": 10,
       "trackedSeries": 2239,
       "repeatedSeries": 0,
@@ -393,7 +393,7 @@
     "testedThresholds": 55,
     "thresholdsBeatingAllBaselines": 16,
     "prospective": {
-      "sourceReportAt": "2026-11-26T02:53:50.078Z",
+      "sourceReportAt": "2026-11-26T08:57:00.942Z",
       "registered": 165,
       "decided": 7,
       "correct": 4

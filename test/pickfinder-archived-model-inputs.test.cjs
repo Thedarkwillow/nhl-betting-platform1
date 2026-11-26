@@ -50,6 +50,9 @@ test('native historical matching resolves a partial date only with unique player
  const field={origin:'profile',metric:'row 1',tab:'Game Log',scope:'Date | Opponent | SOG',value:JSON.stringify([{value:'11/20'},{value:'BOS'},{value:'4'}]),observedAt};
  const idx=make(),c=matchRow(r,field,idx,clock).candidate;
  assert.equal(c.eventId,'1');
+ assert.equal(matchRow(r,{...field,scope:'Date | Opponent | SOG | Shots | Other | Other',value:JSON.stringify([{value:'11/20'},{value:'BOS'},{value:'4'},{value:'7'},{value:null},{value:'2'}])},idx,clock).candidate.eventId,'1');
+ assert.equal(matchRow(r,{...field,scope:'Date | Opponent | Shots'},idx,clock).reason,'missing_exact_columns');
+ assert.equal(matchRow(r,{...field,scope:'Date | Opponent | SOG | SOG'},idx,clock).reason,'missing_exact_columns');
  assert.equal(matchRow({...r,market:'player_shots_on_goal'},field,idx,clock).candidate.eventId,'1');
  assert.equal(matchRow({...r,market:'player_shots_on_goal_first_period'},field,idx,clock).reason,'unsupported_market');
  assert.equal(matchRow(r,{...field,tab:'Overview',window:'Last 10 Games'},idx,clock).candidate.eventId,'1');

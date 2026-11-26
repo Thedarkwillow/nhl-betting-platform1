@@ -183,3 +183,20 @@ test('historical review packet contains linked evidence without certifying revie
  const p=reviewPacket({identityCandidates:[c],rows:new Map([['a',f],['b',f]])},clock);
  assert.equal(p.rows.length,1);assert.equal(p.rows[0].facts.length,1);assert.equal(p.rows[0].independentReviewVerified,false);assert.equal(p.reviewReceipt,false);assert.equal(p.modelApproved,false);
 });
+
+test('reviewed cache joins native model histories only on exact prior event and stat',()=>{
+ const {shadowHistoryJoin}=require('../scripts/pickfinder-archived-model-inputs.cjs');
+ const f={sport:'nhl',playerId:'9',eventId:'123',market:'sog',value:4,officialStartAt:'2026-11-20T00:00:00Z',availableAt:'2026-11-25T21:00:00Z',providerIdentityReviewed:true};
+ const s={sport:'NHL',playerId:9,startAt:'2026-11-26T00:00:00Z',identityReviewed:true,eventReviewed:true,rosterReviewed:true,history:{games:[{gameId:123,shotsOnGoal:4,finalVerified:true,knownAt:'2026-11-25T20:00:00Z'}]}};
+ const x=shadowHistoryJoin(new Map([['f',f]]),[s],clock);
+ assert.equal(x.matchedFacts,1);assert.equal(x.modelApproved,false);
+ assert.equal(shadowHistoryJoin(new Map([['f',{...f,value:5}]]),[s],clock).matchedFacts,0);
+ assert.equal(shadowHistoryJoin(new Map([['f',{...f,providerIdentityReviewed:false}]]),[s],clock).matchedFacts,0);
+});
+test('esports review queue does not assert native identity from parsed scope',()=>{
+ const {esportsReviewQueue}=require('../scripts/pickfinder-archived-model-inputs.cjs');
+ const o={sport:'cs2',eventId:'e',player:'Fixture',detailId:'/players/cs2/a?prop=a:b:c',market:'1st_2_maps_player_kills',mapRange:'1st_2_maps'};
+ const x={offer:o,manifestDigest:'a'.repeat(64)};
+ const q=esportsReviewQueue(new Map([['a',x],['b',x]]));
+ assert.equal(q.length,1);assert.deepEqual(q[0].maps,[1,2]);assert.equal(q[0].offerObservations,2);assert.equal(q[0].independentReviewVerified,false);
+});

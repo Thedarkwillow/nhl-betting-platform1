@@ -8,12 +8,12 @@ const labels={builder:/^(?:pick builder|add pick|remove pick|payout|potential pa
 // a player star, create alert, export, connect Discord, or any form control.
 async function navigationButton(page,names){
  if(typeof page.locator!=='function')return null; // missing browser capability: fail closed
- const selector='header button,nav button,aside button,header [role=button],nav [role=button],aside [role=button]';
+ const selector='header button,nav button,aside button,header [role=button],nav [role=button],aside [role=button],main button[aria-haspopup],main [role=button][aria-haspopup]';
  const buttons=page.locator(selector);
  const indices=await buttons.evaluateAll((els,names)=>els.flatMap((e,i)=>{
   const norm=x=>String(x||'').trim().replace(/\s+/g,' ').toLowerCase();
   const allowed=names.map(norm);
-  const candidates=[e.getAttribute('aria-label'),e.innerText,e.getAttribute('title')].map(norm).filter(Boolean);
+  const candidates=[e.getAttribute('aria-label'),e.innerText,e.getAttribute('title'),e.querySelector('svg title')?.textContent].map(norm).filter(Boolean);
   return e.getClientRects().length&&!e.disabled&&e.getAttribute('aria-disabled')!=='true'&&!e.closest('form')&&e.getAttribute('type')!=='submit'&&candidates.some(x=>allowed.includes(x))?[i]:[];
  }),names);
  if(indices.length!==1)return null;
@@ -23,7 +23,7 @@ async function navigationButton(page,names){
 }
 async function inspectTool(page,kind,premium){
  if(!routes[kind])throw Error('unknown capability');
- const names=kind==='builder'?['Pick Builder']:['Line Alerts','Alerts','Notifications'];
+ const names=kind==='builder'?['Pick Builder','Open Pick Builder','Toggle Pick Builder']:['Line Alerts','Alerts','Notifications','Open Alerts','Open Notifications','Open Line Alerts'];
  const links=[];for(const n of names){const href=await verifiedNavigation(page,n,routes[kind]);if(href)links.push(href);}
  const distinct=[...new Set(links)];
  if(distinct.length>1)return {state:'navigation_ambiguous',mutations:0};
@@ -54,7 +54,7 @@ async function inspectTool(page,kind,premium){
   const roots=panel?[...document.querySelectorAll('[role=dialog],aside,[role=region]')].filter(e=>visible(e)&&[e.getAttribute('aria-label'),...Array.from(e.querySelectorAll('h1,h2,h3,[role=heading]')).map(h=>h.innerText)].some(t=>namesSet.has(norm(t)))):[...document.querySelectorAll('main')].filter(visible);
   if(roots.length!==1)return {verified:false,controls:[]};
   const controls=[...roots[0].querySelectorAll('button,label,[role=tab],h1,h2,h3,input,select,[role=switch]')].filter(visible).flatMap(e=>{
-   const raw=(e.getAttribute('aria-label')||[...e.labels||[]].map(l=>l.innerText).join(' ')||e.innerText||'').trim();
+   const raw=(e.getAttribute('aria-label')||[...e.labels||[]].map(l=>l.innerText).join(' ')||e.innerText||e.getAttribute('title')||'').trim();
    if(!wanted.test(raw))return [];
    return [{label:raw,kind:e.tagName.toLowerCase(),disabled:!!e.disabled||e.getAttribute('aria-disabled')==='true',inputType:e.tagName==='INPUT'?e.type:null}];
   });

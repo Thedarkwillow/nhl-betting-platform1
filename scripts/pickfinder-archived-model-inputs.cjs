@@ -4,6 +4,7 @@ const fs=require('node:fs'),path=require('node:path');
 const {ROOT,sha}=require('./pickfinder-public-archive.cjs');
 const {load,quotes,features,scope,git}=require('./pickfinder-public-evidence-audit.cjs');
 const {candidate}=require('./pickfinder-public-history-cache.cjs');
+const nativeHistory=require('./pickfinder-native-history-reconciliation.cjs');
 const dt=Date.parse, valid=x=>Number.isFinite(dt(x)), key=x=>JSON.stringify(x);
 function classify(f){
  if(f.origin==='prop_history')return 'historical_prop';
@@ -62,7 +63,7 @@ function* committedProfiles(root){
 }
 function run(root,clock=new Date().toISOString()){
  const p=auditProfiles(committedProfiles(root),clock),b=auditBoards(load(root),clock);
- return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
+ return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,nativeHistory:nativeHistory.fromArchive(root,committedProfiles(root),clock).summary,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
 }
 module.exports={classify,auditProfiles,auditBoards,run};
 if(require.main===module)console.log(JSON.stringify(run(process.cwd())));

@@ -16,3 +16,25 @@ test('historical odds require exact threshold and pre-archive clock',()=>{
  assert.equal(auditBoards({manifests:[{...b,sportsbookQuotes:[q,{...q,side:'Lower',quoteLine:21.5}]}]},clock).summary.quoteMatches,0);
  assert.equal(auditBoards({manifests:[{...b,first:'2026-11-26T00:00:00Z'}]},clock).summary.observations,0);
 });
+
+test('explicit full dates decode without guessing ambiguous dates or missing years',()=>{
+ const {fullDate,priorSeason,candidate}=require('../scripts/pickfinder-public-history-cache.cjs');
+ const {VERSION}=require('../scripts/pickfinder-research-coverage.cjs');
+ const now=new Date(clock);
+ assert.equal(fullDate('Nov 21, 2024'),'2024-11-21');
+ assert.equal(fullDate('11/21/2024'),'2024-11-21');
+ assert.equal(fullDate('21/11/2024'),'2024-11-21');
+ for(const v of ['11/01/2024','11/21','Feb 30, 2024','Nov 21','2024-02-30'])assert.equal(fullDate(v),null);
+ assert.equal(priorSeason([{label:'Season',display:'Season 2024-25'}],now).end,2025);
+ const f={origin:'profile',metric:'row 1',tab:'Game Log',scope:'Date | PTS',value:JSON.stringify([{value:'Nov 21, 2024'},{value:'12'}]),observedAt,filterSelection:[{label:'Season',display:'2024-25 season'}]};
+ const r={status:'sampled',coverageVersion:VERSION,truncated:false,sport:'nba',player:'Fixture',market:'points',detailId:'/players/nba/a'};
+ assert.ok(candidate(r,f,now));assert.equal(candidate(r,{...f,filterSelection:[]},now),null);
+});
+test('quote freshness uses offer observation not delayed archive commit, and rejects later quotes',()=>{
+ const o={sport:'nba',book:'prizepicks',detailId:'p',eventId:'e',market:'points',line:20.5,side:'Higher',tier:'standard',observedAt,startAt:'2026-11-25T23:00:00Z'};
+ const q={...o,book:'draftkings',quoteLine:20.5,price:'-110'};
+ const b={m:{sport:'nba'},first:'2026-11-25T20:30:00Z',digest:'fixture',offers:[o],sportsbookQuotes:[q,{...q,side:'Lower'}],researchObservations:[]};
+ assert.equal(auditBoards({manifests:[b]},clock).summary.quoteMatches,1);
+ assert.equal(auditBoards({manifests:[{...b,sportsbookQuotes:[q,{...q,side:'Lower',observedAt:'2026-11-25T20:01:00Z'}]}]},clock).summary.quoteMatches,0);
+ assert.equal(auditBoards({manifests:[{...b,sportsbookQuotes:[q,{...q,side:'Lower',quoteLine:21}]}]},clock).summary.quoteMatches,0);
+});

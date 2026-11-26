@@ -91,7 +91,11 @@ function* committedProfiles(root){
  for(const rel of git(root,['ls-tree','-r','--name-only','HEAD','--',dir]).split('\n')){
   const digest=path.basename(rel,'.json');if(!/^[a-f0-9]{64}$/.test(digest))continue;
   const raw=fs.readFileSync(path.join(root,rel));if(sha(raw)!==digest||git(root,['status','--porcelain','--',rel]))throw Error('profile archive integrity');
-  yield {doc:JSON.parse(raw),digest};
+  const commits=git(root,['log','--format=%H','--',rel]).split('\n');
+  if(commits.length!==1||! /^[a-f0-9]{40}$/.test(commits[0]))throw Error('profile archive not immutable');
+  const first=git(root,['show','-s','--format=%cI',commits[0]]);
+  if(!valid(first))throw Error('profile archive clock');
+  yield {doc:JSON.parse(raw),digest,first};
  }
 }
 function run(root,clock=new Date().toISOString()){

@@ -38,3 +38,22 @@ test('quote freshness uses offer observation not delayed archive commit, and rej
  assert.equal(auditBoards({manifests:[{...b,sportsbookQuotes:[q,{...q,side:'Lower',observedAt:'2026-11-25T20:01:00Z'}]}]},clock).summary.quoteMatches,0);
  assert.equal(auditBoards({manifests:[{...b,sportsbookQuotes:[q,{...q,side:'Lower',quoteLine:21}]}]},clock).summary.quoteMatches,0);
 });
+
+test('native historical matching resolves a partial date only with unique player, opponent and exact result',()=>{
+ const {nativeIndex,matchRow,audit}=require('../scripts/pickfinder-native-history-reconciliation.cjs');
+ const {VERSION}=require('../scripts/pickfinder-research-coverage.cjs');
+ const digest='a'.repeat(64),first='2026-11-24T15:00:00Z';
+ const receipt={digest,first,doc:{games:[{sourceDigest:digest,observedAt:first,event:{namespace:'nhl:official',completed:true,status:'post',eventId:'1',startAt:'2026-11-21T00:00:00Z',teams:[{abbr:'TOR'},{abbr:'BOS'}]},rows:[{playerId:'9',team:'TOR',appeared:true,stats:{sog:4}}]}]}};
+ const facts=[{doc:{sport:'nhl',source:'nhl:official',roster:[{name:'Fixture',playerId:'9'}]}}];
+ const make=(finals=[receipt],f=facts)=>nativeIndex({facts:f,nhlFinals:finals,nflSeasons:[]},clock);
+ const r={sport:'nhl',player:'Fixture',market:'shots on goal',status:'sampled',truncated:false,coverageVersion:VERSION,detailId:'/players/nhl/a'};
+ const field={origin:'profile',metric:'row 1',tab:'Game Log',scope:'Date | Opponent | SOG',value:JSON.stringify([{value:'11/20'},{value:'BOS'},{value:'4'}]),observedAt};
+ const idx=make(),c=matchRow(r,field,idx,clock).candidate;
+ assert.equal(c.eventId,'1');assert.equal(c.sourceDateYearRecovered,true);assert.equal(c.providerIdentityReviewed,false);
+ assert.equal(matchRow(r,{...field,value:field.value.replace('"4"','"5"')},idx,clock).reason,'no_matching_native_game');
+ assert.equal(matchRow({...r,period:'first'},field,idx,clock).reason,'unsupported_scope');
+ const other={...receipt,doc:{games:[{...receipt.doc.games[0],event:{...receipt.doc.games[0].event,eventId:'2',startAt:'2025-11-21T00:00:00Z'}}]}};
+ assert.equal(matchRow(r,field,make([receipt,other]),clock).reason,'ambiguous_native_game');
+ const out=audit([{digest,doc:{records:[{...r,research:[field,field]}]}}],idx,clock);
+ assert.equal(out.summary.candidates,2);assert.equal(out.summary.distinctCandidates,1);assert.equal(out.summary.qualifiedCacheEntries,0);assert.equal(out.summary.qualifiedModelInputs,0);
+});

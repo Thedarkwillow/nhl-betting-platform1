@@ -50,7 +50,7 @@ test('native historical matching resolves a partial date only with unique player
  const field={origin:'profile',metric:'row 1',tab:'Game Log',scope:'Date | Opponent | SOG',value:JSON.stringify([{value:'11/20'},{value:'BOS'},{value:'4'}]),observedAt};
  const idx=make(),c=matchRow(r,field,idx,clock).candidate;
  assert.equal(c.eventId,'1');assert.equal(c.sourceDateYearRecovered,true);assert.equal(c.providerIdentityReviewed,false);
- assert.equal(matchRow(r,{...field,value:field.value.replace('"4"','"5"')},idx,clock).reason,'no_matching_native_game');
+ assert.equal(matchRow(r,{...field,value:field.value.replace('"4"','"5"')},idx,clock).reason,'native_result_mismatch');
  assert.equal(matchRow({...r,period:'first'},field,idx,clock).reason,'unsupported_scope');
  const other={...receipt,doc:{games:[{...receipt.doc.games[0],event:{...receipt.doc.games[0].event,eventId:'2',startAt:'2025-11-21T00:00:00Z'}}]}};
  assert.equal(matchRow(r,field,make([receipt,other]),clock).reason,'ambiguous_native_game');

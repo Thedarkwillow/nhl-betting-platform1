@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-26T01:01:39.691Z",
+  "generatedAt": "2026-11-26T01:07:24.079Z",
   "sourceReportAt": "2026-11-25T10:01:27.262Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -91,13 +91,13 @@
   },
   "selectiveAccuracy": {
     "kind": "public_selective_accuracy_first_git_counts_v1",
-    "nhlReportAt": "2026-11-25T23:09:52.045Z",
+    "nhlReportAt": "2026-11-26T01:05:34.327Z",
     "nflReportAt": "2026-11-24T23:17:24.379Z",
     "nhl": {
-      "registered": 512,
-      "eligible": 121,
-      "abstained": 391,
-      "pending": 26,
+      "registered": 541,
+      "eligible": 126,
+      "abstained": 415,
+      "pending": 31,
       "decided": 95
     },
     "nfl": {
@@ -115,7 +115,7 @@
   },
   "modelIdeas": {
     "kind": "public_open_model_research_coverage_v1",
-    "sourceReportAt": "2026-11-25T23:09:52.593Z",
+    "sourceReportAt": "2026-11-26T01:05:34.846Z",
     "nhl": {
       "fullRosterAuditAvailable": true,
       "completeOfficialGames": 1657,
@@ -389,7 +389,7 @@
     "kind": "public_expanded_ml_research_counts_v1",
     "sourceReportAt": "2026-11-24T16:52:59.817419+00:00",
     "marketEvidence": {
-      "sourceReportAt": "2026-11-26T00:39:37.112Z",
+      "sourceReportAt": "2026-11-26T01:06:06.261Z",
       "acceptedArchives": 10,
       "trackedSeries": 2239,
       "repeatedSeries": 0,
@@ -404,7 +404,7 @@
     "testedThresholds": 55,
     "thresholdsBeatingAllBaselines": 16,
     "prospective": {
-      "sourceReportAt": "2026-11-26T00:39:37.112Z",
+      "sourceReportAt": "2026-11-26T01:06:06.261Z",
       "registered": 165,
       "decided": 7,
       "correct": 4

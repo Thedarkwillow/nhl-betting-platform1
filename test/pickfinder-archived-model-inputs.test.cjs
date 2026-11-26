@@ -78,3 +78,30 @@ test('official NBA dated history corroborates exact game rows without inventing 
  assert.equal(matchRow(r,{...field,value:field.value.replace('"14"','"15"')},idx,clock).reason,'native_result_mismatch');
  assert.equal(matchRow(r,{...field,scope:'Date | Opp | PTS | Opponent'},idx,clock).reason,'missing_exact_columns');
 });
+
+test('split rows are reconstructed only from contiguous identical scopes',()=>{
+ const {structuredFields,columnShape}=require('../scripts/pickfinder-native-history-reconciliation.cjs');
+ const f={origin:'profile',tab:'Player overview',scope:'Date | Opp | PTS',observedAt,metric:'row 1 part 1',value:'[{"value":"11/20"},'};
+ const next={...f,metric:'row 1 part 2',value:'{"value":"TOR"},{"value":"14"}]'};
+ const rows=[...structuredFields([f,next])];assert.equal(rows.length,1);assert.equal(rows[0].metric,'row 1');assert.equal(rows[0].reassembled,true);
+ assert.equal([...structuredFields([f,{...next,scope:'Date | Opp | AST'}])].length,0);
+ assert.equal(columnShape({scope:'Date | Opp | PTS | arbitrary text'}),'date|opp|pts|other');
+});
+test('sportsbook threshold inventory and esports scope do not infer missing facts',()=>{
+ const {quoteInventory,esportsScope}=require('../scripts/pickfinder-archived-model-inputs.cjs');
+ const q={sport:'nba',detailId:'p',eventId:'e',market:'points',book:'draftkings',quoteLine:20.5,side:'Higher',price:'-110',observedAt};
+ const x=quoteInventory([q,{...q,side:'Lower'},{...q,quoteLine:null}]);
+ assert.equal(x.exactPairs,1);assert.equal(x.missingThreshold,1);
+ assert.equal(quoteInventory([q,{...q,side:'Lower',quoteLine:21}]).exactPairs,0);
+ const e={sport:'cs2',market:'maps_1_2_player_kills',mapRange:'maps_1_2'};
+ assert.deepEqual(esportsScope(e).maps,[1,2]);assert.equal(esportsScope(e).modelApproved,false);assert.equal(esportsScope({...e,mapRange:null}),null);
+ assert.equal(esportsScope({...e,sport:'cod'}),null);
+});
+test('research candidate cache requires both availability clocks and excludes conflicting values',()=>{
+ const {candidateCache,lookupCandidate}=require('../scripts/pickfinder-native-history-reconciliation.cjs');
+ const x={sport:'nba',playerId:'9',eventId:'1',market:'points',value:14,nativeDigest:'a'.repeat(64),profileDigest:'b'.repeat(64),nativeAvailableAt:'2026-11-24T10:00:00Z',profileObservedAt:observedAt,profileAvailableAt:'2026-11-25T20:30:00Z'};
+ const k={sport:x.sport,playerId:x.playerId,eventId:x.eventId,market:x.market};
+ const c=candidateCache(new Map([['a',x]]),clock);
+ assert.equal(c.index.size,1);assert.equal(lookupCandidate(c.index,{...k,asOf:observedAt}),null);assert.equal(lookupCandidate(c.index,{...k,asOf:clock}).modelApproved,false);
+ assert.equal(candidateCache(new Map([['a',x],['b',{...x,value:15}]]),clock).index.size,0);
+});

@@ -62,3 +62,13 @@ test('clock offer join retains exact threshold and rejects conflicting event sco
  assert.equal(clockOfferContext(o,[r,{...r,nativeGameId:10}],at),null);
  assert.equal(clockOfferContext(o,[r],Date.parse(r.nativeStartAt)),null);
 });
+
+test('PickFinder native aliases preserve period and history gates',()=>{
+ const {pickfinderProject}=require('../scripts/prizepicks-multisport-model-bridge.cjs');
+ const clock='2026-11-25T19:00:00Z',s={sport:'NHL',playerId:1,name:'Example',team:'ABC',history:{playerId:1,name:'Example',team:'ABC',type:'skater',games:Array.from({length:5},(_,i)=>({gameId:i+1,gameDate:'2026-11-0'+(i+1),knownAt:'2026-11-20T00:00:00Z',finalVerified:true,goals:1}))}};
+ const o={market:'player_goals',line:0.5,period:null};
+ assert.equal(pickfinderProject(o,s,clock).prediction.metric,'goals');
+ assert.equal(pickfinderProject({...o,period:'first period'},s,clock).reason,'unsupported_period');
+ assert.equal(pickfinderProject({...o,market:'unknown'},s,clock).reason,'unmapped_market');
+ assert.equal(pickfinderProject(o,{...s,history:null},clock).reason,'history_or_role_gate');
+});

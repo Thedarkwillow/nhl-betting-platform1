@@ -53,13 +53,25 @@ function readBoard({book, code, sport, observedAt}) {
       let group=icon.parentElement;
       while(group?.parentElement&&group.parentElement!==cell){const next=group.parentElement,icons=[...next.querySelectorAll('img[alt]')];if(icons.length!==1||icons[0]!==icon)break;group=next;}
       const display=group?.innerText.trim().slice(0,400)||'';
-      const prices=[...display.matchAll(/(?:^|\s)(O|U|Higher|Lower|Over|Under)\s*(?:(\d+(?:\.\d+)?)\s+)?\(?([+-]\d{2,4})\)?(?=\s|$)/gi)].filter(m=>Math.abs(Number(m[3]))>=100).map(m=>({side:/^(o|over|higher)$/i.test(m[1])?'Higher':'Lower',price:m[3],quoteLine:m[2]===undefined?null:Number(m[2])}));
+      const isolatedGroup=group&&group!==cell&&[...group.querySelectorAll('img[alt]')].length===1&&supported.has(id);
+      const normalizeOdds=t=>t.replace(/\u2212/g,'-').replace(/\u00a0/g,' ');
+      const prices=isolatedGroup?[...normalizeOdds(display).matchAll(/(?:^|[\s,;])(O|U|Higher|Lower|Over|Under)\s*(?:(\d+(?:\.\d+)?)\s+)?\(?([+-]\d{2,4})\)?(?=[\s,;]|$)/gi)].filter(m=>Math.abs(Number(m[3]))>=100).map(m=>({side:/^(o|over|higher)$/i.test(m[1])?'Higher':'Lower',price:m[3],quoteLine:m[2]===undefined?null:Number(m[2])})):[];
       // A threshold must be explicitly attached to this book's isolated quote group.
       // A fantasy offer line, unlabeled number, or another book's tooltip is not evidence.
-      const isolated=group&&[...group.querySelectorAll('img[alt]')].length===1&&!['prizepicks','underdog'].includes(id)&&supported.has(id);
+      const isolated=isolatedGroup&&!['prizepicks','underdog'].includes(id);
       if(isolated){
-        const texts=[display,...[group,...group.querySelectorAll('[aria-label],[title]')].flatMap(e=>[e.getAttribute('aria-label'),e.getAttribute('title')])].filter(t=>typeof t==='string'&&t.length<=400);
-        const thresholds=new Set(texts.flatMap(t=>[...t.matchAll(/\b(?:sportsbook\s+)?(?:line|threshold)\s*[:=]\s*(\d+(?:\.\d+)?)(?=\s|[,;)]|$)/gi)].map(m=>Number(m[1]))));
+        const local=[group,...group.querySelectorAll('[aria-label],[title],[aria-describedby]')];
+        // Only a visible tooltip explicitly associated with this isolated book
+        // and explicitly naming it may contribute. Never use the fantasy line,
+        // unrelated popovers, hidden DOM, or raw tooltip content in exports.
+        const described=[...new Set(local.flatMap(e=>(e.getAttribute('aria-describedby')||'').split(/\s+/).filter(Boolean)))].flatMap(ref=>{
+          const e=document.getElementById(ref);
+          if(!e||e.getAttribute('role')!=='tooltip'||!e.getClientRects().length)return [];
+          const t=e.innerText.trim();
+          return t.length<=400&&canonical(t).includes(id)?[t]:[];
+        });
+        const texts=[display,...local.flatMap(e=>[e.getAttribute('aria-label'),e.getAttribute('title')]),...described].filter(t=>typeof t==='string'&&t.length<=400).map(normalizeOdds);
+        const thresholds=new Set(texts.flatMap(t=>[...t.matchAll(/\b(?:sportsbook\s+)?(?:line|threshold)(?:\s*[:=]\s*|\s+)(\d+(?:\.\d+)?)(?=\s|[,;)]|$)/gi)].map(m=>Number(m[1]))));
         const explicit=thresholds.size===1?[...thresholds][0]:null;
         for(const t of texts)for(const m of t.matchAll(/(?:^|[\s,;])(O|Over|Higher|U|Under|Lower)\s*(\d+(?:\.\d+)?)\s*\(?([+-]\d{2,4})\)?(?=\s|[,;]|$)/gi)){
           if(Math.abs(Number(m[3]))<100)continue;

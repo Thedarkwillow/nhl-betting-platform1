@@ -5,7 +5,7 @@ const {fromArchive}=require('./prizepicks-native-context-readiness.cjs');
 const {git}=require('./pickfinder-public-evidence-audit.cjs');
 const {read}=require('./pickfinder-public-archive.cjs');
 const {target,key:contextKey,localMatchup}=require('./pickfinder-public-nba-context.cjs');
-const {project}=require('./prizepicks-multisport-model-bridge.cjs');
+const {project,pickfinderProject}=require('./prizepicks-multisport-model-bridge.cjs');
 const nhl=require('../src/projections.cjs');
 const clockRepair=require('./pickfinder-clock-reconciliation.cjs');
 const fs=require('node:fs');
@@ -112,7 +112,7 @@ function generate(ctx,receipts=[]){
  reconciliation.clockRecoveredRows=clockRecovery.rows;
  const contexts=new Map();for(const doc of receipts.filter(x=>x.schema==='pickfinder-public-nba-context-v1'))for(const r of doc.records||[]){if(r.state!=='explicit_context_observed'||r.routeVerified!==true||r.playerLabelVerified!==true||!r.team||!r.opponent||!Number.isFinite(Date.parse(r.startAt))||!Number.isFinite(Date.parse(r.observedAt))||Date.parse(r.observedAt)>Date.parse(ctx.preparedAt)||Date.parse(r.startAt)<=Date.parse(ctx.preparedAt)+900000)continue;const k=contextKey(r),a=contexts.get(k)||[];a.push(r);contexts.set(k,a);}
 
- const clock=ctx.preparedAt,at=Date.parse(clock),native=[],rows=[],excluded={};
+ const clock=ctx.preparedAt,at=Date.parse(clock),native=[],rows=[],excluded={},modelScopeByMarket={};
  const reject=k=>{excluded[k]=(excluded[k]||0)+1;};
  for(const s of ctx.scopes.filter(s=>s.sport==='NHL')){
   const p=nhl.projectPlayer(s.history);
@@ -145,14 +145,14 @@ function generate(ctx,receipts=[]){
    if(teams.length!==1||opponents.length!==1){reject('missing_exact_team_context');continue;}
    const a=ctx.scopes.filter(s=>s.sport===b.m.sport.toUpperCase()&&norm(s.name)===norm(o.player)&&norm(s.team)===teams[0]&&norm(s.opponent)===opponents[0]&&Date.parse(s.startAt)===Date.parse(startAt));
    if(a.length!==1){reject('native_match');continue;}
-   const s=a[0],p=project({sport:s.sport,stat:o.market,period:o.period,line:o.line,observedAt:clock},s,clock,{researchProbabilities:true});
-   if(!p){reject('model_scope');continue;}
+   const s=a[0],result=pickfinderProject(o,s,clock),p=result.prediction;
+   if(!p){reject('model_scope');const k=JSON.stringify([o.sport,o.market,o.period??null,result.reason]);modelScopeByMarket[k]=(modelScopeByMarket[k]||0)+1;continue;}
    const key=JSON.stringify([b.digest,o.detailId,o.eventId,o.market,o.period,o.line,side,tier]);if(seen.has(key))continue;seen.add(key);
    const q=p.probabilities;
    rows.push({sport:s.sport,book:b.m.book,player:s.name,playerId:s.playerId,gameId:s.gameId,team:s.team,opponent:s.opponent,startAt:s.startAt,market:p.metric,line:o.line,side,tier,sourceTier:o.tier,platformTierVerified:false,projection:p.projection,probability:q?q[side.toLowerCase()]:null,pushProbability:q?.push??null,priorObservations:p.prior,method:p.method,sourceObservedAt:o.observedAt,contextObservedAt:recovered?.observedAt??null,clockCorroborated:!!corroborated,sourceClockVerified:false,researchOnly:true,forecastAt:clock,manifestDigest:b.digest,sourceEventId:o.eventId,sourceDetailId:o.detailId,historyDigests:s.historyDigests,modelRevision:ctx.revision,offerFresh:at-Date.parse(o.observedAt)<=300000,originalPlatformVerified:false,calibrated:false,modelApproved:false,expectedValue:null});
   }
  }
- return {kind:'native_individual_research_v1',generatedAt:clock,modelRevision:ctx.revision,native,rows,excluded,reconciliation,candidateOffers:candidateOffers(ctx,reconciliation),paidRequests:0,modelApproved:false};
+ return {kind:'native_individual_research_v1',generatedAt:clock,modelRevision:ctx.revision,native,rows,excluded,modelScopeByMarket,reconciliation,candidateOffers:candidateOffers(ctx,reconciliation),paidRequests:0,modelApproved:false};
 }
 module.exports={generate,researchTier,reconcileLocal,reconcileArchive,candidateOffers,reconcileIdentityOnly,clockAudit,clockOfferContext};
-if(require.main===module){const root=process.cwd(),clock=new Date().toISOString(),out=generate(fromArchive(root,clock,git(root,['rev-parse','HEAD'])),read(root,'directory'));fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,candidateOfferReferences:out.candidateOffers.length,excluded:out.excluded,reconciliation:{...out.reconciliation,rows:undefined,identityOnlyRows:undefined,clockRecoveredRows:undefined}}));}
+if(require.main===module){const root=process.cwd(),clock=new Date().toISOString(),out=generate(fromArchive(root,clock,git(root,['rev-parse','HEAD'])),read(root,'directory'));fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,candidateOfferReferences:out.candidateOffers.length,excluded:out.excluded,modelScopeByMarket:out.modelScopeByMarket,reconciliation:{...out.reconciliation,rows:undefined,identityOnlyRows:undefined,clockRecoveredRows:undefined}}));}

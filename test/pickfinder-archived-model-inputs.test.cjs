@@ -158,3 +158,20 @@ test('observed first-N map identifiers preserve explicit source scope without ap
  assert.equal(esportsScope({...o,sport:'dota2',market:'1st_2_maps_player_fantasy_score_underdog_'}),null);
  assert.equal(esportsScope({...o,mapRange:'2_maps'}),null);
 });
+
+test('public sporting tables retain complete bounded headings while legacy scope stays bounded',()=>{
+ const {readSections}=require('../scripts/pickfinder-player-research.cjs');
+ const headers=['Date','Opponent',...Array.from({length:87},(_,i)=>'Sport stat '+i)];
+ const table={getClientRects:()=>[{}],querySelectorAll:s=>s==='thead th'?headers.map(innerText=>({innerText})):s==='tbody tr'?[{cells:headers.map(()=>({innerText:'1',querySelectorAll:()=>[]}))}]:[]};
+ const prior=global.document;
+ try{
+  global.document={body:{innerText:''},querySelectorAll:s=>s==='table'?[table]:[]};
+  const p={tab:'Game Log',origin:'profile',observedAt,context:{}};
+  const all=readSections({...p,fullSportingHeaders:true});
+  assert.equal(all[0].scope.split(' | ').length,89);
+  assert.ok(all.every(f=>f.scope===all[0].scope));
+  const legacy=readSections(p);
+  assert.ok(legacy[0].scope.length<=512);
+  assert.ok(legacy[0].scope.endsWith('[header truncated]'));
+ }finally{if(prior===undefined)delete global.document;else global.document=prior;}
+});

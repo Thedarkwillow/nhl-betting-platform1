@@ -69,7 +69,7 @@ function analyze(archive,now=new Date().toISOString()){
    if(!valid(o.startAt))x.missingStartAt++;
    const ek=key([s,o.eventId]);if(!events.has(ek))events.set(ek,{sport:s,sourceEventId:o.eventId,players:new Set()});events.get(ek).players.add(o.player);
    const k=key([scope(o),o.line,o.tier??null,o.side]),v=comp.get(k)||new Map();const old=v.get(o.book);if(!old||dt(old.observedAt)<dt(o.observedAt))v.set(o.book,o);comp.set(k,v);
-   const b=features(o,f.get(key([o.detailId,o.eventId,o.market,o.observedAt]))||[]),c=quotes(o,q.get(scope(o))||[],m.lastObservedAt);
+   const b=features(o,f.get(key([o.detailId,o.eventId,o.market,o.observedAt]))||[]),c=quotes(o,q.get(scope(o))||[],new Date(Math.min(dt(o.observedAt),dt(a.first))).toISOString());
    if(c.length)x.matchedTwoSidedQuotes++;if(Object.keys(b).length)x.boardFeatureRows++;
    if(Object.keys(b).length||c.length)featureRows.push({offer:o,manifestDigest:a.digest,manifestFirst:a.first,features:b,quotes:c});
   }

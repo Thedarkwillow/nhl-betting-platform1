@@ -20,6 +20,32 @@ async function nbaSources(root,clock){
  if(!schedule){try{const at=now(),client=async(...args)=>{calls++;return fetch(...args);};schedule=await require('./nba-official-preview-schedule.cjs').collect(et(at),at,client);save(root,'nba-schedule',schedule);}catch{}}
  return {histories:out,schedule,status,calls};
 }
+// Public NBA CDN final box scores are an independent fallback for unavailable
+// LeagueGameLog. Keep their provenance distinct; never label them season-complete.
+function finalHistory(doc,g,observedAt,digest){
+ const stats=official(doc,g.gameId,g.startAt,observedAt);
+ if(!stats||! /^[a-f0-9]{64}$/.test(digest)||g.status!==3||et(g.startAt)>=et(observedAt))return null;
+ const game=doc.game,rows=[];
+ const sides=[game.homeTeam,game.awayTeam];
+ if(sides[0].teamTricode!==g.home||sides[1].teamTricode!==g.away||!Number.isInteger(sides[0].score)||!Number.isInteger(sides[1].score)||sides[0].score===sides[1].score)return null;
+ for(const [i,t] of sides.entries())for(const p of t.players){
+  const x=stats.get(p.personId);if(!x)continue;
+  const m=/^PT(\d+)M(\d+(?:\.\d+)?)S$/.exec(p.statistics?.minutes||'');
+  const minutes=m?Number(m[1])+Number(m[2])/60:0;
+  const player=[p.firstName,p.familyName].filter(Boolean).join(' ').trim();
+  if(!player||minutes<=0||minutes>70)continue;
+  rows.push({...x,player,gameDate:et(g.startAt),opponent:sides[1-i].teamTricode,home:i===0,minutes,wl:t.score>sides[1-i].score?'W':'L'});
+ }
+ if(sides.some(t=>rows.filter(p=>p.team===t.teamTricode).length<5))return null;
+ return {kind:'nba_official_cdn_final_history_v1',source:'cdn.nba.com final boxscore',sourceResponseSha256:digest,capturedAt:observedAt,gameId:g.gameId,startAt:g.startAt,historicalAppearancesOnly:true,officialFinalClockVerified:true,seasonCompletenessVerified:false,originalPlatformSettlementVerified:false,rows};
+}
+async function recoverFinalHistory(root,schedule,clock,fetchBox=get){
+ const prior=history(root,'nba-final-history'),done=new Set(prior.map(x=>x.doc.gameId));
+ const candidates=(schedule?.games||[]).filter(g=>g.status===3&&et(g.startAt)<et(clock)&&dt(clock)-dt(g.startAt)<45*86400000&&!done.has(g.gameId)).sort((a,b)=>dt(b.startAt)-dt(a.startAt)).slice(0,12);
+ let calls=0,archived=0,rows=0;
+ for(const g of candidates)try{calls++;const d=await fetchBox('https://cdn.nba.com/static/json/liveData/boxscore/boxscore_'+String(g.gameId).padStart(10,'0')+'.json'),x=finalHistory(d.doc,g,now(),d.digest);if(x){save(root,'nba-final-history',x);archived++;rows+=x.rows.length;}}catch{}
+ return {calls,archived,rows,seasonCompletenessVerified:false};
+}
 function candidates(events,h,schedule,clock){
  const byName=new Map();for(const [id,rows] of h.players){const recent=rows.filter(r=>r.gameDate<et(clock)).at(-1);if(!recent)continue;const k=nba.norm(recent.player),a=byName.get(k)||[];a.push(recent);byName.set(k,a);}
  const out=[];for(const e of events.filter(e=>e.sport==='nba')){
@@ -68,6 +94,7 @@ function pairedStats(rows){
 async function main(root){
  const clock=now(),revision=git(root,['rev-parse','HEAD']),archive=load(root),a=analyze(archive,clock);a.summary.researchCoverage=coverage(root);
  const src=await nbaSources(root,clock);a.summary.nbaOfficialSources={history:src.status,schedule:!!src.schedule,scheduleSource:src.schedule?.source||null,requests:src.calls};
+ a.summary.nbaFinalHistoryRecovery=src.histories.length?{state:'league_log_available'}:await recoverFinalHistory(root,src.schedule,now());
  let rows=[];if(src.histories.length&&src.schedule){const h=nba.indexHistory(src.histories),at=now(),c=candidates(a.events,h,src.schedule,at);save(root,'nba-identity-candidates',{kind:'public_nba_identity_candidates_v1',generatedAt:at,rows:c});a.summary.nbaIdentityCandidates={events:c.length,exactNameCandidates:c.reduce((s,x)=>s+x.exactNameCandidates,0),uniqueScheduleCandidates:c.filter(x=>x.possibleGames.length===1).length,reviewed:false};
  // Historical walk-forward evaluation of existing model only; not a new feature qualification.
  a.summary.nbaRetrospective=nba.backtest(h);
@@ -82,5 +109,5 @@ async function main(root){
  fs.mkdirSync(path.join(root,'data'),{recursive:true});fs.writeFileSync(path.join(root,'data/pickfinder-public-research-health.json'),JSON.stringify(a.summary,null,2)+'\n');
  console.log(JSON.stringify({state:'public_research_validation',manifests:a.summary.archiveManifests,invalid:a.summary.invalidManifests,offerRefs:a.summary.offerRefs,exactComparisons:a.summary.exactComparisons,nbaShadowRows:rows.length,nbaSources:a.summary.nbaOfficialSources,independentGrading:a.summary.independentGrading,paidRequests:0,privateRepoUsed:false}));
 }
-module.exports={candidates,modelRows,aliases,pairedStats,reviewed,history,save,gradingQueue};
+module.exports={candidates,modelRows,aliases,pairedStats,reviewed,history,save,gradingQueue,finalHistory,recoverFinalHistory};
 if(require.main===module)main(fs.realpathSync(process.argv[2]||'.')).catch(()=>{console.error('Public research validation failed closed');process.exitCode=1;});

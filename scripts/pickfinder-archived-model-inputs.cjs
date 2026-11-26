@@ -102,7 +102,19 @@ function* committedProfiles(root){
 }
 // The packet is an inspection artifact, not a review receipt. It contains
 // only already-authorized sporting facts and pointers to their immutable archives.
-function reviewPacket(h,clock){
+// Group exact provider series/player/market scopes for independent esports review.
+function esportsReviewQueue(history){
+ const groups=new Map();
+ for(const x of history.values()){
+  const o=x.offer,e=esportsScope(o);if(!e||!o.eventId||!o.player||!o.detailId)continue;
+  let u;try{u=new URL(o.detailId,'https://www.pickfinder.app');}catch{continue;}
+  if(u.origin!=='https://www.pickfinder.app'||!u.pathname.startsWith('/players/'))continue;
+  const k=key([o.sport,o.eventId,u.pathname,o.player,e.market,e.maps,o.gameMode??null]),g=groups.get(k)||{sport:o.sport,title:e.title,sourceEventId:o.eventId,profilePath:u.pathname,sourcePlayer:o.player,market:e.market,maps:e.maps,gameMode:o.gameMode??null,offerObservations:0,manifestDigests:new Set(),independentReviewVerified:false,modelApproved:false};
+  g.offerObservations++;g.manifestDigests.add(x.manifestDigest);groups.set(k,g);
+ }
+ return [...groups.values()].map(x=>({...x,manifestDigests:[...x.manifestDigests].sort()}));
+}
+function reviewPacket(h,clock,boards=null){
  const by=new Map();
  for(const x of h.rows.values()){
   const p=nativeHistory.profilePath(x.sport,x.sourceDetailId);if(!p)continue;
@@ -111,12 +123,12 @@ function reviewPacket(h,clock){
   if(!a.has(fact))a.set(fact,{eventId:x.eventId,market:x.market,value:x.value,officialStartAt:x.officialStartAt,officialGameDate:x.officialGameDate,sourceDate:x.sourceDate,nativeDigest:x.nativeDigest,profileDigest:x.profileDigest,nativeAvailableAt:x.nativeAvailableAt,profileAvailableAt:x.profileAvailableAt});
   by.set(k,a);
  }
- return {kind:'pickfinder_historical_identity_review_packet_v1',generatedAt:clock,rows:h.identityCandidates.map(c=>({...c,facts:[...(by.get(key([c.sport,c.profilePath,c.nativePlayerId]))||new Map()).values()],independentReviewVerified:false})),modelApproved:false,reviewReceipt:false};
+ return {kind:'pickfinder_historical_identity_review_packet_v1',generatedAt:clock,rows:h.identityCandidates.map(c=>({...c,facts:[...(by.get(key([c.sport,c.profilePath,c.nativePlayerId]))||new Map()).values()],independentReviewVerified:false})),esportsScopes:boards?esportsReviewQueue(boards.history):[],modelApproved:false,reviewReceipt:false};
 }
 function run(root,clock=new Date().toISOString(),{packetPath=null}={}){
  const p=auditProfiles(committedProfiles(root),clock),b=auditBoards(load(root),clock),h=nativeHistory.fromArchive(root,committedProfiles(root),clock);
- if(packetPath)fs.writeFileSync(packetPath,JSON.stringify(reviewPacket(h,clock),null,2)+'\n',{flag:'wx'});
+ if(packetPath)fs.writeFileSync(packetPath,JSON.stringify(reviewPacket(h,clock,b),null,2)+'\n',{flag:'wx'});
  return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,nativeHistory:h.summary,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
 }
-module.exports={classify,auditProfiles,auditBoards,quoteInventory,esportsScope,committedProfiles,reviewPacket,run};
+module.exports={classify,auditProfiles,auditBoards,quoteInventory,esportsScope,committedProfiles,reviewPacket,esportsReviewQueue,run};
 if(require.main===module)console.log(JSON.stringify(run(process.cwd(),new Date().toISOString(),{packetPath:process.argv[2]||null})));

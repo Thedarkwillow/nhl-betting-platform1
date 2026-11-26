@@ -129,16 +129,46 @@ function lookupCandidate(index,{sport,playerId,eventId,market,asOf}){
  if(!x||!Number.isFinite(dt(asOf))||Math.max(dt(x.nativeAvailableAt),dt(x.profileAvailableAt),dt(x.profileObservedAt))>dt(asOf))return null;
  return {...x,providerIdentityReviewed:false,modelApproved:false,collectionSkipAuthorized:false};
 }
+// The same source profile can recur with many thresholds, dates and filters.
+// Keep provider-path identity evidence separate from native-stat cache keys.
+function profilePath(sport,detailId){
+ try{
+  const u=new URL(detailId,'https://www.pickfinder.app');
+  if(u.origin!=='https://www.pickfinder.app'||!/^\/players\/[a-z0-9_-]+\/[a-zA-Z0-9_-]+$/.test(u.pathname)||u.pathname.split('/')[2]!==sport)return null;
+  return u.pathname;
+ }catch{return null;}
+}
+function identityEvidence(rows,clock){
+ const groups=new Map(),reverse=new Map(),bySport={};let invalid=0;
+ for(const x of rows.values()){
+  const path=profilePath(x.sport,x.sourceDetailId);
+  if(!path||!x.playerId||!x.eventId||!x.sourcePlayer||!hash(x.nativeDigest)||!hash(x.profileDigest)||!Number.isFinite(dt(x.profileAvailableAt))||!Number.isFinite(dt(x.nativeAvailableAt))||!Number.isFinite(dt(x.profileObservedAt))||dt(x.profileObservedAt)>dt(x.profileAvailableAt)+999||Math.max(dt(x.profileAvailableAt),dt(x.nativeAvailableAt))>dt(clock)){invalid++;continue;}
+  const k=key([x.sport,path]),g=groups.get(k)||{sport:x.sport,path,ids:new Set(),names:new Set(),games:new Set(),facts:new Set(),nativeDigests:new Set(),profileDigests:new Set()};
+  g.ids.add(x.playerId);g.names.add(norm(x.sourcePlayer));g.games.add(x.eventId);g.facts.add(key([x.eventId,x.market,x.value]));g.nativeDigests.add(x.nativeDigest);g.profileDigests.add(x.profileDigest);groups.set(k,g);
+  const n=key([x.sport,x.playerId]),paths=reverse.get(n)||new Set();paths.add(path);reverse.set(n,paths);
+ }
+ const reviewCandidates=[];
+ for(const g of groups.values()){
+  const st=bySport[g.sport]??={profiles:0,conflictingProfiles:0,unresolvedSingleGame:0,multipleGameCandidates:0,distinctGameFacts:0};
+  st.profiles++;
+  const id=[...g.ids][0];
+  if(g.ids.size!==1||g.names.size!==1||reverse.get(key([g.sport,id])).size!==1){st.conflictingProfiles++;continue;}
+  if(g.games.size<2){st.unresolvedSingleGame++;continue;}
+  st.multipleGameCandidates++;st.distinctGameFacts+=g.facts.size;
+  reviewCandidates.push({sport:g.sport,profilePath:g.path,nativePlayerId:id,sourcePlayer:[...g.names][0],distinctGames:g.games.size,distinctFacts:g.facts.size,nativeDigests:[...g.nativeDigests].sort(),profileDigests:[...g.profileDigests].sort(),independentReviewVerified:false,modelApproved:false});
+ }
+ return {reviewCandidates,summary:{profiles:groups.size,invalidEvidence:invalid,multipleGameCandidates:reviewCandidates.length,bySport,independentReviewVerified:false,modelApproved:false}};
+}
 function audit(documents,index,clock){
  const rows=new Map(),bySport={};let candidates=0,reassembledRows=0;
  for(const {doc,digest,first} of documents)for(const r of doc.records||[]){if(!['nhl','nfl','nba','cs2','valorant','dota2','lol','cod'].includes(r.sport))continue;
   const s=bySport[r.sport]??={attempts:0,candidates:0,reasons:{}};
   for(const f of structuredFields(r.research||[])){if(f.origin!=='profile'||!/^row \d+$/.test(f.metric||''))continue;s.attempts++;if(f.reassembled)reassembledRows++;const x=matchRow(r,f,index,clock);if(!x.candidate){s.reasons[x.reason]=(s.reasons[x.reason]||0)+1;if(x.reason==='missing_exact_columns'){const shape=columnShape(f);const h=s.columnShapes??={};const k=Object.hasOwn(h,shape)||Object.keys(h).length<40?shape:'other_shapes';h[k]=(h[k]||0)+1;}continue;}s.candidates++;candidates++;
    const c=x.candidate,k=sha(key([r.sport,r.detailId,r.market,c.playerId,c.eventId,c.market,c.value,f.filterSelection??null,f.tab,f.scope]));
-   if(!rows.has(k))rows.set(k,{...c,profileDigest:digest,profileAvailableAt:first??null,cacheKey:k});}
+   if(!rows.has(k))rows.set(k,{...c,profileDigest:digest,profileAvailableAt:first??null,sourceDetailId:r.detailId,sourcePlayer:r.player,cacheKey:k});}
  }
- const cached=candidateCache(rows,clock);
- return {rows,cache:cached.index,summary:{kind:'pickfinder_native_history_candidate_reconciliation_v1',bySport,reassembledRows,reusableResearchCandidates:cached.index.size,researchCacheConflicts:cached.conflicts,candidates,distinctCandidates:rows.size,conflictingNativeGames:index.conflicts,independentlyReviewedProviderIdentities:0,qualifiedCacheEntries:0,qualifiedModelInputs:0,paidRequests:0,requestsSkipped:0,modelApproved:false}};
+ const cached=candidateCache(rows,clock),identities=identityEvidence(rows,clock);
+ return {rows,cache:cached.index,identityCandidates:identities.reviewCandidates,summary:{kind:'pickfinder_native_history_candidate_reconciliation_v1',bySport,identityEvidence:identities.summary,reassembledRows,reusableResearchCandidates:cached.index.size,researchCacheConflicts:cached.conflicts,candidates,distinctCandidates:rows.size,conflictingNativeGames:index.conflicts,independentlyReviewedProviderIdentities:0,qualifiedCacheEntries:0,qualifiedModelInputs:0,paidRequests:0,requestsSkipped:0,modelApproved:false}};
 }
 function fromArchive(root,documents,clock){return audit(documents,nativeIndex({facts:receipts(root,nativeRoot+'native-facts','independent_public_sport_identity_facts_v1',clock),nhlFinals:receipts(root,nativeRoot+'nhl-final-stat-facts','nhl_official_recent_final_stats_v1',clock),nflSeasons:receipts(root,'research/pickfinder-public-nfl-v1/season','nflverse_public_native_history_v1',clock),nbaHistories:require('./pickfinder-public-model-validation.cjs').history(root,'nba-history')},clock),clock);}
-module.exports={nativeIndex,matchRow,audit,fromArchive,structuredFields,columnShape,candidateCache,lookupCandidate};
+module.exports={nativeIndex,matchRow,audit,fromArchive,structuredFields,columnShape,candidateCache,lookupCandidate,identityEvidence,profilePath};

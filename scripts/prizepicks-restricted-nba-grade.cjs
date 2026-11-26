@@ -3,7 +3,7 @@
 // Caller must supply a trusted store receipt verifier; local filesystem dates
 // alone cannot establish prospective chronology. No API calls or app settlement.
 const crypto=require('node:crypto');
-const {official}=require('./grade-nba-frozen-research-v1.cjs');
+const {parse}=require('./nba-bounded-official-final.cjs');
 const {gradePaper}=require('../src/nba-research-pipeline-v1.cjs');
 const dt=Date.parse,digest=x=>crypto.createHash('sha256').update(x).digest('hex');
 async function gradeFrame({archiveBytes,receipt,verifyReceipt,officialFinals,clock}){
@@ -18,11 +18,11 @@ async function gradeFrame({archiveBytes,receipt,verifyReceipt,officialFinals,clo
   const k=JSON.stringify([p.nativeGameId,p.nativePlayerId,p.market,p.line,p.tier,p.side]);if(seen.has(k))continue;seen.add(k);
   const final=officialFinals.get(p.nativeGameId);
   if(!final||!Buffer.isBuffer(final.bytes)||final.bytes.length>4e6||!Number.isFinite(dt(final.observedAt))||dt(final.observedAt)>dt(clock))continue;
-  let stat;try{stat=official(JSON.parse(final.bytes),p.nativeGameId,p.gameStartAt,final.observedAt)?.get(p.nativePlayerId);}catch{continue;}
+  let stat;try{stat=parse(final.bytes,p.nativeGameId,p.gameStartAt,final.observedAt)?.get(p.nativePlayerId);}catch{continue;}
   if(!stat||stat.team!==p.team)continue;
   const result=gradePaper({gameId:p.nativeGameId,playerId:p.nativePlayerId,market:p.market,line:p.line,offeredSide:p.side},stat);
   if(result==='pending')continue;
-  rows.push({id:k,forecastDigest:frameDigest,modelRevision:p.modelRevision,result,actual:stat[p.market],estimate:p.rawConditionalEstimate,officialDigest:digest(final.bytes),officialObservedAt:final.observedAt});
+  rows.push({id:k,forecastDigest:frameDigest,modelRevision:p.modelRevision,result,actual:stat[p.market],estimate:p.rawConditionalEstimate,officialDigest:digest(final.bytes),officialObservedAt:final.observedAt,officialSource:final.source||'cdn'});
  }
  return {kind:'restricted_nba_independent_grade_v1',rows,appSettlementVerified:false,calibrated:false,modelApproved:false};
 }

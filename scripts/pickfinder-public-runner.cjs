@@ -9,6 +9,7 @@ function invocation(env,now=new Date()){
  if(env.GITHUB_EVENT_NAME==='schedule'&&/^[0-9]+ (6|9) \* \* \*$/.test(env.GITHUB_EVENT_SCHEDULE))return decide({eventName:'schedule',schedule:env.GITHUB_EVENT_SCHEDULE,now});
  if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&['capture_0600','capture_0900'].includes(env.REQUESTED_MODE))return decide({eventName:'workflow_dispatch',mode:env.REQUESTED_MODE,now});
  const clock=pacific(now),mode=env.REQUESTED_MODE||'board_and_deep';
+ if(mode==='nba_history_repair'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual repair only');return {allowed:![5,6,8,9].includes(clock.hour),expected:'manual',clock,deep:true,historyRepair:true,state:'nba_history_repair_gate'};}
  if(mode==='timezone_validation'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual experiment only');return {allowed:![5,6,8,9].includes(clock.hour),expected:'manual',clock,timezoneOnly:true,state:'timezone_experiment_gate'};}
  if(!['board_and_deep','deep_research_now','probe_now','nba_context_only','features_only','boards_only'].includes(mode))throw Error('mode');
  if([6,9].includes(clock.hour)||(['features_only','boards_only','nba_context_only'].includes(mode)&&[5,8].includes(clock.hour)))return {allowed:false,state:'protect_morning_hour',clock};
@@ -69,7 +70,7 @@ function queue(boards,profiles){
  const order=['nba','nhl','nfl','cs2','dota2','valorant','lol','cod',...groups.keys()];const sports=[...new Set(order)].filter(s=>groups.has(s));
  for(const a of groups.values())a.sort((x,y)=>Number(repairKeys.has(y.key))-Number(repairKeys.has(x.key))||(attempted.get(x.key)||0)-(attempted.get(y.key)||0));
  const i=new Map(),pending=[];while(sports.some(s=>(i.get(s)||0)<groups.get(s).length))for(const s of sports){const n=i.get(s)||0;if(n<groups.get(s).length){pending.push(groups.get(s)[n]);i.set(s,n+1);}}
- return {total:q.size,done:[...done].filter(k=>q.has(k)).length,pending,malformedHistoryPending:[...repairKeys].filter(k=>q.has(k)).length,offerReferences:references,sharedAcrossBooks:[...q.values()].filter(x=>x.books.length>1).length};
+ return {total:q.size,done:[...done].filter(k=>q.has(k)).length,pending,repairPending:pending.filter(x=>repairKeys.has(x.key)),malformedHistoryPending:[...repairKeys].filter(k=>q.has(k)).length,offerReferences:references,sharedAcrossBooks:[...q.values()].filter(x=>x.books.length>1).length};
 }
 function publicProfile(row){
  const fields=[];for(const f of row.research||[]){
@@ -90,7 +91,7 @@ async function main(root,env=process.env){
  const {chromium}=require('playwright');
  if(p.timezoneOnly){const probe=require('./pickfinder-controlled-clock.cjs'),until=Date.now()+8*60000;const alive=()=>Date.now()<until&&pacific(new Date()).day===p.clock.day&&![5,6,8,9].includes(pacific(new Date()).hour);const targets=probe.select(load(root),new Date().toISOString());const result=await probe.observe({targets,open:zone=>openHostedBoard(chromium,env,zone),alive,write:data=>persist(root,'directory',data),premium,origin:ORIGIN});console.log(JSON.stringify({state:'controlled_clock_experiment',...result}));return;}
  const {page,context}=await openHostedBoard(chromium,env);
- const started=Date.now(),deadline=started+(p.expected==='manual'?40:45)*60000,alive=()=>{const c=pacific(new Date());return Date.now()<deadline&&c.day===p.clock.day&&(p.expected==='manual'?!(p.featuresOnly||p.boardsOnly||p.contextOnly?[5,6,8,9]:[6,9]).includes(c.hour):c.hour===p.clock.hour&&c.minute<55);};
+ const started=Date.now(),deadline=started+(p.expected==='manual'?40:45)*60000,alive=()=>{const c=pacific(new Date());return Date.now()<deadline&&c.day===p.clock.day&&(p.expected==='manual'?!(p.featuresOnly||p.boardsOnly||p.contextOnly||p.historyRepair?[5,6,8,9]:[6,9]).includes(c.hour):c.hour===p.clock.hour&&c.minute<55);};
  let boards=0,profiles=0,archiveMs=0,transactions=0,profileMs=0,errors=0;const write=async(kind,data)=>{const t=Date.now();const receipt=await persist(root,kind,data);archiveMs+=Date.now()-t;transactions++;return receipt;};
  try{
   if(p.probe){console.log(JSON.stringify({state:'public_hosted_auth_verified',accountDataPublished:false}));return;}
@@ -158,11 +159,11 @@ async function main(root,env=process.env){
   if(p.contextOnly)return;
   // Reserve bounded feature discovery before the long player-profile queue.
   // Morning capture has already returned; context-only passes remain isolated.
-  if(alive()){
+  if(!p.historyRepair&&alive()){
    try{await page.goto(ORIGIN+'/props',{timeout:15000});if(await waitPremium(page)){const labels=await inspectCapabilities(page);await write('capabilities',{schema:'pickfinder-public-capabilities-v1',labels,observedAt:new Date().toISOString(),accountMutations:0});}}catch{errors++;console.log(JSON.stringify({state:'public_capability_probe_pending'}));}
   }
   // Existing tool inspector was imported but never invoked by the public runner.
-  for(const kind of ['builder','alerts']){
+  for(const kind of p.historyRepair?[]:['builder','alerts']){
    if(!alive())break;
    try{
     await page.goto(ORIGIN+'/props',{timeout:15000});
@@ -172,7 +173,7 @@ async function main(root,env=process.env){
     console.log(JSON.stringify({state:'public_tool_schema_pass',kind,result:result.state,mutations:0}));
    }catch{errors++;console.log(JSON.stringify({state:'public_tool_schema_pending',kind}));}
   }
-  for(const name of ['Games','Discrepancies','Popular']){
+  for(const name of p.historyRepair?[]:['Games','Discrepancies','Popular']){
    if(!alive())break;
    const stop=Date.now()+90000,featureAlive=()=>alive()&&Date.now()<stop;
    try{
@@ -185,7 +186,7 @@ async function main(root,env=process.env){
    }catch{errors++;console.log(JSON.stringify({state:'public_dashboard_pending',name}));}
   }
   if(p.featuresOnly)return;
-  const q=queue(read(root,'board-parts'),read(root,'profiles'));console.log(JSON.stringify({state:'public_deep_queue',total:q.total,completed:q.done,remaining:q.pending.length,malformedHistoryPending:q.malformedHistoryPending,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
+  const q=queue(read(root,'board-parts'),read(root,'profiles'));if(p.historyRepair)q.pending=q.repairPending;console.log(JSON.stringify({state:'public_deep_queue',total:q.total,completed:q.done,remaining:q.pending.length,malformedHistoryPending:q.malformedHistoryPending,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
   // Explicit manual deep runs alone trial two isolated tabs; all archives remain serialized.
   // Never increase parallelism in the protected morning board or scheduled collection paths.
   const workers=profileWorkers(env,p),pages=[];

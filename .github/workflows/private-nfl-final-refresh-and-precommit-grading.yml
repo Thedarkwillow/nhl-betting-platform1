@@ -8,7 +8,8 @@ on:
     branches: [main]
     paths: ['.github/workflows/private-nfl-final-refresh-and-precommit-grading.yml']
   schedule:
-    - cron: '40 5 * * 1,2,5'
+    # Every slate, including Wednesday/holiday games. Outside protected 06:00/09:00 captures.
+    - cron: '40 3 * * *'
       timezone: America/Los_Angeles
 permissions:
   contents: read
@@ -191,6 +192,12 @@ jobs:
             sleep "$attempt"
           done
           echo "::error::NFL private grading report archival failed"
+          exit 1
+
+      - name: Fail visibly if current final-source refresh was unavailable
+        if: steps.refresh.outputs.refreshed != 'true'
+        run: |
+          echo "::error::NFL source refresh incomplete. Prior archives and pending-safe grading were retained; do not treat this run as a fresh final-source success."
           exit 1
 
 # 2026-11-14: refresh final-only research after PR 139; preserve first-observed outcome clocks.

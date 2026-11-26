@@ -39,11 +39,39 @@ function finalHistory(doc,g,observedAt,digest){
  if(sides.some(t=>rows.filter(p=>p.team===t.teamTricode).length<5))return null;
  return {kind:'nba_official_cdn_final_history_v1',source:'cdn.nba.com final boxscore',sourceResponseSha256:digest,capturedAt:observedAt,gameId:g.gameId,startAt:g.startAt,historicalAppearancesOnly:true,officialFinalClockVerified:true,seasonCompletenessVerified:false,originalPlatformSettlementVerified:false,rows};
 }
+// When the CDN season schedule is unavailable, corroborate dated official NBA
+// game routes with ESPN final status. The actual boxscore still independently
+// verifies the NBA ID, final status, clock, teams and player results.
+function datedFinalGames(html,doc,date){
+ const routes=require('./nba-public-schedule-corroboration.cjs').links(html),out=[],seen=new Set();
+ if(!Array.isArray(doc?.events)||doc.events.length>15)return out;
+ for(const e of doc.events){
+  const c=e.competitions?.[0],s=c?.status?.type;
+  if(s?.state!=='post'||s.completed!==true||s.name!=='STATUS_FINAL'||!Number.isFinite(dt(c.date))||et(c.date)!==date)continue;
+  const h=c.competitors?.filter(x=>x.homeAway==='home'),a=c.competitors?.filter(x=>x.homeAway==='away');
+  if(h?.length!==1||a?.length!==1||c.competitors.length!==2)continue;
+  const home=nba.teams(h[0].team?.abbreviation),away=nba.teams(a[0].team?.abbreviation),ids=routes.get(away+'@'+home);
+  if(ids?.size!==1||home===away)continue;
+  const gameId=Number([...ids][0]);if(seen.has(gameId))continue;seen.add(gameId);
+  out.push({gameId,startAt:c.date,home,away,status:3,source:'NBA dated game route plus ESPN final'});
+ }
+ return out;
+}
+async function recentFinalSchedule(clock,client=fetch){
+ const games=[],failures=[];let calls=0;
+ const read=async(url,accept)=>{calls++;const r=await client(url,{redirect:'error',signal:AbortSignal.timeout(15000),headers:{Accept:accept,'User-Agent':'NBA schedule research/1.0'}});if(!r.ok)throw Error('http_'+r.status);const raw=await r.text();if(raw.length>8e6)throw Error('size');return raw;};
+ for(const i of [1,2]){const date=et(dt(clock)-i*86400000);try{
+  const html=await read('https://www.nba.com/games?date='+date,'text/html');
+  const raw=await read('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates='+date.replaceAll('-','')+'&limit=100','application/json');
+  for(const g of datedFinalGames(html,JSON.parse(raw),date))games.push({...g,routeResponseSha256:sha(html),independentResponseSha256:sha(raw)});
+ }catch{failures.push(date);}}
+ return {games,calls,failedDates:failures};
+}
 async function recoverFinalHistory(root,schedule,clock,fetchBox=get){
  const prior=history(root,'nba-final-history'),done=new Set(prior.map(x=>x.doc.gameId));
  const candidates=(schedule?.games||[]).filter(g=>g.status===3&&et(g.startAt)<et(clock)&&dt(clock)-dt(g.startAt)<45*86400000&&!done.has(g.gameId)).sort((a,b)=>dt(b.startAt)-dt(a.startAt)).slice(0,12);
  let calls=0,archived=0,rows=0;
- for(const g of candidates)try{calls++;const d=await fetchBox('https://cdn.nba.com/static/json/liveData/boxscore/boxscore_'+String(g.gameId).padStart(10,'0')+'.json'),x=finalHistory(d.doc,g,now(),d.digest);if(x){save(root,'nba-final-history',x);archived++;rows+=x.rows.length;}}catch{}
+ for(const g of candidates)try{calls++;const d=await fetchBox('https://cdn.nba.com/static/json/liveData/boxscore/boxscore_'+String(g.gameId).padStart(10,'0')+'.json'),x=finalHistory(d.doc,g,now(),d.digest);if(x){if(g.routeResponseSha256&&g.independentResponseSha256)x.scheduleEvidence={source:g.source,routeResponseSha256:g.routeResponseSha256,independentResponseSha256:g.independentResponseSha256};save(root,'nba-final-history',x);archived++;rows+=x.rows.length;}}catch{}
  return {calls,archived,rows,seasonCompletenessVerified:false};
 }
 function candidates(events,h,schedule,clock){
@@ -94,7 +122,12 @@ function pairedStats(rows){
 async function main(root){
  const clock=now(),revision=git(root,['rev-parse','HEAD']),archive=load(root),a=analyze(archive,clock);a.summary.researchCoverage=coverage(root);
  const src=await nbaSources(root,clock);a.summary.nbaOfficialSources={history:src.status,schedule:!!src.schedule,scheduleSource:src.schedule?.source||null,requests:src.calls};
- a.summary.nbaFinalHistoryRecovery=src.histories.length?{state:'league_log_available'}:await recoverFinalHistory(root,src.schedule,now());
+ const missingCurrent=src.status['2026-27']==='pending'||!src.histories.some(h=>h.season==='2026-27');
+ if(missingCurrent){
+  const at=now(),hasFinals=src.schedule?.games?.some(g=>g.status===3&&et(g.startAt)<et(at)&&dt(at)-dt(g.startAt)<45*86400000);
+  const fallback=hasFinals?null:await recentFinalSchedule(at);
+  a.summary.nbaFinalHistoryRecovery={...await recoverFinalHistory(root,fallback||src.schedule,at),scheduleFallbackCalls:fallback?.calls||0,scheduleFallbackCandidates:fallback?.games.length||0,scheduleFailedDates:fallback?.failedDates||[]};
+ }else a.summary.nbaFinalHistoryRecovery={state:'current_league_log_available'};
  let rows=[];if(src.histories.length&&src.schedule){const h=nba.indexHistory(src.histories),at=now(),c=candidates(a.events,h,src.schedule,at);save(root,'nba-identity-candidates',{kind:'public_nba_identity_candidates_v1',generatedAt:at,rows:c});a.summary.nbaIdentityCandidates={events:c.length,exactNameCandidates:c.reduce((s,x)=>s+x.exactNameCandidates,0),uniqueScheduleCandidates:c.filter(x=>x.possibleGames.length===1).length,reviewed:false};
  // Historical walk-forward evaluation of existing model only; not a new feature qualification.
  a.summary.nbaRetrospective=nba.backtest(h);
@@ -109,5 +142,5 @@ async function main(root){
  fs.mkdirSync(path.join(root,'data'),{recursive:true});fs.writeFileSync(path.join(root,'data/pickfinder-public-research-health.json'),JSON.stringify(a.summary,null,2)+'\n');
  console.log(JSON.stringify({state:'public_research_validation',manifests:a.summary.archiveManifests,invalid:a.summary.invalidManifests,offerRefs:a.summary.offerRefs,exactComparisons:a.summary.exactComparisons,nbaShadowRows:rows.length,nbaSources:a.summary.nbaOfficialSources,independentGrading:a.summary.independentGrading,paidRequests:0,privateRepoUsed:false}));
 }
-module.exports={candidates,modelRows,aliases,pairedStats,reviewed,history,save,gradingQueue,finalHistory,recoverFinalHistory};
+module.exports={candidates,modelRows,aliases,pairedStats,reviewed,history,save,gradingQueue,finalHistory,recoverFinalHistory,datedFinalGames,recentFinalSchedule};
 if(require.main===module)main(fs.realpathSync(process.argv[2]||'.')).catch(()=>{console.error('Public research validation failed closed');process.exitCode=1;});

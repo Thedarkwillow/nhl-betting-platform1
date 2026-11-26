@@ -13,10 +13,12 @@ function readSections({tab,origin,observedAt,context,fullSportingHeaders=false})
     const note=[...document.querySelectorAll('p')].find(p=>/past\s+\d+\s+(?:days|weeks|months|years)/i.test(p.innerText)&&/main lines/i.test(p.innerText));
     const window=note?.innerText.match(/past\s+\d+\s+(?:days|weeks|months|years)/i)?.[0]||null;
     for(const card of note?.nextElementSibling?.children||[]){
+      if(!card.getClientRects().length)continue;
       const names=[...card.querySelectorAll('img[alt]')].map(img=>img.alt).join(', ');
       add('historical result',names||'displayed history',card.innerText,window?window+', main lines':null);
     }
-    return fields;
+    // Some profile versions render a dated history table instead of cards.
+    // Retain both evidence shapes without equating observations to settlements.
   }
   for(const table of document.querySelectorAll('table')){
     if(!table.getClientRects().length)continue;
@@ -25,7 +27,7 @@ function readSections({tab,origin,observedAt,context,fullSportingHeaders=false})
     const header=headers.join(' | ');
     const isMovement=headers.includes('App')&&headers.includes('Time')&&headers.includes('Line');
     if(origin==='line_movement'&&!isMovement)continue;
-    if(origin==='prop_history'&&!headers.some(h=>/line|result/i.test(h))||origin==='prop_history'&&isMovement)continue;
+    if(origin==='prop_history'&&(isMovement||!headers.some(h=>/^(?:(?:prop|main|closing|opening|historical) )?(?:line|threshold)$/i.test(h))||!headers.some(h=>/^(?:result|outcome|actual|actual stat|stat result)$/i.test(h))||!headers.some(h=>/^(?:date|game date|time|app|book|sportsbook|platform)$/i.test(h))))continue;
     if(origin==='profile'&&isMovement)continue;
     if(!header.trim())continue;
     let i=0;

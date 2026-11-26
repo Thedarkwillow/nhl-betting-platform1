@@ -1,6 +1,6 @@
 {
   "schema": "pickfinder_public_research_health_v1",
-  "generatedAt": "2026-11-26T23:19:45.856Z",
+  "generatedAt": "2026-11-26T23:40:20.784Z",
   "archiveManifests": 112,
   "invalidManifests": 0,
   "latestPartitions": 28,
@@ -555,7 +555,12 @@
     "pendingDueAfterRun": 1,
     "newGrades": 0,
     "finalGames": 0,
-    "calls": 1
+    "calls": 2,
+    "sourceFailures": {
+      "cdn_http_403": 1,
+      "summary_timeout": 1
+    },
+    "sourceRoutes": {}
   },
   "prospectiveComparisons": {},
   "rollingProbabilityPerformance": {
@@ -579,8 +584,8 @@
     "NBA": {
       "status": "ok",
       "source": "espn:basketball/nba",
-      "observedAt": "2026-11-26T23:21:44.461Z",
-      "coverageUntil": "2026-11-28T23:21:44.461Z",
+      "observedAt": "2026-11-26T23:42:31.300Z",
+      "coverageUntil": "2026-11-28T23:42:31.300Z",
       "upcoming": 13,
       "complete": false,
       "daysSucceeded": 3,
@@ -590,8 +595,8 @@
     "NHL": {
       "status": "ok",
       "source": "espn:hockey/nhl",
-      "observedAt": "2026-11-26T23:21:44.461Z",
-      "coverageUntil": "2026-11-28T23:21:44.461Z",
+      "observedAt": "2026-11-26T23:42:31.300Z",
+      "coverageUntil": "2026-11-28T23:42:31.300Z",
       "upcoming": 17,
       "complete": false,
       "daysSucceeded": 3,
@@ -601,8 +606,8 @@
     "NFL": {
       "status": "ok",
       "source": "espn:football/nfl",
-      "observedAt": "2026-11-26T23:21:44.461Z",
-      "coverageUntil": "2026-11-28T23:21:44.461Z",
+      "observedAt": "2026-11-26T23:42:31.300Z",
+      "coverageUntil": "2026-11-28T23:42:31.300Z",
       "upcoming": 2,
       "complete": false,
       "daysSucceeded": 3,
@@ -612,48 +617,48 @@
     "CS2": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-26T23:21:44.461Z",
-      "coverageUntil": "2026-11-28T23:21:44.461Z",
+      "observedAt": "2026-11-26T23:42:31.300Z",
+      "coverageUntil": "2026-11-28T23:42:31.300Z",
       "upcoming": 0,
       "complete": false
     },
     "DOTA2": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-26T23:21:44.461Z",
-      "coverageUntil": "2026-11-28T23:21:44.461Z",
+      "observedAt": "2026-11-26T23:42:31.300Z",
+      "coverageUntil": "2026-11-28T23:42:31.300Z",
       "upcoming": 0,
       "complete": false
     },
     "VAL": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-26T23:21:44.461Z",
-      "coverageUntil": "2026-11-28T23:21:44.461Z",
+      "observedAt": "2026-11-26T23:42:31.300Z",
+      "coverageUntil": "2026-11-28T23:42:31.300Z",
       "upcoming": 0,
       "complete": false
     },
     "LOL": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-26T23:21:44.461Z",
-      "coverageUntil": "2026-11-28T23:21:44.461Z",
+      "observedAt": "2026-11-26T23:42:31.300Z",
+      "coverageUntil": "2026-11-28T23:42:31.300Z",
       "upcoming": 0,
       "complete": false
     },
     "COD": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-26T23:21:44.461Z",
-      "coverageUntil": "2026-11-28T23:21:44.461Z",
+      "observedAt": "2026-11-26T23:42:31.300Z",
+      "coverageUntil": "2026-11-28T23:42:31.300Z",
       "upcoming": 0,
       "complete": false
     },
     "MLB": {
       "status": "ok",
       "source": "espn:baseball/mlb",
-      "observedAt": "2026-11-26T23:21:44.461Z",
-      "coverageUntil": "2026-11-28T23:21:44.461Z",
+      "observedAt": "2026-11-26T23:42:31.300Z",
+      "coverageUntil": "2026-11-28T23:42:31.300Z",
       "upcoming": 0,
       "complete": false,
       "daysSucceeded": 3,
@@ -663,8 +668,8 @@
     "WNBA": {
       "status": "ok",
       "source": "espn:basketball/wnba",
-      "observedAt": "2026-11-26T23:21:44.461Z",
-      "coverageUntil": "2026-11-28T23:21:44.461Z",
+      "observedAt": "2026-11-26T23:42:31.300Z",
+      "coverageUntil": "2026-11-28T23:42:31.300Z",
       "upcoming": 0,
       "complete": false,
       "daysSucceeded": 3,
@@ -674,9 +679,9 @@
     "CFB": {
       "status": "ok",
       "source": "espn:football/college-football",
-      "observedAt": "2026-11-26T23:21:44.461Z",
-      "coverageUntil": "2026-11-28T23:21:44.461Z",
-      "upcoming": 55,
+      "observedAt": "2026-11-26T23:42:31.300Z",
+      "coverageUntil": "2026-11-28T23:42:31.300Z",
+      "upcoming": 56,
       "complete": false,
       "daysSucceeded": 3,
       "daysFailed": 0,
@@ -685,9 +690,9 @@
     "CBB": {
       "status": "ok",
       "source": "espn:basketball/mens-college-basketball",
-      "observedAt": "2026-11-26T23:21:44.461Z",
-      "coverageUntil": "2026-11-28T23:21:44.461Z",
-      "upcoming": 74,
+      "observedAt": "2026-11-26T23:42:31.300Z",
+      "coverageUntil": "2026-11-28T23:42:31.300Z",
+      "upcoming": 75,
       "complete": false,
       "daysSucceeded": 3,
       "daysFailed": 0,
@@ -696,8 +701,8 @@
     "TENNIS": {
       "status": "ok",
       "source": "espn:tennis/atp",
-      "observedAt": "2026-11-26T23:21:44.461Z",
-      "coverageUntil": "2026-11-28T23:21:44.461Z",
+      "observedAt": "2026-11-26T23:42:31.300Z",
+      "coverageUntil": "2026-11-28T23:42:31.300Z",
       "upcoming": 0,
       "complete": false,
       "daysSucceeded": 3,
@@ -707,8 +712,8 @@
     "SOCCER": {
       "status": "ok",
       "source": "espn:soccer/eng.1",
-      "observedAt": "2026-11-26T23:21:44.461Z",
-      "coverageUntil": "2026-11-28T23:21:44.461Z",
+      "observedAt": "2026-11-26T23:42:31.300Z",
+      "coverageUntil": "2026-11-28T23:42:31.300Z",
       "upcoming": 4,
       "complete": false,
       "daysSucceeded": 3,

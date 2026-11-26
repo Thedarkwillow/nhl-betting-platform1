@@ -42,13 +42,41 @@ function candidate(record,f,now,diagnostic){
  const identity={sport:record.sport,profile:u.pathname,player:record.player,market:record.market,period:f.period??record.period??null,mapRange:f.mapRange??record.mapRange??null,gameMode:f.gameMode??record.gameMode??null,season:season.label,date,tab:f.tab,headers,window:f.window??null,filters:stable(f.filterSelection)};
  return {key:sha(JSON.stringify(stable(identity))),digest:sha(JSON.stringify(stable(cells))),seen,sport:record.sport};
 }
+// Count only bounded, allowlisted shape categories; never emit account text or raw rows.
+function seasonShape(selection,now){
+ if(selection==null)return 'absent';
+ if(!Array.isArray(selection))return 'non_array';
+ const seasons=selection.filter(x=>x&&norm(x.label)==='season');
+ if(!seasons.length)return 'no_season_label';
+ if(seasons.length!==1)return 'multiple_season_labels';
+ const x=seasons[0];
+ if(typeof x.display!=='string')return typeof x.value==='string'?'value_only':'missing_display';
+ const v=x.display.trim();
+ if(priorSeason(selection,now))return 'explicit_prior';
+ if(/^(?:current|this|all|last|previous)(?:\s+seasons?)?$/i.test(v))return 'relative_or_all';
+ if(/^\d{4}(?:\s*[-–/]\s*(?:\d{4}|\d{2}))?$/.test(v))return 'year_or_range_not_prior';
+ if(/^(?:season\s+)?\d{4}(?:\s*[-–/]\s*(?:\d{4}|\d{2}))?\s+season$/i.test(v)||/^season\s+\d{4}/i.test(v))return 'year_with_season_label';
+ return 'other_display';
+}
+function dateShape(f){
+ const h=String(f.scope||'').split(' | ').map(norm),i=h.indexOf('date');
+ if(i<0||h.lastIndexOf('date')!==i)return 'no_unique_date_header';
+ let cells;try{cells=JSON.parse(f.value);}catch{return 'invalid_json';}
+ const v=cells?.[i]?.value;
+ if(!Array.isArray(cells)||typeof v!=='string')return 'missing_date_cell';
+ if(day(v))return 'iso_day';
+ if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v))return 'numeric_with_year';
+ if(/^\d{1,2}\/\d{1,2}$/.test(v))return 'numeric_without_year';
+ if(/\b\d{4}\b/.test(v))return 'other_with_year';
+ return 'other_or_relative';
+}
 function buildIndex(documents,now=new Date()){
  const index=new Map();let fields=0,candidates=0,duplicates=0,conflicts=0,profiles=0;
- const bySport={},rejectionReasons={};
+ const bySport={},rejectionReasons={},seasonShapes={},dateShapes={};
  for(const doc of documents)for(const r of doc.records||[]){
   profiles++;
   for(const f of r.research||[]){
-   fields++;const c=candidate(r,f,now,reason=>{rejectionReasons[reason]=(rejectionReasons[reason]||0)+1;});if(!c)continue;candidates++;
+   fields++;const c=candidate(r,f,now,reason=>{rejectionReasons[reason]=(rejectionReasons[reason]||0)+1;if(reason==='prior_season_unverified'){const a=seasonShape(f.filterSelection,now),b=dateShape(f);seasonShapes[a]=(seasonShapes[a]||0)+1;dateShapes[b]=(dateShapes[b]||0)+1;}});if(!c)continue;candidates++;
    const sport=bySport[c.sport]??={candidates:0,duplicateObservations:0,conflictedKeys:0};sport.candidates++;
    const prev=index.get(c.key);
    if(!prev){index.set(c.key,{digest:c.digest,seen:c.seen,conflict:false,sport:c.sport,field:f});continue;}
@@ -56,10 +84,10 @@ function buildIndex(documents,now=new Date()){
    else if(!prev.conflict){prev.conflict=true;conflicts++;sport.conflictedKeys++;}
   }
  }
- return {index,summary:{state:'historical_cache_shadow_audit',generatedAt:now.toISOString(),profiles,fields,candidates,duplicateObservations:duplicates,distinctKeys:index.size,conflictedKeys:conflicts,nonconflictingKeys:index.size-conflicts,bySport,rejectionReasons,requestsSkipped:0,completeSeasonCertified:false,modelInputsApproved:false}};
+ return {index,summary:{state:'historical_cache_shadow_audit',generatedAt:now.toISOString(),profiles,fields,candidates,duplicateObservations:duplicates,distinctKeys:index.size,conflictedKeys:conflicts,nonconflictingKeys:index.size-conflicts,bySport,rejectionReasons,seasonShapes,dateShapes,requestsSkipped:0,completeSeasonCertified:false,modelInputsApproved:false}};
 }
 function audit(documents,now=new Date()){return buildIndex(documents,now).summary;}
 // Consumers can reuse only an exact previously observed historical fact. No collection scope is skipped.
 function lookup(index,key){const row=index.get(key);return row&&!row.conflict?{field:row.field,digest:row.digest,observedAt:new Date(row.seen).toISOString()}:null;}
-module.exports={day,priorSeason,candidate,audit,buildIndex,lookup};
+module.exports={day,priorSeason,seasonShape,dateShape,candidate,audit,buildIndex,lookup};
 if(require.main===module){try{const {read}=require('./pickfinder-public-archive.cjs');console.log(JSON.stringify(audit(read(process.argv[2]||'.','profiles'))));}catch{console.error('Historical cache audit failed closed');process.exitCode=1;}}

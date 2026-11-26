@@ -209,7 +209,7 @@ test('local alerts use exact scope and fresh explicit price; never send notifica
 });
 test('builder and alert navigation fails closed when no exact authorized link',async()=>{
  const {inspectTool}=require('../scripts/pickfinder-tool-schema.cjs');let mutations=0;
- const p={evaluate:async()=>[],goto:async()=>{mutations++;}};
+ const p={evaluate:async()=>[],goto:async()=>{mutations++;},locator:()=>({evaluateAll:async()=>[]})};
  assert.equal((await inspectTool(p,'builder',async()=>true)).state,'navigation_not_verified');assert.equal(mutations,0);
 });
 

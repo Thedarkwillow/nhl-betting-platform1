@@ -97,3 +97,16 @@ test('season and date shape diagnostics never promote ambiguous rows',()=>{
  assert.equal(dateShape({scope:'Date | PTS',value:JSON.stringify([{value:'2024-11-01'},{value:'10'}])}),'iso_day');
  assert.equal(dateShape({scope:'Opponent | PTS',value:'[]'}),'no_unique_date_header');
 });
+
+test('feature inspector opens only a unique named navigation control and verifies panel',async()=>{
+ const {inspectTool}=require('../scripts/pickfinder-tool-schema.cjs');
+ const calls=[];
+ const b={isVisible:async()=>true,isEnabled:async()=>true,click:async()=>calls.push('open')};
+ const page={url:()=> 'https://www.pickfinder.app/props',locator:()=>({evaluateAll:async()=>[0],nth:()=>b}),waitForFunction:async()=>{},evaluate:async(fn,args)=>args.allowed?[]:{verified:true,controls:[{label:'Pick Builder',kind:'h2',disabled:false,inputType:null}]}};
+ const x=await inspectTool(page,'builder',async()=>true);assert.equal(x.state,'read_only_schema_observed');assert.equal(x.method,'navigation_button');assert.equal(x.mutations,0);assert.deepEqual(calls,['open']);
+ const ambiguous={...page,locator:()=>({evaluateAll:async()=>[0,1]})};
+ assert.equal((await inspectTool(ambiguous,'builder',async()=>true)).state,'navigation_not_verified');
+ const missing={...page,waitForFunction:async()=>{throw Error('missing panel')}};
+ assert.equal((await inspectTool(missing,'alerts',async()=>true)).state,'panel_or_route_unverified');
+ assert.equal((await inspectTool(page,'alerts',async()=>false)).state,'session_or_route_unverified');
+});

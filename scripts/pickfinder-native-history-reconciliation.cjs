@@ -17,9 +17,12 @@ const sourceMarkets={
  nfl:{player_receiving_yards:'receiving yards',player_passing_yards:'passing yards',player_rushing_yards:'rushing yards',player_rushing_attempts:'rushing attempts',player_passing_attempts:'passing attempts',player_passing_completions:'passing completions',player_passing_touchdowns:'passing touchdowns',player_pass_yds:'passing yards',player_pass_attempts:'passing attempts',player_pass_completions:'passing completions',player_pass_tds:'passing touchdowns',player_pass_interceptions:'interceptions thrown',player_rush_yds:'rushing yards',player_rush_attempts:'rushing attempts',player_reception_yds:'receiving yards',player_receptions:'receptions',player_receiving_targets:'receiving targets'}
 };
 const columnAliases={goals:['g'],assists:['a'],points:['pts'],sog:['shots','shots on goal'],blockedShots:['blk','blocks','blocked shots'],saves:['sv'],hits:['hits'],passing_yards:['pass yards','pass yds'],rushing_yards:['rush yards','rush yds'],receiving_yards:['rec yards','rec yds'],receptions:['rec'],passing_tds:['pass tds'],rushing_tds:['rush tds'],receiving_tds:['rec tds'],attempts:['pass attempts','pass att'],completions:['pass completions','pass cmp'],targets:['rec targets','tgt'],carries:['rush attempts','carries'],passing_interceptions:['pass int','interceptions thrown']};
+// Exact official NBA log market mappings; no synthesized tip-off time.
+const nbaMetrics={player_points:'points',player_rebounds:'rebounds',player_assists:'assists',player_made_threes:'threePointersMade',player_steals:'steals',player_blocks:'blocks',player_turnovers:'turnovers','player_points_+_rebounds_+_assists':'pointsReboundsAssists','player_points_+_rebounds':'pointsRebounds','player_points_+_assists':'pointsAssists','player_rebounds_+_assists':'reboundsAssists',points:'points',rebounds:'rebounds',assists:'assists'};
+Object.assign(columnAliases,{rebounds:['reb'],threePointersMade:['3pm','fg3m'],steals:['stl'],blocks:['blk'],turnovers:['tov'],pointsReboundsAssists:['pra','pts+reb+ast','pts + reb + ast'],pointsRebounds:['pr','pts+reb'],pointsAssists:['pa','pts+ast'],reboundsAssists:['ra','reb+ast']});
 const dateFormats=['UTC','America/New_York','America/Los_Angeles'].map(timeZone=>new Intl.DateTimeFormat('sv-SE',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}));
 function dates(t){const d=new Date(t);if(!Number.isFinite(+d))return [];return [...new Set(dateFormats.map(f=>f.format(d)))];}
-function nativeIndex({facts,nhlFinals,nflSeasons},clock){
+function nativeIndex({facts,nhlFinals,nflSeasons,nbaHistories=[]},clock){
  const names=new Map(),games=new Map(),conflicts=new Set();
  const at=dt(clock);
  const addName=(sport,name,id)=>{if(!name||!id)return;const k=key([sport,norm(name)]),s=names.get(k)||new Set();s.add(String(id));names.set(k,s);};
@@ -39,12 +42,21 @@ function nativeIndex({facts,nhlFinals,nflSeasons},clock){
   const final=new Map((h.doc.games||[]).filter(g=>g.completedScoreObserved===true&&dt(g.startAt)<dt(h.doc.observedAt)).map(g=>[g.gameId,g]));
   for(const p of h.doc.playerRows||[]){const g=final.get(p.gameId);if(!g||p.week!==g.week||dt(p.gameStartAt)!==dt(g.startAt)||[p.team,p.opponent].sort().join('|')!==[g.home,g.away].sort().join('|')||!p.stats)continue;add('nfl',p.playerId,g.gameId,g.startAt,p.team,p.opponent,p.stats,h);}
  }
- const byPlayer=new Map();for(const [k,g] of games)if(!conflicts.has(k)){const p=key([g.sport,g.id]),a=byPlayer.get(p)||[];a.push({...g,dates:dates(g.start)});byPlayer.set(p,a);}
+ // Official NBA logs establish a game date, not a final or tip-off timestamp.
+ for(const h of nbaHistories){
+  if(h.doc.kind!=='nba_official_stats_regular_season_log_v1'||h.doc.source!=='stats.nba.com LeagueGameLog'||h.doc.historicalAppearancesOnly!==true||!hash(h.doc.sourceResponseSha256)||!hash(h.digest)||!Number.isFinite(dt(h.first))||dt(h.first)>at||!Number.isFinite(dt(h.doc.capturedAt))||dt(h.doc.capturedAt)>dt(h.first)+999)continue;
+  for(const p of h.doc.rows||[]){if(!day(p.gameDate)||p.gameDate>=h.doc.capturedAt.slice(0,10)||!Number.isSafeInteger(p.gameId)||!Number.isSafeInteger(p.playerId)||!p.player||!p.team||!p.opponent||p.team===p.opponent||!['W','L'].includes(p.wl)||!Number.isFinite(p.minutes)||p.minutes<=0)continue;
+   addName('nba',p.player,p.playerId);
+   const k=key(['nba',String(p.playerId),String(p.gameId)]),stats=Object.fromEntries([...new Set(Object.values(nbaMetrics))].filter(m=>Number.isFinite(p[m])).map(m=>[m,p[m]])),v={sport:'nba',id:String(p.playerId),event:String(p.gameId),start:null,gameDate:p.gameDate,team:p.team,opp:p.opponent,stats,digest:h.digest,first:h.first};
+   const old=games.get(k);if(old&&key([old.gameDate,old.team,old.opp,old.stats])!==key([v.gameDate,v.team,v.opp,v.stats]))conflicts.add(k);else if(!old||dt(v.first)<dt(old.first))games.set(k,v);
+  }
+ }
+ const byPlayer=new Map();for(const [k,g] of games)if(!conflicts.has(k)){const p=key([g.sport,g.id]),a=byPlayer.get(p)||[];a.push({...g,dates:g.gameDate?[g.gameDate]:dates(g.start)});byPlayer.set(p,a);}
  return {names,byPlayer,conflicts:conflicts.size};
 }
 function matchRow(r,f,index,clock){
  const reject=reason=>({reason});
- if(!['nhl','nfl'].includes(r.sport))return reject('native_adapter_unavailable');
+ if(!['nhl','nfl','nba'].includes(r.sport))return reject('native_adapter_unavailable');
  if(r.status!=='sampled'||r.truncated!==false||r.coverageVersion!==VERSION||f.origin!=='profile'||!/^row \d+$/.test(f.metric||'')||r.period||r.mapRange||r.gameMode||f.period||f.mapRange||f.gameMode)return reject('unsupported_scope');
  // Base profile tables can contain a Gamelog section even without a named tab.
  // Require the collector's explicit Gamelog window plus the exact date/opponent/stat columns below.
@@ -52,24 +64,25 @@ function matchRow(r,f,index,clock){
  const windowLog=/^Last \d{1,3} Games$/i.test(f.window||'');
  if(!namedLog&&!windowLog)return reject('not_game_log');
  if(!Number.isFinite(dt(f.observedAt))||dt(f.observedAt)>dt(clock))return reject('observation_clock');
- const metrics=r.sport==='nhl'?nhlMetrics:nflMetrics,market=sourceMarkets[r.sport]?.[norm(r.market)]??norm(r.market),m=metrics[market];if(!m)return reject('unsupported_market');
- const headers=String(f.scope||'').split(' | ').map(norm),i=headers.indexOf('date'),j=headers.indexOf('opponent');
+ const metrics=r.sport==='nhl'?nhlMetrics:nflMetrics,market=sourceMarkets[r.sport]?.[norm(r.market)]??norm(r.market),m=r.sport==='nba'?nbaMetrics[norm(r.market)]:metrics[market];if(!m)return reject('unsupported_market');
+ const headers=String(f.scope||'').split(' | ').map(norm),i=headers.indexOf('date'),opponents=headers.map((x,i)=>['opponent','opp'].includes(x)?i:-1).filter(i=>i>=0),j=opponents.length===1?opponents[0]:-1;
  if(headers.some(x=>/\b(?:line|odds|projection|average|hit rate|payout)\b/.test(x)))return reject('not_final_stat_table');
  const aliases=new Set([market,norm(m),...(columnAliases[m]||[])]);
  const indices=headers.map((x,i)=>aliases.has(x)?i:-1).filter(i=>i>=0);
  if(i<0||j<0||indices.length!==1||new Set(headers).size!==headers.length)return reject('missing_exact_columns');
  let cells;try{cells=JSON.parse(f.value)}catch{return reject('row_json');}
- if(!Array.isArray(cells)||cells.length!==headers.length||cells.some(c=>typeof c?.value!=='string'))return reject('row_shape');
+ if(!Array.isArray(cells)||cells.length!==headers.length||cells.some(c=>!c||c.value!==null&&typeof c.value!=='string'))return reject('row_shape');
+ if(typeof cells[i].value!=='string'||typeof cells[indices[0]].value!=='string')return reject('required_cell_missing');
  const raw=cells[i].value.trim(),date=fullDate(raw),md=raw.match(/^(\d{1,2})\/(\d{1,2})$/);
  if(!date&&!md)return reject('date_shape');
  const suffix=md?'-'+md[1].padStart(2,'0')+'-'+md[2].padStart(2,'0'):null;
  if(suffix&&!day('2000'+suffix))return reject('date_shape');
- const opp=cells[j].value.trim().replace(/^(?:vs\.?|@)\s*/i,''),v=cells[indices[0]].value.trim();
+ const opp=(cells[j].value||'').trim().replace(/^(?:vs\.?|@)\s*/i,''),v=cells[indices[0]].value.trim();
  if(!/^[A-Z]{2,4}$/.test(opp)||!/^[-]?\d+(?:\.\d+)?$/.test(v))return reject('stat_or_opponent_shape');
  const ids=index.names.get(key([r.sport,norm(r.player)]));if(ids?.size!==1)return reject('native_identity_ambiguous');
- const id=[...ids][0],matches=(index.byPlayer.get(key([r.sport,id]))||[]).filter(g=>dt(g.start)<dt(f.observedAt)&&g.opp===opp&&g.dates.some(d=>date?d===date:d.endsWith(suffix)));
+ const id=[...ids][0],matches=(index.byPlayer.get(key([r.sport,id]))||[]).filter(g=>(g.gameDate?g.gameDate<f.observedAt.slice(0,10):dt(g.start)<dt(f.observedAt))&&g.opp===opp&&g.dates.some(d=>date?d===date:d.endsWith(suffix)));
  if(matches.length!==1)return reject(matches.length?'ambiguous_native_game':'no_matching_native_game');
- const g=matches[0];if(!Number.isFinite(g.stats[m])||g.stats[m]!==Number(v))return reject('native_result_mismatch');return {candidate:{sport:r.sport,playerId:id,eventId:g.event,officialStartAt:g.start,market:m,value:Number(v),nativeDigest:g.digest,nativeAvailableAt:g.first,profileObservedAt:f.observedAt,sourceDate:raw,sourceDateYearRecovered:!date,providerIdentityReviewed:false,modelApproved:false}};
+ const g=matches[0];if(!Number.isFinite(g.stats[m])||g.stats[m]!==Number(v))return reject('native_result_mismatch');return {candidate:{sport:r.sport,playerId:id,eventId:g.event,officialStartAt:g.start,officialGameDate:g.gameDate??null,market:m,value:Number(v),nativeDigest:g.digest,nativeAvailableAt:g.first,profileObservedAt:f.observedAt,sourceDate:raw,sourceDateYearRecovered:!date,providerIdentityReviewed:false,modelApproved:false}};
 }
 function audit(documents,index,clock){
  const rows=new Map(),bySport={};let candidates=0;
@@ -81,5 +94,5 @@ function audit(documents,index,clock){
  }
  return {rows,summary:{kind:'pickfinder_native_history_candidate_reconciliation_v1',bySport,candidates,distinctCandidates:rows.size,conflictingNativeGames:index.conflicts,independentlyReviewedProviderIdentities:0,qualifiedCacheEntries:0,qualifiedModelInputs:0,paidRequests:0,requestsSkipped:0,modelApproved:false}};
 }
-function fromArchive(root,documents,clock){return audit(documents,nativeIndex({facts:receipts(root,nativeRoot+'native-facts','independent_public_sport_identity_facts_v1',clock),nhlFinals:receipts(root,nativeRoot+'nhl-final-stat-facts','nhl_official_recent_final_stats_v1',clock),nflSeasons:receipts(root,'research/pickfinder-public-nfl-v1/season','nflverse_public_native_history_v1',clock)},clock),clock);}
+function fromArchive(root,documents,clock){return audit(documents,nativeIndex({facts:receipts(root,nativeRoot+'native-facts','independent_public_sport_identity_facts_v1',clock),nhlFinals:receipts(root,nativeRoot+'nhl-final-stat-facts','nhl_official_recent_final_stats_v1',clock),nflSeasons:receipts(root,'research/pickfinder-public-nfl-v1/season','nflverse_public_native_history_v1',clock),nbaHistories:require('./pickfinder-public-model-validation.cjs').history(root,'nba-history')},clock),clock);}
 module.exports={nativeIndex,matchRow,audit,fromArchive};

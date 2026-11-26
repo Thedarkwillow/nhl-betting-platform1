@@ -1,8 +1,8 @@
 {
   "kind": "public_daily_six_quality_gates_v1",
   "slateDate": "2026-11-25",
-  "sourceGeneratedAt": "2026-11-26T23:22:58.919Z",
-  "generatedAt": "2026-11-26T23:22:59.003Z",
+  "sourceGeneratedAt": "2026-11-26T23:41:24.867Z",
+  "generatedAt": "2026-11-26T23:41:25.012Z",
   "tracks": [
     {
       "id": "nhl_points",

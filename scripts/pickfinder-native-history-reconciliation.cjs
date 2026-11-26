@@ -22,7 +22,7 @@ const nbaMetrics={player_points:'points',player_rebounds:'rebounds',player_assis
 Object.assign(columnAliases,{rebounds:['reb'],threePointersMade:['3pm','fg3m'],steals:['stl'],blocks:['blk'],turnovers:['tov'],pointsReboundsAssists:['pra','pts+reb+ast','pts + reb + ast'],pointsRebounds:['pr','pts+reb'],pointsAssists:['pa','pts+ast'],reboundsAssists:['ra','reb+ast']});
 const dateFormats=['UTC','America/New_York','America/Los_Angeles'].map(timeZone=>new Intl.DateTimeFormat('sv-SE',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}));
 function dates(t){const d=new Date(t);if(!Number.isFinite(+d))return [];return [...new Set(dateFormats.map(f=>f.format(d)))];}
-function nativeIndex({facts,nhlFinals,nflSeasons,nbaHistories=[]},clock){
+function nativeIndex({facts,nhlFinals,nflSeasons,nbaHistories=[],nbaFinalHistories=[]},clock){
  const names=new Map(),games=new Map(),conflicts=new Set();
  const at=dt(clock);
  const addName=(sport,name,id)=>{if(!name||!id)return;const k=key([sport,norm(name)]),s=names.get(k)||new Set();s.add(String(id));names.set(k,s);};
@@ -49,6 +49,19 @@ function nativeIndex({facts,nhlFinals,nflSeasons,nbaHistories=[]},clock){
    addName('nba',p.player,p.playerId);
    const k=key(['nba',String(p.playerId),String(p.gameId)]),stats=Object.fromEntries([...new Set(Object.values(nbaMetrics))].filter(m=>Number.isFinite(p[m])).map(m=>[m,p[m]])),v={sport:'nba',id:String(p.playerId),event:String(p.gameId),start:null,gameDate:p.gameDate,team:p.team,opp:p.opponent,stats,digest:h.digest,first:h.first};
    const old=games.get(k);if(old&&key([old.gameDate,old.team,old.opp,old.stats])!==key([v.gameDate,v.team,v.opp,v.stats]))conflicts.add(k);else if(!old||dt(v.first)<dt(old.first))games.set(k,v);
+  }
+ }
+ for(const h of nbaFinalHistories){
+  const d=h.doc;if(d.kind!=='nba_official_cdn_final_history_v1'||d.source!=='cdn.nba.com final boxscore'||d.officialFinalClockVerified!==true||!hash(d.sourceResponseSha256)||!hash(h.digest)||!Number.isFinite(dt(d.capturedAt))||!Number.isFinite(dt(h.first))||dt(d.capturedAt)>dt(h.first)+999||dt(h.first)>at)continue;
+  for(const p of d.rows||[]){if(p.officialGameFinalVerified!==true||p.identityVerified!==true||p.appeared!==true||p.gameId!==d.gameId||!day(p.gameDate)||!p.player||!Number.isSafeInteger(p.playerId)||!['W','L'].includes(p.wl))continue;
+   addName('nba',p.player,p.playerId);
+   const stats=Object.fromEntries([...new Set(Object.values(nbaMetrics))].filter(m=>Number.isFinite(p[m])).map(m=>[m,p[m]]));
+   const k=key(['nba',String(p.playerId),String(p.gameId)]);
+   // Do not overwrite an independent league-log receipt; exclude disagreements.
+   const old=games.get(k);
+   if(old){if(old.gameDate!==p.gameDate||old.team!==p.team||old.opp!==p.opponent||Object.keys(stats).some(m=>Number.isFinite(old.stats[m])&&old.stats[m]!==stats[m]))conflicts.add(k);continue;}
+   if(!Number.isFinite(dt(d.startAt))||dt(d.startAt)>=dt(d.capturedAt))continue;
+   games.set(k,{sport:'nba',id:String(p.playerId),event:String(p.gameId),start:d.startAt,gameDate:p.gameDate,team:p.team,opp:p.opponent,stats,digest:h.digest,first:h.first});
   }
  }
  const byPlayer=new Map();for(const [k,g] of games)if(!conflicts.has(k)){const p=key([g.sport,g.id]),a=byPlayer.get(p)||[];a.push({...g,dates:g.gameDate?[g.gameDate]:dates(g.start)});byPlayer.set(p,a);}
@@ -207,5 +220,5 @@ function audit(documents,index,clock,reviews=[]){
  const cached=candidateCache(rows,clock),identities=identityEvidence(rows,clock),reviewed=reviewedHistory(rows,identities.reviewCandidates,reviews,clock);
  return {rows,cache:cached.index,identityCandidates:identities.reviewCandidates,reviewedCache:reviewed.index,summary:{kind:'pickfinder_native_history_candidate_reconciliation_v1',bySport,nativeCoverage:index.nativeCoverage??{},identityEvidence:identities.summary,reviewedHistory:reviewed.summary,reassembledRows,reusableResearchCandidates:cached.index.size,researchCacheConflicts:cached.conflicts,candidates,distinctCandidates:rows.size,conflictingNativeGames:index.conflicts,independentlyReviewedProviderIdentities:reviewed.summary.reviewedProfiles,qualifiedCacheEntries:reviewed.index.size,qualifiedModelInputs:0,paidRequests:0,requestsSkipped:0,modelApproved:false}};
 }
-function fromArchive(root,documents,clock){return audit(documents,nativeIndex({facts:receipts(root,nativeRoot+'native-facts','independent_public_sport_identity_facts_v1',clock),nhlFinals:receipts(root,nativeRoot+'nhl-final-stat-facts','nhl_official_recent_final_stats_v1',clock),nflSeasons:receipts(root,'research/pickfinder-public-nfl-v1/season','nflverse_public_native_history_v1',clock),nbaHistories:require('./pickfinder-public-model-validation.cjs').history(root,'nba-history')},clock),clock,receipts(root,nativeRoot+'historical-reviewed-identities','pickfinder_historical_reviewed_identity_v1',clock));}
+function fromArchive(root,documents,clock){return audit(documents,nativeIndex({facts:receipts(root,nativeRoot+'native-facts','independent_public_sport_identity_facts_v1',clock),nhlFinals:receipts(root,nativeRoot+'nhl-final-stat-facts','nhl_official_recent_final_stats_v1',clock),nflSeasons:receipts(root,'research/pickfinder-public-nfl-v1/season','nflverse_public_native_history_v1',clock),nbaHistories:require('./pickfinder-public-model-validation.cjs').history(root,'nba-history'),nbaFinalHistories:require('./pickfinder-public-model-validation.cjs').history(root,'nba-final-history')},clock),clock,receipts(root,nativeRoot+'historical-reviewed-identities','pickfinder_historical_reviewed_identity_v1',clock));}
 module.exports={nativeIndex,matchRow,audit,fromArchive,structuredFields,columnShape,candidateCache,lookupCandidate,identityEvidence,profilePath,reviewedHistory,historyForModel};

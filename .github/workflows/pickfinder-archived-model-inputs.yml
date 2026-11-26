@@ -27,4 +27,10 @@ jobs:
           node-version: '22'
       - run: node --test test/pickfinder-archived-model-inputs.test.cjs
       - name: Process saved sporting evidence without new provider calls
-        run: node --max-old-space-size=6144 scripts/pickfinder-archived-model-inputs.cjs
+        run: node --max-old-space-size=6144 scripts/pickfinder-archived-model-inputs.cjs "$RUNNER_TEMP/pickfinder-identity-review-packet.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pickfinder-identity-review-packet
+          path: ${{ runner.temp }}/pickfinder-identity-review-packet.json
+          retention-days: 7
+          if-no-files-found: error

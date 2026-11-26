@@ -5,3 +5,21 @@ t('exact two-sided explicit threshold, no inferred line or stale quote',()=>{con
 t('observed statistics stay separate from probabilities and contradictory cells are rejected',()=>{const a={...o,origin:'board',metric:'L10',value:'60%'};assert.equal(features(o,[a]).L10,.6);assert.equal(features(o,[a,{...a,value:'70%'}]).L10,undefined);assert.equal(features(o,[{...a,value:'60%\n1/10'}]).L10,undefined);assert.equal(aliases.player_points,'points');assert.equal(aliases.player_double_double,undefined);});
 
 t('paired prospective comparisons exclude pushes and keep denominators paired',()=>{const {pairedStats}=require('../scripts/pickfinder-public-model-validation.cjs');const r={id:'a',market:'points',actual:8,result:'correct',modelEstimate:.6,modelProjection:7,pickfinderAverage:6,side:'Higher',quoteBenchmarks:[{higher:.5}]};const x=pairedStats([r,r,{...r,id:'b',result:'push'}]).points;assert.equal(x.decided,1);assert.equal(x.pairedAverageN,1);assert.equal(x.pickfinderAverageMAE,2);assert.equal(x.quoteBrier,.25);});
+
+t('prospective comparison rejects conflicting and out-of-range grades',()=>{
+ const {pairedStats}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const r={id:'a',market:'points',actual:8,result:'correct',modelEstimate:.6,side:'Higher'};
+ assert.equal(pairedStats([r,{...r,result:'incorrect'}]).points,undefined);
+ assert.equal(pairedStats([{...r,modelEstimate:1.2}]).points,undefined);
+ const s=pairedStats([r,r]).points;assert.equal(s.decided,1);assert.ok(Math.abs(s.modelLogLoss+Math.log(.6))<1e-10);
+});
+t('NBA final history fallback requires official final status, teams and completed player statistics',()=>{
+ const {finalHistory}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const startAt='2026-11-20T23:00:00Z',at='2026-11-22T00:00:00Z',gameId=22600001;
+ const team=(abbr,id,score)=>({teamTricode:abbr,score,players:Array.from({length:5},(_,i)=>({personId:id+i,firstName:'Fixture',familyName:String(id+i),played:'1',statistics:{minutes:'PT25M30.00S',points:10,reboundsTotal:4,assists:2,threePointersMade:1,steals:1,blocks:0,turnovers:1}}))});
+ const g={gameId,startAt,home:'BOS',away:'TOR',status:3};
+ const d={game:{gameId:String(gameId),gameTimeUTC:startAt,gameStatus:3,homeTeam:team('BOS',10,110),awayTeam:team('TOR',20,100)}};
+ const x=finalHistory(d,g,at,'a'.repeat(64));assert.equal(x.rows.length,10);assert.equal(x.rows[0].minutes,25.5);assert.equal(x.seasonCompletenessVerified,false);assert.equal(x.officialFinalClockVerified,true);
+ assert.equal(finalHistory(d,{...g,status:2},at,'a'.repeat(64)),null);
+ assert.equal(finalHistory(d,{...g,away:'NYK'},at,'a'.repeat(64)),null);
+});

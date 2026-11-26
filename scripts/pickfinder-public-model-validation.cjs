@@ -20,6 +20,32 @@ async function nbaSources(root,clock){
  if(!schedule){try{const at=now(),client=async(...args)=>{calls++;return fetch(...args);};schedule=await require('./nba-official-preview-schedule.cjs').collect(et(at),at,client);save(root,'nba-schedule',schedule);}catch{}}
  return {histories:out,schedule,status,calls};
 }
+// Public NBA CDN final box scores are an independent fallback for unavailable
+// LeagueGameLog. Keep their provenance distinct; never label them season-complete.
+function finalHistory(doc,g,observedAt,digest){
+ const stats=official(doc,g.gameId,g.startAt,observedAt);
+ if(!stats||! /^[a-f0-9]{64}$/.test(digest)||g.status!==3||et(g.startAt)>=et(observedAt))return null;
+ const game=doc.game,rows=[];
+ const sides=[game.homeTeam,game.awayTeam];
+ if(sides[0].teamTricode!==g.home||sides[1].teamTricode!==g.away||!Number.isInteger(sides[0].score)||!Number.isInteger(sides[1].score)||sides[0].score===sides[1].score)return null;
+ for(const [i,t] of sides.entries())for(const p of t.players){
+  const x=stats.get(p.personId);if(!x)continue;
+  const m=/^PT(\d+)M(\d+(?:\.\d+)?)S$/.exec(p.statistics?.minutes||'');
+  const minutes=m?Number(m[1])+Number(m[2])/60:0;
+  const player=[p.firstName,p.familyName].filter(Boolean).join(' ').trim();
+  if(!player||minutes<=0||minutes>70)continue;
+  rows.push({...x,player,gameDate:et(g.startAt),opponent:sides[1-i].teamTricode,home:i===0,minutes,wl:t.score>sides[1-i].score?'W':'L'});
+ }
+ if(sides.some(t=>rows.filter(p=>p.team===t.teamTricode).length<5))return null;
+ return {kind:'nba_official_cdn_final_history_v1',source:'cdn.nba.com final boxscore',sourceResponseSha256:digest,capturedAt:observedAt,gameId:g.gameId,startAt:g.startAt,historicalAppearancesOnly:true,officialFinalClockVerified:true,seasonCompletenessVerified:false,originalPlatformSettlementVerified:false,rows};
+}
+async function recoverFinalHistory(root,schedule,clock,fetchBox=get){
+ const prior=history(root,'nba-final-history'),done=new Set(prior.map(x=>x.doc.gameId));
+ const candidates=(schedule?.games||[]).filter(g=>g.status===3&&et(g.startAt)<et(clock)&&dt(clock)-dt(g.startAt)<45*86400000&&!done.has(g.gameId)).sort((a,b)=>dt(b.startAt)-dt(a.startAt)).slice(0,12);
+ let calls=0,archived=0,rows=0;
+ for(const g of candidates)try{calls++;const d=await fetchBox('https://cdn.nba.com/static/json/liveData/boxscore/boxscore_'+String(g.gameId).padStart(10,'0')+'.json'),x=finalHistory(d.doc,g,now(),d.digest);if(x){save(root,'nba-final-history',x);archived++;rows+=x.rows.length;}}catch{}
+ return {calls,archived,rows,seasonCompletenessVerified:false};
+}
 function candidates(events,h,schedule,clock){
  const byName=new Map();for(const [id,rows] of h.players){const recent=rows.filter(r=>r.gameDate<et(clock)).at(-1);if(!recent)continue;const k=nba.norm(recent.player),a=byName.get(k)||[];a.push(recent);byName.set(k,a);}
  const out=[];for(const e of events.filter(e=>e.sport==='nba')){
@@ -62,12 +88,13 @@ async function grade(root,clock){
  if(rows.length)save(root,'nba-grades',{kind:'pickfinder_public_nba_independent_grades_v1',generatedAt:now(),rows,appSettlementVerified:false});return {registered:selected.length,archivedPregameRows:archived,pendingNotDue,alreadyGraded,invalidPregameRows:invalid,dueForGrade:selected.length,pendingDueAfterRun:selected.length-rows.length,newGrades:rows.length,finalGames:finals.size,calls};
 }
 function pairedStats(rows){
- const by={},seen=new Set();for(const r of rows){if(seen.has(r.id)||!['correct','incorrect'].includes(r.result)||!Number.isFinite(r.actual)||!Number.isFinite(r.modelEstimate))continue;seen.add(r.id);const a=by[r.market]??={n:0,brier:0,quoteN:0,quoteBrier:0,pairedModelBrier:0,avgN:0,avgMAE:0,pairedProjectionMAE:0};const y=Number(r.result==='correct');a.n++;a.brier+=(r.modelEstimate-y)**2;const qs=(r.quoteBenchmarks||[]).filter(q=>Number.isFinite(q.higher)&&q.higher>=0&&q.higher<=1);if(qs.length){const p=qs.reduce((s,q)=>s+(r.side==='Higher'?q.higher:1-q.higher),0)/qs.length;a.quoteN++;a.quoteBrier+=(p-y)**2;a.pairedModelBrier+=(r.modelEstimate-y)**2;}if(Number.isFinite(r.pickfinderAverage)&&Number.isFinite(r.modelProjection)){a.avgN++;a.avgMAE+=Math.abs(r.pickfinderAverage-r.actual);a.pairedProjectionMAE+=Math.abs(r.modelProjection-r.actual);}}
- return Object.fromEntries(Object.entries(by).map(([k,a])=>[k,{decided:a.n,modelBrier:a.brier/a.n,pairedQuoteN:a.quoteN,quoteBrier:a.quoteN?a.quoteBrier/a.quoteN:null,pairedModelBrier:a.quoteN?a.pairedModelBrier/a.quoteN:null,pairedAverageN:a.avgN,pickfinderAverageMAE:a.avgN?a.avgMAE/a.avgN:null,modelProjectionMAE:a.avgN?a.pairedProjectionMAE/a.avgN:null,approved:false}]));
+ const by={},unique=new Map(),conflicts=new Set();for(const r of rows){if(!r.id)continue;const old=unique.get(r.id);if(old&&JSON.stringify(old)!==JSON.stringify(r))conflicts.add(r.id);else if(!old)unique.set(r.id,r);}for(const [id,r] of unique){if(conflicts.has(id)||!['correct','incorrect'].includes(r.result)||!Number.isFinite(r.actual)||!Number.isFinite(r.modelEstimate)||r.modelEstimate<0||r.modelEstimate>1)continue;const a=by[r.market]??={n:0,brier:0,logLoss:0,quoteN:0,quoteBrier:0,pairedModelBrier:0,avgN:0,avgMAE:0,pairedProjectionMAE:0};const y=Number(r.result==='correct');a.n++;a.brier+=(r.modelEstimate-y)**2;a.logLoss-=Math.log(Math.max(1e-15,y?r.modelEstimate:1-r.modelEstimate));const qs=(r.quoteBenchmarks||[]).filter(q=>Number.isFinite(q.higher)&&q.higher>=0&&q.higher<=1);if(qs.length){const p=qs.reduce((s,q)=>s+(r.side==='Higher'?q.higher:1-q.higher),0)/qs.length;a.quoteN++;a.quoteBrier+=(p-y)**2;a.pairedModelBrier+=(r.modelEstimate-y)**2;}if(Number.isFinite(r.pickfinderAverage)&&Number.isFinite(r.modelProjection)){a.avgN++;a.avgMAE+=Math.abs(r.pickfinderAverage-r.actual);a.pairedProjectionMAE+=Math.abs(r.modelProjection-r.actual);}}
+ return Object.fromEntries(Object.entries(by).map(([k,a])=>[k,{decided:a.n,modelBrier:a.brier/a.n,modelLogLoss:a.logLoss/a.n,pairedQuoteN:a.quoteN,quoteBrier:a.quoteN?a.quoteBrier/a.quoteN:null,pairedModelBrier:a.quoteN?a.pairedModelBrier/a.quoteN:null,pairedAverageN:a.avgN,pickfinderAverageMAE:a.avgN?a.avgMAE/a.avgN:null,modelProjectionMAE:a.avgN?a.pairedProjectionMAE/a.avgN:null,approved:false}]));
 }
 async function main(root){
  const clock=now(),revision=git(root,['rev-parse','HEAD']),archive=load(root),a=analyze(archive,clock);a.summary.researchCoverage=coverage(root);
  const src=await nbaSources(root,clock);a.summary.nbaOfficialSources={history:src.status,schedule:!!src.schedule,scheduleSource:src.schedule?.source||null,requests:src.calls};
+ a.summary.nbaFinalHistoryRecovery=src.histories.length?{state:'league_log_available'}:await recoverFinalHistory(root,src.schedule,now());
  let rows=[];if(src.histories.length&&src.schedule){const h=nba.indexHistory(src.histories),at=now(),c=candidates(a.events,h,src.schedule,at);save(root,'nba-identity-candidates',{kind:'public_nba_identity_candidates_v1',generatedAt:at,rows:c});a.summary.nbaIdentityCandidates={events:c.length,exactNameCandidates:c.reduce((s,x)=>s+x.exactNameCandidates,0),uniqueScheduleCandidates:c.filter(x=>x.possibleGames.length===1).length,reviewed:false};
  // Historical walk-forward evaluation of existing model only; not a new feature qualification.
  a.summary.nbaRetrospective=nba.backtest(h);
@@ -82,5 +109,5 @@ async function main(root){
  fs.mkdirSync(path.join(root,'data'),{recursive:true});fs.writeFileSync(path.join(root,'data/pickfinder-public-research-health.json'),JSON.stringify(a.summary,null,2)+'\n');
  console.log(JSON.stringify({state:'public_research_validation',manifests:a.summary.archiveManifests,invalid:a.summary.invalidManifests,offerRefs:a.summary.offerRefs,exactComparisons:a.summary.exactComparisons,nbaShadowRows:rows.length,nbaSources:a.summary.nbaOfficialSources,independentGrading:a.summary.independentGrading,paidRequests:0,privateRepoUsed:false}));
 }
-module.exports={candidates,modelRows,aliases,pairedStats,reviewed,history,save,gradingQueue};
+module.exports={candidates,modelRows,aliases,pairedStats,reviewed,history,save,gradingQueue,finalHistory,recoverFinalHistory};
 if(require.main===module)main(fs.realpathSync(process.argv[2]||'.')).catch(()=>{console.error('Public research validation failed closed');process.exitCode=1;});

@@ -81,7 +81,7 @@ function build({facts,nhlFinals,nflSeasons,archive,clock,revision}){
        const game=finals.get(x.gameId);
        if(!game||game.week!==x.week||dt(game.startAt)!==dt(x.gameStartAt)||[game.home,game.away].sort().join('|')!==[x.team,x.opponent].sort().join('|')||!(h.doc.season<n.season||h.doc.season===n.season&&x.week<n.week))continue;
        const z=x.stats,measures={passing_yards:z.passing_yards,passing_attempts:z.attempts,passing_completions:z.completions,passing_touchdowns:z.passing_tds,interceptions_thrown:z.passing_interceptions,rushing_yards:z.rushing_yards,rushing_attempts:z.carries,rushing_touchdowns:z.rushing_tds,receiving_yards:z.receiving_yards,receptions:z.receptions,receiving_targets:z.targets,receiving_touchdowns:z.receiving_tds};
-       history.push({identity:'player:'+id,year:h.doc.season,week:x.week,knownAt:h.doc.observedAt,finalVerified:true,measures:Object.fromEntries(Object.entries(measures).filter(([,v])=>Number.isFinite(v)))});
+       history.push({identity:'player:'+id,nativeGameId:x.gameId,year:h.doc.season,week:x.week,knownAt:h.doc.observedAt,finalVerified:true,measures:Object.fromEntries(Object.entries(measures).filter(([,v])=>Number.isFinite(v)))});
       }
      }
      if(history.length<5||new Set(history.map(x=>x.year+'|'+x.week)).size!==history.length)continue;

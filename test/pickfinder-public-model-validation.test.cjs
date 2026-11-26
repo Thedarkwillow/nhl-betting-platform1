@@ -23,3 +23,13 @@ t('NBA final history fallback requires official final status, teams and complete
  assert.equal(finalHistory(d,{...g,status:2},at,'a'.repeat(64)),null);
  assert.equal(finalHistory(d,{...g,away:'NYK'},at,'a'.repeat(64)),null);
 });
+
+t('dated final fallback requires explicit ESPN final and unique official NBA game route',async()=>{
+ const {datedFinalGames,recentFinalSchedule}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const date='2026-11-24',html='<a href="/game/tor-vs-bos-0022600001">Box Score</a>',event={competitions:[{date:'2026-11-24T23:00:00Z',status:{type:{name:'STATUS_FINAL',state:'post',completed:true}},competitors:[{homeAway:'home',team:{abbreviation:'BOS'}},{homeAway:'away',team:{abbreviation:'TOR'}}]}]};
+ assert.equal(datedFinalGames(html,{events:[event]},date)[0].gameId,22600001);
+ assert.equal(datedFinalGames(html+' /game/tor-vs-bos-0022600002',{events:[event]},date).length,0);
+ assert.equal(datedFinalGames(html,{events:[{competitions:[{...event.competitions[0],status:{type:{state:'pre'}}}]}]},date).length,0);
+ const r=await recentFinalSchedule('2026-11-26T01:00:00Z',async url=>url.includes('www.nba.com')?new Response(html):new Response(JSON.stringify({events:[event]})));
+ assert.equal(r.calls,4);assert.equal(r.games.length,1);assert.match(r.games[0].routeResponseSha256,/^[a-f0-9]{64}$/);
+});

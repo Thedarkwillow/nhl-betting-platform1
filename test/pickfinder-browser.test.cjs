@@ -76,3 +76,28 @@ test('stale page with a changing price is not accepted as page progress',async()
  const input=await collect(session([active,{...active,number:1,total:2,rows:[row]},{...active,number:2,total:2,rows:[old]},{...active,number:2,total:2,rows:[{...row,detailId:'new'}]}]),{book:'prizepicks',code:'NHL'});
  assert.equal(input.pages[1].rows[0].detailId,'new');assert.equal(input.lastPageReached,true);
 });
+
+test('quote threshold requires an isolated sportsbook and its own visible description',()=>{
+ const {readBoard}=require('../scripts/pickfinder-browser.cjs');
+ const prior=global.document;
+ const attr=(attrs={})=>k=>attrs[k]??null;
+ const tooltip={innerText:'DraftKings Line 6.5',getAttribute:attr({role:'tooltip'}),getClientRects:()=>[{}]};
+ const icon={alt:'DraftKings'},other={alt:'FanDuel'};
+ const group={innerText:'Over −110; Under +105',getAttribute:attr({'aria-describedby':'quote'}),querySelectorAll:s=>s==='img[alt]'?[icon]:[]};
+ const cell={querySelectorAll:s=>s==='img[alt]'?[icon]:[],innerText:'Over −110; Under +105'};
+ icon.parentElement=group;group.parentElement=cell;
+ const a={href:'https://www.pickfinder.app/players/nba/fixture?prop=x:points:e:5.5',innerText:'Fixture',querySelector:()=>({innerText:'Fixture'})};
+ const tr={querySelector:()=>a,querySelectorAll:()=>[],cells:[cell]};
+ const table={querySelectorAll:s=>s==='th'?[{innerText:'Apps'}]:s==='tbody tr'?[tr]:[],innerText:''};
+ const args={book:'prizepicks',code:'NBA',sport:'nba',observedAt:'2026-11-26T20:00:00Z'};
+ try{
+  global.document={body:{innerText:'Premium'},querySelector:s=>s==='table'?table:s==='button[aria-label="Open user menu"]'?{}:null,getElementById:()=>tooltip};
+  const read=()=>readBoard(args).rows[0].sportsbookEvidence.find(e=>e.book==='draftkings').prices;
+  assert.deepEqual(read(),[{side:'Higher',price:'-110',quoteLine:6.5},{side:'Lower',price:'+105',quoteLine:6.5}]);
+  tooltip.getClientRects=()=>[];assert.ok(read().every(p=>p.quoteLine===null));
+  tooltip.getClientRects=()=>[{}];tooltip.innerText='FanDuel Line 6.5';assert.ok(read().every(p=>p.quoteLine===null));
+  // When a badge sits in a multi-book cell with no separate quote group, do not reuse its price text.
+  icon.parentElement=cell;other.parentElement=cell;cell.querySelectorAll=s=>s==='img[alt]'?[icon,other]:[];
+  assert.deepEqual(read(),[]);
+ }finally{if(prior===undefined)delete global.document;else global.document=prior;}
+});

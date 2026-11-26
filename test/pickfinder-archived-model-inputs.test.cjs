@@ -50,6 +50,9 @@ test('native historical matching resolves a partial date only with unique player
  const field={origin:'profile',metric:'row 1',tab:'Game Log',scope:'Date | Opponent | SOG',value:JSON.stringify([{value:'11/20'},{value:'BOS'},{value:'4'}]),observedAt};
  const idx=make(),c=matchRow(r,field,idx,clock).candidate;
  assert.equal(c.eventId,'1');
+ assert.equal(matchRow(r,{...field,scope:'Date | Opponent | SOG | Shots | Other | Other',value:JSON.stringify([{value:'11/20'},{value:'BOS'},{value:'4'},{value:'7'},{value:null},{value:'2'}])},idx,clock).candidate.eventId,'1');
+ assert.equal(matchRow(r,{...field,scope:'Date | Opponent | Shots'},idx,clock).reason,'missing_exact_columns');
+ assert.equal(matchRow(r,{...field,scope:'Date | Opponent | SOG | SOG'},idx,clock).reason,'missing_exact_columns');
  assert.equal(matchRow({...r,market:'player_shots_on_goal'},field,idx,clock).candidate.eventId,'1');
  assert.equal(matchRow({...r,market:'player_shots_on_goal_first_period'},field,idx,clock).reason,'unsupported_market');
  assert.equal(matchRow(r,{...field,tab:'Overview',window:'Last 10 Games'},idx,clock).candidate.eventId,'1');
@@ -104,4 +107,16 @@ test('research candidate cache requires both availability clocks and excludes co
  const c=candidateCache(new Map([['a',x]]),clock);
  assert.equal(c.index.size,1);assert.equal(lookupCandidate(c.index,{...k,asOf:observedAt}),null);assert.equal(lookupCandidate(c.index,{...k,asOf:clock}).modelApproved,false);
  assert.equal(candidateCache(new Map([['a',x],['b',{...x,value:15}]]),clock).index.size,0);
+});
+
+test('historical identity evidence requires multiple distinct games and rejects conflicting profile mappings',()=>{
+ const {identityEvidence}=require('../scripts/pickfinder-native-history-reconciliation.cjs');
+ const x={sport:'nhl',sourceDetailId:'/players/nhl/fixture?prop=a:b:c',sourcePlayer:'Fixture',playerId:'9',eventId:'1',market:'sog',value:4,nativeDigest:'a'.repeat(64),profileDigest:'b'.repeat(64),nativeAvailableAt:'2026-11-24T10:00:00Z',profileObservedAt:observedAt,profileAvailableAt:'2026-11-25T20:30:00Z'};
+ const make=a=>identityEvidence(new Map(a.map((v,i)=>[String(i),v])),clock);
+ assert.equal(make([x,{...x}]).summary.multipleGameCandidates,0);
+ const out=make([x,{...x,eventId:'2'}]);
+ assert.equal(out.summary.multipleGameCandidates,1);assert.equal(out.reviewCandidates[0].independentReviewVerified,false);
+ assert.equal(make([x,{...x,eventId:'2',playerId:'10'}]).summary.multipleGameCandidates,0);
+ assert.equal(make([x,{...x,eventId:'2'},{...x,sourceDetailId:'/players/nhl/another'}]).summary.multipleGameCandidates,0);
+ assert.equal(make([x,{...x,eventId:'2',sourceDetailId:'https://example.com/players/nhl/fixture'}]).summary.multipleGameCandidates,0);
 });

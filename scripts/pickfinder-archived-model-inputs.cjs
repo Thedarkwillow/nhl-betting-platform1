@@ -125,10 +125,43 @@ function reviewPacket(h,clock,boards=null){
  }
  return {kind:'pickfinder_historical_identity_review_packet_v1',generatedAt:clock,rows:h.identityCandidates.map(c=>({...c,facts:[...(by.get(key([c.sport,c.profilePath,c.nativePlayerId]))||new Map()).values()],independentReviewVerified:false})),esportsScopes:boards?esportsReviewQueue(boards.history):[],modelApproved:false,reviewReceipt:false};
 }
+// Shadow model input verification: corroborate each independently reviewed fact
+// against an existing model history row by exact native player/event/stat, not name.
+const modelHistoryMarkets={
+ nhl:{sog:'shotsOnGoal',goals:'goals',assists:'assists',points:'points',blockedShots:'blockedShots',saves:'saves'},
+ nfl:{passing_yards:'passing_yards',passing_tds:'passing_touchdowns',attempts:'passing_attempts',completions:'passing_completions',passing_interceptions:'interceptions_thrown',rushing_yards:'rushing_yards',carries:'rushing_attempts',rushing_tds:'rushing_touchdowns',receiving_yards:'receiving_yards',receptions:'receptions',targets:'receiving_targets',receiving_tds:'receiving_touchdowns'}
+};
+function shadowHistoryJoin(index,scopes,clock){
+ const out={bySport:{},matchedFacts:0,modelApproved:false,productionChanged:false};
+ const seen=new Set();
+ for(const s of scopes){
+  const sport=String(s.sport||'').toLowerCase(),mapping=modelHistoryMarkets[sport];
+  if(!mapping||!s.history||s.identityReviewed!==true||s.eventReviewed!==true||s.rosterReviewed!==true||!valid(s.startAt)||dt(s.startAt)<=dt(clock)+900000)continue;
+  const st=out.bySport[sport]??={matchedFacts:0,modelScopes:0,conflicts:0};
+  for(const [source,metric] of Object.entries(mapping)){
+   const facts=nativeHistory.historyForModel(index,{sport,playerId:s.playerId,market:source,asOf:clock,gameStartAt:s.startAt});
+   const native=sport==='nhl'?s.history.games:s.history;
+   if(!Array.isArray(native))continue;
+   let matched=0;
+   for(const f of facts){
+    const rows=native.filter(x=>String(sport==='nhl'?x.gameId:x.nativeGameId)===String(f.eventId)&&x.finalVerified===true&&valid(x.knownAt)&&dt(x.knownAt)<=dt(clock));
+    if(rows.length!==1)continue;
+    const v=sport==='nhl'?rows[0][metric]:rows[0].measures?.[metric];
+    if(!Number.isFinite(v)||v!==f.value){st.conflicts++;continue;}
+    const k=key([sport,s.playerId,f.eventId,source]);
+    if(!seen.has(k)){seen.add(k);st.matchedFacts++;out.matchedFacts++;}
+    matched++;
+   }
+   if(matched)st.modelScopes++;
+  }
+ }
+ return out;
+}
 function run(root,clock=new Date().toISOString(),{packetPath=null}={}){
  const p=auditProfiles(committedProfiles(root),clock),b=auditBoards(load(root),clock),h=nativeHistory.fromArchive(root,committedProfiles(root),clock);
+ const modelJoin=h.reviewedCache.size?shadowHistoryJoin(h.reviewedCache,require('./prizepicks-native-context-readiness.cjs').fromArchive(root,clock,git(root,['rev-parse','HEAD'])).scopes,clock):shadowHistoryJoin(h.reviewedCache,[],clock);
  if(packetPath)fs.writeFileSync(packetPath,JSON.stringify(reviewPacket(h,clock,b),null,2)+'\n',{flag:'wx'});
- return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,nativeHistory:h.summary,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
+ return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,nativeHistory:h.summary,shadowHistoryJoin:modelJoin,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
 }
-module.exports={classify,auditProfiles,auditBoards,quoteInventory,esportsScope,committedProfiles,reviewPacket,esportsReviewQueue,run};
+module.exports={classify,auditProfiles,auditBoards,quoteInventory,esportsScope,committedProfiles,reviewPacket,esportsReviewQueue,shadowHistoryJoin,run};
 if(require.main===module)console.log(JSON.stringify(run(process.cwd(),new Date().toISOString(),{packetPath:process.argv[2]||null})));

@@ -51,7 +51,7 @@ function quoteInventory(rows){
 function esportsScope(o){
  const title={cs2:'CS2',valorant:'VALORANT',dota2:'DOTA2',lol:'LOL',cod:'COD'}[o.sport];
  if(!title)return null;
- const match=/^((?:maps?_[1-7](?:[_-][1-7])?|[1-7](?:[_-][1-7])?_maps?))_player_(.+)$/.exec(o.market||'');
+ const match=/^((?:maps?_[1-7](?:[_-][1-7])?|[1-7](?:[_-][1-7])?_maps?|1st_[1-7]_maps))_player_(.+)$/.exec(o.market||'');
  if(!match||o.period!=null||o.mapRange!=null&&match[1]!==o.mapRange)return null;
  if(o.mapRange==null){let u;try{u=new URL(o.detailId,'https://www.pickfinder.app');}catch{return null;}const p=u.searchParams.getAll('prop');if(u.origin!=='https://www.pickfinder.app'||!u.pathname.startsWith('/players/')||p.length!==1||p[0].split(':')[1]!==o.market)return null;}
  const nums=match[1].match(/[1-7]/g).map(Number);

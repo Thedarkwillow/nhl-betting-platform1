@@ -103,3 +103,15 @@ test("public renderer only shows validated all-tier aggregate rows",()=>{
 });
 
 test("NHL estimated probability gap is descriptive and cannot certify calibration",()=>{const v={kind:"private_nhl_prospective_probability_validation_v1",calibrated:false,originalPlatformSettlementsVerified:false,counts:{registered:23},allStandardDescriptive:{decided:20,observedHitRate:.55,meanPredictedProbability:.67,brier:.27},futureHoldout:{decided:12,distinctGames:6,distinctGameDates:4},training:{decided:8}};const x=build(nhl,nfl,triple,{nhlProbabilityAudit:v});assert.equal(x.nhl.standardProbabilityAudit.signedOverconfidenceGap,.12);assert.equal(x.nhl.standardProbabilityAudit.calibrated,false);assert.equal(x.nhl.standardProbabilityAudit.releaseApproved,false);assert.equal(JSON.stringify(x).includes("playerId"),false);assert.throws(()=>build(nhl,nfl,triple,{nhlProbabilityAudit:{...v,allStandardDescriptive:{...v.allStandardDescriptive,decided:21}}}),/cohort mismatch/);});
+
+test("NHL rolling probability export preserves strict-event push semantics, dated bins and no private rows",()=>{
+ const {safeNhlRolling}=require("./publish-safe-pregame-scorecards.cjs");
+ const summary=(n,w,push,pending,p=.65)=>{const q=n+push;return {registered:n+push+pending,decided:n,correct:w,incorrect:n-w,pushes:push,pending,distinctGames:n?1:0,distinctPacificDates:n?1:0,hitRateExcludingPushes:n?Number((w/n).toFixed(6)):null,resolvedStrictHitEventRate:q?Number((w/q).toFixed(6)):null,meanOriginalRawSelectedProbability:q?p:null,rawEventBrier:q?0.24:null,rawEventLogLoss:q?0.69:null};};
+ const empty=summary(0,0,0,0),overall=summary(2,1,1,1),cutoffs=[0,.5,.6,.7,.8,.9,1],bins=cutoffs.slice(0,-1).map((lower,i)=>({lower,upper:cutoffs[i+1],...(i===2?overall:empty),privatePlayerName:"must not leak"}));
+ const tiers=["Standard","Goblin","Demon"].map(tier=>({tier,frozenSelections:4,decided:2,correct:1,incorrect:1,push:1,pending:1}));
+ const audit={kind:"nhl_all_tier_reliability_v1",status:"descriptive_original_forecasts_only",researchOnly:true,calibrationApproved:false,modelPromoted:false,originalPlatformSettlementVerified:false,cohorts:Object.fromEntries(tiers.map(t=>[t.tier,{overall,byPacificDate:{"2026-11-25":overall},reliability:{bins,resolved:3}}]))};
+ const r=safeNhlRolling(audit,tiers);assert.equal(r.byTier[0].overall.strictHitEventRate,.333333);assert.equal(r.byTier[0].overall.hitRateExcludingPushes,.5);assert.equal(r.byTier[0].overall.constantHalfBrier,.25);assert.equal(r.byTier[0].bins[2].resolved,3);assert.equal(r.byTier[0].byPacificDate[0].date,"2026-11-25");assert.equal(JSON.stringify(r).includes("privatePlayerName"),false);
+ assert.throws(()=>safeNhlRolling({...audit,calibrationApproved:true},tiers),/invalid/);
+ assert.throws(()=>safeNhlRolling(audit,[{...tiers[0],frozenSelections:5},...tiers.slice(1)]),/cohort mismatch/);
+ assert.equal(safeNhlRolling(null,tiers),null);
+});

@@ -170,7 +170,8 @@ async function main(root,env=process.env){
     if(!await waitPremium(page))throw Error('session unavailable');
     const result=await inspectTool(page,kind,waitPremium);
     await write('capabilities',{schema:'pickfinder-public-tool-schema-v1',kind,observedAt:new Date().toISOString(),...result});
-    console.log(JSON.stringify({state:'public_tool_schema_pass',kind,result:result.state,mutations:0}));
+    if(result.state!=='read_only_schema_observed')errors++;
+    console.log(JSON.stringify({state:result.state==='read_only_schema_observed'?'public_tool_schema_pass':'public_tool_schema_pending',kind,result:result.state,mutations:0}));
    }catch{errors++;console.log(JSON.stringify({state:'public_tool_schema_pending',kind}));}
   }
   for(const name of p.historyRepair?[]:['Games','Discrepancies','Popular']){

@@ -1,22 +1,18 @@
 {
   "kind": "public_nfl_native_history_health_v1",
-  "generatedAt": "2026-11-25T13:51:45.746353Z",
+  "generatedAt": "2026-11-26T01:58:06.096239Z",
   "seasons": {
     "2024": {
-      "status": "observed",
+      "status": "cached",
       "games": 272,
       "playerRows": 18112,
-      "rosterIds": 32641,
-      "completeHistoricalSeason": true,
-      "archiveDigest": "4e468af29f7eb1c35ce6f38d79900d499f02e4716386af686def51e0347bc3a1"
+      "rosterIds": 32641
     },
     "2025": {
-      "status": "observed",
+      "status": "cached",
       "games": 272,
       "playerRows": 18522,
-      "rosterIds": 35291,
-      "completeHistoricalSeason": true,
-      "archiveDigest": "93024c47c1e6b6227f5ebfa3a3f40418bc18b0de352567071133f3daaa1be23a"
+      "rosterIds": 35291
     },
     "2026": {
       "status": "observed",
@@ -24,10 +20,10 @@
       "playerRows": 11328,
       "rosterIds": 21962,
       "completeHistoricalSeason": false,
-      "archiveDigest": "81cd42e6b05b0a5f7bdc7057974826a89c117e9b362857d69d36de9b894c3e22"
+      "archiveDigest": "ba3f28c32290f71f6b514608adcc04cee96c9060dd233d58bb9ed11fd2e27ac5"
     }
   },
-  "espnGsisCandidateRows": 0,
+  "espnGsisCandidateRows": 4798,
   "paidRequests": 0,
   "privateRepoUsed": false,
   "modelApproved": false

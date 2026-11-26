@@ -2,12 +2,13 @@
 name: Publish sanitized NHL NFL frozen model scorecards
 on:
   pull_request:
-    paths: ['scripts/publish-safe-pregame-scorecards.cjs','scripts/test-publish-safe-pregame-scorecards.cjs','assets/model-scorecards.js','.github/workflows/publish-nhl-nfl-model-scorecards.yml']
+    paths: ['scripts/model-accuracy-research.cjs','test/model-accuracy-research.test.cjs','scripts/publish-safe-pregame-scorecards.cjs','scripts/test-publish-safe-pregame-scorecards.cjs','assets/model-scorecards.js','.github/workflows/publish-nhl-nfl-model-scorecards.yml']
   workflow_dispatch:
   push:
     branches: [main]
     paths:
       - '.github/workflows/publish-nhl-nfl-model-scorecards.yml'
+      - 'scripts/model-accuracy-research.cjs'
       - 'scripts/publish-safe-pregame-scorecards.cjs'
       - 'scripts/test-publish-safe-pregame-scorecards.cjs'
       - 'scripts/publish-safe-daily-grade.cjs'
@@ -44,7 +45,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test scripts/test-publish-safe-pregame-scorecards.cjs
+      - run: node --test scripts/test-publish-safe-pregame-scorecards.cjs test/model-accuracy-research.test.cjs
   release-aggregates-only:
     needs: offline-regression
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
@@ -133,4 +134,26 @@ jobs:
             sleep "$attempt"
           done
           echo "::error::Scorecard publication not confirmed"
+          exit 1
+
+      - name: Evaluate fixed research challengers from existing grade archives
+        working-directory: public
+        run: |
+          set -euo pipefail
+          umask 077
+          node scripts/model-accuracy-research.cjs "$GITHUB_WORKSPACE/private" "$GITHUB_WORKSPACE/public"
+          git add data/model-accuracy-challenger-research.json
+          git diff --cached --quiet && exit 0
+          git commit -qm 'research: aggregate fixed calibration and directional challenger evaluation'
+          for attempt in 1 2 3 4; do
+            git fetch -q origin main
+            git rebase -q FETCH_HEAD || { git rebase --abort; exit 1; }
+            if git push -q origin HEAD:main; then
+              git fetch -q origin main
+              git merge-base --is-ancestor HEAD FETCH_HEAD
+              echo 'PASS: aggregate research challenger report archived.'
+              exit 0
+            fi
+            sleep "$attempt"
+          done
           exit 1

@@ -175,3 +175,11 @@ test('public sporting tables retain complete bounded headings while legacy scope
   assert.ok(legacy[0].scope.endsWith('[header truncated]'));
  }finally{if(prior===undefined)delete global.document;else global.document=prior;}
 });
+
+test('historical review packet contains linked evidence without certifying reviewer approval',()=>{
+ const {reviewPacket}=require('../scripts/pickfinder-archived-model-inputs.cjs');
+ const c={sport:'nhl',profilePath:'/players/nhl/fixture',nativePlayerId:'9',sourcePlayer:'fixture',independentReviewVerified:false};
+ const f={sport:'nhl',sourceDetailId:c.profilePath+'?prop=a:b:c',playerId:'9',eventId:'1',market:'sog',value:4,nativeDigest:'a'.repeat(64),profileDigest:'b'.repeat(64)};
+ const p=reviewPacket({identityCandidates:[c],rows:new Map([['a',f],['b',f]])},clock);
+ assert.equal(p.rows.length,1);assert.equal(p.rows[0].facts.length,1);assert.equal(p.rows[0].independentReviewVerified,false);assert.equal(p.reviewReceipt,false);assert.equal(p.modelApproved,false);
+});

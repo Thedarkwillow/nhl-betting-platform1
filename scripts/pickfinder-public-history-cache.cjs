@@ -10,11 +10,22 @@ function day(s){
  const d=new Date(s+'T00:00:00Z');
  return Number.isFinite(+d)&&d.toISOString().slice(0,10)===s?s:null;
 }
+// Decode only unambiguous full dates. Do not assign a year to month/day-only rows.
+function fullDate(v){
+ const iso=day(v);if(iso)return iso;
+ const t=String(v??'').trim(),numeric=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+ const format=(y,m,d)=>day(y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'));
+ if(numeric){const a=Number(numeric[1]),b=Number(numeric[2]);if(a>12&&b<=12)return format(numeric[3],b,a);if(b>12&&a<=12||a===b)return format(numeric[3],a,b);return null;}
+ const names=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+ const month=t.match(/^([A-Za-z]{3,9})\s+(\d{1,2}),?\s+(\d{4})$/);
+ if(month){const i=names.indexOf(month[1].slice(0,3).toLowerCase());const full=['january','february','march','april','may','june','july','august','september','october','november','december'];if(i>=0&&[names[i],full[i]].includes(month[1].toLowerCase()))return format(month[3],i+1,Number(month[2]));}
+ return null;
+}
 function priorSeason(selection,now){
  if(!Array.isArray(selection))return null;
  const seasons=selection.filter(x=>norm(x.label)==='season');
  if(seasons.length!==1||typeof seasons[0].display!=='string')return null;
- const v=seasons[0].display.trim(),m=v.match(/^(\d{4})(?:\s*[-–/]\s*(\d{4}|\d{2}))?$/);
+ const v=seasons[0].display.trim(),m=v.replace(/^season\s+/i,'').replace(/\s+season$/i,'').match(/^(\d{4})(?:\s*[-–/]\s*(\d{4}|\d{2}))?$/);
  if(!m)return null;
  const start=Number(m[1]),end=m[2]?(m[2].length===2?Math.floor(start/100)*100+Number(m[2]):Number(m[2])):start;
  if(start<1900||end<start||end-start>1||end>=now.getUTCFullYear())return null;
@@ -36,7 +47,7 @@ function candidate(record,f,now,diagnostic){
  const headers=String(f.scope||'').split(' | ');if(headers.filter(h=>norm(h)==='date').length!==1||headers.length<2||new Set(headers).size!==headers.length)return reject('date_header_or_columns');
  let cells;try{cells=JSON.parse(f.value);}catch{return reject('row_json');}
  if(!Array.isArray(cells)||cells.length!==headers.length||cells.some(c=>!c||typeof c.value!=='string'))return reject('row_shape');
- const date=day(cells[headers.findIndex(h=>norm(h)==='date')].value);
+ const date=fullDate(cells[headers.findIndex(h=>norm(h)==='date')].value);
  if(!date||+new Date(date+'T23:59:59Z')>=seen||+date.slice(0,4)<season.start||+date.slice(0,4)>season.end)return reject('game_date_unverified');
  // Do not conflate different filters, period, map, mode, or market. Exact cells are compared.
  const identity={sport:record.sport,profile:u.pathname,player:record.player,market:record.market,period:f.period??record.period??null,mapRange:f.mapRange??record.mapRange??null,gameMode:f.gameMode??record.gameMode??null,season:season.label,date,tab:f.tab,headers,window:f.window??null,filters:stable(f.filterSelection)};
@@ -89,5 +100,5 @@ function buildIndex(documents,now=new Date()){
 function audit(documents,now=new Date()){return buildIndex(documents,now).summary;}
 // Consumers can reuse only an exact previously observed historical fact. No collection scope is skipped.
 function lookup(index,key){const row=index.get(key);return row&&!row.conflict?{field:row.field,digest:row.digest,observedAt:new Date(row.seen).toISOString()}:null;}
-module.exports={day,priorSeason,seasonShape,dateShape,candidate,audit,buildIndex,lookup};
+module.exports={day,fullDate,priorSeason,seasonShape,dateShape,candidate,audit,buildIndex,lookup};
 if(require.main===module){try{const {read}=require('./pickfinder-public-archive.cjs');console.log(JSON.stringify(audit(read(process.argv[2]||'.','profiles'))));}catch{console.error('Historical cache audit failed closed');process.exitCode=1;}}

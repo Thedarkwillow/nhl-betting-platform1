@@ -4,6 +4,7 @@ const fs=require('node:fs'),path=require('node:path');
 const {ROOT,sha}=require('./pickfinder-public-archive.cjs');
 const {load,quotes,features,scope,git}=require('./pickfinder-public-evidence-audit.cjs');
 const {candidate}=require('./pickfinder-public-history-cache.cjs');
+const nativeHistory=require('./pickfinder-native-history-reconciliation.cjs');
 const dt=Date.parse, valid=x=>Number.isFinite(dt(x)), key=x=>JSON.stringify(x);
 function classify(f){
  if(f.origin==='prop_history')return 'historical_prop';
@@ -39,8 +40,9 @@ function auditBoards(archive,clock){
   for(const o of b.offers||[]){
    if(!o.detailId||!o.eventId||!Number.isFinite(o.line)||!valid(o.observedAt)||dt(o.observedAt)>dt(b.first)+999)continue;
    observations++;a.offers++;
-   // Use archive availability clock, not a later observation, for retrospective comparisons.
-   const cut=b.first,bs=quotes(o,q.get(scope(o))||[],cut),fs=features(o,f.get(key([o.detailId,o.eventId,o.market,o.observedAt]))||[]);
+   // Archive availability gates eligibility; quote freshness is relative to the offer observation.
+   // A later quote in the same manifest must never enter an earlier offer's feature set.
+   const cut=b.first,bs=quotes(o,q.get(scope(o))||[],new Date(Math.min(dt(cut),dt(o.observedAt))).toISOString()),fs=features(o,f.get(key([o.detailId,o.eventId,o.market,o.observedAt]))||[]);
    if(bs.length){quoteMatches++;a.quotes++;}
    if(Object.keys(fs).length){featureMatches++;a.features++;}
    const pregame=valid(o.startAt)&&dt(cut)+900000<dt(o.startAt);
@@ -61,7 +63,7 @@ function* committedProfiles(root){
 }
 function run(root,clock=new Date().toISOString()){
  const p=auditProfiles(committedProfiles(root),clock),b=auditBoards(load(root),clock);
- return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
+ return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,nativeHistory:nativeHistory.fromArchive(root,committedProfiles(root),clock).summary,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
 }
 module.exports={classify,auditProfiles,auditBoards,run};
 if(require.main===module)console.log(JSON.stringify(run(process.cwd())));

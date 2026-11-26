@@ -1,7 +1,7 @@
 name: PickFinder Premium public orchestration
 on:
   pull_request:
-    paths: ['scripts/pickfinder-public-*.cjs','scripts/pickfinder-unattended-runner.cjs','test/pickfinder-public-runner.test.cjs','.github/workflows/pickfinder-premium-hosted.yml']
+    paths: ['scripts/pickfinder-public-*.cjs','scripts/pickfinder-unattended-runner.cjs','scripts/pickfinder-browser.cjs','scripts/pickfinder-tool-schema.cjs','scripts/pickfinder-dashboard-research.cjs','test/pickfinder-browser.test.cjs','test/pickfinder-unattended-runner.test.cjs','test/pickfinder-public-runner.test.cjs','.github/workflows/pickfinder-premium-hosted.yml']
   workflow_dispatch:
     inputs:
       mode:

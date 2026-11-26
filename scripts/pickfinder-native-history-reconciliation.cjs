@@ -16,7 +16,7 @@ const sourceMarkets={
  nhl:{player_goals:'goals',player_assists:'assists',player_points:'points',player_shots_on_goal:'shots on goal',player_blocked_shots:'blocked shots',player_saves:'saves',player_hits:'hits'},
  nfl:{player_receiving_yards:'receiving yards',player_passing_yards:'passing yards',player_rushing_yards:'rushing yards',player_rushing_attempts:'rushing attempts',player_passing_attempts:'passing attempts',player_passing_completions:'passing completions',player_passing_touchdowns:'passing touchdowns',player_pass_yds:'passing yards',player_pass_attempts:'passing attempts',player_pass_completions:'passing completions',player_pass_tds:'passing touchdowns',player_pass_interceptions:'interceptions thrown',player_rush_yds:'rushing yards',player_rush_attempts:'rushing attempts',player_reception_yds:'receiving yards',player_receptions:'receptions',player_receiving_targets:'receiving targets'}
 };
-const columnAliases={goals:['g'],assists:['a'],points:['pts'],sog:['shots','shots on goal'],blockedShots:['blk','blocks','blocked shots'],saves:['sv'],hits:['hits'],passing_yards:['pass yards','pass yds'],rushing_yards:['rush yards','rush yds'],receiving_yards:['rec yards','rec yds'],receptions:['rec'],passing_tds:['pass tds'],rushing_tds:['rush tds'],receiving_tds:['rec tds'],attempts:['pass attempts','pass att'],completions:['pass completions','pass cmp'],targets:['rec targets','tgt'],carries:['rush attempts','carries'],passing_interceptions:['pass int','interceptions thrown']};
+const columnAliases={goals:['g'],assists:['a'],points:['pts'],sog:['shots on goal'],blockedShots:['blk','blocks','blocked shots'],saves:['sv'],hits:['hits'],passing_yards:['pass yards','pass yds'],rushing_yards:['rush yards','rush yds'],receiving_yards:['rec yards','rec yds'],receptions:['rec'],passing_tds:['pass tds'],rushing_tds:['rush tds'],receiving_tds:['rec tds'],attempts:['pass attempts','pass att'],completions:['pass completions','pass cmp'],targets:['rec targets','tgt'],carries:['rush attempts','carries'],passing_interceptions:['pass int','interceptions thrown']};
 // Exact official NBA log market mappings; no synthesized tip-off time.
 const nbaMetrics={player_points:'points',player_rebounds:'rebounds',player_assists:'assists',player_made_threes:'threePointersMade',player_steals:'steals',player_blocks:'blocks',player_turnovers:'turnovers','player_points_+_rebounds_+_assists':'pointsReboundsAssists','player_points_+_rebounds':'pointsRebounds','player_points_+_assists':'pointsAssists','player_rebounds_+_assists':'reboundsAssists',points:'points',rebounds:'rebounds',assists:'assists'};
 Object.assign(columnAliases,{rebounds:['reb'],threePointersMade:['3pm','fg3m'],steals:['stl'],blocks:['blk'],turnovers:['tov'],pointsReboundsAssists:['pra','pts+reb+ast','pts + reb + ast'],pointsRebounds:['pr','pts+reb'],pointsAssists:['pa','pts+ast'],reboundsAssists:['ra','reb+ast']});
@@ -89,7 +89,9 @@ function matchRow(r,f,index,clock){
  if(headers.some(x=>/\b(?:line|odds|projection|average|hit rate|payout)\b/.test(x)))return reject('not_final_stat_table');
  const aliases=new Set([market,norm(m),...(columnAliases[m]||[])]);
  const indices=headers.map((x,i)=>aliases.has(x)?i:-1).filter(i=>i>=0);
- if(i<0||j<0||indices.length!==1||new Set(headers).size!==headers.length)return reject('missing_exact_columns');
+ // Repeated unrelated headings are allowed only when the date, opponent and
+ // requested stat are each unique and the full row still aligns positionally.
+ if(i<0||j<0||indices.length!==1)return reject('missing_exact_columns');
  // Overview-only evidence must also have an explicit per-game result marker; otherwise stay unresolved.
  if(!namedLog&&!windowLog&&(!headers.includes('w/l')&&!headers.includes('result')&&!headers.includes('min')&&!headers.includes('minutes')&&!headers.includes('toi')))return reject('overview_game_log_unverified');
  let cells;try{cells=JSON.parse(f.value)}catch{return reject('row_json');}

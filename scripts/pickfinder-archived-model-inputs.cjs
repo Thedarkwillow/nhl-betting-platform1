@@ -47,8 +47,21 @@ function quoteInventory(rows){
  for(const p of pairs.values()){if(p.conflict)out.conflictingPairs++;else if(p.prices.Higher&&p.prices.Lower)out.exactPairs++;}
  return out;
 }
+// Parse explicitly displayed map ordinals only. A source scope is not a native map crosswalk.
+function esportsScope(o){
+ const title={cs2:'CS2',valorant:'VALORANT',dota2:'DOTA2',lol:'LOL',cod:'COD'}[o.sport];
+ if(!title)return null;
+ const match=/^((?:maps?_[1-7](?:_[1-7])?|[1-7](?:_[1-7])?_maps?))_player_(.+)$/.exec(o.market||'');
+ if(!match||match[1]!==o.mapRange||o.period!=null)return null;
+ const nums=match[1].match(/[1-7]/g).map(Number);
+ if(nums.length===2&&nums[0]>=nums[1])return null;
+ const maps=nums.length===1?nums:Array.from({length:nums[1]-nums[0]+1},(_,i)=>nums[0]+i);
+ const market={kills:'kills',headshots:'headshotKills',headshot_kills:'headshotKills',assists:'assists',deaths:'deaths','kills_+_assists':'killsPlusAssists',creep_score:'creepScore',last_hits:'lastHits'}[match[2]];
+ if(!require('../src/esports-research-v1.cjs').TITLES[title].stats.includes(market)||title==='COD'&&!o.gameMode)return null;
+ return {title,maps,market,identityReviewed:false,mapScopeReviewed:false,modelApproved:false};
+}
 function auditBoards(archive,clock){
- const bySport={},history=new Map();let observations=0,quoteMatches=0,featureMatches=0;const quoteEvidence={};
+ const bySport={},history=new Map();let observations=0,quoteMatches=0,featureMatches=0;const quoteEvidence={},esportsEvidence={};
  for(const b of archive.manifests){
   if(!valid(b.first)||dt(b.first)>dt(clock))continue;
   const a=bySport[b.m.sport]??={offers:0,quotes:0,features:0,explicitPregame:0};
@@ -59,6 +72,7 @@ function auditBoards(archive,clock){
   for(const o of b.offers||[]){
    if(!o.detailId||!o.eventId||!Number.isFinite(o.line)||!valid(o.observedAt)||dt(o.observedAt)>dt(b.first)+999)continue;
    observations++;a.offers++;
+   if(['cs2','valorant','dota2','lol','cod'].includes(o.sport)){const e=esportsEvidence[o.sport]??={offerObservations:0,explicitSupportedScopes:0,unresolvedScopes:0,qualifiedModelInputs:0};e.offerObservations++;if(esportsScope(o))e.explicitSupportedScopes++;else e.unresolvedScopes++;}
    // Archive availability gates eligibility; quote freshness is relative to the offer observation.
    // A later quote in the same manifest must never enter an earlier offer's feature set.
    const cut=b.first,bs=quotes(o,q.get(scope(o))||[],new Date(Math.min(dt(cut),dt(o.observedAt))).toISOString()),fs=features(o,f.get(key([o.detailId,o.eventId,o.market,o.observedAt]))||[]);
@@ -70,7 +84,7 @@ function auditBoards(archive,clock){
    if(!history.has(k))history.set(k,{offer:o,manifestDigest:b.digest,archiveFirst:cut,features:fs,quotes:bs,explicitPregame:pregame,originalPlatformVerified:false,modelApproved:false});
   }
  }
- return {summary:{observations,distinctObservations:history.size,quoteMatches,featureMatches,bySport,quoteEvidence},history};
+ return {summary:{observations,distinctObservations:history.size,quoteMatches,featureMatches,bySport,quoteEvidence,esportsEvidence},history};
 }
 function* committedProfiles(root){
  const dir=ROOT+'/profiles';
@@ -84,5 +98,5 @@ function run(root,clock=new Date().toISOString()){
  const p=auditProfiles(committedProfiles(root),clock),b=auditBoards(load(root),clock);
  return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,nativeHistory:nativeHistory.fromArchive(root,committedProfiles(root),clock).summary,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
 }
-module.exports={classify,auditProfiles,auditBoards,quoteInventory,run};
+module.exports={classify,auditProfiles,auditBoards,quoteInventory,esportsScope,run};
 if(require.main===module)console.log(JSON.stringify(run(process.cwd())));

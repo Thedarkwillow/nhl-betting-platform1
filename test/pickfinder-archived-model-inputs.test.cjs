@@ -62,3 +62,17 @@ test('native historical matching resolves a partial date only with unique player
  const out=audit([{digest,doc:{records:[{...r,research:[field,field]}]}}],idx,clock);
  assert.equal(out.summary.candidates,2);assert.equal(out.summary.distinctCandidates,1);assert.equal(out.summary.qualifiedCacheEntries,0);assert.equal(out.summary.qualifiedModelInputs,0);
 });
+
+test('official NBA dated history corroborates exact game rows without inventing tipoff',()=>{
+ const {nativeIndex,matchRow}=require('../scripts/pickfinder-native-history-reconciliation.cjs');
+ const {VERSION}=require('../scripts/pickfinder-research-coverage.cjs');
+ const digest='b'.repeat(64),first='2026-11-24T15:00:00Z';
+ const h={digest,first,doc:{kind:'nba_official_stats_regular_season_log_v1',source:'stats.nba.com LeagueGameLog',sourceResponseSha256:digest,historicalAppearancesOnly:true,capturedAt:first,rows:[{gameId:123,gameDate:'2026-11-20',playerId:9,player:'Fixture',team:'BOS',opponent:'TOR',minutes:24,wl:'W',points:14}]}};
+ const idx=nativeIndex({facts:[],nhlFinals:[],nflSeasons:[],nbaHistories:[h]},clock);
+ const r={sport:'nba',player:'Fixture',market:'player_points',status:'sampled',truncated:false,coverageVersion:VERSION,detailId:'/players/nba/a'};
+ const field={origin:'profile',metric:'row 1',tab:'Overview',window:'Last 10 Games',scope:'Date | Opp | PTS | MIN',value:JSON.stringify([{value:'11/20'},{value:'TOR'},{value:'14'},{value:null}]),observedAt};
+ const c=matchRow(r,field,idx,clock).candidate;
+ assert.equal(c.officialGameDate,'2026-11-20');assert.equal(c.officialStartAt,null);assert.equal(c.providerIdentityReviewed,false);
+ assert.equal(matchRow(r,{...field,value:field.value.replace('"14"','"15"')},idx,clock).reason,'native_result_mismatch');
+ assert.equal(matchRow(r,{...field,scope:'Date | Opp | PTS | Opponent'},idx,clock).reason,'missing_exact_columns');
+});

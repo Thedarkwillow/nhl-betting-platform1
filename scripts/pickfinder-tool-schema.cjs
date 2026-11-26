@@ -21,9 +21,24 @@ async function navigationButton(page,names){
  if(!await b.isVisible()||!await b.isEnabled())return null;
  return b;
 }
+// Only count allowlisted sporting capability names. Do not archive raw DOM,
+// menu values, account text, links with queries, or undisclosed account routes.
+async function featureNavigationHints(page,kind){
+ try{return await page.evaluate(({kind})=>{
+  const pattern=kind==='builder'?/\b(?:pick builder|build picks|lineup builder)\b/i:/\b(?:line alerts?|notifications?|board drops?)\b/i;
+  const counts={visibleNamedLinks:0,visibleNamedButtons:0,hiddenNamedControls:0,visibleNamedOther:0};
+  for(const e of document.querySelectorAll('a,button,[role=button],[role=tab],[title],[aria-label]')){
+   if(![e.getAttribute('aria-label'),e.getAttribute('title'),e.innerText].some(t=>typeof t==='string'&&t.length<=80&&pattern.test(t)))continue;
+   if(!e.getClientRects().length){counts.hiddenNamedControls++;continue;}
+   if(e.tagName==='A')counts.visibleNamedLinks++;
+   else if(e.tagName==='BUTTON'||e.getAttribute('role')==='button')counts.visibleNamedButtons++;
+   else counts.visibleNamedOther++;
+  }return counts;
+ },{kind});}catch{return null;}
+}
 async function inspectTool(page,kind,premium){
  if(!routes[kind])throw Error('unknown capability');
- const names=kind==='builder'?['Pick Builder','Open Pick Builder','Toggle Pick Builder']:['Line Alerts','Alerts','Notifications','Open Alerts','Open Notifications','Open Line Alerts'];
+ const names=kind==='builder'?['Pick Builder','Open Pick Builder','Toggle Pick Builder','Show Pick Builder']:['Line Alerts','Alerts','Notifications','Open Alerts','Open Notifications','Open Line Alerts','Notification Settings'];
  const links=[];for(const n of names){const href=await verifiedNavigation(page,n,routes[kind]);if(href)links.push(href);}
  const distinct=[...new Set(links)];
  if(distinct.length>1)return {state:'navigation_ambiguous',mutations:0};
@@ -33,7 +48,7 @@ async function inspectTool(page,kind,premium){
  }else{
   if(!await premium(page))return {state:'session_or_route_unverified',mutations:0};
   const button=await navigationButton(page,names);
-  if(!button)return {state:'navigation_not_verified',mutations:0};
+  if(!button)return {state:'navigation_not_verified',navigationHints:await featureNavigationHints(page,kind),mutations:0};
   // Opening the named navigation control is read-only. Do not submit or change settings.
   await button.click({timeout:3000});method='navigation_button';
   try{await page.waitForFunction(({names,paths})=>{
@@ -63,4 +78,4 @@ async function inspectTool(page,kind,premium){
  if(!schema.verified)return {state:'panel_or_route_unverified',method,mutations:0};
  return {state:schema.controls.length?'read_only_schema_observed':panel?'panel_only_observed':'route_only_observed',route:url.pathname,method,controls:schema.controls,mutations:0,submissionVerified:false};
 }
-module.exports={inspectTool,routes,navigationButton};
+module.exports={inspectTool,routes,navigationButton,featureNavigationHints};

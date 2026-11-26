@@ -1,6 +1,6 @@
 {
   "kind": "public_nba_alternate_history_audit_v1",
-  "generatedAt": "2026-11-25T15:10:52.398979+00:00",
+  "generatedAt": "2026-11-26T00:00:17.425933+00:00",
   "seasons": {
     "2024": {
       "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/nba_stats_player_game_logs/player_game_logs_2024.parquet",
@@ -43,26 +43,26 @@
     },
     "2027": {
       "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/nba_stats_player_game_logs/player_game_logs_2027.parquet",
-      "sha256": "83c8e6af62ea267260155850b9140170bcd0fb6b63bf635a8e37388e198ac4ba",
-      "sourceRows": 5772,
+      "sha256": "1a890357eae9b11d7503e5806323e5e7285a413d6ff7d0ace1a95f639192a7b0",
+      "sourceRows": 5842,
       "status": "observed",
-      "acceptedRows": 5729,
-      "games": 257,
+      "acceptedRows": 5799,
+      "games": 260,
       "excludedRegularSeasonRows": 43,
       "firstGame": "2026-10-20",
-      "lastGame": "2026-11-23",
+      "lastGame": "2026-11-24",
       "expectedCompletedSeasonGames": null,
       "allExpectedGamesObserved": false
     }
   },
-  "acceptedRows": 84567,
+  "acceptedRows": 84637,
   "nbaNativeCrosswalk": {
     "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/nba_crosswalk/nba_player_crosswalk_2027.parquet",
-    "sha256": "c81e20dd19806d174ca9833589c9a259646407312a0926e65c6e071620591bc0",
+    "sha256": "e4ca74d4394c17616d379256aa412a0ef2cf8885060b5dbf841fa6cd048bb922",
     "sourceRows": 507,
     "status": "observed",
-    "espnRosterPlayers": 494,
-    "nativeIdentityCandidates": 446,
+    "espnRosterPlayers": 529,
+    "nativeIdentityCandidates": 476,
     "pickfinderIdentityVerified": false
   },
   "nflNativeCrosswalk": {
@@ -73,9 +73,9 @@
   "modelEvaluation": {
     "kind": "nba_alternate_mirror_model_evaluation_v1",
     "status": "observed",
-    "inputPlayerGames": 84567,
+    "inputPlayerGames": 84637,
     "uniquePlayers": 860,
-    "uniqueGames": 3937,
+    "uniqueGames": 3940,
     "source": "NBA Stats-derived SportsDataverse mirror, owner-attested permission",
     "rawRowsPublished": 0,
     "officialFinalClockVerified": false,
@@ -1600,15 +1600,15 @@
           ]
         },
         "current_season_replay|points": {
-          "n": 3907,
-          "brier": 0.24426738318439414,
-          "baselineBrier": 0.24840658290593964,
-          "adjustedBrier": 0.2436606884191119,
-          "adjustedN": 3906,
-          "pairedRawBrier": 0.2441978527817658,
-          "logLoss": 0.6815573017526163,
-          "distinctGames": 257,
-          "distinctDates": 34,
+          "n": 3968,
+          "brier": 0.24430109108907852,
+          "baselineBrier": 0.2484030594347121,
+          "adjustedBrier": 0.24370661457906878,
+          "adjustedN": 3967,
+          "pairedRawBrier": 0.24423263834273076,
+          "logLoss": 0.6816204227662095,
+          "distinctGames": 260,
+          "distinctDates": 35,
           "bins": [
             {
               "n": 0,
@@ -1621,29 +1621,29 @@
               "observed": null
             },
             {
-              "n": 52,
-              "meanProbability": 0.2787448870573871,
-              "observed": 0.28846153846153844
+              "n": 53,
+              "meanProbability": 0.27858578541479484,
+              "observed": 0.2830188679245283
             },
             {
-              "n": 689,
-              "meanProbability": 0.3640007898828553,
-              "observed": 0.3468795355587808
+              "n": 700,
+              "meanProbability": 0.36401153143866444,
+              "observed": 0.34714285714285714
             },
             {
-              "n": 1885,
-              "meanProbability": 0.44973111807305605,
-              "observed": 0.4068965517241379
+              "n": 1913,
+              "meanProbability": 0.44973716998370195,
+              "observed": 0.40825927861996864
             },
             {
-              "n": 1149,
-              "meanProbability": 0.536921238667857,
-              "observed": 0.42384682332463014
+              "n": 1169,
+              "meanProbability": 0.5369056745017328,
+              "observed": 0.4251497005988024
             },
             {
-              "n": 131,
-              "meanProbability": 0.6316863904414857,
-              "observed": 0.5114503816793893
+              "n": 132,
+              "meanProbability": 0.6314581791502624,
+              "observed": 0.5075757575757576
             },
             {
               "n": 1,
@@ -1663,15 +1663,15 @@
           ]
         },
         "current_season_replay|rebounds": {
-          "n": 3907,
-          "brier": 0.24322278885620818,
-          "baselineBrier": 0.24540000693342173,
-          "adjustedBrier": 0.24242057638530265,
-          "adjustedN": 3906,
-          "pairedRawBrier": 0.2432785123870169,
-          "logLoss": 0.6795593197964224,
-          "distinctGames": 257,
-          "distinctDates": 34,
+          "n": 3968,
+          "brier": 0.2432517412953053,
+          "baselineBrier": 0.24541125934092226,
+          "adjustedBrier": 0.2424292288735717,
+          "adjustedN": 3967,
+          "pairedRawBrier": 0.24330661527155384,
+          "logLoss": 0.6796161887526435,
+          "distinctGames": 260,
+          "distinctDates": 35,
           "bins": [
             {
               "n": 0,
@@ -1684,29 +1684,29 @@
               "observed": 0
             },
             {
-              "n": 148,
-              "meanProbability": 0.27122181044605725,
-              "observed": 0.3310810810810811
+              "n": 153,
+              "meanProbability": 0.2717857763356196,
+              "observed": 0.3333333333333333
             },
             {
-              "n": 866,
-              "meanProbability": 0.35780554858120434,
-              "observed": 0.3568129330254042
+              "n": 877,
+              "meanProbability": 0.3578614605526297,
+              "observed": 0.3557582668187001
             },
             {
-              "n": 1543,
-              "meanProbability": 0.447348541355726,
-              "observed": 0.40894361633182114
+              "n": 1572,
+              "meanProbability": 0.447475408444684,
+              "observed": 0.41030534351145037
             },
             {
-              "n": 1167,
-              "meanProbability": 0.5417650530049631,
-              "observed": 0.49700085689802914
+              "n": 1182,
+              "meanProbability": 0.5417966172411289,
+              "observed": 0.4957698815566836
             },
             {
-              "n": 176,
-              "meanProbability": 0.6282317373889801,
-              "observed": 0.4715909090909091
+              "n": 177,
+              "meanProbability": 0.6281811108123945,
+              "observed": 0.4745762711864407
             },
             {
               "n": 6,
@@ -1726,15 +1726,15 @@
           ]
         },
         "current_season_replay|assists": {
-          "n": 3907,
-          "brier": 0.2388593757921002,
-          "baselineBrier": 0.2428127798604294,
-          "adjustedBrier": 0.23852057892278572,
-          "adjustedN": 3907,
-          "pairedRawBrier": 0.2388593757921002,
-          "logLoss": 0.6704479563897685,
-          "distinctGames": 257,
-          "distinctDates": 34,
+          "n": 3968,
+          "brier": 0.23851718380579143,
+          "baselineBrier": 0.2424770319935837,
+          "adjustedBrier": 0.23819071410123777,
+          "adjustedN": 3968,
+          "pairedRawBrier": 0.23851718380579143,
+          "logLoss": 0.669741726947959,
+          "distinctGames": 260,
+          "distinctDates": 35,
           "bins": [
             {
               "n": 0,
@@ -1747,29 +1747,29 @@
               "observed": 0.2727272727272727
             },
             {
-              "n": 262,
-              "meanProbability": 0.2662656497270659,
-              "observed": 0.2824427480916031
+              "n": 268,
+              "meanProbability": 0.26613858916103705,
+              "observed": 0.2798507462686567
             },
             {
-              "n": 954,
-              "meanProbability": 0.35645079367341803,
-              "observed": 0.3270440251572327
+              "n": 967,
+              "meanProbability": 0.35649017179568676,
+              "observed": 0.3247156153050672
             },
             {
-              "n": 1512,
-              "meanProbability": 0.4495015072185292,
-              "observed": 0.43386243386243384
+              "n": 1538,
+              "meanProbability": 0.44951380534338103,
+              "observed": 0.4317295188556567
             },
             {
-              "n": 982,
-              "meanProbability": 0.5372179992417211,
-              "observed": 0.47657841140529533
+              "n": 994,
+              "meanProbability": 0.5372077802703253,
+              "observed": 0.4768611670020121
             },
             {
-              "n": 177,
-              "meanProbability": 0.6339149354359646,
-              "observed": 0.5480225988700564
+              "n": 181,
+              "meanProbability": 0.6334157794042304,
+              "observed": 0.5524861878453039
             },
             {
               "n": 9,
@@ -1789,50 +1789,50 @@
           ]
         },
         "current_season_replay|threePointersMade": {
-          "n": 3907,
-          "brier": 0.21453364227981836,
-          "baselineBrier": 0.2153042033839741,
-          "adjustedBrier": 0.21503583227016757,
-          "adjustedN": 3907,
-          "pairedRawBrier": 0.21453364227981836,
-          "logLoss": 0.6125208719631525,
-          "distinctGames": 257,
-          "distinctDates": 34,
+          "n": 3968,
+          "brier": 0.21458436443608064,
+          "baselineBrier": 0.21533884132727116,
+          "adjustedBrier": 0.215082035735228,
+          "adjustedN": 3968,
+          "pairedRawBrier": 0.21458436443608064,
+          "logLoss": 0.6126354016485089,
+          "distinctGames": 260,
+          "distinctDates": 35,
           "bins": [
             {
-              "n": 292,
-              "meanProbability": 0.058134735802832224,
-              "observed": 0.0410958904109589
+              "n": 295,
+              "meanProbability": 0.058088026625176314,
+              "observed": 0.04067796610169491
             },
             {
-              "n": 139,
-              "meanProbability": 0.1573367603281704,
-              "observed": 0.1366906474820144
+              "n": 144,
+              "meanProbability": 0.15738343257554754,
+              "observed": 0.1388888888888889
             },
             {
-              "n": 392,
-              "meanProbability": 0.26180211056008806,
-              "observed": 0.2653061224489796
+              "n": 396,
+              "meanProbability": 0.26172153602394055,
+              "observed": 0.26262626262626265
             },
             {
-              "n": 953,
-              "meanProbability": 0.3554968134300822,
-              "observed": 0.3315844700944386
+              "n": 970,
+              "meanProbability": 0.3556209815337703,
+              "observed": 0.33298969072164947
             },
             {
-              "n": 1205,
-              "meanProbability": 0.44443454819264744,
-              "observed": 0.3991701244813278
+              "n": 1226,
+              "meanProbability": 0.44454564755748244,
+              "observed": 0.400489396411093
             },
             {
-              "n": 713,
-              "meanProbability": 0.5433632673369843,
-              "observed": 0.520336605890603
+              "n": 722,
+              "meanProbability": 0.5432901795169941,
+              "observed": 0.5221606648199446
             },
             {
-              "n": 201,
-              "meanProbability": 0.6381330499962325,
-              "observed": 0.5671641791044776
+              "n": 203,
+              "meanProbability": 0.6382037834938067,
+              "observed": 0.5665024630541872
             },
             {
               "n": 12,
@@ -1852,15 +1852,15 @@
           ]
         },
         "current_season_replay|steals": {
-          "n": 3907,
-          "brier": 0.22872252722915984,
-          "baselineBrier": 0.22910110653559485,
-          "adjustedBrier": 0.22790355091772482,
-          "adjustedN": 3905,
-          "pairedRawBrier": 0.22861791113810623,
-          "logLoss": 0.6498921109953486,
-          "distinctGames": 257,
-          "distinctDates": 34,
+          "n": 3968,
+          "brier": 0.22870386643565715,
+          "baselineBrier": 0.2290532237208352,
+          "adjustedBrier": 0.22790757309673196,
+          "adjustedN": 3966,
+          "pairedRawBrier": 0.22860085000672337,
+          "logLoss": 0.6498036675476981,
+          "distinctGames": 260,
+          "distinctDates": 35,
           "bins": [
             {
               "n": 2,
@@ -1868,29 +1868,29 @@
               "observed": 0.5
             },
             {
-              "n": 110,
-              "meanProbability": 0.16490740065740145,
-              "observed": 0.23636363636363636
+              "n": 113,
+              "meanProbability": 0.16455701959835708,
+              "observed": 0.23008849557522124
             },
             {
-              "n": 693,
-              "meanProbability": 0.26155099395820325,
-              "observed": 0.2828282828282828
+              "n": 708,
+              "meanProbability": 0.26133240926197643,
+              "observed": 0.2838983050847458
             },
             {
-              "n": 1001,
-              "meanProbability": 0.3500261749716387,
-              "observed": 0.29270729270729273
+              "n": 1018,
+              "meanProbability": 0.35003611360177833,
+              "observed": 0.29273084479371314
             },
             {
-              "n": 938,
-              "meanProbability": 0.4472729147521194,
-              "observed": 0.4200426439232409
+              "n": 950,
+              "meanProbability": 0.4471765141915079,
+              "observed": 0.42210526315789476
             },
             {
-              "n": 854,
-              "meanProbability": 0.5430752251075469,
-              "observed": 0.5128805620608899
+              "n": 868,
+              "meanProbability": 0.5432363181869695,
+              "observed": 0.511520737327189
             },
             {
               "n": 290,
@@ -1915,50 +1915,50 @@
           ]
         },
         "current_season_replay|blocks": {
-          "n": 3907,
-          "brier": 0.19211461443834654,
-          "baselineBrier": 0.19156697793252322,
-          "adjustedBrier": 0.19100051708603538,
-          "adjustedN": 3903,
-          "pairedRawBrier": 0.19201810647840362,
-          "logLoss": 0.5688945334089267,
-          "distinctGames": 257,
-          "distinctDates": 34,
+          "n": 3968,
+          "brier": 0.19249599430568362,
+          "baselineBrier": 0.19207406525176576,
+          "adjustedBrier": 0.19132466037675877,
+          "adjustedN": 3964,
+          "pairedRawBrier": 0.1924013563015999,
+          "logLoss": 0.5697287840022949,
+          "distinctGames": 260,
+          "distinctDates": 35,
           "bins": [
             {
-              "n": 180,
-              "meanProbability": 0.0741213391924351,
-              "observed": 0.10555555555555556
+              "n": 182,
+              "meanProbability": 0.07397703418299441,
+              "observed": 0.1043956043956044
             },
             {
-              "n": 663,
-              "meanProbability": 0.15598086960458352,
-              "observed": 0.167420814479638
+              "n": 682,
+              "meanProbability": 0.15585055782511403,
+              "observed": 0.16862170087976538
             },
             {
-              "n": 1075,
-              "meanProbability": 0.25171248156777,
-              "observed": 0.2111627906976744
+              "n": 1084,
+              "meanProbability": 0.2516713570283083,
+              "observed": 0.21125461254612546
             },
             {
-              "n": 900,
-              "meanProbability": 0.35006163637212373,
-              "observed": 0.30777777777777776
+              "n": 914,
+              "meanProbability": 0.35002821141675206,
+              "observed": 0.3096280087527352
             },
             {
-              "n": 613,
-              "meanProbability": 0.4415617355184548,
-              "observed": 0.38825448613376834
+              "n": 621,
+              "meanProbability": 0.4415503596326523,
+              "observed": 0.391304347826087
             },
             {
-              "n": 381,
-              "meanProbability": 0.5442255297244425,
-              "observed": 0.5354330708661418
+              "n": 386,
+              "meanProbability": 0.5441653976468376,
+              "observed": 0.533678756476684
             },
             {
-              "n": 91,
-              "meanProbability": 0.6293804060085569,
-              "observed": 0.4835164835164835
+              "n": 95,
+              "meanProbability": 0.6294079561649217,
+              "observed": 0.4842105263157895
             },
             {
               "n": 4,
@@ -1978,15 +1978,15 @@
           ]
         },
         "current_season_replay|turnovers": {
-          "n": 3907,
-          "brier": 0.23507313607241598,
-          "baselineBrier": 0.23590703113884828,
-          "adjustedBrier": 0.23581256032429637,
-          "adjustedN": 3907,
-          "pairedRawBrier": 0.23507313607241598,
-          "logLoss": 0.6625952062896961,
-          "distinctGames": 257,
-          "distinctDates": 34,
+          "n": 3968,
+          "brier": 0.23534329598626827,
+          "baselineBrier": 0.23618153315418378,
+          "adjustedBrier": 0.23601518322451492,
+          "adjustedN": 3968,
+          "pairedRawBrier": 0.23534329598626827,
+          "logLoss": 0.6631843317256209,
+          "distinctGames": 260,
+          "distinctDates": 35,
           "bins": [
             {
               "n": 0,
@@ -1994,39 +1994,39 @@
               "observed": null
             },
             {
-              "n": 32,
-              "meanProbability": 0.16601283482142862,
-              "observed": 0.1875
+              "n": 34,
+              "meanProbability": 0.1652945553221289,
+              "observed": 0.20588235294117646
             },
             {
-              "n": 376,
-              "meanProbability": 0.2669120244921394,
-              "observed": 0.2872340425531915
+              "n": 380,
+              "meanProbability": 0.26641248598409656,
+              "observed": 0.2894736842105263
             },
             {
-              "n": 1097,
-              "meanProbability": 0.35557490838024475,
-              "observed": 0.35733819507748404
+              "n": 1115,
+              "meanProbability": 0.3558127000934884,
+              "observed": 0.357847533632287
             },
             {
-              "n": 1185,
-              "meanProbability": 0.4462435172848492,
-              "observed": 0.41434599156118146
+              "n": 1209,
+              "meanProbability": 0.4463119607734814,
+              "observed": 0.41687344913151364
             },
             {
-              "n": 854,
-              "meanProbability": 0.5427377663090993,
-              "observed": 0.5105386416861827
+              "n": 862,
+              "meanProbability": 0.5428684869620698,
+              "observed": 0.5069605568445475
             },
             {
-              "n": 323,
-              "meanProbability": 0.6367024356032567,
-              "observed": 0.6408668730650154
+              "n": 327,
+              "meanProbability": 0.636629368093329,
+              "observed": 0.6452599388379205
             },
             {
-              "n": 40,
-              "meanProbability": 0.7327146097474079,
-              "observed": 0.65
+              "n": 41,
+              "meanProbability": 0.7324248225177963,
+              "observed": 0.6585365853658537
             },
             {
               "n": 0,
@@ -2041,15 +2041,15 @@
           ]
         },
         "current_season_replay|pointsReboundsAssists": {
-          "n": 3907,
-          "brier": 0.24553522727688484,
-          "baselineBrier": 0.2517466943494891,
-          "adjustedBrier": 0.2455657842781372,
-          "adjustedN": 3899,
-          "pairedRawBrier": 0.2456856584559496,
-          "logLoss": 0.684177355863413,
-          "distinctGames": 257,
-          "distinctDates": 34,
+          "n": 3968,
+          "brier": 0.245542683473977,
+          "baselineBrier": 0.25172058595067276,
+          "adjustedBrier": 0.2455601786094107,
+          "adjustedN": 3960,
+          "pairedRawBrier": 0.24569081246810587,
+          "logLoss": 0.6841979078356559,
+          "distinctGames": 260,
+          "distinctDates": 35,
           "bins": [
             {
               "n": 0,
@@ -2067,24 +2067,24 @@
               "observed": 0.32075471698113206
             },
             {
-              "n": 599,
-              "meanProbability": 0.36379825550322603,
-              "observed": 0.3722871452420701
+              "n": 614,
+              "meanProbability": 0.3636904518792179,
+              "observed": 0.3745928338762215
             },
             {
-              "n": 1789,
-              "meanProbability": 0.4506411623985098,
-              "observed": 0.39966461710452766
+              "n": 1815,
+              "meanProbability": 0.4506523710302056,
+              "observed": 0.39889807162534435
             },
             {
-              "n": 1307,
-              "meanProbability": 0.5384436292014448,
-              "observed": 0.4483550114766641
+              "n": 1325,
+              "meanProbability": 0.538352262697276,
+              "observed": 0.44981132075471697
             },
             {
-              "n": 151,
-              "meanProbability": 0.6268126915499619,
-              "observed": 0.5033112582781457
+              "n": 153,
+              "meanProbability": 0.6268468666059537,
+              "observed": 0.5098039215686274
             },
             {
               "n": 8,
@@ -2104,15 +2104,15 @@
           ]
         },
         "current_season_replay|pointsRebounds": {
-          "n": 3907,
-          "brier": 0.24427406773252633,
-          "baselineBrier": 0.25003095197579145,
-          "adjustedBrier": 0.244891069116592,
-          "adjustedN": 3897,
-          "pairedRawBrier": 0.24450716722546417,
-          "logLoss": 0.6816514703687347,
-          "distinctGames": 257,
-          "distinctDates": 34,
+          "n": 3968,
+          "brier": 0.2442769051945195,
+          "baselineBrier": 0.24996738494440784,
+          "adjustedBrier": 0.24493036104672883,
+          "adjustedN": 3958,
+          "pairedRawBrier": 0.24450641936799064,
+          "logLoss": 0.681669167222312,
+          "distinctGames": 260,
+          "distinctDates": 35,
           "bins": [
             {
               "n": 0,
@@ -2125,24 +2125,24 @@
               "observed": null
             },
             {
-              "n": 56,
-              "meanProbability": 0.2811422609804792,
-              "observed": 0.42857142857142855
+              "n": 57,
+              "meanProbability": 0.281123845745604,
+              "observed": 0.43859649122807015
             },
             {
-              "n": 649,
-              "meanProbability": 0.3626491127648524,
-              "observed": 0.3389830508474576
+              "n": 657,
+              "meanProbability": 0.36248393880593655,
+              "observed": 0.3394216133942161
             },
             {
-              "n": 1777,
-              "meanProbability": 0.45098181593391573,
-              "observed": 0.39786156443444004
+              "n": 1804,
+              "meanProbability": 0.45097814238304484,
+              "observed": 0.397450110864745
             },
             {
-              "n": 1286,
-              "meanProbability": 0.5374371461982715,
-              "observed": 0.4393468118195957
+              "n": 1311,
+              "meanProbability": 0.5372547459279647,
+              "observed": 0.4424103737604882
             },
             {
               "n": 129,
@@ -2167,15 +2167,15 @@
           ]
         },
         "current_season_replay|pointsAssists": {
-          "n": 3907,
-          "brier": 0.2424423169414666,
-          "baselineBrier": 0.24792575319096374,
-          "adjustedBrier": 0.2439485813361378,
-          "adjustedN": 3900,
-          "pairedRawBrier": 0.2426454489318325,
-          "logLoss": 0.6778411065568762,
-          "distinctGames": 257,
-          "distinctDates": 34,
+          "n": 3968,
+          "brier": 0.2423529690637192,
+          "baselineBrier": 0.24785059268831086,
+          "adjustedBrier": 0.2439284511058065,
+          "adjustedN": 3961,
+          "pairedRawBrier": 0.2425528148923692,
+          "logLoss": 0.6776601626408407,
+          "distinctGames": 260,
+          "distinctDates": 35,
           "bins": [
             {
               "n": 0,
@@ -2193,24 +2193,24 @@
               "observed": 0.2830188679245283
             },
             {
-              "n": 639,
-              "meanProbability": 0.36552832052795886,
-              "observed": 0.3348982785602504
+              "n": 654,
+              "meanProbability": 0.3656016813381399,
+              "observed": 0.3363914373088685
             },
             {
-              "n": 1859,
-              "meanProbability": 0.44909136042439796,
-              "observed": 0.3975255513717052
+              "n": 1883,
+              "meanProbability": 0.4490145717291519,
+              "observed": 0.3961763143919278
             },
             {
-              "n": 1202,
-              "meanProbability": 0.5363690056714799,
-              "observed": 0.456738768718802
+              "n": 1223,
+              "meanProbability": 0.5361984226603516,
+              "observed": 0.4578904333605887
             },
             {
-              "n": 147,
-              "meanProbability": 0.6282237805915761,
-              "observed": 0.5578231292517006
+              "n": 148,
+              "meanProbability": 0.6283005343263177,
+              "observed": 0.5608108108108109
             },
             {
               "n": 7,
@@ -2230,15 +2230,15 @@
           ]
         },
         "current_season_replay|reboundsAssists": {
-          "n": 3907,
-          "brier": 0.2432731816791679,
-          "baselineBrier": 0.24684699661062967,
-          "adjustedBrier": 0.2435058438546208,
-          "adjustedN": 3901,
-          "pairedRawBrier": 0.24326219822601317,
-          "logLoss": 0.6795891229370701,
-          "distinctGames": 257,
-          "distinctDates": 34,
+          "n": 3968,
+          "brier": 0.2431780123244071,
+          "baselineBrier": 0.24699182022261923,
+          "adjustedBrier": 0.2434461181539269,
+          "adjustedN": 3962,
+          "pairedRawBrier": 0.24316705385219983,
+          "logLoss": 0.6793953968529174,
+          "distinctGames": 260,
+          "distinctDates": 35,
           "bins": [
             {
               "n": 0,
@@ -2251,29 +2251,29 @@
               "observed": null
             },
             {
-              "n": 89,
-              "meanProbability": 0.27697301418081627,
-              "observed": 0.3258426966292135
+              "n": 90,
+              "meanProbability": 0.27680062883806644,
+              "observed": 0.32222222222222224
             },
             {
-              "n": 743,
-              "meanProbability": 0.363077307906675,
-              "observed": 0.3553162853297443
+              "n": 754,
+              "meanProbability": 0.36316075677452625,
+              "observed": 0.356763925729443
             },
             {
-              "n": 1723,
-              "meanProbability": 0.4488726973269871,
-              "observed": 0.4109112013929193
+              "n": 1753,
+              "meanProbability": 0.44886719131127667,
+              "observed": 0.40958357102110665
             },
             {
-              "n": 1205,
-              "meanProbability": 0.5373983125455783,
-              "observed": 0.4738589211618257
+              "n": 1222,
+              "meanProbability": 0.5373076365754498,
+              "observed": 0.47299509001636664
             },
             {
-              "n": 141,
-              "meanProbability": 0.6297889257108841,
-              "observed": 0.5177304964539007
+              "n": 143,
+              "meanProbability": 0.62949977406924,
+              "observed": 0.5244755244755245
             },
             {
               "n": 5,
@@ -2293,15 +2293,15 @@
           ]
         },
         "current_season_replay|prizePicksFantasyScore": {
-          "n": 3897,
-          "brier": 0.24560174427025042,
-          "baselineBrier": 0.2507317033366283,
-          "adjustedBrier": 0.24537024974781455,
-          "adjustedN": 3897,
-          "pairedRawBrier": 0.24560174427025042,
-          "logLoss": 0.6843814776571954,
-          "distinctGames": 257,
-          "distinctDates": 34,
+          "n": 3958,
+          "brier": 0.24559999419152614,
+          "baselineBrier": 0.25075338576806877,
+          "adjustedBrier": 0.2453686805423567,
+          "adjustedN": 3958,
+          "pairedRawBrier": 0.24559999419152614,
+          "logLoss": 0.6843799973084936,
+          "distinctGames": 260,
+          "distinctDates": 35,
           "bins": [
             {
               "n": 0,
@@ -2319,24 +2319,24 @@
               "observed": 0.34210526315789475
             },
             {
-              "n": 615,
-              "meanProbability": 0.3641034118297521,
-              "observed": 0.3544715447154472
+              "n": 627,
+              "meanProbability": 0.36387243212434484,
+              "observed": 0.35566188197767146
             },
             {
-              "n": 1746,
-              "meanProbability": 0.45071799442891247,
-              "observed": 0.40148911798396336
+              "n": 1776,
+              "meanProbability": 0.4506257299348417,
+              "observed": 0.4009009009009009
             },
             {
-              "n": 1347,
-              "meanProbability": 0.5375984134505722,
-              "observed": 0.4684484038604306
+              "n": 1365,
+              "meanProbability": 0.5376026329561702,
+              "observed": 0.4695970695970696
             },
             {
-              "n": 151,
-              "meanProbability": 0.630088627813591,
-              "observed": 0.44370860927152317
+              "n": 152,
+              "meanProbability": 0.630017458113063,
+              "observed": 0.4407894736842105
             },
             {
               "n": 0,
@@ -2360,10 +2360,10 @@
   },
   "prospectiveBridge": {
     "kind": "nba_mirror_prospective_bridge_v1",
-    "generatedAt": "2026-11-25T15:10:48.477Z",
-    "reviewedCrosswalkRows": 1095,
+    "generatedAt": "2026-11-26T00:00:11.798Z",
+    "reviewedCrosswalkRows": 879,
     "explicitCrosswalkRows": 0,
-    "reviewedReceiptScopes": 1095,
+    "reviewedReceiptScopes": 879,
     "immutableGameReviewReceipts": 1,
     "newForecastRows": 0,
     "reason": "no_fresh_eligible_offers",
@@ -2377,83 +2377,108 @@
     "kind": "nba_pickfinder_offer_history_candidate_audit_v1",
     "status": "observed",
     "archiveInvalidManifests": 0,
-    "totalOffers": 4399,
-    "historyCandidates": 2488,
-    "independentlyReviewedOfferMatches": 2488,
+    "totalOffers": 5505,
+    "historyCandidates": 1878,
+    "independentlyReviewedOfferMatches": 1878,
     "unresolvedHistoryCandidates": 0,
     "sourceContextCorroborated": 0,
     "boardNativeClockCorroborated": 0,
-    "reviewedOrBoardContext": 2488,
-    "reviewedProfileContextKeys": 106,
+    "reviewedOrBoardContext": 1878,
+    "reviewedProfileContextKeys": 82,
     "missingReviewedAndBoardContext": 0,
+    "modelResearch": {
+      "evaluated": 1762,
+      "abstained": 116,
+      "byMarket": {
+        "assists": 141,
+        "threePointersMade": 185,
+        "reboundsAssists": 127,
+        "points": 301,
+        "turnovers": 32,
+        "pointsRebounds": 199,
+        "pointsAssists": 157,
+        "pointsReboundsAssists": 304,
+        "rebounds": 212,
+        "steals": 91,
+        "blocks": 13
+      },
+      "modelApproved": false,
+      "qualifiedForecasts": 0
+    },
     "contextCountSemantics": "sourceContextCorroborated requires the original board clock; independentlyReviewedOfferMatches requires the separate reviewed receipt; reviewedOrBoardContext is their union; none certifies first-party offers or automated crosswalk intake",
     "profileContextCandidates": 0,
     "profileContextPlayerEventKeys": 0,
     "byBook": {
-      "underdog": {
-        "offers": 1941,
-        "historyCandidates": 1316,
+      "prizepicks": {
+        "offers": 3469,
+        "historyCandidates": 885,
         "sourceContextCorroborated": 0,
         "excluded": {
-          "unsupported_market_scope": 383,
-          "missing_or_unverified_offer_context": 1316,
-          "insufficient_prior_history": 233,
-          "ambiguous_player_or_event": 9
+          "unsupported_market_scope": 2060,
+          "missing_or_unverified_offer_context": 885,
+          "insufficient_prior_history": 214,
+          "ambiguous_player_or_event": 310
         },
         "byMarket": {
-          "steals": {
-            "historyCandidates": 102,
+          "assists": {
+            "historyCandidates": 67,
             "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 102,
-            "reviewedOrBoardContext": 102
+            "independentlyReviewedOfferMatches": 67,
+            "reviewedOrBoardContext": 67
           },
           "threePointersMade": {
-            "historyCandidates": 194,
+            "historyCandidates": 38,
             "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 194,
-            "reviewedOrBoardContext": 194
-          },
-          "points": {
-            "historyCandidates": 204,
-            "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 204,
-            "reviewedOrBoardContext": 204
-          },
-          "pointsReboundsAssists": {
-            "historyCandidates": 208,
-            "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 208,
-            "reviewedOrBoardContext": 208
-          },
-          "assists": {
-            "historyCandidates": 124,
-            "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 124,
-            "reviewedOrBoardContext": 124
+            "independentlyReviewedOfferMatches": 38,
+            "reviewedOrBoardContext": 38
           },
           "reboundsAssists": {
-            "historyCandidates": 118,
+            "historyCandidates": 83,
             "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 118,
-            "reviewedOrBoardContext": 118
+            "independentlyReviewedOfferMatches": 83,
+            "reviewedOrBoardContext": 83
           },
-          "rebounds": {
-            "historyCandidates": 202,
+          "points": {
+            "historyCandidates": 151,
             "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 202,
-            "reviewedOrBoardContext": 202
+            "independentlyReviewedOfferMatches": 151,
+            "reviewedOrBoardContext": 151
           },
-          "pointsAssists": {
-            "historyCandidates": 66,
+          "turnovers": {
+            "historyCandidates": 32,
             "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 66,
-            "reviewedOrBoardContext": 66
+            "independentlyReviewedOfferMatches": 32,
+            "reviewedOrBoardContext": 32
           },
           "pointsRebounds": {
-            "historyCandidates": 90,
+            "historyCandidates": 133,
             "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 90,
-            "reviewedOrBoardContext": 90
+            "independentlyReviewedOfferMatches": 133,
+            "reviewedOrBoardContext": 133
+          },
+          "pointsAssists": {
+            "historyCandidates": 113,
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 113,
+            "reviewedOrBoardContext": 113
+          },
+          "pointsReboundsAssists": {
+            "historyCandidates": 144,
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 144,
+            "reviewedOrBoardContext": 144
+          },
+          "rebounds": {
+            "historyCandidates": 104,
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 104,
+            "reviewedOrBoardContext": 104
+          },
+          "steals": {
+            "historyCandidates": 12,
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 12,
+            "reviewedOrBoardContext": 12
           },
           "blocks": {
             "historyCandidates": 8,
@@ -2462,89 +2487,83 @@
             "reviewedOrBoardContext": 8
           }
         },
-        "independentlyReviewedOfferMatches": 1316,
-        "reviewedOrBoardContext": 1316
+        "independentlyReviewedOfferMatches": 885,
+        "reviewedOrBoardContext": 885
       },
-      "prizepicks": {
-        "offers": 2458,
-        "historyCandidates": 1172,
+      "underdog": {
+        "offers": 2036,
+        "historyCandidates": 993,
         "sourceContextCorroborated": 0,
         "excluded": {
-          "unsupported_market_scope": 1066,
-          "missing_or_unverified_offer_context": 1172,
-          "insufficient_prior_history": 212,
-          "ambiguous_player_or_event": 8
+          "unsupported_market_scope": 477,
+          "ambiguous_player_or_event": 334,
+          "missing_or_unverified_offer_context": 993,
+          "insufficient_prior_history": 232
         },
         "byMarket": {
-          "points": {
-            "historyCandidates": 201,
+          "steals": {
+            "historyCandidates": 79,
             "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 201,
-            "reviewedOrBoardContext": 201
+            "independentlyReviewedOfferMatches": 79,
+            "reviewedOrBoardContext": 79
           },
           "threePointersMade": {
-            "historyCandidates": 56,
-            "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 56,
-            "reviewedOrBoardContext": 56
-          },
-          "reboundsAssists": {
-            "historyCandidates": 110,
-            "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 110,
-            "reviewedOrBoardContext": 110
-          },
-          "turnovers": {
-            "historyCandidates": 50,
-            "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 50,
-            "reviewedOrBoardContext": 50
-          },
-          "rebounds": {
-            "historyCandidates": 128,
-            "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 128,
-            "reviewedOrBoardContext": 128
-          },
-          "assists": {
-            "historyCandidates": 81,
-            "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 81,
-            "reviewedOrBoardContext": 81
-          },
-          "pointsAssists": {
             "historyCandidates": 147,
             "sourceContextCorroborated": 0,
             "independentlyReviewedOfferMatches": 147,
             "reviewedOrBoardContext": 147
           },
-          "pointsRebounds": {
-            "historyCandidates": 171,
+          "points": {
+            "historyCandidates": 158,
             "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 171,
-            "reviewedOrBoardContext": 171
+            "independentlyReviewedOfferMatches": 158,
+            "reviewedOrBoardContext": 158
           },
           "pointsReboundsAssists": {
-            "historyCandidates": 198,
+            "historyCandidates": 160,
             "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 198,
-            "reviewedOrBoardContext": 198
+            "independentlyReviewedOfferMatches": 160,
+            "reviewedOrBoardContext": 160
           },
-          "steals": {
-            "historyCandidates": 16,
+          "assists": {
+            "historyCandidates": 90,
             "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 16,
-            "reviewedOrBoardContext": 16
+            "independentlyReviewedOfferMatches": 90,
+            "reviewedOrBoardContext": 90
+          },
+          "reboundsAssists": {
+            "historyCandidates": 88,
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 88,
+            "reviewedOrBoardContext": 88
+          },
+          "pointsRebounds": {
+            "historyCandidates": 66,
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 66,
+            "reviewedOrBoardContext": 66
+          },
+          "pointsAssists": {
+            "historyCandidates": 44,
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 44,
+            "reviewedOrBoardContext": 44
+          },
+          "rebounds": {
+            "historyCandidates": 156,
+            "sourceContextCorroborated": 0,
+            "independentlyReviewedOfferMatches": 156,
+            "reviewedOrBoardContext": 156
           },
           "blocks": {
-            "historyCandidates": 14,
+            "historyCandidates": 5,
             "sourceContextCorroborated": 0,
-            "independentlyReviewedOfferMatches": 14,
-            "reviewedOrBoardContext": 14
+            "independentlyReviewedOfferMatches": 5,
+            "reviewedOrBoardContext": 5
           }
         },
-        "independentlyReviewedOfferMatches": 1172,
-        "reviewedOrBoardContext": 1172
+        "independentlyReviewedOfferMatches": 993,
+        "reviewedOrBoardContext": 993
       }
     },
     "independentlyReviewedPickfinderCrosswalks": 0,

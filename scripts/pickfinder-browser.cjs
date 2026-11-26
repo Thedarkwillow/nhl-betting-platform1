@@ -54,6 +54,21 @@ function readBoard({book, code, sport, observedAt}) {
       while(group?.parentElement&&group.parentElement!==cell){const next=group.parentElement,icons=[...next.querySelectorAll('img[alt]')];if(icons.length!==1||icons[0]!==icon)break;group=next;}
       const display=group?.innerText.trim().slice(0,400)||'';
       const prices=[...display.matchAll(/(?:^|\s)(O|U|Higher|Lower|Over|Under)\s*(?:(\d+(?:\.\d+)?)\s+)?\(?([+-]\d{2,4})\)?(?=\s|$)/gi)].filter(m=>Math.abs(Number(m[3]))>=100).map(m=>({side:/^(o|over|higher)$/i.test(m[1])?'Higher':'Lower',price:m[3],quoteLine:m[2]===undefined?null:Number(m[2])}));
+      // A threshold must be explicitly attached to this book's isolated quote group.
+      // A fantasy offer line, unlabeled number, or another book's tooltip is not evidence.
+      const isolated=group&&[...group.querySelectorAll('img[alt]')].length===1&&!['prizepicks','underdog'].includes(id)&&supported.has(id);
+      if(isolated){
+        const texts=[display,...[group,...group.querySelectorAll('[aria-label],[title]')].flatMap(e=>[e.getAttribute('aria-label'),e.getAttribute('title')])].filter(t=>typeof t==='string'&&t.length<=400);
+        const thresholds=new Set(texts.flatMap(t=>[...t.matchAll(/\b(?:sportsbook\s+)?(?:line|threshold)\s*[:=]\s*(\d+(?:\.\d+)?)(?=\s|[,;)]|$)/gi)].map(m=>Number(m[1]))));
+        const explicit=thresholds.size===1?[...thresholds][0]:null;
+        for(const t of texts)for(const m of t.matchAll(/(?:^|[\s,;])(?:O|Over|Higher|U|Under|Lower)\s*(\d+(?:\.\d+)?)\s*\(?([+-]\d{2,4})\)?(?=\s|[,;]|$)/gi)){
+          if(Math.abs(Number(m[2]))<100)continue;
+          const side=/^(?:O|Over|Higher)\s*/i.test(m[0].trim())?'Higher':'Lower';
+          const price=m[2],quoteLine=Number(m[1]);
+          if(!prices.some(p=>p.side===side&&p.price===price&&p.quoteLine===quoteLine))prices.push({side,price,quoteLine});
+        }
+        if(explicit!==null&&prices.every(p=>p.quoteLine===null||p.quoteLine===explicit))for(const p of prices)if(p.quoteLine===null)p.quoteLine=explicit;
+      }
       sportsbookEvidence.push({book:supported.has(id)?id:null,displayedBookLabel:label,unclassifiedBookBadge:!supported.has(id),display,prices,quoteLine:null,originalPlatformVerified:false,modelInputsApproved:false});
     }
     const research = [];

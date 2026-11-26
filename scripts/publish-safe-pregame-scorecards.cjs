@@ -116,6 +116,40 @@ function safeNhlCalibration(v,standard){
   fitIndependentOfFutureGames:false,payoutAndSettlementsVerified:false,
   releaseApproved:false};
 }
+// Reuse the existing audited NHL reliability report, not a second grader.
+// Strict hit-event scoring includes pushes as non-hits ONLY in Brier/log loss.
+// Conditional directional accuracy excludes pushes; neither is a payout result.
+function safeNhlRolling(audit,tiers){
+ if(!audit)return null;
+ if(audit.kind!=="nhl_all_tier_reliability_v1"||audit.status!=="descriptive_original_forecasts_only"||audit.researchOnly!==true||audit.calibrationApproved!==false||audit.modelPromoted!==false||audit.originalPlatformSettlementVerified!==false||!Array.isArray(tiers)||tiers.length!==3)
+  throw Error("NHL rolling reliability source invalid");
+ const counts=["registered","decided","correct","incorrect","pushes","pending"];
+ const ratio=(a,b)=>b?Number((a/b).toFixed(6)):null;
+ const close=(x,y)=>x===null||y===null?x===y:Math.abs(x-y)<=1.1e-6;
+ const prob=x=>Number.isFinite(x)&&x>=0&&x<=1;
+ function safe(x){
+  if(!x||!counts.every(k=>num(x[k]))||x.registered!==x.decided+x.pushes+x.pending||x.decided!==x.correct+x.incorrect||!num(x.distinctGames)||!num(x.distinctPacificDates)||x.distinctGames>x.decided||x.distinctPacificDates>x.decided)throw Error("NHL rolling count mismatch");
+  const n=x.decided+x.pushes;
+  if(!close(x.hitRateExcludingPushes,ratio(x.correct,x.decided))||!close(x.resolvedStrictHitEventRate,ratio(x.correct,n)))throw Error("NHL rolling rates mismatch");
+  const metrics=[x.meanOriginalRawSelectedProbability,x.rawEventBrier,x.rawEventLogLoss];
+  if(n?(!prob(metrics[0])||!prob(metrics[1])||!Number.isFinite(metrics[2])||metrics[2]<0):metrics.some(v=>v!==null))throw Error("NHL rolling probability metrics invalid");
+  return {...Object.fromEntries(counts.map(k=>[k,x[k]])),resolved:n,distinctGames:x.distinctGames,distinctPacificDates:x.distinctPacificDates,hitRateExcludingPushes:ratio(x.correct,x.decided),strictHitEventRate:ratio(x.correct,n),meanRawProbability:metrics[0],brier:metrics[1],logLoss:metrics[2],constantHalfBrier:n?0.25:null,constantHalfLogLoss:n?Math.log(2):null};
+ }
+ function reconcile(items,total){for(const k of counts)if(items.reduce((n,x)=>n+x[k],0)!==total[k])throw Error("NHL rolling group counts mismatch");}
+ const cutoffs=[0,.5,.6,.7,.8,.9,1];
+ return {kind:"public_nhl_rolling_probability_reliability_v1",target:"strict_selected_side_hit_given_resolved_stat",pushIsNonHitOnlyForProbabilityScoring:true,calibrated:false,modelPromoted:false,platformSettlementVerified:false,byTier:tiers.map(t=>{
+  const c=audit.cohorts?.[t.tier],o=safe(c?.overall);
+  if(o.registered!==t.frozenSelections||o.decided!==t.decided||o.correct!==t.correct||o.incorrect!==t.incorrect||o.pushes!==t.push||o.pending!==t.pending)throw Error("NHL rolling original cohort mismatch");
+  const bs=c.reliability?.bins;
+  if(!Array.isArray(bs)||bs.length!==cutoffs.length-1)throw Error("NHL rolling bins missing");
+  const bins=bs.map((x,i)=>{if(x.lower!==cutoffs[i]||x.upper!==cutoffs[i+1])throw Error("NHL rolling bin boundaries");return {lower:x.lower,upper:x.upper,...safe(x)};});
+  reconcile(bins,o);
+  if(c.reliability.resolved!==o.resolved)throw Error("NHL rolling resolved bins mismatch");
+  const dates=Object.entries(c.byPacificDate||{}).sort(([a],[b])=>a.localeCompare(b)).map(([day,x])=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error("NHL rolling date invalid");return {date:day,...safe(x)};});
+  reconcile(dates,o);
+  return {tier:t.tier,overall:o,bins,byPacificDate:dates};
+ })};
+}
 function safeFirstDistinct(fi){
  const proof=fi?.firstDistinctThresholdGrade,g=proof?.earliestPerPlayerGameMarketAndLine,s=proof?.earliestPerPlayerGameMarket;
  if(!proof)return null;
@@ -178,6 +212,7 @@ function build(nhl,nfl,triple,{now=new Date().toISOString(),nflDirectionalDiagno
    originalTierCounts:tierCounts(h),
    postPolicyStandardOnly:group(post.standardDirectional),
    standardProbabilityAudit:safeNhlCalibration(nhlProbabilityAudit,group(h.standardDirectional)),
+   rollingProbabilityPerformance:safeNhlRolling(nhl.allTierReliability,tierCounts(h)),
    postPolicyMarkets:futureMarkets(post.byStandardMarket),
    threeChallengerFuture:{registered:challenge.registered,
     decided:challenge.gradedDecisions,push:challenge.pushes,
@@ -196,6 +231,7 @@ function build(nhl,nfl,triple,{now=new Date().toISOString(),nflDirectionalDiagno
     platformSettlementVerified:false,calibrated:false,
     expectedValue:null},
    frozenHigherBiasAudit:publicNFLBias(nflDirectionalDiagnostic,fi,nfl.generatedAt),
+   probabilityPerformance:{status:"original_probability_estimates_not_verified",brier:null,logLoss:null,calibrated:false,projectionOnlyNotProbability:true},
    firstDistinctThreshold:safeFirstDistinct(fi),
    separateNumericForecasts:{registered:nu.registered,
     decided:nu.decided,push:nu.pushes,pending:nu.pending,
@@ -236,4 +272,4 @@ function main([privateRoot,publicRoot]=process.argv.slice(2),now=new Date().toIS
  return data;
 }
 if(require.main===module)try{main()}catch(e){console.error(e.message);process.exitCode=1;}
-module.exports={build,main,group,futureMarkets,publicNFLBias,tierCounts};
+module.exports={build,main,group,futureMarkets,publicNFLBias,tierCounts,safeNhlRolling};

@@ -19,6 +19,17 @@
   return rows.map(x=>({tier:x.tier,decided:x.decided,correct:x.correct,incorrect:x.incorrect,push:x.push,pending:x.pending,
    distinctGames:x.distinctGames,rate:x.decided?x.correct/x.decided:null,originalCohortHigherOnly:x.originalCohortHigherOnly}));
  }
+ function probabilityView(x){
+  if(x?.kind!=="public_nhl_rolling_probability_reliability_v1"||x.calibrated!==false||x.modelPromoted!==false||x.platformSettlementVerified!==false||x.pushIsNonHitOnlyForProbabilityScoring!==true||!Array.isArray(x.byTier)||x.byTier.length!==3)return [];
+  const result=[];
+  for(const [i,t] of x.byTier.entries()){
+   if(t.tier!==["Standard","Goblin","Demon"][i]||!Number.isInteger(t.overall?.resolved)||t.overall.resolved<0||!Array.isArray(t.bins)||!Array.isArray(t.byPacificDate))return [];
+   const r=t.overall;
+   if(r.resolved&&(!Number.isFinite(r.brier)||r.brier<0||r.brier>1||!Number.isFinite(r.logLoss)||r.logLoss<0||r.constantHalfBrier!==.25||!Number.isFinite(r.meanRawProbability)||r.meanRawProbability<0||r.meanRawProbability>1))return [];
+   result.push({tier:t.tier,n:r.resolved,mean:r.meanRawProbability,observed:r.strictHitEventRate,brier:r.brier,logLoss:r.logLoss,slates:t.byPacificDate.length,bins:t.bins.filter(b=>Number.isInteger(b.resolved)&&b.resolved>0&&Number.isFinite(b.lower)&&Number.isFinite(b.upper)&&b.lower>=0&&b.upper<=1&&b.lower<b.upper).map(b=>({lower:b.lower,upper:b.upper,n:b.resolved,mean:b.meanRawProbability,hit:b.strictHitEventRate}))});
+  }
+  return result;
+ }
  function viewModel(data,sport="NHL"){
   const name=sport==="NFL"?"NFL":"NHL";
   if(data?.kind!==KIND||data.schemaVersion!==1||
@@ -47,6 +58,7 @@
       " decided across "+count(p.distinctGames)+" games. Three new challengers: "+
       count(challenge.decided)+"/"+count(challenge.registered)+" decided. Neither comparison establishes an edge.",
     tiers:tierView(data.nhl.originalTierCounts),
+    probabilities:probabilityView(data.nhl.rollingProbabilityPerformance),
     markets:(data.nhl.postPolicyMarkets||[]).map(m=>({
       title:m.market,decided:m.decided,distinctGames:m.distinctGames,
       modelRate:m.modelRate,higher:m.hypotheticalAlwaysHigherRate,
@@ -95,6 +107,17 @@
    note.textContent="Historical Goblin and Demon cohorts contain Higher-only selections. Different tiers have different payout terms; observed rates are not a ranking of profitability.";
    host.append(note);
   }
+  if(v.probabilities?.length){
+   const heading=document.createElement("h4");heading.textContent="Rolling NHL probability reliability";host.append(heading);
+   const note=document.createElement("p");note.className="minor";note.textContent="Raw probabilities, not calibrated. Constant 50% Brier baseline: 0.25. Pushes are non-hits only for strict event scoring; not settlement losses.";host.append(note);
+   for(const t of v.probabilities){
+    const h=document.createElement("p");h.className="minor";h.textContent=t.tier+": "+count(t.n)+" resolved · "+count(t.slates)+" slate dates"+(t.n?" · predicted "+percent(t.mean)+" vs observed "+percent(t.observed)+" · Brier "+t.brier.toFixed(3)+" · log loss "+t.logLoss.toFixed(3):"");host.append(h);
+    if(!t.bins.length)continue;
+    const details=document.createElement("details"),summary=document.createElement("summary"),ul=document.createElement("ul");summary.textContent="Probability ranges — "+t.tier;details.append(summary);ul.className="model-market-evidence";
+    for(const b of t.bins){const li=document.createElement("li");li.textContent=percent(b.lower)+"–"+percent(b.upper)+": "+count(b.n)+" resolved · mean "+percent(b.mean)+" vs observed "+percent(b.hit);ul.append(li);}
+    details.append(ul);host.append(details);
+   }
+  }
   if(v.markets?.length){
    const heading=document.createElement("h4");heading.textContent="Post-policy Standard market evidence";
    host.append(heading);
@@ -129,5 +152,5 @@
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);
   else init();
  }
- return {viewModel,render,tierView};
+ return {viewModel,render,tierView,probabilityView};
 });

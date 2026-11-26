@@ -39,10 +39,15 @@ function matchRow(r,f,index,clock){
  const reject=reason=>({reason});
  if(!['nhl','nfl'].includes(r.sport))return reject('native_adapter_unavailable');
  if(r.status!=='sampled'||r.truncated!==false||r.coverageVersion!==VERSION||f.origin!=='profile'||!/^row \d+$/.test(f.metric||'')||r.period||r.mapRange||r.gameMode||f.period||f.mapRange||f.gameMode)return reject('unsupported_scope');
- if(!/game\s*log|historical stats|player stats/i.test(f.tab||''))return reject('not_game_log');
+ // Base profile tables can contain a Gamelog section even without a named tab.
+ // Require the collector's explicit Gamelog window plus the exact date/opponent/stat columns below.
+ const namedLog=/game\s*log|historical stats|player stats/i.test(f.tab||'');
+ const windowLog=/^Last \d{1,3} Games$/i.test(f.window||'');
+ if(!namedLog&&!windowLog)return reject('not_game_log');
  if(!Number.isFinite(dt(f.observedAt))||dt(f.observedAt)>dt(clock))return reject('observation_clock');
  const metrics=r.sport==='nhl'?nhlMetrics:nflMetrics,m=metrics[norm(r.market)];if(!m)return reject('unsupported_market');
  const headers=String(f.scope||'').split(' | ').map(norm),i=headers.indexOf('date'),j=headers.indexOf('opponent');
+ if(headers.some(x=>/\b(?:line|odds|projection|average|hit rate|payout)\b/.test(x)))return reject('not_final_stat_table');
  const aliases=new Set([norm(r.market),norm(m),...(m==='sog'?['sog','shots']:[])]);
  const indices=headers.map((x,i)=>aliases.has(x)?i:-1).filter(i=>i>=0);
  if(i<0||j<0||indices.length!==1||new Set(headers).size!==headers.length)return reject('missing_exact_columns');

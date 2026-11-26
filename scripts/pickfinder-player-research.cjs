@@ -4,10 +4,10 @@ const {traverseCustomFilters}=require('./pickfinder-custom-filters.cjs');
 // Read only visible sporting data. Never serialize navigation, account menus or HTML.
 function readSections({tab,origin,observedAt,context,fullSportingHeaders=false}) {
   const fields=[];
-  function add(metric,scope,value,window=null){
+  function add(metric,scope,value,window=null,headerLayout=null){
     const parts=String(value||'').match(/[\s\S]{1,460}/g)||[''];
     parts.forEach((part,i)=>fields.push({tab,origin,observedAt,...context,scope,
-      metric:parts.length===1?metric:metric+' part '+(i+1),window,value:!part||part==='-'?null:part}));
+      metric:parts.length===1?metric:metric+' part '+(i+1),window,...(headerLayout?{headerLayout}:{}),value:!part||part==='-'?null:part}));
   }
   if(origin==='prop_history'){
     const note=[...document.querySelectorAll('p')].find(p=>/past\s+\d+\s+(?:days|weeks|months|years)/i.test(p.innerText)&&/main lines/i.test(p.innerText));
@@ -23,7 +23,35 @@ function readSections({tab,origin,observedAt,context,fullSportingHeaders=false})
   for(const table of document.querySelectorAll('table')){
     if(!table.getClientRects().length)continue;
     // Only capture visible tables in the selected sporting profile; label the actual tab.
-    const headers=[...table.querySelectorAll('thead th')].map(e=>e.innerText.trim());
+    // Expand real HTML header spans, rather than flattening every th (which
+    // adds phantom columns on multi-row NBA tables). Preserve non-generic
+    // group labels so a period/map stat cannot masquerade as a full-game stat.
+    const headerRows=[...table.querySelectorAll('thead tr')],grid=[];
+    let layout=null,headers=[...table.querySelectorAll('thead th')].map(e=>e.innerText.trim());
+    if(headerRows.length&&headerRows.length<=8){
+      let ok=true;
+      for(let ri=0;ri<headerRows.length&&ok;ri++){
+        grid[ri]??=[];let ci=0;
+        for(const th of headerRows[ri].cells){
+          while(grid[ri][ci])ci++;
+          const rs=th.rowSpan,cs=th.colSpan;
+          if(th.tagName!=='TH'||!Number.isInteger(rs)||!Number.isInteger(cs)||rs<1||cs<1||ri+rs>headerRows.length||ci+cs>256){ok=false;break;}
+          const entry={text:th.innerText.trim(),ri,ci,rs,cs};
+          for(let y=ri;y<ri+rs;y++){grid[y]??=[];for(let x=ci;x<ci+cs;x++){if(grid[y][x])ok=false;grid[y][x]=entry;}}
+          ci+=cs;
+        }
+      }
+      const width=grid[0]?.length||0;
+      if(ok&&width&&grid.length===headerRows.length&&grid.every(row=>row.length===width&&Array.from({length:width},(_,i)=>row[i]).every(Boolean))){
+        const generic=/^(?:stats|statistics|player stats|game log|gamelog|game|traditional)$/i;
+        const labels=Array.from({length:width},(_,i)=>{
+          const entries=[...new Set(grid.map(row=>row[i]))],leaf=entries.at(-1);
+          if(!leaf.text||leaf.cs!==1)return null;
+          return [...entries.slice(0,-1).map(e=>e.text).filter(t=>t&&!generic.test(t)),leaf.text].join(' / ');
+        });
+        if(labels.every(Boolean)){headers=labels;layout='span-grid-v1';}
+      }
+    }
     const header=headers.join(' | ');
     const isMovement=headers.includes('App')&&headers.includes('Time')&&headers.includes('Line');
     if(origin==='line_movement'&&!isMovement)continue;
@@ -42,7 +70,7 @@ function readSections({tab,origin,observedAt,context,fullSportingHeaders=false})
       // Oversize headers stay explicitly unaligned, never positionally guessed.
       const limit=fullSportingHeaders?4000:500;
       const scope=header.length<=limit?header:header.slice(0,480)+' | [header truncated]';
-      add('row '+index,scope,JSON.stringify(cells),headers.includes('Date')?document.body.innerText.match(/Gamelog - (Last \d+ Games)/i)?.[1]||null:null);
+      add('row '+index,scope,JSON.stringify(cells),headers.includes('Date')?document.body.innerText.match(/Gamelog - (Last \d+ Games)/i)?.[1]||null:null,layout);
     }
   }
   if(origin==='profile'){

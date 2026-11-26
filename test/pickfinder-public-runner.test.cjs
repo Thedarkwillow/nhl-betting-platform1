@@ -83,3 +83,17 @@ test('cache rejection counts reconcile without allowing unknown historical rows'
  assert.deepEqual(x.rejectionReasons,{prior_season_unverified:1,game_date_unverified:1,truncated_profile:1});
  assert.equal(x.requestsSkipped,0);assert.equal(x.modelInputsApproved,false);
 });
+
+test('season and date shape diagnostics never promote ambiguous rows',()=>{
+ const {seasonShape,dateShape,priorSeason}=require('../scripts/pickfinder-public-history-cache.cjs');
+ const now=new Date('2026-11-25T15:00:00Z');
+ assert.equal(seasonShape(null,now),'absent');
+ assert.equal(seasonShape([{label:'season',value:'2024'}],now),'value_only');
+ assert.equal(seasonShape([{label:'season',display:'2025-26'}],now),'year_or_range_not_prior');
+ assert.equal(seasonShape([{label:'season',display:'2024-25'}],now),'explicit_prior');
+ assert.equal(seasonShape([{label:'season',display:'Current season'}],now),'relative_or_all');
+ assert.equal(priorSeason([{label:'season',display:'Current season'}],now),null);
+ assert.equal(dateShape({scope:'Date | PTS',value:JSON.stringify([{value:'11/01'},{value:'10'}])}),'numeric_without_year');
+ assert.equal(dateShape({scope:'Date | PTS',value:JSON.stringify([{value:'2024-11-01'},{value:'10'}])}),'iso_day');
+ assert.equal(dateShape({scope:'Opponent | PTS',value:'[]'}),'no_unique_date_header');
+});

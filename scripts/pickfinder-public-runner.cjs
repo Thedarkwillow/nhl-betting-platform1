@@ -64,6 +64,11 @@ function publicProfile(row){
  return {key:row.key,book:row.book,books:row.books||[row.book],bookCoverageVerified:false,sport:row.sport,player:row.player,market:row.market,eventId:row.eventId,detailId:row.detailId,period:row.period,mapRange:row.mapRange,gameMode:row.gameMode,status:fields.length?'sampled':'empty',coverageVersion:VERSION,truncated:row.profileCollection?.truncated!==false,research:fields,excludedFields:(row.research||[]).length-fields.length,modelInputsApproved:false,originalOffersVerified:false};
 }
 const premium=page=>page.evaluate(()=>document.body.innerText.split('\n').some(x=>x.trim()==='Premium')&&!!document.querySelector('button[aria-label="Open user menu"]'));
+async function waitPremium(page,check=premium){
+ try{await page.getByRole('button',{name:'Open user menu',exact:true}).waitFor({state:'visible',timeout:10000});
+ await page.waitForFunction(()=>document.body.innerText.split('\n').some(x=>x.trim()==='Premium'),null,{timeout:10000});
+ return await check(page);}catch{return false;}
+}
 async function main(root,env=process.env){
  assertDestination(root);const p=invocation(env);if(!p.allowed){console.log(JSON.stringify(p));return;}
  const {chromium}=require('playwright');
@@ -138,15 +143,15 @@ async function main(root,env=process.env){
   // Reserve bounded feature discovery before the long player-profile queue.
   // Morning capture has already returned; context-only passes remain isolated.
   if(alive()){
-   try{await page.goto(ORIGIN+'/props',{timeout:15000});if(await premium(page)){const labels=await inspectCapabilities(page);await write('capabilities',{schema:'pickfinder-public-capabilities-v1',labels,observedAt:new Date().toISOString(),accountMutations:0});}}catch{errors++;console.log(JSON.stringify({state:'public_capability_probe_pending'}));}
+   try{await page.goto(ORIGIN+'/props',{timeout:15000});if(await waitPremium(page)){const labels=await inspectCapabilities(page);await write('capabilities',{schema:'pickfinder-public-capabilities-v1',labels,observedAt:new Date().toISOString(),accountMutations:0});}}catch{errors++;console.log(JSON.stringify({state:'public_capability_probe_pending'}));}
   }
   // Existing tool inspector was imported but never invoked by the public runner.
   for(const kind of ['builder','alerts']){
    if(!alive())break;
    try{
     await page.goto(ORIGIN+'/props',{timeout:15000});
-    if(!await premium(page))throw Error('session unavailable');
-    const result=await inspectTool(page,kind,premium);
+    if(!await waitPremium(page))throw Error('session unavailable');
+    const result=await inspectTool(page,kind,waitPremium);
     await write('capabilities',{schema:'pickfinder-public-tool-schema-v1',kind,observedAt:new Date().toISOString(),...result});
     console.log(JSON.stringify({state:'public_tool_schema_pass',kind,result:result.state,mutations:0}));
    }catch{errors++;console.log(JSON.stringify({state:'public_tool_schema_pending',kind}));}
@@ -155,9 +160,9 @@ async function main(root,env=process.env){
    if(!alive())break;
    const stop=Date.now()+90000,featureAlive=()=>alive()&&Date.now()<stop;
    try{
-    await page.goto(ORIGIN+'/props',{timeout:15000});const href=await verifiedNavigation(page,name,dashboardRoutes(name));
-    if(!href){console.log(JSON.stringify({state:'public_dashboard_route_pending',name}));continue;}
-    await page.goto(href,{timeout:15000});if(!await premium(page))throw Error('session unavailable');
+    await page.goto(ORIGIN+'/props',{timeout:15000});if(!await waitPremium(page))throw Error('session unavailable');const href=await verifiedNavigation(page,name,dashboardRoutes(name));
+    if(!href){errors++;console.log(JSON.stringify({state:'public_dashboard_route_pending',name}));continue;}
+    await page.goto(href,{timeout:15000});if(!await waitPremium(page))throw Error('session unavailable');
     let snapshots=0;const result=await traverseDashboardFilters(page,name,{shouldContinue:featureAlive,onSnapshot:async s=>{const {controls,...sports}=s;await write('dashboards',{schema:'pickfinder-public-dashboard-v1',...sports});snapshots++;}});
     console.log(JSON.stringify({state:'public_dashboard_pass',name,snapshots,filtersExhausted:result.filtersExhausted===true}));
    }catch{errors++;console.log(JSON.stringify({state:'public_dashboard_pending',name}));}
@@ -190,5 +195,5 @@ async function main(root,env=process.env){
   await context.close();console.log(JSON.stringify({state:'public_pickfinder_throughput',boards,profiles,profileMs,archiveMs,transactions,errors,elapsedMs:Date.now()-started,privateRepoUsed:false,modelInputsApproved:false}));
  }
 }
-module.exports={invocation,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers};
+module.exports={invocation,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers,waitPremium};
 if(require.main===module)main(fs.realpathSync(process.argv[2])).catch(()=>{console.error(JSON.stringify({state:'public_pickfinder_failed_closed',privateRepoUsed:false,accountDataLogged:false}));process.exitCode=1;});

@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/independent-nfl-standard-private-preview.yml'
+      - '.github/workflows/independent-nfl-alternate-private-preview.yml'
       - 'scripts/nfl-standard-capture-window.cjs'
       - 'scripts/test-nfl-standard-capture-window.cjs'
       - '.github/workflows/test-nfl-standard-capture-window.yml'
@@ -10,6 +11,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/independent-nfl-standard-private-preview.yml'
+      - '.github/workflows/independent-nfl-alternate-private-preview.yml'
       - 'scripts/nfl-standard-capture-window.cjs'
       - 'scripts/test-nfl-standard-capture-window.cjs'
       - '.github/workflows/test-nfl-standard-capture-window.yml'

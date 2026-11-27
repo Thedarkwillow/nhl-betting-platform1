@@ -8,7 +8,7 @@ on:
         type: choice
         required: true
         default: boards_only
-        options: [boards_only, current_profiles, nba_history_repair, nba_context_only, features_only, timezone_validation, board_and_deep, deep_research_now, probe_now, capture_0600, capture_0900]
+        options: [boards_only, current_profiles, clock_audit, nba_history_repair, nba_context_only, features_only, timezone_validation, board_and_deep, deep_research_now, probe_now, capture_0600, capture_0900]
   schedule:
     - cron: '7 6 * * *'
       timezone: America/Los_Angeles

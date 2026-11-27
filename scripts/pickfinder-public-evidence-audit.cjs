@@ -33,7 +33,9 @@ function load(root,sport=null,{latestOnly=false}={}){
  const manifests=[],invalid=[],latest=new Map();
  for(const {entry,invalidDigest} of walkBoards(root,sport)){
   if(!entry){invalid.push(invalidDigest);continue;}
-  if(!latestOnly)manifests.push(entry);const k=entry.m.sport+'/'+entry.m.book,old=latest.get(k);
+  if(entry.m.samplingPurpose==='displayed_game_clock')continue;
+  if(!latestOnly)manifests.push(entry);
+  const k=entry.m.sport+'/'+entry.m.book,old=latest.get(k);
   if(!old||dt(old.m.lastObservedAt)<dt(entry.m.lastObservedAt))latest.set(k,entry);
  }
  return {manifests,latest:[...latest.values()],invalid};

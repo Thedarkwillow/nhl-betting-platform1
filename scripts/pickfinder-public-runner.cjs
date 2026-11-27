@@ -13,10 +13,10 @@ function invocation(env,now=new Date()){
  const clock=pacific(now),mode=env.REQUESTED_MODE||'board_and_deep';
  if(mode==='nba_history_repair'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual repair only');return {allowed:!protectedMorningClock(clock),expected:'manual',clock,deep:true,historyRepair:true,state:'nba_history_repair_gate'};}
  if(mode==='timezone_validation'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual experiment only');return {allowed:!protectedMorningClock(clock),expected:'manual',clock,timezoneOnly:true,state:'timezone_experiment_gate'};}
- if(mode==='current_profiles'&&env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual current profile pass only');
- if(!['current_profiles','board_and_deep','deep_research_now','probe_now','nba_context_only','features_only','boards_only'].includes(mode))throw Error('mode');
+ if(['current_profiles','clock_audit'].includes(mode)&&env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual bounded pass only');
+ if(!['current_profiles','clock_audit','board_and_deep','deep_research_now','probe_now','nba_context_only','features_only','boards_only'].includes(mode))throw Error('mode');
  if(protectedMorningClock(clock))return {allowed:false,state:'protect_morning_hour',clock};
- return {allowed:true,expected:'manual',clock,deep:['current_profiles','deep_research_now','nba_context_only','features_only'].includes(mode),currentProfiles:mode==='current_profiles',contextOnly:mode==='nba_context_only',featuresOnly:mode==='features_only',boardsOnly:mode==='boards_only',probe:mode==='probe_now'};
+ return {allowed:true,expected:'manual',clock,deep:['current_profiles','deep_research_now','nba_context_only','features_only'].includes(mode),currentProfiles:mode==='current_profiles',contextOnly:mode==='nba_context_only',featuresOnly:mode==='features_only',boardsOnly:mode==='boards_only',clockAudit:mode==='clock_audit',probe:mode==='probe_now'};
 }
 function profileWorkers(env,p){return env.GITHUB_EVENT_NAME==='workflow_dispatch'&&['deep_research_now','current_profiles'].includes(env.REQUESTED_MODE)&&p.expected==='manual'&&p.deep&&!p.contextOnly?2:1;}
 function captureOrigin(env,policy){
@@ -33,7 +33,7 @@ function cleanBoard(batch){
 function splitBoard(n){
  const {offers,researchObservations,unpricedTierObservations,sportsbookQuotes,...meta}=n,parts=[];
  for(const [field,values] of Object.entries({offers,researchObservations,unpricedTierObservations,sportsbookQuotes})){
-  let rows=[],bytes=0;for(const value of values||[]){const size=Buffer.byteLength(JSON.stringify(value))+1;if(size>2000000)throw Error('record too large');if(bytes+size>2000000){parts.push({schema:'pickfinder-public-board-part-v1',book:n.book,sport:n.sport,sourceDigest:n.sourceDigest,field,rows});rows=[];bytes=0;}rows.push(value);bytes+=size;}if(rows.length)parts.push({schema:'pickfinder-public-board-part-v1',book:n.book,sport:n.sport,sourceDigest:n.sourceDigest,field,rows});
+  let rows=[],bytes=0;for(const value of values||[]){const size=Buffer.byteLength(JSON.stringify(value))+1;if(size>2000000)throw Error('record too large');if(bytes+size>2000000){parts.push({schema:'pickfinder-public-board-part-v1',book:n.book,sport:n.sport,sourceDigest:n.sourceDigest,field,rows,...(n.samplingPurpose?{samplingPurpose:n.samplingPurpose}:{})});rows=[];bytes=0;}rows.push(value);bytes+=size;}if(rows.length)parts.push({schema:'pickfinder-public-board-part-v1',book:n.book,sport:n.sport,sourceDigest:n.sourceDigest,field,rows,...(n.samplingPurpose?{samplingPurpose:n.samplingPurpose}:{})});
  }return {meta,parts};
 }
 function sharedScope(s){
@@ -46,6 +46,7 @@ function sharedScope(s){
 function queue(boards,profiles,{historyAudit}={}){
  const done=new Set(),attempted=new Map(),repairs=new Map(),aligned=new Map(),lastAligned=new Map();
  for(const b of profiles)for(const r of (historyAudit?b.doc:b).records||[]){
+  if(r.observationPurpose==='displayed_game_clock')continue;
   const scope=sharedScope(r);if(!scope)continue;
   const key=sha(JSON.stringify(scope));attempted.set(key,(attempted.get(key)||0)+1);
   if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&r.research?.length)done.add(key);
@@ -98,7 +99,7 @@ function queue(boards,profiles,{historyAudit}={}){
  for(const k of repairKeys)done.delete(k);
  const q=new Map();let references=0;
  for(const b of boards)for(const o of [...b.offers||[],...b.unpricedTierObservations||[],...(['offers','unpricedTierObservations'].includes(b.field)?b.rows:[])]){
-  if(!['prizepicks','underdog'].includes(b.book))continue;
+  if(!['prizepicks','underdog'].includes(b.book)||b.samplingPurpose==='displayed_game_clock')continue;
   const scope=sharedScope({...o,sport:b.sport});if(!scope)continue;
   const key=sha(JSON.stringify(scope)),prev=q.get(key);references++;
   const books=[...new Set([...(prev?.books||[]),b.book])].sort();
@@ -118,6 +119,7 @@ function currentProfileQueue(archive,profiles,now=Date.now()){
  if(archive.invalid?.length)return {pending:[],total:0,reused:0,expired:0,eligiblePartitions:0,reason:'archive_integrity'};
  const cache=new Map(),tries=new Map();
  for(const d of profiles)for(const r of d.records||[]){
+  if(r.observationPurpose==='displayed_game_clock')continue;
   const scope=sharedScope(r);if(!scope)continue;
   const id=sha(JSON.stringify(scope));
   const fields=(r.research||[]).filter(f=>Number.isFinite(dt(f?.observedAt))&&dt(f.observedAt)<=at);
@@ -207,6 +209,18 @@ async function waitPremium(page,check=premium){
  await page.waitForFunction(()=>document.body.innerText.split('\n').some(x=>x.trim()==='Premium'),null,{timeout:10000});
  return await check(page);}catch{return false;}
 }
+// Pair exact recent board links with a maximum of four distinct players.
+function clockAuditTargets(observations,max=4){
+ const targets=new Map(),seen=new Set();
+ for(const o of [...observations].sort((a,b)=>Number(!!b.hasClock)-Number(!!a.hasClock))){
+  const scope=sharedScope(o),x=scope&&currentIdentity.sourceScope(scope);
+  if(!x||!BOOKS.includes(o.book)||!Number.isFinite(Date.parse(o.observedAt))||seen.has(x.playerPath))continue;
+  seen.add(x.playerPath);const key=sha(JSON.stringify(scope));
+  targets.set(key,{key,...scope,book:o.book,boardArchiveDigest:o.boardArchiveDigest});
+  if(targets.size>=max)break;
+ }
+ return [...targets.values()];
+}
 async function main(root,env=process.env){
  assertDestination(root);const p=invocation(env);if(!p.allowed){console.log(JSON.stringify(p));return;}
  const fallback=isBackup(env)?backupPreflight(root,env):null;
@@ -216,20 +230,40 @@ async function main(root,env=process.env){
  const {chromium}=require('playwright');
  if(p.timezoneOnly){const probe=require('./pickfinder-movement-clock-probe.cjs'),until=Date.now()+8*60000;const alive=()=>{const c=pacific(new Date());return Date.now()<until&&c.day===p.clock.day&&!protectedMorningClock(c);};const prior=read(root,'directory');const targets=probe.select(require('./pickfinder-public-model-validation.cjs').history(root,'profile-market-evidence'),new Date().toISOString(),prior);const result=await probe.observe({targets,prior,open:zone=>openHostedBoard(chromium,env,zone),alive,write:data=>persist(root,'directory',data),premium,origin:ORIGIN});console.log(JSON.stringify({state:'movement_clock_experiment',...result}));return;}
  const {page,context}=await openHostedBoard(chromium,env);
- const started=Date.now(),deadline=started+(p.expected==='manual'?40:45)*60000,alive=()=>{const c=pacific(new Date());return Date.now()<deadline&&(p.currentProfiles||c.day===p.clock.day)&&(p.expected==='manual'?!protectedMorningClock(c):c.hour===p.clock.hour&&c.minute<55);};
+ const started=Date.now(),deadline=started+(p.clockAudit?8:p.expected==='manual'?40:45)*60000,alive=()=>{const c=pacific(new Date());return Date.now()<deadline&&(p.currentProfiles||c.day===p.clock.day)&&(p.expected==='manual'?!protectedMorningClock(c):c.hour===p.clock.hour&&c.minute<55);};
  let boards=0,profiles=0,archiveMs=0,transactions=0,profileMs=0,errors=0;const write=async(kind,data)=>{const t=Date.now();const receipt=await persist(root,kind,data);archiveMs+=Date.now()-t;transactions++;return receipt;};
  try{
   if(p.probe){console.log(JSON.stringify({state:'public_hosted_auth_verified',accountDataPublished:false}));return;}
-  const evidence=p.historyRepair||p.currentProfiles||fallback?null:await discover({env});
-  if(!p.deep){for(const {code,book} of boardTargets(evidence,fallback?.missingPartitions??null)){
+  const evidence=p.historyRepair||p.currentProfiles||p.clockAudit||fallback?null:await discover({env});
+  const auditRows=[];
+  if(!p.deep){for(const {code,book} of (p.clockAudit?boardTargets(null,['nba/prizepicks','nba/underdog']):boardTargets(evidence,fallback?.missingPartitions??null))){
    if(!alive())break;
    try{await page.goto(ORIGIN+'/props',{timeout:20000});const names=code==='DOTA2'?['DOTA2','Dota 2']:[code];let visible=false;for(const name of names){const b=page.getByRole('button',{name,exact:true});if(await b.count()===1&&await b.isVisible())visible=true;}if(!visible){console.log(JSON.stringify({state:'public_board_not_exposed',code,book,competition:'unknown'}));continue;}
-    const batch=await collect(page,{book,code,slot:p.expected,shouldContinue:alive,onPage:async x=>{if(x.page.number===1||x.page.number%10===0)console.log(JSON.stringify({state:'public_board_progress',code,book,pages:x.page.number,displayedPages:x.displayedPageCount}));}});
-    const n=cleanBoard(batch),{meta,parts}=splitBoard(n),partDigests=[];for(const part of parts)partDigests.push((await write('board-parts',part)).digest);const receipt=await write('boards',{...meta,partDigests,captureOrigin:captureOrigin(env,p)});boards++;
+    const batch=await collect(page,{book,code,slot:p.expected,maxPages:p.clockAudit?1:Infinity,shouldContinue:alive,onPage:async x=>{if(x.page.number===1||x.page.number%10===0)console.log(JSON.stringify({state:'public_board_progress',code,book,pages:x.page.number,displayedPages:x.displayedPageCount}));}});
+    const n={...cleanBoard(batch),...(p.clockAudit?{samplingPurpose:'displayed_game_clock'}:{})},{meta,parts}=splitBoard(n),partDigests=[];for(const part of parts)partDigests.push((await write('board-parts',part)).digest);const receipt=await write('boards',{...meta,partDigests,captureOrigin:captureOrigin(env,p)});boards++;
+    if(p.clockAudit&&!batch.failure)for(const row of batch.pages.flatMap(x=>x.rows))auditRows.push({...row,book,boardArchiveDigest:receipt.digest,hasClock:row.research.some(f=>f.metric==='Displayed Matchup and Time')});
     console.log(JSON.stringify({state:'public_board_checkpoint_verified',code,book,slot:n.slot,withinSlot:n.withinSlot,boardState:n.boardState,pages:n.health.pages,offers:n.health.distinctOfferKeys,unresolved:n.health.unresolvedRows,sourceDigest:n.sourceDigest,archiveDigest:receipt.digest,remoteDigestVerified:true,originalOffersVerified:false}));
-    if(batch.failure==='session_expired')throw Error('session expired');if(batch.boardState==='partial')errors++;
+    if(batch.failure==='session_expired')throw Error('session expired');if(batch.failure||batch.boardState==='partial'&&!p.clockAudit)errors++;
    }catch{errors++;console.log(JSON.stringify({state:'public_board_partition_pending',code,book}));if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
   }}
+  if(p.clockAudit){
+   const records=[];
+   for(const item of clockAuditTargets(auditRows)){
+    if(!alive())break;
+    const row={...item,research:[]};let observed=null;
+    try{await enrich(page,row,{expanded:true,fullSportingHeaders:true,maxFields:250,includePropHistory:false,shouldContinue:alive,navigate:async url=>{
+     await page.goto(url,{timeout:10000});if(!await waitPremium(page))throw Error('session unavailable');
+     await page.getByText(row.player,{exact:true}).first().waitFor({state:'visible',timeout:5000}).catch(()=>{});
+     const snap=await page.evaluate(currentIdentity.readVisible,{player:row.player,detailId:row.detailId});
+     observed=currentIdentity.captureProfileContext(row,snap,new Date().toISOString());
+    }});}catch{errors++;row.profileCollection={truncated:true};if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
+    records.push({...publicProfile(row),boardArchiveDigest:item.boardArchiveDigest,independentReconciliationContext:observed,observationPurpose:'displayed_game_clock'});
+   }
+   if(records.length){const receipt=await write('profiles',{schema:'pickfinder-public-profiles-v1',observedAt:new Date().toISOString(),records,modelInputsApproved:false});profiles=records.length;
+    console.log(JSON.stringify({state:'public_clock_audit_readback',boards,profiles,profileDigest:receipt.digest,profileLabels:records.filter(r=>r.independentReconciliationContext?.displayedMatchupLabel).length,paidApiRequests:0}));}
+   else console.log(JSON.stringify({state:'public_clock_audit_no_profiles',boards,paidApiRequests:0}));
+   return;
+  }
   // Morning board acquisition is independent of deep research and must never delay next slot.
   if(p.expected!=='manual'||p.boardsOnly)return;
   // Capture game context before the potentially very long deep-profile queue.
@@ -347,5 +381,5 @@ async function main(root,env=process.env){
   await context.close();console.log(JSON.stringify({state:'public_pickfinder_throughput',boards,profiles,profileMs,archiveMs,transactions,errors,elapsedMs:Date.now()-started,privateRepoUsed:false,modelInputsApproved:false}));
  }
 }
-module.exports={invocation,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers,waitPremium,boardTargets,currentProfileQueue,compactCurrentProfile};
+module.exports={invocation,clockAuditTargets,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers,waitPremium,boardTargets,currentProfileQueue,compactCurrentProfile};
 if(require.main===module)main(fs.realpathSync(process.argv[2])).catch(()=>{console.error(JSON.stringify({state:'public_pickfinder_failed_closed',privateRepoUsed:false,accountDataLogged:false}));process.exitCode=1;});

@@ -155,6 +155,18 @@ test('movement follow-up rotates sampled profiles and never double-counts an arc
  const prior={...old,records:[record(new URL(detailId).pathname+new URL(detailId).search)]};
  assert.deepEqual(select(docs,b,[prior]).map(x=>x.player),['Two']);
 });
+test('ranked tennis label allows one unsampled exact-profile retry, not other names or collected tables',()=>{
+ const {select,profileLabels}=require('../scripts/pickfinder-movement-clock-probe.cjs');
+ const player='Test Player (#457)',detailId='/players/tennis/test?prop=id:games:t1:10.5';
+ assert.deepEqual(profileLabels('tennis',player),[player,'Test Player']);
+ for(const [sport,name] of [['nhl',player],['tennis','Test Player (Junior)'],['tennis','Test Player (#0)']])assert.deepEqual(profileLabels(sport,name),[name]);
+ const doc={schema:'pickfinder_profile_historical_sportsbook_recovery_v1',rows:[{sport:'tennis',player,detailId,market:'games',eventId:'t1',book:'fanduel',quoteLine:10.5,higher:'-110',lower:'-110',kind:'historical_sportsbook_quote',observedAt:time}]};
+ const source=[{first:time,digest:'a'.repeat(64),doc}];
+ const miss={detailId,phase:'player_not_visible',sampled:false,rows:[]};
+ const prior=o=>[{schema:'pickfinder-movement-clock-probe-v1',observedAt:time,records:[{sport:'tennis',player,observations:[o]}]}];
+ assert.equal(select(source,time,prior(miss)).length,1);
+ for(const o of [{...miss,profileLabelStrategy:2},{...miss,phase:'movement_table_no_exact_pairs',sampled:true}])assert.equal(select(source,time,prior(o)).length,0);
+});
 test('current exact pick’em movements preserve explicit unpriced tiers without benchmark promotion',()=>{
  const {summarize}=require('../scripts/pickfinder-profile-market-evidence.cjs');
  const current={currentProfileAttemptedAt:time};

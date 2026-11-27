@@ -273,7 +273,7 @@ test('reviewed history challenger uses only prior exact native facts and leaves 
  index.get(0).value=4;
  assert.equal(compareOffer(o,s,index,clock,clock,baseline),null);
  const row={...s,market:'shotsOnGoal',line:o.line,side:o.side,forecastAt:clock,reviewedHistoryPair:pair};
- const final={event:'99',team:'ABC',opp:'DEF',start:startAt,first:'2026-11-27T04:00:00Z',stats:{sog:3}};
+ const final={event:'99',team:'ABC',opp:'DEF',start:startAt,first:'2026-11-27T04:00:00Z',digest:'d'.repeat(64),stats:{sog:3}};
  const finals={byPlayer:new Map([['["nhl","1"]',[final]]])};
  const result=scorePairs([row,row],finals,'2026-11-27T05:00:00Z').nhl.shotsOnGoal;
  assert.equal(result.eligiblePairs,1);assert.equal(result.decided,1);assert.equal(result.scores.neutral.brier,.25);

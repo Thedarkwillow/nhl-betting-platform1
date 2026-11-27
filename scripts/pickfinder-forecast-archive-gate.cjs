@@ -8,7 +8,7 @@ function canArchive(frame, at = Date.now()) {
   const generatedAt = Date.parse(frame?.generatedAt);
   return Number.isFinite(at) && Number.isFinite(generatedAt) && generatedAt <= at &&
     Array.isArray(frame.rows) && frame.rows.length > 0 &&
-    frame.rows.every(row => Date.parse(row.gameStartAt) > at + 15 * 60_000);
+    frame.rows.every(row => Date.parse(row.gameStartAt ?? row.startAt) > at + 15 * 60_000);
 }
 
 if (require.main === module) {

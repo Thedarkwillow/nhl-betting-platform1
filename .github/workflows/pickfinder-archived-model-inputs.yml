@@ -1,19 +1,19 @@
 name: PickFinder archived model input processing
 on:
   pull_request:
-    paths: ['scripts/pickfinder-archived-model-inputs.cjs','scripts/pickfinder-reviewed-history-model.cjs','scripts/native-individual-research.cjs','scripts/pickfinder-esports-series-review.cjs','scripts/pickfinder-valorant-retrospective.cjs','test/pickfinder-valorant-retrospective.test.cjs','research/pickfinder-public-identity-v1/valorant-map-finals/*.json','config/esports/pickfinder-series-review-*.json','scripts/pickfinder-native-history-reconciliation.cjs','scripts/pickfinder-nba-layout-recovery.cjs','test/pickfinder-nba-layout-recovery.test.cjs','scripts/pickfinder-profile-market-evidence.cjs','test/pickfinder-profile-market-evidence.test.cjs','research/pickfinder-public-identity-v1/historical-reviewed-identities/*.json','research/pickfinder-public-validation-v1/nba-final-history/*.json','test/pickfinder-archived-model-inputs.test.cjs','.github/workflows/pickfinder-archived-model-inputs.yml']
+    paths: ['scripts/pickfinder-archived-model-inputs.cjs','scripts/pickfinder-reviewed-history-model.cjs','scripts/pickfinder-reviewed-history-forward.cjs','scripts/pickfinder-forecast-archive-gate.cjs','test/pickfinder-reviewed-history-forward.test.cjs','scripts/native-individual-research.cjs','scripts/pickfinder-esports-series-review.cjs','scripts/pickfinder-valorant-retrospective.cjs','test/pickfinder-valorant-retrospective.test.cjs','research/pickfinder-public-identity-v1/valorant-map-finals/*.json','config/esports/pickfinder-series-review-*.json','scripts/pickfinder-native-history-reconciliation.cjs','scripts/pickfinder-nba-layout-recovery.cjs','test/pickfinder-nba-layout-recovery.test.cjs','scripts/pickfinder-profile-market-evidence.cjs','test/pickfinder-profile-market-evidence.test.cjs','research/pickfinder-public-identity-v1/historical-reviewed-identities/*.json','research/pickfinder-public-validation-v1/nba-final-history/*.json','test/pickfinder-archived-model-inputs.test.cjs','.github/workflows/pickfinder-archived-model-inputs.yml']
   push:
     branches: [main]
-    paths: ['scripts/pickfinder-archived-model-inputs.cjs','scripts/pickfinder-reviewed-history-model.cjs','scripts/native-individual-research.cjs','scripts/pickfinder-esports-series-review.cjs','scripts/pickfinder-valorant-retrospective.cjs','test/pickfinder-valorant-retrospective.test.cjs','research/pickfinder-public-identity-v1/valorant-map-finals/*.json','config/esports/pickfinder-series-review-*.json','scripts/pickfinder-native-history-reconciliation.cjs','scripts/pickfinder-nba-layout-recovery.cjs','test/pickfinder-nba-layout-recovery.test.cjs','scripts/pickfinder-profile-market-evidence.cjs','test/pickfinder-profile-market-evidence.test.cjs','research/pickfinder-public-identity-v1/historical-reviewed-identities/*.json','research/pickfinder-public-validation-v1/nba-final-history/*.json','test/pickfinder-archived-model-inputs.test.cjs','.github/workflows/pickfinder-archived-model-inputs.yml']
+    paths: ['scripts/pickfinder-archived-model-inputs.cjs','scripts/pickfinder-reviewed-history-model.cjs','scripts/pickfinder-reviewed-history-forward.cjs','scripts/pickfinder-forecast-archive-gate.cjs','test/pickfinder-reviewed-history-forward.test.cjs','scripts/native-individual-research.cjs','scripts/pickfinder-esports-series-review.cjs','scripts/pickfinder-valorant-retrospective.cjs','test/pickfinder-valorant-retrospective.test.cjs','research/pickfinder-public-identity-v1/valorant-map-finals/*.json','config/esports/pickfinder-series-review-*.json','scripts/pickfinder-native-history-reconciliation.cjs','scripts/pickfinder-nba-layout-recovery.cjs','test/pickfinder-nba-layout-recovery.test.cjs','scripts/pickfinder-profile-market-evidence.cjs','test/pickfinder-profile-market-evidence.test.cjs','research/pickfinder-public-identity-v1/historical-reviewed-identities/*.json','research/pickfinder-public-validation-v1/nba-final-history/*.json','test/pickfinder-archived-model-inputs.test.cjs','.github/workflows/pickfinder-archived-model-inputs.yml']
   workflow_dispatch:
   workflow_run:
-    workflows: ['PickFinder Premium public orchestration']
+    workflows: ['PickFinder Premium public orchestration','Public independent sports identity and final evidence']
     types: [completed]
 permissions:
   contents: read
 jobs:
   offline:
-    if: github.event_name != 'workflow_run' || (github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository)
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.name == 'PickFinder Premium public orchestration')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test test/pickfinder-archived-model-inputs.test.cjs test/pickfinder-profile-market-evidence.test.cjs test/pickfinder-nba-layout-recovery.test.cjs test/pickfinder-valorant-retrospective.test.cjs
+      - run: node --test test/pickfinder-archived-model-inputs.test.cjs test/pickfinder-profile-market-evidence.test.cjs test/pickfinder-nba-layout-recovery.test.cjs test/pickfinder-valorant-retrospective.test.cjs test/pickfinder-reviewed-history-forward.test.cjs
       - name: Process saved sporting evidence without new provider calls
         run: node --max-old-space-size=6144 scripts/pickfinder-archived-model-inputs.cjs "$RUNNER_TEMP/pickfinder-identity-review-packet.json"
       - name: Replay reviewed two-map Valorant research propositions
@@ -38,3 +38,52 @@ jobs:
             ${{ runner.temp }}/pickfinder-valorant-replay.json
           retention-days: 7
           if-no-files-found: error
+
+  reviewed-history-shadow:
+    if: (github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.event_name != 'workflow_run') || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.event != 'pull_request')
+    permissions:
+      contents: write
+    concurrency:
+      group: pickfinder-reviewed-history-shadow-main
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --max-old-space-size=6144 scripts/pickfinder-reviewed-history-forward.cjs
+      - name: Publish shadow scores and append-only NHL/NFL evidence
+        run: |
+          set -euo pipefail
+          git add -f data/pickfinder-reviewed-history-performance.json
+          for folder in nhlnfl-reviewed-history-forecasts nhlnfl-reviewed-history-grades; do
+            dir="research/pickfinder-public-validation-v1/$folder"
+            if test -d "$dir"; then
+              git add -f "$dir"
+              test -z "$(git diff --cached --name-only --diff-filter=CDMRTUXB -- "$dir")"
+            fi
+          done
+          git diff --cached --quiet && exit 0
+          git config user.name 'PickFinder reviewed history shadow'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Publish NHL and NFL reviewed-history shadow performance'
+          for i in 1 2 3 4 5 6; do
+            git fetch --quiet origin main
+            git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
+            while IFS= read -r forecast; do
+              node scripts/pickfinder-forecast-archive-gate.cjs "$forecast"
+            done < <(git diff --name-only --diff-filter=A FETCH_HEAD HEAD -- research/pickfinder-public-validation-v1/nhlnfl-reviewed-history-forecasts/)
+            if git push --quiet origin HEAD:main; then
+              git fetch --quiet origin main
+              git merge-base --is-ancestor HEAD FETCH_HEAD
+              echo 'Reviewed history shadow evidence archived.'
+              exit 0
+            fi
+            sleep "$((2*i))"
+          done
+          exit 1

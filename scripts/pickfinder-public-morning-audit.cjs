@@ -11,16 +11,21 @@ function assess({manifest,first,parts,day,slot}){
  if((m.boardState==='empty'&&m.explicitEmpty||m.boardState==='disabled'&&m.disabledConfirmed)&&m.health.pages===0&&totals.offers===0)return 'verified_empty_or_disabled';
  return m.pageTraversalComplete&&m.health.pages===m.displayedPageCount?'verified_displayed_traversal':'pending';
 }
-function load(root,kind){
+function load(root,kind,required=null){
  const dir=ROOT+'/'+kind,files=git(root,['ls-tree','-r','--name-only','HEAD','--',dir]).toString().trim().split('\n').filter(p=>new RegExp('^'+dir+'/[a-f0-9]{64}\\.json$').test(p)),out=new Map();
- for(const rel of files){try{const raw=git(root,['show','HEAD:'+rel]),digest=path.basename(rel,'.json');if(sha(raw)!==digest)continue;const cs=git(root,['log','--format=%H','--',rel]).toString().trim().split('\n');if(cs.length!==1)continue;out.set(digest,{doc:JSON.parse(raw),first:git(root,['show','-s','--format=%cI',cs[0]]).toString().trim()});}catch{}}
+ for(const rel of files){if(required&&!required.has(path.basename(rel,'.json')))continue;try{const raw=git(root,['show','HEAD:'+rel]),digest=path.basename(rel,'.json');if(sha(raw)!==digest)continue;const cs=git(root,['log','--format=%H','--',rel]).toString().trim().split('\n');if(cs.length!==1)continue;out.set(digest,{doc:JSON.parse(raw),first:git(root,['show','-s','--format=%cI',cs[0]]).toString().trim()});}catch{}}
  return out;
+}
+function slotEvidence(root,day,slot){
+ const boards=[...load(root,'boards').values()].filter(({doc})=>doc.localDay===day&&doc.slot===slot);
+ const needed=new Set(boards.flatMap(({doc})=>Array.isArray(doc.partDigests)?doc.partDigests:[]));
+ return {boards,parts:needed.size?load(root,'board-parts',needed):new Map()};
 }
 function run(root,day,slot,now=new Date()){
  const h=Number(slot.slice(0,2));if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!['06:00','09:00'].includes(slot))throw Error('slot');
  const t=pacific(now);if(t.day<day||t.day===day&&t.hour<=h)return {state:'slot_not_finished',day,slot};
- const parts=load(root,'board-parts'),boards=load(root,'boards'),results={};
- for(const {doc,first} of boards.values()){if(doc.localDay!==day||doc.slot!==slot)continue;const k=doc.sport+'/'+doc.book,r=results[k]??={verified:0,pending:0,offers:0};const state=assess({manifest:doc,first,parts,day,slot});if(state==='pending')r.pending++;else{r.verified++;r.offers+=doc.health.distinctOfferKeys;}}
+ const {boards,parts}=slotEvidence(root,day,slot),results={};
+ for(const {doc,first} of boards){if(doc.localDay!==day||doc.slot!==slot)continue;const k=doc.sport+'/'+doc.book,r=results[k]??={verified:0,pending:0,offers:0};const state=assess({manifest:doc,first,parts,day,slot});if(state==='pending')r.pending++;else{r.verified++;r.offers+=doc.health.distinctOfferKeys;}}
  return {state:'public_pickfinder_morning_audit',day,slot,partitions:results,corePartitionsVerified:['nba','nhl','nfl'].every(s=>['prizepicks','underdog'].every(b=>results[s+'/'+b]?.verified>0)),originalPlatformAvailabilityVerified:false,modelApproved:false,privateRepoUsed:false};
 }
 function scheduledRunMatches(origin,run,day,slot,first){
@@ -29,8 +34,8 @@ function scheduledRunMatches(origin,run,day,slot,first){
 }
 async function verifyScheduled(root,report,env=process.env,client=fetch){
  if(report.state!=='public_pickfinder_morning_audit')return report;
- const results={},cache=new Map(),boards=load(root,'boards'),parts=load(root,'board-parts');
- for(const {doc,first} of boards.values()){
+ const results={},cache=new Map(),{boards,parts}=slotEvidence(root,report.day,report.slot);
+ for(const {doc,first} of boards){
   if(doc.localDay!==report.day||doc.slot!==report.slot||assess({manifest:doc,first,parts,day:report.day,slot:report.slot})==='pending')continue;
   const key=doc.sport+'/'+doc.book,r=results[key]??={scheduledVerified:0,manual:0,originUnknown:0,scheduledUnverified:0};
   const o=doc.captureOrigin;

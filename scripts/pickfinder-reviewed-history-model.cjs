@@ -83,7 +83,7 @@ function finalFor(p,gameIndex,clock){
   dt(g.start)===dt(p.startAt)&&Number.isFinite(dt(g.first))&&dt(g.first)>dt(g.start)&&dt(g.first)<=dt(clock));
  if(matches.length!==1)return null;
  const actual=matches[0].stats[p.reviewedHistoryPair.nativeMetric];
- return Number.isSafeInteger(actual)?actual:null;
+ return Number.isSafeInteger(actual)&&hash(matches[0].digest)?{actual,digest:matches[0].digest,availableAt:matches[0].first}:null;
 }
 
 function scorePairs(rows,gameIndex,clock){
@@ -100,9 +100,9 @@ function scorePairs(rows,gameIndex,clock){
   if(conflicts.has(k))continue;
   const sport=p.sport.toLowerCase(),s=all[sport][p.market]??={eligiblePairs:0,decided:0,pending:0,games:new Set(),scores:methods()};
   s.eligiblePairs++;
-  const actual=finalFor(p,gameIndex,clock);
-  if(actual===null){s.pending++;continue;}
-  const y=Number(p.side==='Higher'?actual>p.line:actual<p.line);
+  const final=finalFor(p,gameIndex,clock);
+  if(final===null){s.pending++;continue;}
+  const y=Number(p.side==='Higher'?final.actual>p.line:final.actual<p.line);
   s.decided++;s.games.add(String(p.gameId));
   for(const m of methodScores){
    const q=p.reviewedHistoryPair[m];
@@ -131,4 +131,4 @@ function replay(root,archive,reviewedCache,nativeIndex,clock,revision){
   bySport:scorePairs(rows,nativeIndex,clock),retrospective:true,productionChanged:false,modelApproved:false,paidRequests:0};
 }
 
-module.exports={compareOffer,eligibleBoards,scorePairs,replay};
+module.exports={compareOffer,eligibleBoards,scorePairs,replay,finalFor,policy};

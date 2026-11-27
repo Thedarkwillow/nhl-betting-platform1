@@ -72,6 +72,31 @@
   const fresh=Object.values(activity.readiness||{}).filter(x=>x.freshCompleteBoard&&Number.isFinite(Date.parse(x.observedAt))&&Date.parse(x.observedAt)<=Date.now()&&Date.now()-Date.parse(x.observedAt)<=900000);
   add(mount,'p','Fresh complete core boards: '+fresh.length+' / '+Object.keys(activity.readiness||{}).length+'. Old observations remain history, not live availability.');
  }catch{add(mount,'p','Public activity center report pending; no native notification delivery certified.');}
+ try{
+  const r=await fetch('./data/pickfinder-reviewed-history-performance.json',{cache:'no-store'});
+  if(!r.ok)throw Error();
+  const ledger=await r.json();
+  if(ledger.kind!=='pickfinder_nhlnfl_reviewed_history_performance_v1'||ledger.modelApproved!==false)throw Error();
+  add(mount,'h3','NHL and NFL prospective reviewed-history research');
+  add(mount,'p',n(ledger.pregameCommitted)+' pregame pairs archived · '+n(ledger.independentCommittedGrades)+' independently graded.');
+  const methods=[['existing','Existing model'],['reviewed','Reviewed history'],['challenger','Combined'],['neutral','50% baseline']];
+  const rows=Object.entries(ledger.bySport||{}).flatMap(([sport,markets])=>
+   Object.entries(markets).flatMap(([market,m])=>methods.flatMap(([key,label])=>{
+    const score=m.scores?.[key];
+    return m.graded>0&&Number.isFinite(score?.brier)&&Number.isFinite(score?.logLoss)?
+      [[sport,market,n(m.graded),n(m.distinctGames),label,score.brier.toFixed(3),score.logLoss.toFixed(3)]]:[];
+   })));
+  if(!rows.length)add(mount,'p','Awaiting independently graded pairs.');
+  else{
+   const table=add(mount,'table',''),header=add(add(table,'thead',''),'tr','');
+   for(const label of ['Sport','Market','Decisions','Games','Estimate','Brier score','Log loss'])add(header,'th',label);
+   const body=add(table,'tbody','');
+   for(const data of rows){
+    const row=add(body,'tr','');
+    for(const value of data)add(row,'td',value);
+   }
+  }
+ }catch{add(mount,'p','NHL and NFL prospective reviewed-history performance report is pending.');}
  const grading=d.independentGrading||{},coverage=d.researchCoverage||{};
  add(mount,'p','New NBA research forecasts: '+n(d.nbaShadowRows)+' · Archived pregame forecasts: '+n(grading.archivedPregameRows)+' · Not yet due: '+n(grading.pendingNotDue)+' · Due and awaiting results: '+n(grading.pendingDueAfterRun)+' · New independent grades: '+n(grading.newGrades)+' · No production approval.');
  add(mount,'h3','NBA prospective model comparison');

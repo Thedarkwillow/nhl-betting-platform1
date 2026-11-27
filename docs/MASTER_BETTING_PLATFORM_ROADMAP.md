@@ -2,6 +2,8 @@
 
 ## 2026-11-27 — Owner scope correction for PickFinder alerts
 
+- **PF-16/PF-19 partial (2026-11-27 UTC).** [PR #462](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/462) merged at `33458fa0` after six hosted checks passed and one expected skip, including [public activity CI](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46078253052). The on-demand digest uses the same published website activity source. Post-merge readback produced six deduplicated archive references and 28 registered historical scopes, no currently fresh scope and zero paid requests. Run `node scripts/pickfinder-public-digest.cjs` in the repository. This does not prove a scheduled run, new Discord delivery, native alerts, or a complete unified delivery ledger.
+
 - **PF-03 completed for the notification channel inventory.** The signed-in settings, current PickFinder documentation and existing project Discord receipts distinguish observed, documented, unsupported and unknown channel capabilities. No provider-side delivery or expanded automation access was certified.
 
 - **PF-01/03/04/19:** Remove native PickFinder iPhone pushes, screenshot requests and device-delivery proof from active acceptance. The owner received project Discord only. Keep authenticated settings and authorized provider-member Discord evidence separate from confirmed project Discord receipts. This does not waive the remaining control, ingestion, archive, website, delivery-category or model gates. Historical descriptions of UI labels are not current requirements.

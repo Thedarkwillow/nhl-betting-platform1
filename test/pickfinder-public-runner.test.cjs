@@ -147,7 +147,7 @@ test('NBA history repair is manual and protects both morning capture windows',()
 
 test('NBA history-only runner excludes unrelated context and discovery prepasses',()=>{
  const fs=require('node:fs'),src=fs.readFileSync(require.resolve('../scripts/pickfinder-public-runner.cjs'),'utf8');
- assert.ok(src.includes('const evidence=p.historyRepair||p.currentProfiles||fallback?null:await discover({env});'));
+ assert.ok(src.includes('const evidence=p.historyRepair||p.currentProfiles||p.clockAudit||fallback?null:await discover({env});'));
  assert.ok(src.includes('if(!p.historyRepair&&!p.currentProfiles&&alive()){\n   const until=Date.now()+90000,gameAlive='));
  assert.ok(src.includes('if(!p.historyRepair&&!p.currentProfiles&&alive()&&!p.featuresOnly){'));
 });
@@ -349,4 +349,18 @@ test('current profile suppresses only exact shared dated game logs repeated acro
  const result=compactCurrentProfile({research:[f,{...f,tab:'Defense'},changed,filtered,movement]});
  assert.equal(result.identicalSharedLogCopiesNotRearchived,1);
  assert.deepEqual(result.research,[f,changed,filtered,movement]);
+});
+
+test('clock audit is strictly manual and keeps exact unique-board profile scope',()=>{
+ const {clockAuditTargets}=require('../scripts/pickfinder-public-runner.cjs');
+ const env={PICKFINDER_AUTOMATION_AUTHORIZED:'1',PICKFINDER_PUBLIC_DATA_AUTHORIZED:'1',GITHUB_EVENT_NAME:'workflow_dispatch',REQUESTED_MODE:'clock_audit'};
+ assert.equal(invocation(env,new Date('2026-11-27T08:15:00Z')).clockAudit,true);
+ for(const h of [13,14,16,17])assert.equal(invocation(env,new Date(`2026-11-27T${h}:15:00Z`)).allowed,false);
+ assert.throws(()=>invocation({...env,GITHUB_EVENT_NAME:'schedule'},new Date('2026-11-27T08:15:00Z')),/manual bounded/);
+ const r={sport:'nba',player:'Fixture',market:'points',eventId:'event',book:'prizepicks',observedAt:'2026-11-27T08:10:00Z',
+  detailId:'/players/nba/fixture?prop=fixture%3Apoints%3Aevent%3A4',boardArchiveDigest:'a'.repeat(64)};
+ const selected=clockAuditTargets([r,{...r,detailId:r.detailId.slice(0,-1)+'5',hasClock:true},{...r,player:'Invalid',eventId:'other'},
+  {...r,player:'Other',detailId:r.detailId.replace('/fixture?','/other?')}]);
+ assert.equal(selected.length,2);assert.equal(selected[0].detailId,r.detailId.slice(0,-1)+'5');
+ assert.equal(selected[0].boardArchiveDigest,r.boardArchiveDigest);assert.equal(selected[0].eventId,'event');
 });

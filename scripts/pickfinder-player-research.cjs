@@ -61,8 +61,20 @@ function readSections({tab,origin,observedAt,context,fullSportingHeaders=false})
     let i=0;
     for(const tr of table.querySelectorAll('tbody tr')){
       const movementTimeIndex=origin==='line_movement'&&header==='Line | App | Time'?headers.indexOf('Time'):-1;
+      const normalizedMovementLine=movementTimeIndex>=0?headers.indexOf('Line'):-1;
       const cells=[...tr.cells].map((c,column)=>{
         const result={value:c.innerText.trim()||null,labels:[...c.querySelectorAll('img[alt]')].map(e=>e.alt)};
+        if(column===normalizedMovementLine&&result.labels.length===0&&c.children?.length===1){
+          // The movement badge is a second visible span, not another threshold.
+          const span=c.children[0]?.children;
+          if(span?.length===2&&[...span].every(n=>n.tagName==='SPAN'&&n.getClientRects().length)&&
+             span[0].classList.contains('text-base')&&span[1].classList.contains('rounded-full')&&span[1].classList.contains('text-xs')){
+            const threshold=span[0].innerText.trim(),badge=span[1].innerText.trim();
+            if(/^\d+(?:\.\d+)?$/.test(threshold)&&/^[+-]?\d+(?:\.\d+)?$/.test(badge)&&result.value===threshold+'\n'+badge){
+              result.value=threshold;result.displayedMovementBadge=badge;
+            }
+          }
+        }
         if(column===movementTimeIndex){
           // Record the browser's rendering context, never infer a source offset or year from it.
           const zone=Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -110,25 +122,30 @@ async function traverseMixed(page,collect,shouldContinue){
 // A visible row-level App selector can reveal a different book's historical
 // threshold and prices. Use one verified table and one selector, never infer
 // the price threshold from the fantasy offer or the clock from observation time.
-const visibleQuoteOption=/^(?:novig|draftkings|fanduel|betmgm|caesars|pinnacle|bet365|fanatics|betrivers|hardrockbet|bovada|fliff) O[+-]\d{3,4} U[+-]\d{3,4}$/i;
+const movementBookPriority=['fanduel','draftkings','betmgm','caesars','pinnacle','bet365','fanatics','betrivers','hardrockbet','bovada','fliff','novig'];
 async function sportsbookMovementSelection(page,read,alive){
  const table=page.getByRole('table').filter({has:page.getByRole('columnheader',{name:'Time',exact:true})});
  if(await table.count()!==1)return [];
  const selector=table.getByRole('combobox');
  if(!alive()||await selector.count()!==1||!await selector.isVisible()||!await selector.isEnabled())return [];
  await selector.click({timeout:2000});
- const choice=page.getByRole('option',{name:visibleQuoteOption});
  let book=null;
  try{
-  if(!alive()||await choice.count()!==1||!await choice.isVisible()||!await choice.isEnabled())return [];
-  // The option label includes an image alternative and may not be innerText.
-  const profile=await choice.evaluate(e=>{
-   const labels=[...e.querySelectorAll('img[alt]')].map(x=>x.alt.toLowerCase());
-   return labels.length===1?labels[0]:null;
-  });
-  if(!profile||!visibleQuoteOption.test(profile+' O-110 U-110'))return [];
-  await choice.click({timeout:2000});
-  book=profile;
+  // There may be many legitimate books. Choose one deterministically, but
+  // only when its exact visible two-sided option and image agree.
+  for(const preferred of movementBookPriority){
+   if(!alive())return [];
+   const choice=page.getByRole('option',{name:new RegExp('^'+preferred+' O[+-]\\d{3,4} U[+-]\\d{3,4}$','i')});
+   if(await choice.count()!==1||!await choice.isVisible()||!await choice.isEnabled())continue;
+   const profile=await choice.evaluate(e=>{
+    const labels=[...e.querySelectorAll('img[alt]')].map(x=>x.alt.toLowerCase());
+    return labels.length===1?labels[0]:null;
+   });
+   if(profile!==preferred)continue;
+   await choice.click({timeout:2000});
+   book=profile;break;
+  }
+  if(!book)return [];
  }finally{if(book===null)await page.keyboard.press('Escape');}
  for(let i=0;i<5&&alive();i++){
   const fields=await read();

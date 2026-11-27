@@ -77,12 +77,20 @@ function contextIndex(doc,now){
   set(pairs,key(r.sport,r.sourceEventId,r.sourcePlayerPath),[r.match.team,r.match.opponent]);
  return {events,pairs};
 }
+function releaseBaseline(b,old,now,windowMs){
+ if(!old)return 'missing_prior_board';
+ if(!complete(b)||!complete(old))return 'incomplete_board';
+ if(old.m.health.unresolvedRows!==0)return 'prior_unresolved_rows';
+ if(dt(old.m.lastObservedAt)>=dt(b.m.firstObservedAt))return 'overlapping_observations';
+ if(now-dt(b.m.lastObservedAt)>windowMs)return 'outside_release_window';
+ if(dt(b.m.lastObservedAt)-dt(old.m.lastObservedAt)>previous)return 'prior_board_too_old';
+ return 'eligible';
+}
 function additions(history,now,context,windowMs){
  const result=[],seen=new Set();
  for(let i=0;i<history.length-1;i++){
   const b=history[i],old=history[i+1];
-  if(!complete(b)||!complete(old)||old.m.health.unresolvedRows!==0||
-    dt(old.m.lastObservedAt)>=dt(b.m.firstObservedAt)||now-dt(b.m.lastObservedAt)>windowMs||dt(b.m.lastObservedAt)-dt(old.m.lastObservedAt)>previous)continue;
+  if(releaseBaseline(b,old,now,windowMs)!=='eligible')continue;
   // No inference of absence across a partial partition or a missing baseline.
   const current=observedLines(b,now),prior=observedLines(old,now);
   const replacement=new Map(),sizes=new Map();
@@ -126,8 +134,17 @@ function compare(chunks,now,{registry,windowMs=240*M}={}){
   a.push(b);a.sort((x,y)=>dt(y.m.lastObservedAt)-dt(x.m.lastObservedAt)||x.digest.localeCompare(y.digest));partitions.set(k,a);
  }
  if(invalid.count)throw Error('archive integrity');
- const events=[],usable=new Map(),context=contextIndex(registry,now);
- for(const history of partitions.values())events.push(...additions(history,now,context,windowMs));
+ const events=[],usable=new Map(),context=contextIndex(registry,now),releaseBaselines={};
+ for(const [partition,history] of partitions){
+  const counts={};
+  for(let i=0;i<history.length;i++){
+   const state=releaseBaseline(history[i],history[i+1],now,windowMs);
+   counts[state]=(counts[state]||0)+1;
+  }
+  const newEvents=additions(history,now,context,windowMs);
+  releaseBaselines[partition]={latest:releaseBaseline(history[0],history[1],now,windowMs),counts,releaseCandidates:newEvents.length};
+  events.push(...newEvents);
+ }
  for(const [key,[current,old]] of partitions){
   if(!complete(current)||now-dt(current.m.lastObservedAt)>fresh||old&&dt(old.m.lastObservedAt)===dt(current.m.lastObservedAt))continue;
   const latest=slot(current,now),{rows}=latest;
@@ -168,7 +185,7 @@ function compare(chunks,now,{registry,windowMs=240*M}={}){
    events.push(event('discrepancy',k,a,b,'PrizePicks '+a.line+' vs Underdog '+b.line));
   }
  }
- return {events,usablePartitions:usable.size};
+ return {events,usablePartitions:usable.size,releaseBaselines};
 }
 function research(doc,now){
  if(doc?.kind!=='pickfinder_nhlnfl_reviewed_history_performance_v1'||doc.retrospective!==false||

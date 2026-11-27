@@ -198,10 +198,62 @@ test('single observed App selector verifies the replacement brand before returni
  const {sportsbookMovementSelection}=require('../scripts/pickfinder-player-research.cjs');
  const calls=[];
  const button={count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true,click:async()=>calls.push('click')};
- const page={getByRole:(role)=>role==='table'?{...button,filter:()=>({...button,getByRole:()=>button})}:
+ const page={getByRole:(role)=>role==='table'?{...button,filter:()=>({...button,getByRole:()=>button})}:role==='columnheader'?button:
   {...button,evaluate:async()=> 'novig'},keyboard:{press:async()=>calls.push('dismiss')}};
  const old={...movement,value:JSON.stringify([cell('1.5'),cell(null,['prizepicks','goblin']),cell('11/27 12:00AM')])};
  const good={...movement,value:JSON.stringify([cell('0.5'),cell('O-900\nU+170',['novig']),cell('11/27 2:09AM')])};
  assert.deepEqual(await sportsbookMovementSelection(page,async()=>[old,good],()=>true),[good]);
  assert.deepEqual(calls,['click','click']);
+});
+
+test('depth slot from overview is a display observation, not a confirmed starter or injury',()=>{
+ const f={origin:'profile',scope:' | Starter | 2nd | 3rd | 4th | 5th',metric:'row 1',tab:'Player overview',observedAt:time};
+ const row=[cell('PF'),cell('Example Player',['Example Player']),cell('Other',['Other']),cell(null),cell(null),cell(null)];
+ const [r]=extract(f,row);
+ assert.equal(r.kind,'depth_chart_observation');assert.equal(r.depthSlot,'Starter');assert.equal(r.confirmedLineup,false);
+ assert.equal(r.teamVerified,false);assert.equal(r.independentInjuryVerified,false);assert.equal(r.modelApproved,false);
+ assert.equal(require('../scripts/pickfinder-profile-market-evidence.cjs').summarize([r]).depthChartObservations,1);
+ assert.deepEqual(extract(f,row.map((c,i)=>i===1?cell('Wrong Name',['Example Player']):c)),[]);
+});
+test('title-case defense headers, soft labels and missing short windows remain descriptive',()=>{
+ const f={origin:'profile',scope:'Stat | SZN | L10 | L5 | Strength',metric:'row 1',tab:'Defense',observedAt:time};
+ const [r]=extract(f,['Pts\n9.8 allowed/g','7th','2nd','—','soft'].map(x=>cell(x)));
+ assert.deepEqual(r.displayedRanks,{SZN:7,L10:2,L5:null});assert.equal(r.displayedStrength,'SOFT');
+ assert.equal(r.defendingTeamVerified,false);assert.equal(r.modelApproved,false);
+});
+test('collector separates the visible threshold from the exact movement badge without inventing a clock',()=>{
+ const {readSections}=require('../scripts/pickfinder-player-research.cjs');
+ const headers=['Line','App','Time'].map(innerText=>({innerText,tagName:'TH',rowSpan:1,colSpan:1}));
+ const span=(innerText,classes,visible=true)=>({innerText,tagName:'SPAN',classList:{contains:x=>classes.includes(x)},getClientRects:()=>visible?[{}]:[]});
+ const t=(badge)=>({getClientRects:()=>[{}],querySelectorAll:s=>s==='thead tr'?[{cells:headers}]:
+  s==='thead th'?headers:s==='tbody tr'?[{cells:[
+   {innerText:'14.5\n1',children:[{children:[span('14.5',['text-base']),badge]}],querySelectorAll:()=>[]},
+   {innerText:'O-119\nU-119',querySelectorAll:sel=>sel==='img[alt]'?[{alt:'prizepicks'}]:[]},
+   {innerText:'11/26 1:07PM',querySelectorAll:()=>[]}
+  ]}]:[]});
+ const prior=global.document;
+ try{
+  for(const [badge,expected] of [[span('1',['rounded-full','text-xs']),'14.5'],[span('1',[]),'14.5\n1'],[span('1',['rounded-full','text-xs'],false),'14.5\n1']]){
+   global.document={querySelectorAll:s=>s==='table'?[t(badge)]:[]};
+   const obs=readSections({tab:'Line Movement',origin:'line_movement',observedAt:time,context:{}}).find(f=>f.metric==='row 1');
+   const cells=JSON.parse(obs.value);assert.equal(cells[0].value,expected);
+   const r=extract(obs,cells,{currentProfileAttemptedAt:time});
+   if(expected==='14.5'){assert.equal(r[0].quoteLine,14.5);assert.equal(r[0].higher,'-119');assert.equal(r[0].lower,'-119');assert.equal(r[0].movementAtUtc,null);assert.equal(r[0].originalPlatformVerified,false);}
+   else assert.deepEqual(r,[]);
+  }
+ }finally{global.document=prior;}
+});
+
+test('one verified sportsbook can be selected from a menu with several books',async()=>{
+ const {sportsbookMovementSelection}=require('../scripts/pickfinder-player-research.cjs');
+ const calls=[];
+ const button={count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true,click:async()=>calls.push('open')};
+ const page={getByRole:(role,opts)=>role==='table'?{...button,filter:()=>({...button,getByRole:()=>button})}:role==='columnheader'?button:
+  (()=>{const available=['fanduel O-106 U-122','novig O+120 U-130','draftkings O+102'].filter(x=>opts.name.test(x));return {...button,count:async()=>available.length,evaluate:async()=>available[0].split(' ')[0],click:async()=>calls.push(available[0])};})(),
+  keyboard:{press:async()=>calls.push('dismiss')}};
+ const old={...movement,value:JSON.stringify([cell('14.5'),cell('O-119\nU-119',['prizepicks']),cell('11/26 1:07PM')])};
+ const good={...movement,value:JSON.stringify([cell('14.5'),cell('O-106\nU-122',['fanduel']),cell('11/27 6:13AM')])};
+ assert.deepEqual(await sportsbookMovementSelection(page,async()=>[old,good],()=>true),[good]);
+ assert.deepEqual(calls,['open','fanduel O-106 U-122']);
+ assert.equal(extract(good,JSON.parse(good.value))[0].movementAtUtc,null);
 });

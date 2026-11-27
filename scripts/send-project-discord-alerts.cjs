@@ -247,7 +247,7 @@ async function main(){
  }
  const categories={};for(const e of r.events)categories[e.kind]=(categories[e.kind]||0)+1;
  const outcome=await dispatch(r.events,{env:process.env,mode,runKey:process.env.GITHUB_RUN_ID,now,ledger:gitLedger(root)});
- console.log(JSON.stringify({...outcome,usablePartitions:r.usablePartitions,categories,qualifiedSuggestions:categories.suggestion||0,paidRequests:0}));
+ console.log(JSON.stringify({...outcome,usablePartitions:r.usablePartitions,...(r.releaseBaselines?{releaseBaselines:r.releaseBaselines}:{}),categories,qualifiedSuggestions:categories.suggestion||0,paidRequests:0}));
  if(['routes_unconfigured','route_verification_failed'].includes(outcome.status))process.exitCode=1;
 }
 function configDiagnostic(error){

@@ -56,7 +56,7 @@ function nativeIndex({facts,nhlFinals,nflSeasons,nbaHistories=[],nbaFinalHistori
   const d=h.doc;if(!(d.kind==='nba_official_cdn_final_history_v1'&&d.source==='cdn.nba.com final boxscore'||d.kind==='nba_official_web_final_history_v1'&&d.source==='nba.com official game box score')||d.officialFinalClockVerified!==true||!hash(d.sourceResponseSha256)||!hash(h.digest)||!Number.isFinite(dt(d.capturedAt))||!Number.isFinite(dt(h.first))||dt(d.capturedAt)>dt(h.first)+999||dt(h.first)>at)continue;
   for(const p of d.rows||[]){if(p.officialGameFinalVerified!==true||p.identityVerified!==true||p.appeared!==true||p.gameId!==d.gameId||!day(p.gameDate)||!p.player||!Number.isSafeInteger(p.playerId)||!['W','L'].includes(p.wl))continue;
    addName('nba',p.player,p.playerId);
-   const stats=Object.fromEntries([...new Set(Object.values(nbaMetrics))].filter(m=>Number.isFinite(p[m])).map(m=>[m,p[m]]));
+   const stats=Object.fromEntries([...new Set([...Object.values(nbaMetrics),'prizePicksFantasyScore'])].filter(m=>Number.isFinite(p[m])).map(m=>[m,p[m]]));
    const k=key(['nba',String(p.playerId),String(p.gameId)]);
    // Do not overwrite an independent league-log receipt; exclude disagreements.
    const old=games.get(k);
@@ -106,11 +106,16 @@ function matchRow(r,f,index,clock,{allowNbaExtendedFinals=false}={}){
  if(!Number.isFinite(dt(f.observedAt))||dt(f.observedAt)>dt(clock))return reject('observation_clock');
  const metrics=r.sport==='nhl'?nhlMetrics:nflMetrics,market=sourceMarkets[r.sport]?.[norm(r.market)]??norm(r.market);
  const extra=r.sport==='nba'&&allowNbaExtendedFinals?extraMetrics[market]:null;
- const m=r.sport==='nba'?nbaMetrics[market]??extra?.[0]:metrics[market];if(!m)return reject('unsupported_market');
+ // Published rule: prizepicks.com/playbook-article/how-to-play-prizepicks-nba-fantasy-scoring-system
+ // This formula is PrizePicks-specific. Neither a shared-book profile nor an
+ // unbound generic fantasy field is accepted as an original settled outcome.
+ const ppFantasy=r.sport==='nba'&&allowNbaExtendedFinals&&market==='player_fantasy_score_all_'&&
+  r.book==='prizepicks'&&Array.isArray(r.books)&&r.books.length===1&&r.books[0]==='prizepicks';
+ const m=r.sport==='nba'?nbaMetrics[market]??extra?.[0]??(ppFantasy?'prizePicksFantasyScore':null):metrics[market];if(!m)return reject('unsupported_market');
  if(String(f.scope||'').endsWith(' | [header truncated]'))return reject('header_truncated');
  const headers=String(f.scope||'').split(' | ').map(norm),dateColumns=headers.map((x,i)=>['date','game date'].includes(x)?i:-1).filter(i=>i>=0),i=dateColumns.length===1?dateColumns[0]:-1,opponents=headers.map((x,i)=>['opponent','opp'].includes(x)?i:-1).filter(i=>i>=0),j=opponents.length===1?opponents[0]:-1;
  if(headers.some(x=>/\b(?:line|odds|projection|average|hit rate|payout)\b/.test(x)))return reject('not_final_stat_table');
- const aliases=new Set(extra?[extra[1]]:[market,norm(m),...(columnAliases[m]||[])]);
+ const aliases=new Set(extra?[extra[1]]:ppFantasy?['fp']:[market,norm(m),...(columnAliases[m]||[])]);
  const indices=headers.map((x,i)=>aliases.has(x)?i:-1).filter(i=>i>=0);
  // Repeated unrelated headings are allowed only when the date, opponent and
  // requested stat are each unique and the full row still aligns positionally.

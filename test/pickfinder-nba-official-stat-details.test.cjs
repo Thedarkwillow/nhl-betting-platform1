@@ -93,3 +93,19 @@ test('dunks require complete official made-shot accounting and retain per-market
  box.doc.playByPlay.actions=[...actions,actions[0]];
  assert.equal(details(box).dunksReconciledAgainstFinalFGM,undefined);
 });
+
+test('published PrizePicks scoring corroborates full-game FP only for an exact, exclusive app scope',()=>{
+ const obs={origin:'profile',tab:'Player overview',metric:'row 1',scope:'Date | Opponent | Min | FP | 2Q FP',
+  observedAt:'2026-11-25T23:00:00Z',value:JSON.stringify(['11/24','NYK','20','11.6','4'].map(value=>({value})))};
+ const rec={sport:'nba',market:'player_fantasy_score_all_',player:'Athlete',status:'sampled',truncated:false,
+  coverageVersion:VERSION,book:'prizepicks',books:['prizepicks']};
+ const index={names:new Map([['["nba","athlete"]',new Set(['1'])]]),byPlayer:new Map([['["nba","1"]',
+  [{event:'22600055',gameDate:'2026-11-24',dates:['2026-11-24'],opp:'NYK',stats:{prizePicksFantasyScore:11.6},digest:f}]]])};
+ const m=(r,f=obs)=>matchRow(r,f,index,first,{allowNbaExtendedFinals:true});
+ assert.equal(m(rec).candidate.value,11.6);
+ assert.equal(m({...rec,books:['prizepicks','underdog']}).reason,'unsupported_market');
+ assert.equal(m({...rec,books:undefined}).reason,'unsupported_market');
+ assert.equal(m({...rec,book:'underdog'}).reason,'unsupported_market');
+ assert.equal(m(rec,{...obs,period:'1st_half'}).reason,'unsupported_scope');
+ assert.equal(m(rec,{...obs,scope:obs.scope.replace('| FP |','| 1H FP |')}).reason,'missing_exact_columns');
+});

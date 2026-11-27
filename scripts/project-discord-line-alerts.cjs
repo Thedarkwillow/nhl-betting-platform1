@@ -9,7 +9,7 @@ const isDigest=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 const sports=new Set(['nba','nhl','nfl','cs2','valorant','dota2','lol','cod','mlb','wnba','college-basketball','college-football','tennis','soccer']);
 const books=new Set(['prizepicks','underdog']);
 const tiers=new Set(['standard','goblin','demon','alternate']);
-const names={line_change:'Line change',price_change:'Price change',new_prop:'🆕 NEW PROP',removed_prop:'Not seen on latest board',alternate_tier:'🆕 NEW PROP (alternate tier)',reposted_prop:'Reposted prop',discrepancy:'Cross-platform discrepancy',research_update:'Research update',availability_update:'Official availability update'};
+const names={line_change:'Line change',price_change:'Price change',new_prop:'🆕 NEW PROP',removed_prop:'Not seen on latest board',alternate_tier:'🆕 NEW PROP (alternate tier)',reposted_prop:'Reposted prop',discrepancy:'Cross-platform discrepancy',suggestion:'Qualified prop research',collection_status:'Collection status',research_update:'Research update',availability_update:'Official availability update'};
 const plain=s=>String(s).replace(/[^\p{L}\p{M}\p{N} .,'()+/&-]/gu,' ').replace(/\s+/g,' ').trim().slice(0,70);
 function acceptable(b,now){
  const t=dt(b.m.lastObservedAt), git=dt(b.first);
@@ -209,16 +209,35 @@ function availability(receipts,now){
  return [{id:hash(['nba_official_availability',same[0].doc.sourceResponseSha256]),kind:'availability_update',sport:'nba',observedAt,
   text:'NBA official injury report · '+summary+' · statuses are not confirmed participation'}];
 }
+function collectionStatus(doc,now){
+ const generated=dt(doc?.generatedAt);
+ if(doc?.kind!=='public_pickfinder_activity_readiness_v1'||!Array.isArray(doc.events)||
+  !(generated<=now&&now-generated<=60*M)||!Number.isSafeInteger(doc.archiveInvalid)||doc.archiveInvalid<0)return [];
+ const latest=new Map();
+ for(const e of doc.events){
+  const observed=dt(e.observedAt),archived=dt(e.archivedAt);
+  if(e.kind!=='board_observation'||!sports.has(e.sport)||!books.has(e.book)||!isDigest(e.manifestDigest)||
+   !['populated','empty','disabled','failed'].includes(e.state)||!(observed<=archived+999&&archived<=generated&&now-observed<=60*M))continue;
+  const k=e.sport+'/'+e.book;
+  if(!latest.has(k)||observed>dt(latest.get(k).observedAt))latest.set(k,e);
+ }
+ if(!latest.size)return [];
+ const counts={populated:0,empty:0,disabled:0,failed:0};
+ for(const e of latest.values())counts[e.state]++;
+ const block=Math.floor(generated/(60*M));
+ return [{id:hash(['collection_status_hourly',block]),kind:'collection_status',observedAt:doc.generatedAt,
+  text:'PickFinder boards archived in the past hour · '+Object.entries(counts).map(([k,n])=>n+' '+k).join(' · ')+' · '+doc.archiveInvalid+' invalid archives in report'}];
+}
 function build(root,now,doc,nbaDoc,receipts=[],options){
  const r=compare(walkBoards(root),now,options);
  return {...r,events:[...new Map([...availability(receipts,now),...research(doc,now),...nbaResearch(nbaDoc,now),...r.events].map(e=>[e.id,e])).values()]};
 }
 function message(events){
- if(events.length<1||events.length>6||events.some(e=>!Object.hasOwn(names,e.kind)))throw Error('alert batch');
+ if(events.length<1||events.length>6||(events.some(e=>e.kind==='suggestion')&&events.length>3)||events.some(e=>!Object.hasOwn(names,e.kind)))throw Error('alert batch');
  const lines=events.map(e=>{
   const prefix='• '+names[e.kind]+' — ';
   const suffix=Number.isFinite(dt(e.observedAt))?' · '+new Date(dt(e.observedAt)).toISOString().slice(0,16).replace('T',' ')+' UTC':'';
-  const max=300-prefix.length-suffix.length;
+  const max=(e.kind==='suggestion'?600:300)-prefix.length-suffix.length;
   const detail=e.text.length<=max?e.text:e.text.slice(0,max-1).replace(/[\uD800-\uDBFF]$/u,'')+'…';
   return prefix+detail+suffix;
  });
@@ -226,4 +245,4 @@ function message(events){
   'Observed research only. Check the original app. No wagers or recommendations.'].join('\n'),
   flags:4,allowed_mentions:{parse:[]}};
 }
-module.exports={compare,research,nbaResearch,availability,build,message,sports,books,tiers,names};
+module.exports={compare,research,nbaResearch,availability,build,message,collectionStatus,sports,books,tiers,names};

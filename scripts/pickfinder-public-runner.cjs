@@ -17,7 +17,7 @@ function invocation(env,now=new Date()){
  if(protectedMorningClock(clock))return {allowed:false,state:'protect_morning_hour',clock};
  return {allowed:true,expected:'manual',clock,deep:['current_profiles','deep_research_now','nba_context_only','features_only'].includes(mode),currentProfiles:mode==='current_profiles',contextOnly:mode==='nba_context_only',featuresOnly:mode==='features_only',boardsOnly:mode==='boards_only',probe:mode==='probe_now'};
 }
-function profileWorkers(env,p){return env.GITHUB_EVENT_NAME==='workflow_dispatch'&&env.REQUESTED_MODE==='deep_research_now'&&p.expected==='manual'&&p.deep&&!p.contextOnly?2:1;}
+function profileWorkers(env,p){return env.GITHUB_EVENT_NAME==='workflow_dispatch'&&['deep_research_now','current_profiles'].includes(env.REQUESTED_MODE)&&p.expected==='manual'&&p.deep&&!p.contextOnly?2:1;}
 function captureOrigin(env,policy){
  const event=env.GITHUB_EVENT_NAME,runId=String(env.GITHUB_RUN_ID||''),attempt=String(env.GITHUB_RUN_ATTEMPT||''),revision=String(env.GITHUB_SHA||'');
  if(!/^[1-9][0-9]{0,19}$/.test(runId)||!/^[1-9][0-9]{0,5}$/.test(attempt)||! /^[a-f0-9]{40}$/.test(revision))return null;
@@ -159,6 +159,26 @@ function currentProfileQueue(archive,profiles,now=Date.now()){
  }
  return {pending,total:targets.size,reused,expired,eligiblePartitions,reason:eligiblePartitions?'current_exact_board_scopes':'no_recent_complete_partition'};
 }
+// Overview game logs often stay visible as unrelated dialogs open. Collapse
+// only identical aligned dated rows within this exact unfiltered profile
+// capture, never movement, filtered data, or a materially different result.
+function compactCurrentProfile(record){
+ const seen=new Map(),fields=[];let repeats=0;
+ for(const field of record.research||[]){
+  let id=null;
+  if(field.origin==='profile'&&!field.filterSelection&&field.headerLayout==='span-grid-v1'&&
+     /^row \d+$/.test(field.metric)&&/^Date \| Opponent \| /.test(field.scope||'')){
+   let cells;try{cells=JSON.parse(field.value);}catch{}
+   if(Array.isArray(cells)&&cells.length===field.scope.split(' | ').length&&
+      /^\d{1,2}\/\d{1,2}(?:\/\d{2,4})?$/.test(cells[0]?.value||'')&&cells[1]?.value)
+    id=JSON.stringify([field.scope,field.period,field.mapRange,field.gameMode,field.window,cells]);
+  }
+  if(id!==null&&seen.has(id)&&seen.get(id)!==field.tab){repeats++;continue;}
+  if(id!==null&&!seen.has(id))seen.set(id,field.tab);
+  fields.push(field);
+ }
+ return {...record,research:fields,identicalSharedLogCopiesNotRearchived:repeats};
+}
 function publicProfile(row){
  const fields=[];for(const f of row.research||[]){
   // Account screens and unstructured panels are not published. Preserve scoped sporting rows and history.
@@ -287,7 +307,7 @@ async function main(root,env=process.env){
   }
   if(p.featuresOnly)return;
   const revision=archiveRevision(root);
-  const q=current?{...current,pending:current.pending.slice(0,32)}:queue(iterate(root,'board-parts',revision),iterate(root,'profiles',revision));
+  const q=current?{...current,pending:current.pending.slice(0,96)}:queue(iterate(root,'board-parts',revision),iterate(root,'profiles',revision));
   if(p.historyRepair)q.pending=q.repairPending;
   if(!current)console.log(JSON.stringify({state:'public_deep_queue',archiveRevision:revision,total:q.total,completed:q.done,remaining:q.pending.length,malformedHistoryPending:q.malformedHistoryPending,unresolvedHistoryRows:q.unresolvedHistoryRows,deferredHistoryScopes:q.deferredHistoryScopes,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
   // Explicit manual deep runs alone trial two isolated tabs; all archives remain serialized.
@@ -302,7 +322,8 @@ async function main(root,env=process.env){
     const results=await Promise.allSettled(items.map(async(item,n)=>{
      const detail=pages[n],row={...item,research:[]},t=Date.now();attemptedProfiles++;
      try{await enrich(detail,row,{expanded:true,fullSportingHeaders:true,maxFields:Infinity,includePropHistory:!p.currentProfiles,shouldContinue:profileAlive,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(!await premium(detail))throw Error('session');}});}catch{row.profileCollection={truncated:true};}
-     return {record:{...publicProfile(row),...(p.currentProfiles?{currentProfileAttemptedAt:new Date().toISOString()}: {})},elapsed:Date.now()-t,authenticated:await premium(detail).catch(()=>false)};
+     const record=publicProfile(row);
+     return {record:p.currentProfiles?compactCurrentProfile({...record,currentProfileAttemptedAt:new Date().toISOString()}):record,elapsed:Date.now()-t,authenticated:await premium(detail).catch(()=>false)};
     }));
     let failed=false;for(const x of results){if(x.status!=='fulfilled'){failed=true;continue;}const {record,elapsed,authenticated}=x.value;profileMs+=elapsed;await buffer.add(record);if(record.status==='sampled'&&record.truncated===false)nontruncated++;if(!authenticated)failed=true;}
     if(failed)throw Error('session unavailable');
@@ -316,5 +337,5 @@ async function main(root,env=process.env){
   await context.close();console.log(JSON.stringify({state:'public_pickfinder_throughput',boards,profiles,profileMs,archiveMs,transactions,errors,elapsedMs:Date.now()-started,privateRepoUsed:false,modelInputsApproved:false}));
  }
 }
-module.exports={invocation,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers,waitPremium,boardTargets,currentProfileQueue};
+module.exports={invocation,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers,waitPremium,boardTargets,currentProfileQueue,compactCurrentProfile};
 if(require.main===module)main(fs.realpathSync(process.argv[2])).catch(()=>{console.error(JSON.stringify({state:'public_pickfinder_failed_closed',privateRepoUsed:false,accountDataLogged:false}));process.exitCode=1;});

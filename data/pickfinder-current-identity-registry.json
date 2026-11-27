@@ -1,7 +1,7 @@
 {
   "kind": "pickfinder_current_identity_registry_v1",
-  "generatedAt": "2026-11-27T20:47:56.891Z",
-  "archiveRevision": "b68aad11f569be2d18604a8ed6baab5c4b7da886",
+  "generatedAt": "2026-11-27T23:28:00.089Z",
+  "archiveRevision": "89384ddf4dc88725111105f0b30b72eda44d0b3d",
   "profiles": 800,
   "scopesWithReusedPlayerId": 139,
   "players": 753,
@@ -174117,17 +174117,16 @@
     "bySport": {
       "nfl": {
         "attempts": 11069,
-        "candidates": 11742,
+        "candidates": 11798,
         "reasons": {
           "missing_exact_columns": 1108,
           "date_shape": 1247,
-          "no_matching_native_game": 688,
+          "no_matching_native_game": 712,
           "not_game_log": 4074,
           "stat_or_opponent_shape": 255,
           "unsupported_scope": 1184,
           "unsupported_market": 826,
-          "ambiguous_native_game": 5,
-          "native_identity_ambiguous": 32
+          "ambiguous_native_game": 5
         },
         "columnShapes": {
           "other|other|other|other|other": 288,
@@ -174202,21 +174201,21 @@
         "playerGameRows": 9940
       },
       "nfl": {
-        "playerGameRows": 48095
+        "playerGameRows": 48234
       },
       "nba": {
         "playerGameRows": 1413
       }
     },
     "identityEvidence": {
-      "profiles": 257,
+      "profiles": 258,
       "invalidEvidence": 0,
       "multipleGameCandidates": 224,
       "bySport": {
         "nfl": {
-          "profiles": 36,
+          "profiles": 37,
           "conflictingProfiles": 0,
-          "unresolvedSingleGame": 2,
+          "unresolvedSingleGame": 3,
           "multipleGameCandidates": 34,
           "distinctGameFacts": 1279
         },
@@ -174248,10 +174247,10 @@
       "modelApproved": false
     },
     "reassembledRows": 59942,
-    "reusableResearchCandidates": 14147,
+    "reusableResearchCandidates": 14154,
     "researchCacheConflicts": 0,
-    "candidates": 144955,
-    "distinctCandidates": 144955,
+    "candidates": 145011,
+    "distinctCandidates": 145011,
     "conflictingNativeGames": 1,
     "independentlyReviewedProviderIdentities": 0,
     "qualifiedCacheEntries": 0,

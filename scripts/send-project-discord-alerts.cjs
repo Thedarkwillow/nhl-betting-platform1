@@ -57,20 +57,36 @@ const claimed=(rows,e)=>Object.hasOwn(rows,e.id)||e.priorIds?.some(k=>id(k)&&Obj
 const routeNames=['prizepicks-props','prizepicks-suggestions','underdog-props','underdog-suggestions'];
 const propKinds=new Set(['new_prop','line_change','price_change','removed_prop','reposted_prop','alternate_tier']);
 const systemKinds=new Set(['research_update','availability_update','collection_status']);
+class RouteConfigError extends Error {
+ constructor(problem,route){
+  super(problem.startsWith('duplicate_')?'invalid platform route':problem==='unrecognized_route_keys'?'four platform routes required':'invalid platform route configuration');
+  this.problem=problem;
+  this.route=route;
+ }
+}
 function platformDestinations(env){
+ const fail=(problem,route)=>{throw new RouteConfigError(problem,route);};
+ if(!safeDiscordWebhook(env.PROJECT_DISCORD_WEBHOOK_URL))fail('invalid_general_webhook','general');
+ if(!snow(env.PROJECT_DISCORD_GUILD_ID))fail('invalid_guild_id','general');
+ if(!snow(env.PROJECT_DISCORD_CHANNEL_ID))fail('invalid_channel_id','general');
  const base=allowDestination(env);
- const routes=jsonConfig(env.PROJECT_DISCORD_PLATFORM_ROUTES,12000);
+ let routes;
+ try{routes=jsonConfig(env.PROJECT_DISCORD_PLATFORM_ROUTES,12000);}catch{fail('invalid_routes_json');}
  const all=new Map([['general',base]]), seenChannels=new Set([base.channel]);
  const hookId=url=>new URL(url).pathname.split('/')[3];
  const hooks=new Set([hookId(base.url)]);
- if(Object.keys(routes).length!==routeNames.length)throw Error('four platform routes required');
  for(const name of routeNames){
-  const p=Object.hasOwn(routes,name)&&routes[name];
-  if(!p||Array.isArray(p)||typeof p!=='object'||Object.keys(p).sort().join(',')!=='channelId,webhookUrl'||
-   !safeDiscordWebhook(p.webhookUrl)||new URL(p.webhookUrl).port||!snow(p.channelId)||seenChannels.has(p.channelId)||hooks.has(hookId(p.webhookUrl)))throw Error('invalid platform route');
+  if(!Object.hasOwn(routes,name))fail('missing_route',name);
+  const p=routes[name];
+  if(!p||Array.isArray(p)||typeof p!=='object'||Object.keys(p).sort().join(',')!=='channelId,webhookUrl')fail('invalid_route_fields',name);
+  if(!snow(p.channelId))fail('invalid_channel_id',name);
+  if(!safeDiscordWebhook(p.webhookUrl)||new URL(p.webhookUrl).port)fail('invalid_webhook_url',name);
+  if(seenChannels.has(p.channelId))fail('duplicate_channel_id',name);
+  if(hooks.has(hookId(p.webhookUrl)))fail('duplicate_webhook',name);
   seenChannels.add(p.channelId);hooks.add(hookId(p.webhookUrl));
   all.set(name,{url:p.webhookUrl,channel:p.channelId,guild:base.guild});
  }
+ if(Object.keys(routes).length!==routeNames.length)fail('unrecognized_route_keys');
  return all;
 }
 function platformRoute(e){
@@ -229,5 +245,13 @@ async function main(){
  console.log(JSON.stringify({...outcome,usablePartitions:r.usablePartitions,categories,qualifiedSuggestions:categories.suggestion||0,paidRequests:0}));
  if(['routes_unconfigured','route_verification_failed'].includes(outcome.status))process.exitCode=1;
 }
-if(require.main===module)main().catch(()=>{console.error('Project Discord alerts stopped without retrying an unconfirmed delivery. Check destination setup, archive contracts, and the delivery ledger.');process.exitCode=1;});
-module.exports={dispatch,gitLedger,filterConfig,deliveryBatches,batchConfig};
+function configDiagnostic(error){
+ if(!(error instanceof RouteConfigError))return null;
+ return {status:'invalid_route_configuration',problem:error.problem,...(error.route?{route:error.route}:{}),paidRequests:0};
+}
+if(require.main===module)main().catch(error=>{
+ const diagnostic=configDiagnostic(error);
+ console.error(diagnostic?JSON.stringify(diagnostic):'Project Discord alerts stopped without retrying an unconfirmed delivery. Check destination setup, archive contracts, and the delivery ledger.');
+ process.exitCode=1;
+});
+module.exports={dispatch,gitLedger,filterConfig,deliveryBatches,batchConfig,configDiagnostic};

@@ -111,3 +111,34 @@ test('durable three-zone identity survives the event and does not use receipts u
  const conflict={...sched,digest:'c'.repeat(64),doc:{...sched.doc,events:[{...sched.doc.events[0],eventId:'conflict'}]}};
  a.equal(replay({...input,facts:[sched,conflict]}).events.length,0);
 });
+
+test('statistical crosswalks reuse the verified NBA review or exact NFL event and weekly roster, not names or ESPN IDs alone',()=>{
+ const {crosswalk}=require('../scripts/pickfinder-stat-identity-crosswalk.cjs');
+ const {qualifyResearch}=require('../scripts/pickfinder-durable-identities.cjs');
+ const {displayedClockAt}=require('../scripts/pickfinder-reviewed-game-context.cjs');
+ const nfl={sport:'nfl',namespace:'espn:nfl',sourcePlayer:'A Example',sourcePlayerPath:'/players/nfl/test',sourceEventId:'pf',
+   playerId:'100',eventId:'101',team:'JAC',opponent:'BAL',startAt,proofAvailableAt:nativeAt,nativeReceiptDigest:dig,
+   timezoneReceiptDigests:['1','2','3'].map(x=>x.repeat(64))};
+ const g={eventId:'pf',nbaGameId:'0022600072',espnGameId:'401909334',scheduleStartAt:startAt,observedAt:nativeAt,home:'BOS',away:'NYK',
+   sourceUrl:'https://www.pickfinder.app/game-lines?game=pf',displayedClock:displayedClockAt(startAt,'UTC')};
+ const p={eventId:'pf',playerPath:'/players/nba/test',nbaPlayerId:'103',espnPlayerId:'999',team:'BOS',opponent:'NYK',
+   sourceUrl:'https://www.pickfinder.app/players/nba/test?prop=one:points:pf:12',player:'A Example',displayedMatchup:'BOS vs NYK',
+   observedAt:nativeAt,independentRosterVerified:true};
+ const reviews=[{digest:dig,first:at,doc:{schema:'pickfinder-independent-nba-matchup-review-v1',clockComparisonZone:'UTC',games:[g],records:[p]}}];
+ const season={digest:rosterProof,first:at,doc:{kind:'nflverse_public_native_history_v1',
+   games:[{espnEventId:'101',gameId:'native',week:10,home:'BAL',away:'JAX',startAt}],
+   rosters:[{espnId:'100',gsisId:'00-0000001',week:10,team:'JAX'}]}};
+ const bridges=crosswalk({rows:[nfl]},reviews,[season],at);
+ a.deepEqual(bridges.map(x=>[x.namespace,x.playerId,x.eventId]),[['nba:official','103','0022600072'],['nfl:gsis','00-0000001','native']]);
+ const historical='2026-11-23T00:00:00Z';
+ const facts=new Map(bridges.map(x=>[x.sport,{sport:x.sport,playerId:x.playerId,eventId:'historical-final',market:'points',value:0,
+   officialStartAt:historical,profileAvailableAt:at,nativeAvailableAt:at,profileObservedAt:nativeAt,sourcePlayer:x.sourcePlayer,
+   sourceDetailId:x.sourcePlayerPath,profileDigest:dig,nativeDigest:rosterProof}]));
+ const qualified=qualifyResearch(facts,{rows:[nfl],statisticalCrosswalks:bridges},at);
+ a.equal(qualified.length,2);
+ a.ok(qualified.every(x=>x.shadowResearchEligible&&!x.operatorOfferVerified&&!x.settlementVerified&&!x.productionModelEligible));
+ a.equal(qualifyResearch(facts,{rows:[nfl],statisticalCrosswalks:bridges},nativeAt).length,0);
+ a.equal(crosswalk({rows:[{...nfl,opponent:'KC'}]},[],[season],at).length,0);
+ const contradictory=structuredClone(season);contradictory.doc.rosters[0].gsisId='00-0000002';
+ a.equal(crosswalk({rows:[nfl]},[],[season,contradictory],at).length,0);
+});

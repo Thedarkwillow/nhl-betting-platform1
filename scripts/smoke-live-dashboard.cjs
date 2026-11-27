@@ -1,10 +1,26 @@
 "use strict";
 const assert=require("node:assert/strict");
 const ROOT="https://thedarkwillow.github.io/nhl-betting-platform1/";
-async function get(url){
- const r=await fetch(url,{headers:{"Cache-Control":"no-cache"},signal:AbortSignal.timeout(20000)});
- assert.equal(r.status,200,"Public NHL website unavailable: "+url+" HTTP "+r.status);
- return r;
+const RETRY_HTTP=new Set([408,429,500,502,503,504]);
+function isTransientFetch(error){
+ return ['TimeoutError','AbortError'].includes(error?.name)||
+  ['ECONNRESET','ECONNREFUSED','ETIMEDOUT','EAI_AGAIN','UND_ERR_SOCKET','UND_ERR_CONNECT_TIMEOUT'].includes(error?.cause?.code);
+}
+async function get(url,{client=fetch,wait=ms=>new Promise(resolve=>setTimeout(resolve,ms)),
+ warn=message=>console.warn(message)}={}){
+ for(let attempt=1;;attempt++){
+  let response,error;
+  try{response=await client(url,{headers:{"Cache-Control":"no-cache"},signal:AbortSignal.timeout(8000)});}
+  catch(e){error=e;}
+  if(response?.status===200)return response;
+  if(response)await response.body?.cancel().catch(()=>{});
+  if(attempt===3||!(response?RETRY_HTTP.has(response.status):isTransientFetch(error))){
+   if(error)throw new Error("Public NHL website unavailable: "+url,{cause:error});
+   assert.equal(response.status,200,"Public NHL website unavailable: "+url+" HTTP "+response.status);
+  }
+  warn("Retrying deployed resource after "+(response?"HTTP "+response.status:error.cause?.code||error.name)+" (attempt "+attempt+"): "+url);
+  await wait(attempt*1000);
+ }
 }
 async function main(){
  const html=await (await get(ROOT+"?smoke="+Date.now())).text();
@@ -53,4 +69,5 @@ async function main(){
   featured:data.featuredIndividualProps.length,props:data.props.length,
   interactiveLineupBuilderPublished:true,privateMethodologyPublished:false}));
 }
-main().catch(e=>{console.error("NHL deployed site smoke failed:",e.message);process.exitCode=1});
+module.exports={get};
+if(require.main===module)main().catch(e=>{console.error("NHL deployed site smoke failed:",e.message);process.exitCode=1});

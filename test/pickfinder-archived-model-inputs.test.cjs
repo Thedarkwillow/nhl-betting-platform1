@@ -315,3 +315,24 @@ test('published final maps corroborate CS2 nonparticipation without asserting pl
  assert.equal(rows[1].independentSeriesEvidence.rosterExclusion,undefined);
  assert.equal(summary.officialSettlementVerified,0);
 });
+
+test('expanded current NHL replay corroborates full-game stat columns independently and never reads an ambiguous clock value',()=>{
+ const {nativeIndex,audit}=require('../scripts/pickfinder-native-history-reconciliation.cjs');
+ const {VERSION}=require('../scripts/pickfinder-research-coverage.cjs');
+ const digest='a'.repeat(64),first='2026-11-24T15:00:00Z';
+ const nhlFinals=[{digest,first,doc:{games:[{sourceDigest:digest,observedAt:first,event:{
+  namespace:'nhl:official',completed:true,status:'post',eventId:'1',startAt:'2026-11-21T00:00:00Z',teams:[{abbr:'TOR'},{abbr:'BOS'}]},
+  rows:[{playerId:'9',team:'TOR',appeared:true,toi:'23:45',stats:{sog:4,goals:1,assists:0,points:1,blockedShots:2}}]}]}}];
+ const facts=[{doc:{sport:'nhl',source:'nhl:official',roster:[{name:'Fixture',playerId:'9'}]}}];
+ const idx=nativeIndex({facts,nhlFinals,nflSeasons:[]},clock);
+ const run=(toi,expand,extra={})=>audit([{digest,first:clock,doc:{records:[{sport:'nhl',player:'Fixture',market:'player_goals',
+  status:'sampled',truncated:false,coverageVersion:VERSION,detailId:'/players/nhl/a',research:[{origin:'profile',metric:'row 1',
+   tab:'Game Log',scope:'Date | Opponent | SOG | G | A | PTS | BLK | TOI | SV',
+   value:JSON.stringify(['11/20','BOS','4','1','0','1','2',toi,'11'].map(value=>({value}))),observedAt}],...extra}]}}],
+  idx,clock,[],{expandCurrentNhlLogs:expand});
+ assert.deepEqual([...run('23:45',false).cache.values()].map(x=>x.market),['goals']);
+ assert.deepEqual(Object.fromEntries([...run('23:45',true).cache.values()].map(x=>[x.market,x.value])),
+  {goals:1,iceTimeSeconds:1425,assists:0,points:1,sog:4,blockedShots:2});
+ assert.ok(![...run('23.45',true).cache.values()].some(x=>x.market==='iceTimeSeconds'));
+ assert.equal(run('23:45',true,{period:'first'}).cache.size,0);
+});

@@ -33,3 +33,36 @@ t('dated final fallback requires explicit ESPN final and unique official NBA gam
  const r=await recentFinalSchedule('2026-11-26T01:00:00Z',async url=>url.includes('www.nba.com')?new Response(html):new Response(JSON.stringify({events:[event]})));
  assert.equal(r.calls,4);assert.equal(r.games.length,1);assert.match(r.games[0].routeResponseSha256,/^[a-f0-9]{64}$/);
 });
+
+t('frozen pregame baseline uses identical independently decided rows for both scores',()=>{
+ const {pairedStats}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const hit={id:'one',market:'points',actual:8,result:'correct',modelEstimate:.75,baselineEstimate:.5};
+ const stats=pairedStats([hit,hit,{...hit,id:'two',baselineEstimate:null},{...hit,id:'three',result:'push'}]).points;
+ assert.equal(stats.decided,2);
+ assert.deepEqual(stats.frozenBaselineComparison,{decided:1,modelBrier:.0625,baselineBrier:.25,modelLogLoss:-Math.log(.75),baselineLogLoss:-Math.log(.5)});
+ assert.equal(pairedStats([{...hit,baselineEstimate:2}]).points.frozenBaselineComparison.modelBrier,null);
+});
+
+t('matchup features require matching archived period, map range and game mode',()=>{
+ const offer={...o,period:'series',mapRange:'maps_1_2',gameMode:'search'};
+ const row={...offer,origin:'board',metric:'H2H',value:'70%'};
+ assert.equal(features(offer,[row]).H2H,.7);
+ for(const field of ['period','mapRange','gameMode']){
+  assert.deepEqual(features(offer,[{...row,[field]:null}]),{});
+  assert.deepEqual(features(offer,[{...row,[field]:'conflicting'}]),{});
+ }
+});
+
+t('frozen low-count feature on/off pair shares the link and grades identical decisions',()=>{
+ const {lowCountPair,pairedStats}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const pair=lowCountPair('steals',0.5,'Lower',1,3);
+ assert.equal(pair.featureOff,Math.exp(-1));
+ assert.equal(pair.featureOn,Math.exp(-2));
+ assert.equal(lowCountPair('blocks',1,'Higher',2,1),null);
+ assert.equal(lowCountPair('steals',0.5,'Higher',1,null),null);
+ const r={market:'steals',id:'x',result:'correct',actual:0,modelEstimate:.6,lowCountPair:pair};
+ const score=pairedStats([r,r,{...r,id:'legacy',lowCountPair:null},{...r,id:'p',result:'push'}]).steals.lowCountFeatureComparison;
+ assert.equal(score.decided,1);
+ assert.equal(score.modelLogLoss,2);
+ assert.equal(score.baselineLogLoss,1);
+});

@@ -29,6 +29,23 @@
  }catch{add(mount,'p','Public activity center report pending; no native notification delivery certified.');}
  const grading=d.independentGrading||{},coverage=d.researchCoverage||{};
  add(mount,'p','New NBA research forecasts: '+n(d.nbaShadowRows)+' · Archived pregame forecasts: '+n(grading.archivedPregameRows)+' · Not yet due: '+n(grading.pendingNotDue)+' · Due and awaiting results: '+n(grading.pendingDueAfterRun)+' · New independent grades: '+n(grading.newGrades)+' · No production approval.');
+ add(mount,'h3','NBA prospective model comparison');
+ const comparisons=Object.entries(d.prospectiveComparisons||{}).filter(([,row])=>{
+  const pair=row?.frozenBaselineComparison;
+  return row.approved===false&&Number.isSafeInteger(pair?.decided)&&pair.decided>0&&
+   [pair.modelBrier,pair.baselineBrier,pair.modelLogLoss,pair.baselineLogLoss].every(x=>Number.isFinite(x)&&x>=0);
+ });
+ if(!comparisons.length)add(mount,'p','Awaiting independently graded forecasts with a frozen pregame baseline.');
+ for(const [market,{frozenBaselineComparison:p}] of comparisons){
+  add(mount,'h4',market);
+  add(mount,'p',n(p.decided)+' independently graded selections with both estimates. Lower scores indicate more accurate probabilities.');
+  const table=add(mount,'table',''),header=add(add(table,'thead',''),'tr','');
+  for(const label of ['Estimate','Brier score','Log loss'])add(header,'th',label);
+  const body=add(table,'tbody','');
+  for(const [label,brier,loss] of [['Model',p.modelBrier,p.modelLogLoss],['Pregame baseline',p.baselineBrier,p.baselineLogLoss]]){
+   const row=add(body,'tr','');add(row,'th',label);add(row,'td',brier.toFixed(3));add(row,'td',loss.toFixed(3));
+  }
+ }
  add(mount,'p','Profile attempts: '+n(coverage.profileAttempts)+' · Named dashboard snapshots: '+n(coverage.namedDashboardSnapshots)+' · Game-dialog observations: '+n(coverage.gameDialogObservations)+' · Full filter coverage remains pending.');
  const slots=Object.values(d.bySport||{}).flatMap(x=>Object.values(x.boards||{}));
  add(mount,'p','Latest manual board partitions: '+n(slots.filter(b=>b.slot==='manual').length)+' / '+n(slots.length)+'. A capture-slot label alone does not certify scheduled morning execution.');

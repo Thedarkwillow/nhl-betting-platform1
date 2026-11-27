@@ -2,6 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),{normalize}=require('./pickfinder-premium-archive.cjs'),{collect,ORIGIN,readCompactBoardClocks}=require('./pickfinder-browser.cjs'),{enrich}=require('./pickfinder-player-research.cjs'),{VERSION}=require('./pickfinder-research-coverage.cjs'),{checkpointBuffer}=require('./pickfinder-checkpoint-buffer.cjs'),{pacific,decide}=require('./pacific-morning-capture-gate.cjs'),{prioritySports,registry}=require('./season-aware-collection.cjs'),{discover}=require('./season-aware-discovery.cjs'),{openHostedBoard}=require('./pickfinder-unattended-runner.cjs'),{persist,read,iterate,archiveRevision,safe,sha,assertDestination}=require('./pickfinder-public-archive.cjs');
 const {dashboardRoutes,captureGameDialogs,verifiedNavigation,traverseDashboardFilters,dashboardControlDiagnostics,inspectCapabilities}=require('./pickfinder-dashboard-research.cjs');
 const {inspectTool}=require('./pickfinder-tool-schema.cjs');
+const {observeNamedControl,observePropsPager}=require('./pickfinder-dashboard-controls.cjs');
 const currentIdentity=require('./pickfinder-current-identity.cjs');
 const gameContext=require('./pickfinder-public-nba-context.cjs'),{load}=require('./pickfinder-public-evidence-audit.cjs');
 const {backupPreflight,isBackup,protectedMorningClock}=require('./pickfinder-public-morning-preflight.cjs');
@@ -118,7 +119,7 @@ function currentProfileQueue(archive,profiles,now=Date.now()){
  const at=Number(now),day=8*3600000,dt=Date.parse;
  if(!Number.isFinite(at))throw Error('current profile clock');
  if(archive.invalid?.length)return {pending:[],total:0,reused:0,expired:0,eligiblePartitions:0,reason:'archive_integrity'};
- const cache=new Map(),tries=new Map();
+ const cache=new Map(),tries=new Map(),previouslySeen=new Set();
  for(const d of profiles)for(const r of d.records||[]){
   if(r.observationPurpose==='displayed_game_clock')continue;
   const scope=sharedScope(r);if(!scope)continue;
@@ -126,7 +127,11 @@ function currentProfileQueue(archive,profiles,now=Date.now()){
   const fields=(r.research||[]).filter(f=>Number.isFinite(dt(f?.observedAt))&&dt(f.observedAt)<=at);
   const seen=fields.reduce((latest,f)=>Math.max(latest,dt(f.observedAt)),-Infinity);
   const attempt=dt(r.currentProfileAttemptedAt);
-  if(Number.isFinite(attempt)&&attempt<=at)tries.set(id,Math.max(tries.get(id)||0,attempt));
+  if(Number.isFinite(attempt)&&attempt<=at){
+   tries.set(id,Math.max(tries.get(id)||0,attempt));
+   const playerPath=currentIdentity.sourceScope(scope)?.playerPath;
+   if(playerPath)previouslySeen.add(playerPath);
+  }
   if(!Number.isFinite(seen)||seen>at)continue;
   tries.set(id,Math.max(tries.get(id)||0,seen));
   if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&fields.some(f=>f.origin==='profile'&&f.value!=null))
@@ -149,7 +154,6 @@ function currentProfileQueue(archive,profiles,now=Date.now()){
    targets.set(key,{key,...scope,books,book:books[0],observed:Math.max(prior?.observed||0,t)});
   }
  }
- const previouslySeen=new Set();
  for(const x of targets.values())if(tries.has(x.key))previouslySeen.add(currentIdentity.sourceScope(x)?.playerPath);
  const rank=['nba','nhl','nfl','cs2','valorant','dota2','lol','cod'];
  const groups=new Map();let reused=0;
@@ -158,7 +162,8 @@ function currentProfileQueue(archive,profiles,now=Date.now()){
   if(previous>=x.observed&&at-previous<=day){reused++;continue;}
   const a=groups.get(x.sport)||[];a.push(x);groups.set(x.sport,a);
  }
- for(const a of groups.values())a.sort((x,y)=>(tries.get(x.key)||0)-(tries.get(y.key)||0)||y.observed-x.observed||x.key.localeCompare(y.key));
+ const missingSaveLog=x=>Number(x.sport==='nhl'&&x.market==='player_saves'&&!x.period&&!x.mapRange&&!x.gameMode);
+ for(const a of groups.values())a.sort((x,y)=>missingSaveLog(y)-missingSaveLog(x)||(tries.get(x.key)||0)-(tries.get(y.key)||0)||y.observed-x.observed||x.key.localeCompare(y.key));
  const order=[...new Set([...rank,...groups.keys()])],pending=[];
  for(let i=0;pending.length<targets.size-reused;i++)for(const sport of order){
   const x=groups.get(sport)?.[i];if(x)pending.push(x);
@@ -169,7 +174,18 @@ function currentProfileQueue(archive,profiles,now=Date.now()){
    if(!k||players.has(k))repeat.push(x);
    else {players.add(k);front.push(x);}
  }
- return {pending:[...front,...repeat],distinctNewPlayersQueued:front.length,total:targets.size,reused,expired,eligiblePartitions,reason:eligiblePartitions?'current_exact_board_scopes':'no_recent_complete_partition'};
+ // A seen goalie may have a new saves scope; admit it as a targeted gap only if
+ // the exact scope has not already been attempted. Do not displace another new
+ // player with multiple thresholds from the same goalie.
+ const targeted=[],back=[],frontPaths=new Set(front.map(x=>currentIdentity.sourceScope(x)?.playerPath));
+ for(const x of repeat){
+  const k=currentIdentity.sourceScope(x)?.playerPath;
+  if(k&&!frontPaths.has(k)&&missingSaveLog(x)&&!tries.has(x.key)){frontPaths.add(k);targeted.push(x);}
+  else back.push(x);
+ }
+ const pendingOrdered=[...targeted,...front,...back];
+ return {pending:pendingOrdered,distinctNewPlayersQueued:front.length,distinctSeenGoaliesWithNewSavesScope:targeted.length,
+  savesScopesInFirstBatch:pendingOrdered.slice(0,96).filter(missingSaveLog).length,total:targets.size,reused,expired,eligiblePartitions,reason:eligiblePartitions?'current_exact_board_scopes':'no_recent_complete_partition'};
 }
 // Overview game logs often stay visible as unrelated dialogs open. Collapse
 // only identical aligned dated rows within this exact unfiltered profile
@@ -360,6 +376,20 @@ async function main(root,env=process.env){
     console.log(JSON.stringify({state:result.state==='read_only_schema_observed'?'public_tool_schema_pass':'public_tool_schema_pending',kind,result:result.state,archiveDigest:receipt.digest,mutations:0}));
    }catch{errors++;console.log(JSON.stringify({state:'public_tool_schema_pending',kind}));}
   }
+  const saveControlProbe=async (name,result)=>{
+   if(!await premium(page))throw Error('session unavailable');
+   const receipt=await write('capabilities',{schema:'pickfinder-public-dashboard-control-effect-v1',name,
+    path:new URL(page.url()).pathname,observedAt:new Date().toISOString(),captureOrigin:captureOrigin(env,p),
+    result,completeDashboardVerified:false,accountMutations:0});
+   console.log(JSON.stringify({state:'public_dashboard_control_effect',name,result,digest:receipt.digest}));
+  };
+  if(p.featuresOnly&&alive()){
+   try{
+    await page.goto(ORIGIN+'/props',{timeout:15000});
+    if(!await waitPremium(page))throw Error('session unavailable');
+    await saveControlProbe('Props',await observePropsPager(page,alive));
+   }catch{errors++;console.log(JSON.stringify({state:'public_dashboard_control_effect_pending',name:'Props'}));}
+  }
   for(const name of p.historyRepair||p.currentProfiles?[]:['Games','Discrepancies','Popular']){
    if(!alive())break;
    const stop=Date.now()+90000,featureAlive=()=>alive()&&Date.now()<stop;
@@ -368,6 +398,7 @@ async function main(root,env=process.env){
     if(!href){errors++;console.log(JSON.stringify({state:'public_dashboard_route_pending',name}));continue;}
     await page.goto(href,{timeout:15000});if(!await waitPremium(page))throw Error('session unavailable');
     const controlSurface=await dashboardControlDiagnostics(page,name);
+    if(p.featuresOnly&&featureAlive()){try{await saveControlProbe(name,await observeNamedControl(page,name,featureAlive));}catch{errors++;console.log(JSON.stringify({state:'public_dashboard_control_effect_pending',name}));}}
     let snapshots=0,sequences=0;const result=await traverseDashboardFilters(page,name,{shouldContinue:featureAlive,
      onSnapshot:async s=>{const {controls,...sports}=s;const r=await write('dashboards',{schema:'pickfinder-public-dashboard-v1',...sports});snapshots++;return r.digest;},
      onSequence:async receipt=>{await write('dashboards',{...receipt,captureOrigin:captureOrigin(env,p)});sequences++;}

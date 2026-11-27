@@ -337,3 +337,20 @@ test('expanded current NHL replay corroborates full-game stat columns independen
  assert.ok(![...run('23.45',true).cache.values()].some(x=>x.market==='iceTimeSeconds'));
  assert.equal(run('23:45',true,{period:'first'}).cache.size,0);
 });
+
+test('current NBA replay expands only explicitly aligned and independently matched full-game columns',()=>{
+ const {nativeIndex,audit}=require('../scripts/pickfinder-native-history-reconciliation.cjs');
+ const {VERSION}=require('../scripts/pickfinder-research-coverage.cjs');
+ const clock='2026-11-27T10:00:00Z',startAt='2026-11-25T22:00:00Z',observedAt='2026-11-26T10:00:00Z',digest='a'.repeat(64);
+ const index=nativeIndex({facts:[],nhlFinals:[],nflSeasons:[],nbaFinalHistories:[{digest,first:observedAt,doc:{
+  kind:'nba_official_cdn_final_history_v1',source:'cdn.nba.com final boxscore',officialFinalClockVerified:true,sourceResponseSha256:digest,
+  gameId:1,startAt,capturedAt:observedAt,rows:[{gameId:1,playerId:2,player:'Fixture',team:'BOS',opponent:'NYK',wl:'W',
+   gameDate:'2026-11-25',officialGameFinalVerified:true,identityVerified:true,appeared:true,points:14,rebounds:7,assists:5}]}}]},clock);
+ const f={origin:'profile',metric:'row 1',tab:'Game Log',scope:'Date | Opponent | PTS | REB | AST',observedAt,
+  value:JSON.stringify(['11/25','NYK','14','7','4'].map(value=>({value})))};
+ const r={sport:'nba',player:'Fixture',market:'player_points',detailId:'/players/nba/test',status:'sampled',truncated:false,coverageVersion:VERSION,research:[f]};
+ const replay=(record,expand)=>audit([{digest,first:clock,doc:{records:[record]}}],index,clock,[],{expandCurrentNbaLogs:expand});
+ assert.deepEqual([...replay(r,false).cache.values()].map(x=>x.market),['points']);
+ assert.deepEqual([...replay(r,true).cache.values()].map(x=>x.market),['points','rebounds']);
+ assert.equal(replay({...r,period:'first_half'},true).cache.size,0);
+});

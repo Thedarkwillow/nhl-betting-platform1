@@ -1,6 +1,6 @@
 {
   "kind": "public_nfl_native_history_health_v1",
-  "generatedAt": "2026-11-26T22:37:54.418445Z",
+  "generatedAt": "2026-11-27T22:22:57.899879Z",
   "seasons": {
     "2024": {
       "status": "cached",
@@ -17,13 +17,13 @@
     "2026": {
       "status": "observed",
       "games": 272,
-      "playerRows": 11461,
-      "rosterIds": 21964,
+      "playerRows": 11600,
+      "rosterIds": 21999,
       "completeHistoricalSeason": false,
-      "archiveDigest": "3e66d36f1de1b05c72c0fda226fd8e8c2af7a9708a0c9c94313535f4b085d087"
+      "archiveDigest": "82e95cb581586d3bc0c3cb73171c1629d53035717477984929e82b054b3f09fd"
     }
   },
-  "espnGsisCandidateRows": 2842,
+  "espnGsisCandidateRows": 3576,
   "paidRequests": 0,
   "privateRepoUsed": false,
   "modelApproved": false

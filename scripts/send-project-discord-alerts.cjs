@@ -75,19 +75,22 @@ async function dispatch(events,{env,mode,runKey,now,ledger,client=fetch}){
   if(!/^\d+$/.test(runKey))throw Error('run reference');
   events=[{id:hash('channel test '+runKey),kind:'research_update',text:'Channel setup test. No live offer or prediction.'}];
  }
- if(!events.length)return {status:'no_eligible_changes',delivered:0};
+ const deliveredCategories={};
+ if(!events.length)return {status:'no_eligible_changes',delivered:0,deliveredCategories};
  if(events.some(e=>!id(e.id)))throw Error('event identity');
  const first=ledger.read();
- if(events.every(e=>Object.hasOwn(first.rows,e.id)))return {status:'already_claimed',delivered:0};
+ if(events.every(e=>Object.hasOwn(first.rows,e.id)))return {status:'already_claimed',delivered:0,deliveredCategories};
  const batches=mode==='test'?[{destination:allowDestination(env),events}]:deliveryBatches(events,env);
  let delivered=0;
- for(const b of batches)delivered+=await deliverBatch(b,{now,ledger,client});
- return {status:delivered?'discord_confirmed':'already_claimed',delivered};
+ for(const b of batches)for(const e of await deliverBatch(b,{now,ledger,client})){
+  delivered++;deliveredCategories[e.kind]=(deliveredCategories[e.kind]||0)+1;
+ }
+ return {status:delivered?'discord_confirmed':'already_claimed',delivered,deliveredCategories};
 }
 async function deliverBatch({events,destination:dest},{now,ledger,client}){
  const stored=ledger.read();
  const pending=[...new Map(events.map(x=>[x.id,x])).values()].filter(e=>!Object.hasOwn(stored.rows,e.id)).slice(0,6);
- if(!pending.length)return 0;
+ if(!pending.length)return [];
  const opts={redirect:'error',signal:AbortSignal.timeout(12000)};
  const meta=await client(dest.url,opts);
  if(!meta.ok)throw Error('destination read failed');
@@ -105,7 +108,7 @@ async function deliverBatch({events,destination:dest},{now,ledger,client}){
  const proof=createHmac('sha256',dest.url).update(receipt.id).digest('hex');
  for(const e of pending)rows[e.id]={at:now,state:'confirmed',proof};
  ledger.save(claimed,rows);
- return pending.length;
+ return pending;
 }
 async function main(){
  const mode=process.argv[2]||'preview',root=fs.realpathSync(process.argv[3]||'.'),now=Date.now();

@@ -144,8 +144,15 @@ function build(root,now,doc,nbaDoc,receipts=[]){
 }
 function message(events){
  if(events.length<1||events.length>6||events.some(e=>!Object.hasOwn(names,e.kind)))throw Error('alert batch');
- return {content:['**Platform research alerts**',...events.map(e=>'• '+names[e.kind]+' — '+e.text+(Number.isFinite(dt(e.observedAt))?' · '+new Date(dt(e.observedAt)).toISOString().slice(0,16).replace('T',' ')+' UTC':'')),
-  'Observed research only. Check the original app. No wagers or recommendations.'].join('\n').slice(0,1950),
+ const lines=events.map(e=>{
+  const prefix='• '+names[e.kind]+' — ';
+  const suffix=Number.isFinite(dt(e.observedAt))?' · '+new Date(dt(e.observedAt)).toISOString().slice(0,16).replace('T',' ')+' UTC':'';
+  const max=300-prefix.length-suffix.length;
+  const detail=e.text.length<=max?e.text:e.text.slice(0,max-1).replace(/[\uD800-\uDBFF]$/u,'')+'…';
+  return prefix+detail+suffix;
+ });
+ return {content:['**Platform research alerts**',...lines,
+  'Observed research only. Check the original app. No wagers or recommendations.'].join('\n'),
   flags:4,allowed_mentions:{parse:[]}};
 }
 module.exports={compare,research,nbaResearch,availability,build,message,sports,books,tiers,names};

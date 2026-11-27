@@ -104,6 +104,27 @@ test('price-only changes preserve the prior deduplication key and retain the obs
  a.equal(compare([old,absent],time).events[0].observedAt,absent.entry.m.lastObservedAt);
 });
 
+test('Discord receipts track actual category counts, not unsent candidates',async()=>{
+ let rows={},payload;
+ const ledger={read:()=>({head:null,rows}),save:(_h,r)=>{rows=structuredClone(r);return 'commit';}};
+ const client=async(_url,opts)=>{
+  if(!opts.method)return {ok:true,json:async()=>({guild_id:guild,channel_id:channel})};
+  payload=JSON.parse(opts.body);
+  return {ok:true,json:async()=>({channel_id:channel,id:'123456789012345680'})};
+ };
+ const kinds=['line_change','price_change','new_prop','removed_prop','alternate_tier','discrepancy'];
+ const fixture=[...kinds,'research_update'].map((kind,i)=>({
+  id:String(i).repeat(64),kind,text:'fixture '+i+' '+('x'.repeat(600)),observedAt:iso(time)
+ }));
+ const result=await dispatch(fixture,{env,mode:'deliver',now:time,ledger,client});
+ a.deepEqual(result.deliveredCategories,Object.fromEntries(kinds.map(k=>[k,1])));
+ a.equal(result.delivered,6);
+ a.equal(Object.keys(rows).length,6);
+ a.ok(payload.content.length<1950);
+ a.equal(payload.content.split('\n').filter(line=>line.startsWith('• ')&&line.endsWith(' UTC')).length,6);
+ const replay=await dispatch(fixture.slice(0,6),{env,mode:'deliver',now:time,ledger,client});
+ a.deepEqual(replay,{status:'already_claimed',delivered:0,deliveredCategories:{}});
+});
 test('official availability keeps exact fresh reports, reconciles duplicates, and never assumes participation',()=>{
  const {availability}=require('../scripts/project-discord-line-alerts.cjs');
  const d={kind:'nba_public_official_pregame_availability_v1',modelApproved:false,positiveParticipationVerified:false,

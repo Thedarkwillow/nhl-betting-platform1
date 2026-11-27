@@ -71,7 +71,7 @@ function deliveryBatches(events,env){
 }
 const priority=e=>['new_prop','alternate_tier','reposted_prop'].includes(e.kind)?0:e.kind==='line_change'?1:2;
 function batchConfig(raw){
- const x=jsonConfig(raw,1000), defaults={itemsPerMessage:6,messagesPerChannel:4,messagesPerRun:12,newPropLookbackMinutes:120};
+ const x=jsonConfig(raw,1000), defaults={itemsPerMessage:6,messagesPerChannel:8,messagesPerRun:12,newPropLookbackMinutes:240};
  const bounds={itemsPerMessage:[1,6],messagesPerChannel:[1,12],messagesPerRun:[1,36],newPropLookbackMinutes:[25,480]};
  for(const [k,v] of Object.entries(x)){
   if(!Object.hasOwn(bounds,k)||!Number.isInteger(v)||v<bounds[k][0]||v>bounds[k][1])throw Error('batch configuration');
@@ -94,7 +94,7 @@ async function dispatch(events,{env,mode,runKey,now,ledger,client=fetch}){
  if(!pending.length)return {status:'already_claimed',delivered:0,deliveredCategories};
  const batches=mode==='test'?[{destination:allowDestination(env),events:pending}]:deliveryBatches(pending,env);
  let delivered=0,messages=0;
- const perChannel=new Map();
+ const perChannel=new Map(),sentIds=new Set();
  // Across channels, exhaust higher priority before ordinary updates. Round
  // robin inside each priority so one busy sport cannot take every batch.
  for(const rank of [0,1,2]){
@@ -106,12 +106,13 @@ async function dispatch(events,{env,mode,runKey,now,ledger,client=fetch}){
     if(messages>=config.messagesPerRun||count>=config.messagesPerChannel||!b.events.length)continue;
     const sent=await deliverBatch({destination:b.destination,events:b.events.splice(0,config.itemsPerMessage)},{now,ledger,client});
     if(sent.length){messages++;perChannel.set(channel,count+1);}
-    for(const e of sent){delivered++;deliveredCategories[e.kind]=(deliveredCategories[e.kind]||0)+1;}
+    for(const e of sent){sentIds.add(e.id);delivered++;deliveredCategories[e.kind]=(deliveredCategories[e.kind]||0)+1;}
    }
   }
  }
- const remaining=pending.length-delivered;
- return {status:delivered?'discord_confirmed':'already_claimed',delivered,deliveredCategories,...(remaining?{remaining}:{}),...(messages?{messages}:{})};
+ const remaining=pending.length-delivered,remainingCategories={};
+ for(const e of pending)if(!sentIds.has(e.id))remainingCategories[e.kind]=(remainingCategories[e.kind]||0)+1;
+ return {status:delivered?'discord_confirmed':'already_claimed',delivered,deliveredCategories,...(remaining?{remaining,remainingCategories}:{}),...(messages?{messages}:{})};
 }
 async function deliverBatch({events,destination:dest},{now,ledger,client}){
  const stored=ledger.read();

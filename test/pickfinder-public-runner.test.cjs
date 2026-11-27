@@ -147,9 +147,9 @@ test('NBA history repair is manual and protects both morning capture windows',()
 
 test('NBA history-only runner excludes unrelated context and discovery prepasses',()=>{
  const fs=require('node:fs'),src=fs.readFileSync(require.resolve('../scripts/pickfinder-public-runner.cjs'),'utf8');
- assert.ok(src.includes('const evidence=p.historyRepair||fallback?null:await discover({env});'));
- assert.ok(src.includes('if(!p.historyRepair&&alive()){\n   const until=Date.now()+90000,gameAlive='));
- assert.ok(src.includes('if(!p.historyRepair&&alive()&&!p.featuresOnly){'));
+ assert.ok(src.includes('const evidence=p.historyRepair||p.currentProfiles||fallback?null:await discover({env});'));
+ assert.ok(src.includes('if(!p.historyRepair&&!p.currentProfiles&&alive()){\n   const until=Date.now()+90000,gameAlive='));
+ assert.ok(src.includes('if(!p.historyRepair&&!p.currentProfiles&&alive()&&!p.featuresOnly){'));
 });
 
 test('historical prop table is collected without treating unrelated stat or movement tables as results',()=>{
@@ -312,4 +312,29 @@ test('observes only the Builder side choices and dismisses the observed popover'
  assert.deepEqual(receipt.controls.map(x=>x.label),['Over']);
  assert.deepEqual(calls,['open','Escape']);
  assert.equal(receipt.mutations,0);
+});
+
+test('current profiles resume board-exact work without enqueuing legacy repair',()=>{
+ const {currentProfileQueue}=require('../scripts/pickfinder-public-runner.cjs');
+ const {VERSION}=require('../scripts/pickfinder-research-coverage.cjs');
+ const tick=Date.parse('2026-11-27T07:00:00Z'),iso=ms=>new Date(tick+ms).toISOString();
+ const o={book:'prizepicks',sport:'nba',player:'Fixture',detailId:'/players/nba/a?prop=x%3Apoints%3Ae%3A5',market:'points',eventId:'e',observedAt:iso(-60000),startAt:iso(3600000),period:null};
+ const b={m:{book:o.book,sport:o.sport,authenticated:true,boardState:'populated',pageTraversalComplete:true,lastPageReached:true,
+  health:{wrongSport:0,priceConflictKeys:0},firstObservedAt:iso(-60000),lastObservedAt:iso(-60000)},first:iso(-30000),offers:[o]};
+ const a={latest:[b],invalid:[]};
+ const prior={...o,coverageVersion:VERSION,status:'sampled',truncated:false,research:[{origin:'profile',observedAt:iso(-50000),value:'stats'}]};
+ assert.equal(currentProfileQueue(a,[{records:[prior]}],tick).reused,1);
+ assert.equal(currentProfileQueue(a,[{records:[{...prior,truncated:true}]}],tick).pending.length,1);
+ assert.equal(currentProfileQueue(a,[{records:[{...prior,period:'first_half'}]}],tick).pending.length,1);
+ assert.equal(currentProfileQueue({latest:[{...b,offers:[{...o,startAt:iso(-1)}]}],invalid:[]},[],tick).expired,1);
+ assert.equal(currentProfileQueue({...a,invalid:['bad']},[],tick).pending.length,0);
+ for(const bad of [{boardState:'partial'},{lastPageReached:false},{lastObservedAt:iso(-9*3600000)}])
+  assert.equal(currentProfileQueue({latest:[{...b,m:{...b.m,...bad}}],invalid:[]},[],tick).pending.length,0);
+});
+test('current profile mode only dispatches outside protected morning hours',()=>{
+ const e={PICKFINDER_AUTOMATION_AUTHORIZED:'1',PICKFINDER_PUBLIC_DATA_AUTHORIZED:'1',
+  GITHUB_EVENT_NAME:'workflow_dispatch',REQUESTED_MODE:'current_profiles'};
+ assert.equal(invocation(e,new Date('2026-11-27T07:00:00Z')).currentProfiles,true);
+ assert.equal(invocation(e,new Date('2026-11-27T13:00:00Z')).allowed,false);
+ assert.throws(()=>invocation({...e,GITHUB_EVENT_NAME:'pull_request'},new Date('2026-11-27T07:00:00Z')));
 });

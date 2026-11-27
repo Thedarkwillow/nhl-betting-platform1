@@ -35,9 +35,9 @@ function readVisible({player,detailId}){
  }
  for(const el of scope.querySelectorAll('p,span,div'))if(visible(el)&&el.children.length===0){const m=clean(el.innerText).match(/^(Team|Opponent|Matchup|Game date UTC|Event date UTC|Game time|Game start(?: time)?|Event start|Scheduled start)\s*:\s*(.+)$/i);if(m)add(m[1],m[2]);}
  // The profile's identity header precedes a separate current-matchup heading.
- for(const el of main.querySelectorAll('h2')){
+ for(const el of new Set([...main.querySelectorAll('h2'),...scope.querySelectorAll('p,span,div')])){
   if(!visible(el))continue;
-  const m=clean(el.innerText).match(/^([A-Z]{2,4})\s+(?:vs\.?|@)\s+([A-Z]{2,4})\s*•\s*((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*@\s*\d{1,2}:\d{2}\s*[AP]M)$/);
+  const m=clean(el.innerText).match(/^([A-Z]{2,4})\s+(?:vs\.?|@)\s+([A-Z]{2,4})\s*[•·]\s*((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*@\s*\d{1,2}:\d{2}\s*[AP]M)$/);
   if(m){add('Team',m[1]);add('Opponent',m[2]);add('Matchup',m[0]);}
  }
  const clocks=[...scope.querySelectorAll('time[datetime]')].filter(visible).flatMap(t=>{const label=clean(t.getAttribute('aria-label')||t.getAttribute('title'));return /^(?:game|match|event|scheduled)\s*(?:start|time)/i.test(label)?[{label,value:clean(t.getAttribute('datetime'))}]:[];});
@@ -49,7 +49,7 @@ function readVisible({player,detailId}){
 function localMatchup(entries){
  const values=[...new Set(entries.filter(x=>x.label.toLowerCase()==='matchup').map(x=>x.value.trim()))];
  if(values.length!==1)return null;
- const m=values[0].match(/^([A-Z]{2,4})\s+(@|vs\.?)\s+([A-Z]{2,4})\s*•\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*@\s*(1[0-2]|[1-9]):([0-5]\d)\s*([AP]M)$/);
+ const m=values[0].match(/^([A-Z]{2,4})\s+(@|vs\.?)\s+([A-Z]{2,4})\s*[•·]\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*@\s*(1[0-2]|[1-9]):([0-5]\d)\s*([AP]M)$/);
  return m?{team:m[1],opponent:m[3],homeAway:m[2]==='@'?'away':'home',weekday:m[4],hour:Number(m[5]),minute:Number(m[6]),dayPeriod:m[7]}:null;
 }
 // Browser configuration is contextual evidence only, not the provider's display zone.
@@ -67,4 +67,4 @@ function normalize(t,s,at){
  const local=localMatchup(entries);
  return {...t,observedAt:at,browserClock:browserClockEvidence(s),localMatchup:local,clockEvidenceState:startAt?'explicit_iso':local?'local_clock_zone_unverified':'missing_clock',state:explicit?'explicit_context_observed':'context_incomplete',routeVerified:s.routeVerified===true,playerLabelVerified:s.playerLabelVerified===true,team:teams.has(team)?team:null,opponent:teams.has(opponent)?opponent:null,startAt,displayedEvidence:entries,displayedClocks:s.clocks||[],independentReviewVerified:false,originalPlatformVerified:false};
 }
-module.exports={queue,readVisible,normalize,target,key,localMatchup};
+module.exports={queue,readVisible,normalize,target,key,localMatchup,browserClockEvidence};

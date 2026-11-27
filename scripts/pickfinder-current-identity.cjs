@@ -30,7 +30,11 @@ function captureProfileContext(row,s,at){
  if(clocks.length>1)return {conflictingClock:true,observedAt:at};
  const team=one('team'),opponent=one('opponent'),startAt=clocks[0]||null,rawDay=one('game date utc')||one('event date utc'),gameDateUtc=isoDay(rawDay)?rawDay:null;
  if(!team||!opponent||norm(team)===norm(opponent))return null;
- return {team,opponent,startAt,gameDateUtc,observedAt:at};
+  const local=profiler.localMatchup(s.entries||[]);
+ const label=one('matchup');
+ const display=local&&norm(local.team)===norm(team)&&norm(local.opponent)===norm(opponent)?
+  {displayedMatchupLabel:label,displayedLocalMatchup:local,browserClock:profiler.browserClockEvidence(s),providerDisplayZoneVerified:false}:{};
+ return {team,opponent,startAt,gameDateUtc,observedAt:at,...display};
 }
 function candidates(o,contexts,facts){
  const start=contexts.startAt,at=date(o.currentProfileAttemptedAt);

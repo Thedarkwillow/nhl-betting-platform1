@@ -34,17 +34,21 @@ function normalize(input,{now=new Date()}={}){
  if(first>last||last>now)throw Error("attempt chronology");
  const links=new Set(),offers=new Map(),conflicts=new Set(),pageNumbers=new Set(),researchObservations=[],unpricedTierObservations=new Map(),sportsbookQuotes=new Map();
  let appearances=0,unresolvedRows=0,wrongSport=0,crossHourRows=0;
+ const detailLinkAccounting={samePageRepeats:0,acrossPageRepeats:0,unresolvedRowsBeforeOfferParsing:0};
  const unresolvedEvidence={legacyNoEvidence:0,bookBadgeMissing:0,tierWithoutExplicitPrice:0,bookBadgeWithoutExplicitPrice:0,ambiguousBookGroup:0,lineMissing:0};
  for(const page of input.pages){
   if(!Number.isInteger(page.number)||page.number<1||pageNumbers.has(page.number)||!Array.isArray(page.rows)||page.rows.length>500)throw Error("page shape");
   pageNumbers.add(page.number);
+  const pageLinks=new Set();
   for(const row of page.rows){
    appearances++;
    if(!row||row.sport!==input.sport){wrongSport++;continue;}
-   if(!text(row.detailId)||!text(row.player)||!text(row.market)||!Array.isArray(row.apps)||row.apps.length>100){unresolvedRows++;continue;}
+   if(!text(row.detailId)||!text(row.player)||!text(row.market)||!Array.isArray(row.apps)||row.apps.length>100){unresolvedRows++;detailLinkAccounting.unresolvedRowsBeforeOfferParsing++;continue;}
    const observed=instant(row.observedAt);
    if(observed<first||observed>last)throw Error("row outside attempt");
-   links.add(row.detailId);
+   if(pageLinks.has(row.detailId))detailLinkAccounting.samePageRepeats++;
+   else if(links.has(row.detailId))detailLinkAccounting.acrossPageRepeats++;
+   pageLinks.add(row.detailId);links.add(row.detailId);
    for(const q of extractQuotes(row)){const k=JSON.stringify([q.detailId,q.eventId,q.market,q.bookLabel,q.side,q.quoteLine,q.price,q.observedAt,q.sourceQuoteDateTime??null]);sportsbookQuotes.set(k,q);}
    for(const field of scopedResearch(row.research,first,last,input.sport))researchObservations.push({...field,detailId:row.detailId,player:row.player,market:row.market,eventId:text(row.eventId)?row.eventId:null,boardBook:input.book,startAt:row.startAt?instant(row.startAt).toISOString():null});
    if(input.slot!=="manual"&&!inSlot(observed,input.localDay,input.slot))crossHourRows++;
@@ -93,7 +97,7 @@ function normalize(input,{now=new Date()}={}){
  if(input.sport==="soccer"&&links.size>=9999)reasons.push("possible_display_cap_requires_partition_reconciliation");
  if(input.boardState==="empty"&&appearances!==0||input.boardState==="disabled"&&appearances!==0)reasons.push("inconsistent_board_state");
  // A mutable UI traversal is not proof of full-board completeness, even when contiguous.
- return {schema:"pickfinder-premium-normalized-v1",book:input.book,sport:input.sport,localDay:input.localDay,slot:input.slot,firstObservedAt:first.toISOString(),lastObservedAt:last.toISOString(),boardState:input.boardState,withinSlot,pageTraversalComplete,fullBoardCertified:false,originalOffersVerified:0,modelInputsApproved:false,health:{pages:pageNumbers.size,appearances,distinctDetailLinks:links.size,repeatOrUnresolvedLinks:repeatLinks,distinctOfferKeys:offers.size,priceConflictKeys:conflicts.size,wrongSport,unresolvedRows,crossHourRows,unresolvedEvidence,researchFields:researchObservations.length,sportsbookQuoteObservations:sportsbookQuotes.size,unpricedTierObservations:unpricedTierObservations.size,reasons},offers:[...offers.values()],researchObservations,unpricedTierObservations:[...unpricedTierObservations.values()],sportsbookQuotes:[...sportsbookQuotes.values()]};
+ return {schema:"pickfinder-premium-normalized-v1",book:input.book,sport:input.sport,localDay:input.localDay,slot:input.slot,firstObservedAt:first.toISOString(),lastObservedAt:last.toISOString(),boardState:input.boardState,withinSlot,pageTraversalComplete,fullBoardCertified:false,originalOffersVerified:0,modelInputsApproved:false,health:{pages:pageNumbers.size,appearances,distinctDetailLinks:links.size,repeatOrUnresolvedLinks:repeatLinks,detailLinkAccounting,distinctOfferKeys:offers.size,priceConflictKeys:conflicts.size,wrongSport,unresolvedRows,crossHourRows,unresolvedEvidence,researchFields:researchObservations.length,sportsbookQuoteObservations:sportsbookQuotes.size,unpricedTierObservations:unpricedTierObservations.size,reasons},offers:[...offers.values()],researchObservations,unpricedTierObservations:[...unpricedTierObservations.values()],sportsbookQuotes:[...sportsbookQuotes.values()]};
 }
 function archive(input,root,attemptId,opts){
  if(process.env.RESTRICTED_DESTINATION_VERIFIED!=="1"||!fs.existsSync(root+"/.git"))throw Error("verified private archive required");

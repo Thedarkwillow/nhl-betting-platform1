@@ -62,3 +62,15 @@ test("player history reader recognizes displayed three-month main-line window",(
 });
 
 test("tier-only line is separate from actionable offers and public summary",()=>{const x=input(),r=x.pages[0].rows[0];r.apps=[];r.appEvidence=[{book:"prizepicks",icons:["prizepicks","goblin"],tier:"goblin",line:28.5}];const y=normalize(x,{now});assert.equal(y.offers.length,0);assert.equal(y.unpricedTierObservations.length,1);assert.equal(y.unpricedTierObservations[0].side,null);assert.equal(y.unpricedTierObservations[0].displayedPrice,null);assert.equal(y.unpricedTierObservations[0].eligibleForLockedModel,false);assert.equal(y.health.unresolvedRows,1);});
+
+test("detail-link diagnostics distinguish pagination repeats from local repeats and malformed rows",()=>{
+ const x=input();x.displayedPageCount=2;
+ x.pages[0].rows.push(row(),{...row(),detailId:null},{...row(),sport:"nba"});
+ x.pages.push({number:2,rows:[row(),row(),{...row(),apps:[]}]});
+ const {health,offers}=normalize(x,{now});
+ assert.deepEqual(health.detailLinkAccounting,{samePageRepeats:3,acrossPageRepeats:1,unresolvedRowsBeforeOfferParsing:1});
+ assert.equal(health.repeatOrUnresolvedLinks,5);
+ assert.equal(health.unresolvedRows,2);
+ assert.equal(health.wrongSport,1);
+ assert.equal(offers.length,1);
+});

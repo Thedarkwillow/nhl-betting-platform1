@@ -105,11 +105,11 @@ test('price-only changes preserve the prior deduplication key and retain the obs
 });
 
 test('Discord receipts track actual category counts, not unsent candidates',async()=>{
- let rows={},payload;
+ let rows={},payloads=[];
  const ledger={read:()=>({head:null,rows}),save:(_h,r)=>{rows=structuredClone(r);return 'commit';}};
  const client=async(_url,opts)=>{
   if(!opts.method)return {ok:true,json:async()=>({guild_id:guild,channel_id:channel})};
-  payload=JSON.parse(opts.body);
+  payloads.push(JSON.parse(opts.body));
   return {ok:true,json:async()=>({channel_id:channel,id:'123456789012345680'})};
  };
  const kinds=['line_change','price_change','new_prop','removed_prop','alternate_tier','discrepancy'];
@@ -117,11 +117,13 @@ test('Discord receipts track actual category counts, not unsent candidates',asyn
   id:String(i).repeat(64),kind,text:'fixture '+i+' '+('x'.repeat(600)),observedAt:iso(time)
  }));
  const result=await dispatch(fixture,{env,mode:'deliver',now:time,ledger,client});
- a.deepEqual(result.deliveredCategories,Object.fromEntries(kinds.map(k=>[k,1])));
- a.equal(result.delivered,6);
- a.equal(Object.keys(rows).length,6);
- a.ok(payload.content.length<1950);
- a.equal(payload.content.split('\n').filter(line=>line.startsWith('• ')&&line.endsWith(' UTC')).length,6);
+ a.deepEqual(result.deliveredCategories,Object.fromEntries([...kinds,'research_update'].map(k=>[k,1])));
+ a.equal(result.delivered,7);
+ a.equal(Object.keys(rows).length,7);
+ a.ok(payloads.every(x=>x.content.length<1950));
+ a.match(payloads[0].content,/NEW PROP/);
+ a.doesNotMatch(payloads[0].content,/Price change/);
+ a.equal(payloads.flatMap(x=>x.content.split('\n')).filter(line=>line.startsWith('• ')&&line.endsWith(' UTC')).length,7);
  const replay=await dispatch(fixture.slice(0,6),{env,mode:'deliver',now:time,ledger,client});
  a.deepEqual(replay,{status:'already_claimed',delivered:0,deliveredCategories:{}});
 });
@@ -154,4 +156,48 @@ test('notification filters and routes are exact and replay remains deduplicated 
   return {ok:true,json:async()=>o.method?{id:'123456789012345680',channel_id:c}:{guild_id:guild,channel_id:c}};};
  a.equal((await dispatch([n,h],{env:routing,mode:'deliver',now:time,ledger,client})).delivered,2);
  a.equal((await dispatch([n,h],{env,mode:'deliver',now:time,ledger,client})).status,'already_claimed');a.equal(posts,2);
+});
+
+test('new threshold and alternate combine sides, require a clean prior, and retain unknown sides',()=>{
+ const prior=board('prizepicks',70,[['Alice',2.5]]);
+ const next=board('prizepicks',2,[['Alice',2.5],['Alice',3.5],['Alice',4.5,'demon']]);
+ next.entry.offers.push({...next.entry.offers[1],side:'Lower'});
+ const unpriced={...next.entry.offers.pop(),tier:'goblin',line:1.5,side:null,displayedPrice:null};
+ next.entry.unpricedTierObservations=[unpriced];
+ next.entry.offers.push({...next.entry.offers[1],side:'Lower'});
+ const result=compare([prior,next],time).events.filter(x=>['new_prop','alternate_tier'].includes(x.kind));
+ a.equal(result.length,3);
+ const two=result.find(x=>x.kind==='new_prop');
+ a.deepEqual(two.availableDirections,['Higher','Lower']);a.match(two.text,/Higher \/ Lower/);
+ a.match(result.find(x=>x.tier==='goblin').text,/sides unverified/);
+ a.equal(compare([prior,board('prizepicks',30,[],{boardState:'partial'}),next],time).events.filter(x=>x.kind==='new_prop').length,0);
+ prior.entry.m.health.unresolvedRows=1;
+ a.equal(compare([prior,next],time).events.filter(x=>x.kind==='new_prop').length,0);
+});
+
+test('repost needs a clean documented absence, older observation is retained for batching',()=>{
+ const old=board('prizepicks',110,[['Alice',2.5]]),
+  missing=board('prizepicks',80,[],{boardState:'empty',explicitEmpty:true,health:{pages:0,wrongSport:0,priceConflictKeys:0,unresolvedRows:0}}),
+  back=board('prizepicks',40,[['Alice',2.5]]),latest=board('prizepicks',5,[['Alice',2.5]]);
+ const found=compare([old,missing,back,latest],time).events.filter(x=>x.kind==='reposted_prop');
+ a.equal(found.length,1);a.equal(found[0].observedAt,back.entry.offers[0].observedAt);
+ a.equal(compare([old,missing,back,latest],time+60000).events.find(x=>x.kind==='reposted_prop').id,found[0].id);
+ a.equal(compare([old,missing,back,latest],time,{windowMs:25*60000}).events.some(x=>x.kind==='reposted_prop'),false);
+});
+
+test('limits defer overflow, not mark it delivered, and new props outrank price across channels',async()=>{
+ let rows={},sent=[];
+ const ledger={read:()=>({head:null,rows}),save:(_h,v)=>{rows=structuredClone(v);return 'commit';}};
+ const ch='123456789012345689', w=webhook.replace(channel,ch);
+ const config={...env,PROJECT_DISCORD_SPORT_ROUTES:JSON.stringify({cs2:{channelId:ch,webhookUrl:w}}),
+  PROJECT_DISCORD_BATCH_CONFIG:'{"itemsPerMessage":2,"messagesPerChannel":2,"messagesPerRun":2}'};
+ const client=async(u,o)=>{const c=u.startsWith(w)?ch:channel;if(o.method)sent.push([c,JSON.parse(o.body).content]);return {
+  ok:true,json:async()=>o.method?{id:'123456789012345680',channel_id:c}:{guild_id:guild,channel_id:c}};};
+ const make=(i,kind,sport)=>({id:String(i).repeat(64),kind,sport,text:'Fixture '+i,observedAt:iso(time)});
+ const stream=[make(1,'price_change','nba'),make(2,'new_prop','cs2'),make(3,'new_prop','cs2'),make(4,'reposted_prop','cs2'),make(5,'alternate_tier','nba')];
+ const opts={env:config,mode:'deliver',now:time,ledger,client};
+ const first=await dispatch(stream,opts); a.equal(first.delivered,3);a.equal(first.remaining,2);
+ a.equal(sent.length,2);a.ok(sent.every(([,text])=>!text.includes('Price change')));
+ const second=await dispatch(stream,opts);a.equal(second.delivered,2);a.equal(sent.length,4);
+ a.equal((await dispatch(stream,opts)).status,'already_claimed');
 });

@@ -5,10 +5,11 @@ const {walkBoards}=require('./pickfinder-public-evidence-audit.cjs');
 const {stableDetail}=require('./pickfinder-local-line-alerts.cjs');
 const hash=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
 const dt=Date.parse, M=60000, fresh=25*M, previous=12*60*M;
+const isDigest=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 const sports=new Set(['nba','nhl','nfl','cs2','valorant','dota2','lol','cod','mlb','wnba','college-basketball','college-football','tennis','soccer']);
 const books=new Set(['prizepicks','underdog']);
 const tiers=new Set(['standard','goblin','demon','alternate']);
-const names={line_change:'Line change',price_change:'Price change',new_prop:'Newly observed prop',removed_prop:'Not seen on latest board',alternate_tier:'Alternate tier',discrepancy:'Cross-platform discrepancy',research_update:'Research update',availability_update:'Official availability update'};
+const names={line_change:'Line change',price_change:'Price change',new_prop:'🆕 NEW PROP',removed_prop:'Not seen on latest board',alternate_tier:'🆕 NEW PROP (alternate tier)',reposted_prop:'Reposted prop',discrepancy:'Cross-platform discrepancy',research_update:'Research update',availability_update:'Official availability update'};
 const plain=s=>String(s).replace(/[^\p{L}\p{M}\p{N} .,'()+/&-]/gu,' ').replace(/\s+/g,' ').trim().slice(0,70);
 function acceptable(b,now){
  const t=dt(b.m.lastObservedAt), git=dt(b.first);
@@ -47,16 +48,86 @@ function event(kind,scope,a,b,line){
  return {id:hash([kind==='price_change'?'line_change':kind,scope,a?.book,a?.line,b?.book,b?.line,line]),kind,sport:o.sport,tier:o.tier,books:[...new Set([a?.book,b?.book].filter(Boolean))],observedAt,
   text:[o.sport.toUpperCase(),plain(o.player),plain(o.market),[o.period,o.mapRange,o.gameMode].filter(Boolean).map(plain).join(' / '),plain(o.tier),o.side].filter(Boolean).join(' · ')+' — '+line};
 }
-function compare(chunks,now){
+// Group only the exact same book, player path, event, market, tier, threshold
+// and split. Explicit unpriced rows prove a line was shown, never a direction.
+function observedLines(b,now){
+ const out=new Map();
+ for(const o of [...b.offers,...(b.unpricedTierObservations||[])]){
+  const at=dt(o.observedAt),tier=o.tier||'standard',id=stableDetail(o.detailId);
+  if(o.book!==b.m.book||o.sport!==b.m.sport||!o.eventId||!o.player||!o.market||!id||
+   !tiers.has(tier)||!Number.isFinite(o.line)||!Number.isFinite(at)||at<dt(b.m.firstObservedAt)||at>dt(b.m.lastObservedAt)||
+   o.startAt&&(!Number.isFinite(dt(o.startAt))||dt(o.startAt)<=now))continue;
+  const [path]=JSON.parse(id),scope=JSON.stringify([o.book,o.sport,o.eventId,path,o.player,o.market,o.period??null,o.mapRange??null,o.gameMode??null,tier]);
+  const key=JSON.stringify([scope,o.line]),g=out.get(key)||{scope,key,path,row:{...o,tier},sides:new Set(),observedAt:o.observedAt};
+  if(['Higher','Lower'].includes(o.side))g.sides.add(o.side);
+  if(at<dt(g.observedAt))g.observedAt=o.observedAt;
+  out.set(key,g);
+ }
+ return out;
+}
+function contextIndex(doc,now){
+ const events=new Map(),pairs=new Map();
+ if(doc?.kind!=='pickfinder_current_identity_registry_v1'||doc.modelApproved!==false||doc.paidRequests!==0||!(dt(doc.generatedAt)<=now))return {events,pairs};
+ const key=(...a)=>JSON.stringify(a),proof=r=>isDigest(r.nativeReceiptDigest??r.receiptDigest)&&
+  r.timezoneReceiptDigests?.length===3&&new Set(r.timezoneReceiptDigests).size===3&&r.timezoneReceiptDigests.every(isDigest)&&
+  dt(r.proofAvailableAt)<=now&&Number.isFinite(dt(r.startAt));
+ const set=(m,k,v)=>{if(!m.has(k))m.set(k,v);else if(JSON.stringify(m.get(k))!==JSON.stringify(v))m.set(k,null);};
+ for(const r of doc.eventRegistry||[])if(proof(r))set(events,key(r.sport,r.sourceEventId),r.startAt);
+ for(const r of doc.rows||[])if(r.match&&proof(r.match)&&r.match.team&&r.match.opponent)
+  set(pairs,key(r.sport,r.sourceEventId,r.sourcePlayerPath),[r.match.team,r.match.opponent]);
+ return {events,pairs};
+}
+function additions(history,now,context,windowMs){
+ const result=[],seen=new Set();
+ for(let i=0;i<history.length-1;i++){
+  const b=history[i],old=history[i+1];
+  if(!complete(b)||!complete(old)||old.m.health.unresolvedRows!==0||
+    dt(old.m.lastObservedAt)>=dt(b.m.firstObservedAt)||now-dt(b.m.lastObservedAt)>windowMs)continue;
+  // No inference of absence across a partial partition or a missing baseline.
+  const current=observedLines(b,now),prior=observedLines(old,now);
+  const replacement=new Map(),sizes=new Map();
+  for(const g of current.values())sizes.set(g.scope,(sizes.get(g.scope)||0)+1);
+  for(const g of prior.values())if(!current.has(g.key))replacement.set(g.scope,(replacement.get(g.scope)||0)+1);
+  const previousSc=new Set([...prior.values()].map(g=>g.scope));
+  const oldEvents=new Set([...prior.values()].map(g=>g.row.eventId));
+  const oldPlayers=new Set([...prior.values()].map(g=>JSON.stringify([g.row.eventId,g.path])));
+  const earlier=history[i+2],reposts=earlier&&complete(earlier)&&dt(earlier.m.lastObservedAt)<dt(old.m.firstObservedAt)?observedLines(earlier,now):new Map();
+  const newer=i>0&&complete(history[0])&&history[0].m.health.unresolvedRows===0?observedLines(history[0],now):null;
+  for(const g of current.values()){
+   if(prior.has(g.key)||seen.has(g.key)||newer&&!newer.has(g.key))continue;
+   // Single-threshold replacements continue to be line changes, not releases.
+   if(replacement.get(g.scope)===1&&sizes.get(g.scope)===1&&previousSc.has(g.scope))continue;
+   const o=g.row,kind=reposts.has(g.key)?'reposted_prop':o.tier==='standard'?'new_prop':'alternate_tier';
+   const reason=kind==='reposted_prop'?'Reposted':!oldEvents.has(o.eventId)?'New game':!oldPlayers.has(JSON.stringify([o.eventId,g.path]))?'New player prop':!previousSc.has(g.scope)?'New market or tier':'New threshold';
+   const sides=['Higher','Lower'].filter(s=>g.sides.has(s));
+   const start=context.events.get(JSON.stringify([o.sport,o.eventId]));
+   const pair=context.pairs.get(JSON.stringify([o.sport,o.eventId,g.path]));
+   const book=o.book==='prizepicks'?'PrizePicks':'Underdog';
+   if(start&&dt(start)<=now)continue;
+   const text=[o.sport.toUpperCase(),plain(o.player),plain(o.market.replace(/^player_/,'').replace(/_/g,' '))+' '+o.line,book,plain(o.tier),
+    sides.length?sides.join(' / '):'sides unverified',pair?pair.map(plain).join(' vs '):'team/opponent unverified',
+    [o.period,o.mapRange,o.gameMode].filter(Boolean).map(plain).join(' / '),reason,
+    start?'starts '+new Date(dt(start)).toISOString().slice(0,16).replace('T',' ')+' UTC':null].filter(Boolean).join(' · ');
+   result.push({id:hash(['new_prop_v2',g.key,old.digest]),kind,sport:o.sport,tier:o.tier,books:[o.book],observedAt:g.observedAt,
+    text,availableDirections:sides,gameStartVerified:!!start,
+    priorIds:sides.map(side=>event(o.tier==='standard'?'new_prop':'alternate_tier',
+     JSON.stringify([JSON.stringify([o.sport,o.eventId,stableDetail(o.detailId),o.player,o.market,o.period??null,o.mapRange??null,o.gameMode??null,o.tier,side]),old.digest,b.digest]),null,{...o,side},o.book+' '+o.line).id)});
+   seen.add(g.key);
+  }
+ }
+ return result;
+}
+function compare(chunks,now,{registry,windowMs=120*M}={}){
  const partitions=new Map(), invalid={count:0};
  for(const {entry:b} of chunks){
   if(!b){invalid.count++;continue;}
-  if(!acceptable(b,now))continue;
+  if(!acceptable(b,now)||b.m.samplingPurpose==='displayed_game_clock')continue;
   const k=b.m.sport+'/'+b.m.book,a=partitions.get(k)||[];
-  a.push(b);a.sort((x,y)=>dt(y.m.lastObservedAt)-dt(x.m.lastObservedAt)||x.digest.localeCompare(y.digest));partitions.set(k,a.slice(0,2));
+  a.push(b);a.sort((x,y)=>dt(y.m.lastObservedAt)-dt(x.m.lastObservedAt)||x.digest.localeCompare(y.digest));partitions.set(k,a);
  }
  if(invalid.count)throw Error('archive integrity');
- const events=[],usable=new Map();
+ const events=[],usable=new Map(),context=contextIndex(registry,now);
+ for(const history of partitions.values())events.push(...additions(history,now,context,windowMs));
  for(const [key,[current,old]] of partitions){
   if(!complete(current)||now-dt(current.m.lastObservedAt)>fresh||old&&dt(old.m.lastObservedAt)===dt(current.m.lastObservedAt))continue;
   const latest=slot(current,now),{rows}=latest;
@@ -73,7 +144,7 @@ function compare(chunks,now){
     else if(a.displayedPrice!==b.displayedPrice)events.push(event('price_change',keyDate(k),a,b,b.book+' '+b.line+' (price '+a.displayedPrice+' → '+b.displayedPrice+')'));
     continue;
    }
-   for(const [v,b] of range)if(!p?.has(v))events.push(event(b.tier==='standard'?'new_prop':'alternate_tier',keyDate(k),null,b,b.book+' '+v));
+
   }
   // Incomplete row interpretation cannot certify absence. Require an actual future start.
   if(current.m.health.unresolvedRows===0)for(const [k,range] of prior.rows){
@@ -138,8 +209,8 @@ function availability(receipts,now){
  return [{id:hash(['nba_official_availability',same[0].doc.sourceResponseSha256]),kind:'availability_update',sport:'nba',observedAt,
   text:'NBA official injury report · '+summary+' · statuses are not confirmed participation'}];
 }
-function build(root,now,doc,nbaDoc,receipts=[]){
- const r=compare(walkBoards(root),now);
+function build(root,now,doc,nbaDoc,receipts=[],options){
+ const r=compare(walkBoards(root),now,options);
  return {...r,events:[...new Map([...availability(receipts,now),...research(doc,now),...nbaResearch(nbaDoc,now),...r.events].map(e=>[e.id,e])).values()]};
 }
 function message(events){

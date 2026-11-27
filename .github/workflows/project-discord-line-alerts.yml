@@ -8,6 +8,8 @@ on:
   workflow_run:
     workflows: ['PickFinder Premium public orchestration','PickFinder archived model input processing','Public-only PickFinder research validation']
     types: [completed]
+  schedule:
+    - cron: '4,19,34,49 * * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -31,7 +33,7 @@ jobs:
       - run: node --test test/project-discord-line-alerts.test.cjs test/pickfinder-local-tools.test.cjs
   preview:
     needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name != 'workflow_run' && inputs.mode != 'test'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'workflow_run' && github.event_name != 'schedule' && inputs.mode != 'test'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,9 +52,10 @@ jobs:
       - run: node scripts/send-project-discord-alerts.cjs preview .
         env:
           PROJECT_DISCORD_FILTERS: ${{ vars.PROJECT_DISCORD_FILTERS }}
+          PROJECT_DISCORD_BATCH_CONFIG: ${{ vars.PROJECT_DISCORD_BATCH_CONFIG }}
   send:
     needs: test
-    if: github.ref == 'refs/heads/main' && ((github.event_name == 'workflow_dispatch' && inputs.mode == 'test') || (github.event_name == 'workflow_run' && vars.PROJECT_DISCORD_ALERTS_ENABLED == '1'))
+    if: github.ref == 'refs/heads/main' && ((github.event_name == 'workflow_dispatch' && inputs.mode == 'test') || ((github.event_name == 'workflow_run' || github.event_name == 'schedule' || github.event_name == 'push') && vars.PROJECT_DISCORD_ALERTS_ENABLED == '1'))
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -78,4 +81,5 @@ jobs:
           PROJECT_DISCORD_CHANNEL_ID: ${{ vars.PROJECT_DISCORD_CHANNEL_ID }}
           PROJECT_DISCORD_WEBHOOK_URL: ${{ secrets.PROJECT_DISCORD_WEBHOOK_URL }}
           PROJECT_DISCORD_FILTERS: ${{ vars.PROJECT_DISCORD_FILTERS }}
+          PROJECT_DISCORD_BATCH_CONFIG: ${{ vars.PROJECT_DISCORD_BATCH_CONFIG }}
           PROJECT_DISCORD_SPORT_ROUTES: ${{ secrets.PROJECT_DISCORD_SPORT_ROUTES }}

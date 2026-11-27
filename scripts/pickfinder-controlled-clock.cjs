@@ -14,6 +14,26 @@ function select(archive,at){
  }
  return out;
 }
+function selectProfiles(documents,prior,at){
+ const end=Date.parse(at),groups=new Map(),out=[];
+ if(!Number.isFinite(end))return out;
+ for(const d of prior.filter(x=>x.schema==='pickfinder-controlled-clock-v1'))for(const r of d.records||[]){
+  if(!r.routeVerified||!r.playerLabelVerified||!r.localMatchup||!ZONES.includes(r.requestedZone)||
+     r.browserClock?.zone!==r.requestedZone||Date.parse(r.observedAt)>end)continue;
+  const k=r.sport+'/'+r.eventId,z=groups.get(k)||new Set();z.add(r.requestedZone);groups.set(k,z);
+ }
+ const latest=new Map();
+ for(const d of documents)for(const r of d.records||[]){
+  const t=game.target(r),c=r.independentReconciliationContext,when=Date.parse(c?.observedAt);
+  if(!t||!Number.isFinite(when)||when>end||end-when>3*3600000||c?.conflictingClock||c?.startAt||
+     !c?.displayedMatchupLabel||!c.displayedLocalMatchup)continue;
+  const key=t.sport+'/'+t.eventId;
+  if(groups.get(key)?.size===ZONES.length)continue;
+  const prev=latest.get(key);if(!prev||prev.when<when)latest.set(key,{...t,when});
+ }
+ for(const sport of SPORTS){const t=[...latest.values()].filter(x=>x.sport===sport).sort((a,b)=>b.when-a.when)[0];if(t){const {when,...target}=t;out.push(target);}}
+ return out;
+}
 function clockAt(startAt,zone){
  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:zone,weekday:'short',hour:'numeric',minute:'2-digit',hour12:true}).formatToParts(new Date(startAt)).map(x=>[x.type,x.value]));
  return {weekday:parts.weekday,hour:Number(parts.hour),minute:Number(parts.minute),dayPeriod:parts.dayPeriod};
@@ -53,4 +73,4 @@ async function observe({targets,open,alive,write,premium,origin}){
  }
  return {targets:targets.length,attempts,expected:targets.length*3,fullDesign:targets.length===9&&attempts===27,providerDisplayZoneVerified:false,modelInputsApproved:false};
 }
-module.exports={ZONES,select,clockAt,classify,observe};
+module.exports={ZONES,select,selectProfiles,clockAt,classify,observe};

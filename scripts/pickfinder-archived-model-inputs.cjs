@@ -82,6 +82,22 @@ function esportsScope(o){
  if(!require('../src/esports-research-v1.cjs').TITLES[title].stats.includes(market)||title==='COD'&&!o.gameMode)return null;
  return {title,maps,market,identityReviewed:false,mapScopeReviewed:false,modelApproved:false};
 }
+// Underdog documents a Maps 1–2 fantasy market for Dota. Preserve its
+// event/player/map scope separately from supported native-stat and model markets.
+// The operator last-hits input and full two-map grading are not proven here.
+const dotaFantasySlug='1st_2_maps_player_fantasy_score_underdog_';
+function dotaUnderdogFantasyScope(o){
+ if(o?.book!=='underdog'||o.sport!=='dota2'||o.market!==dotaFantasySlug||o.period!=null||
+  o.mapRange!=null&&o.mapRange!=='1st_2_maps'||o.gameMode!=null||!o.eventId||!Number.isFinite(o.line))return null;
+ let url;try{url=new URL(o.detailId,'https://www.pickfinder.app');}catch{return null;}
+ const values=url.searchParams.getAll('prop'),f=values.length===1?values[0].split(':'):[];
+ if(url.origin!=='https://www.pickfinder.app'||!/^\/players\/dota2\/[a-zA-Z0-9_-]+$/.test(url.pathname)||
+   f.length!==4||!f[0]||f[1]!==dotaFantasySlug||f[2]!==o.eventId||
+   !/^\d+(?:\.\d+)?$/.test(f[3])||Number(f[3])!==o.line)return null;
+ return {title:'DOTA2',maps:[1,2],market:'underdogFantasyScore',ruleScopeOnly:true,
+  rulesReference:'https://help.underdogsports.com/en/articles/10905524-pick-em-scoring-esports',
+  scoreVerified:false,identityReviewed:false,mapScopeReviewed:false,modelApproved:false};
+}
 function auditBoards(archive,clock,{esportsHistoryOnly=false}={}){
  const bySport={},history=new Map(),allKeys=esportsHistoryOnly?new Set():null;let observations=0,quoteMatches=0,featureMatches=0;const quoteEvidence={},esportsEvidence={};
  for(const b of archive.manifests){
@@ -94,7 +110,7 @@ function auditBoards(archive,clock,{esportsHistoryOnly=false}={}){
   for(const o of b.offers||[]){
    if(!o.detailId||!o.eventId||!Number.isFinite(o.line)||!valid(o.observedAt)||dt(o.observedAt)>dt(b.first)+999)continue;
    observations++;a.offers++;
-   if(['cs2','valorant','dota2','lol','cod'].includes(o.sport)){const e=esportsEvidence[o.sport]??={offerObservations:0,explicitSupportedScopes:0,unresolvedScopes:0,qualifiedModelInputs:0,unresolvedMarketSlugs:{}};e.offerObservations++;if(esportsScope(o))e.explicitSupportedScopes++;else {e.unresolvedScopes++;const slug=/^[a-z0-9_+ -]{1,100}$/i.test(o.market||'')?o.market:'other';const k=Object.hasOwn(e.unresolvedMarketSlugs,slug)||Object.keys(e.unresolvedMarketSlugs).length<30?slug:'other';e.unresolvedMarketSlugs[k]=(e.unresolvedMarketSlugs[k]||0)+1;}}
+   if(['cs2','valorant','dota2','lol','cod'].includes(o.sport)){const e=esportsEvidence[o.sport]??={offerObservations:0,explicitSupportedScopes:0,unresolvedScopes:0,qualifiedModelInputs:0,unresolvedMarketSlugs:{}};e.offerObservations++;if(esportsScope(o))e.explicitSupportedScopes++;else if(dotaUnderdogFantasyScope(o))e.rulesScopedUnscoredObservations=(e.rulesScopedUnscoredObservations||0)+1;else {e.unresolvedScopes++;const slug=/^[a-z0-9_+ -]{1,100}$/i.test(o.market||'')?o.market:'other';const k=Object.hasOwn(e.unresolvedMarketSlugs,slug)||Object.keys(e.unresolvedMarketSlugs).length<30?slug:'other';e.unresolvedMarketSlugs[k]=(e.unresolvedMarketSlugs[k]||0)+1;}}
    // Archive availability gates eligibility; quote freshness is relative to the offer observation.
    // A later quote in the same manifest must never enter an earlier offer's feature set.
    const cut=b.first,bs=quotes(o,q.get(scope(o))||[],new Date(Math.min(dt(cut),dt(o.observedAt))).toISOString()),fs=features(o,f.get(key([o.detailId,o.eventId,o.market,o.observedAt]))||[]);
@@ -127,10 +143,10 @@ function* committedProfiles(root){
 function esportsReviewQueue(history){
  const groups=new Map();
  for(const x of history.values()){
-  const o=x.offer,e=esportsScope(o);if(!e||!o.eventId||!o.player||!o.detailId)continue;
+  const o=x.offer,e=esportsScope(o)||dotaUnderdogFantasyScope(o);if(!e||!o.eventId||!o.player||!o.detailId)continue;
   let u;try{u=new URL(o.detailId,'https://www.pickfinder.app');}catch{continue;}
   if(u.origin!=='https://www.pickfinder.app'||!u.pathname.startsWith('/players/'))continue;
-  const k=key([o.sport,o.eventId,u.pathname,o.player,e.market,e.maps,o.gameMode??null]),g=groups.get(k)||{sport:o.sport,title:e.title,sourceEventId:o.eventId,profilePath:u.pathname,sourcePlayer:o.player,market:e.market,maps:e.maps,gameMode:o.gameMode??null,offerObservations:0,manifestDigests:new Set(),independentReviewVerified:false,modelApproved:false};
+  const k=key([o.sport,o.eventId,u.pathname,o.player,e.market,e.maps,o.gameMode??null]),g=groups.get(k)||{sport:o.sport,title:e.title,sourceEventId:o.eventId,profilePath:u.pathname,sourcePlayer:o.player,market:e.market,maps:e.maps,gameMode:o.gameMode??null,...(e.ruleScopeOnly?{ruleScopeOnly:true,rulesReference:e.rulesReference,scoreVerified:false}:{}),offerObservations:0,manifestDigests:new Set(),independentReviewVerified:false,modelApproved:false};
   g.offerObservations++;g.manifestDigests.add(x.manifestDigest);groups.set(k,g);
  }
  return [...groups.values()].map(x=>({...x,manifestDigests:[...x.manifestDigests].sort()}));
@@ -215,5 +231,5 @@ function run(root,clock=new Date().toISOString(),{packetPath=null,onBoard=null}=
  const reviewedHistoryModel=model.replay(root,archive,h.reviewedCache,index,clock,git(root,['rev-parse','HEAD']));
  return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,esportsSeriesReview:series.summary,nbaLegacyLayoutRecovery,nativeHistory:h.summary,shadowHistoryJoin:modelJoin,reviewedHistoryModel,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
 }
-module.exports={classify,auditProfiles,auditBoards,quoteInventory,esportsScope,committedProfiles,reviewPacket,esportsReviewQueue,shadowHistoryJoin,run};
+module.exports={classify,auditProfiles,auditBoards,quoteInventory,esportsScope,dotaUnderdogFantasyScope,committedProfiles,reviewPacket,esportsReviewQueue,shadowHistoryJoin,run};
 if(require.main===module)console.log(JSON.stringify(run(process.cwd(),new Date().toISOString(),{packetPath:process.argv[2]||null})));

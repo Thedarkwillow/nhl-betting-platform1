@@ -1,7 +1,7 @@
 {
   "kind": "pickfinder_current_identity_registry_v1",
-  "generatedAt": "2026-11-27T23:28:00.089Z",
-  "archiveRevision": "89384ddf4dc88725111105f0b30b72eda44d0b3d",
+  "generatedAt": "2026-11-27T23:55:54.156Z",
+  "archiveRevision": "3eecfb610aa9c62f26fb7bfe9e4648303f8f6068",
   "profiles": 800,
   "scopesWithReusedPlayerId": 139,
   "players": 753,
@@ -252,7 +252,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 1,
+          "assists": 2,
+          "points": 3,
+          "sog": 1,
+          "hits": 1,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "college-basketball",
@@ -777,7 +791,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 1,
+          "assists": 0,
+          "points": 1,
+          "sog": 2,
+          "hits": 1,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -1195,7 +1223,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 1,
+          "assists": 0,
+          "points": 1,
+          "sog": 3,
+          "hits": 1,
+          "blockedShots": 1
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -1287,7 +1329,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 0,
+          "hits": 3,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -1599,7 +1655,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 3,
+          "points": 3,
+          "sog": 2,
+          "hits": 2,
+          "blockedShots": 1
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "cs2",
@@ -3644,7 +3714,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 0,
+          "hits": 8,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "soccer",
@@ -4585,7 +4669,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 1,
+          "points": 1,
+          "sog": 0,
+          "hits": 0,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "cs2",
@@ -4738,7 +4836,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 2,
+          "assists": 1,
+          "points": 3,
+          "sog": 6,
+          "hits": 2,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "dota2",
@@ -5661,7 +5773,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 1,
+          "points": 1,
+          "sog": 2,
+          "hits": 1,
+          "blockedShots": 1
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "soccer",
@@ -5840,7 +5966,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 1,
+          "assists": 1,
+          "points": 2,
+          "sog": 4,
+          "hits": 1,
+          "blockedShots": 1
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "cs2",
@@ -6218,7 +6358,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 1,
+          "hits": 0,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "tennis",
@@ -6270,7 +6424,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 2,
+          "hits": 0,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -6307,7 +6475,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 0,
+          "hits": 3,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -6492,7 +6674,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 1,
+          "points": 1,
+          "sog": 2,
+          "hits": 3,
+          "blockedShots": 1
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nba",
@@ -7249,7 +7445,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 1,
+          "points": 1,
+          "sog": 3,
+          "hits": 4,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "soccer",
@@ -7438,7 +7648,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 1,
+          "points": 1,
+          "sog": 2,
+          "hits": 2,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "college-football",
@@ -7984,7 +8208,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 3,
+          "hits": 0,
+          "blockedShots": 3
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "cs2",
@@ -8283,7 +8521,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 1,
+          "points": 1,
+          "sog": 1,
+          "hits": 1,
+          "blockedShots": 1
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -8320,7 +8572,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 1,
+          "hits": 0,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -8433,7 +8699,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 0,
+          "hits": 2,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -8899,7 +9179,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 1,
+          "hits": 1,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "cs2",
@@ -9516,7 +9810,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 1,
+          "assists": 1,
+          "points": 2,
+          "sog": 2,
+          "hits": 4,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "cs2",
@@ -9793,7 +10101,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 1,
+          "points": 1,
+          "sog": 0,
+          "hits": 3,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -9830,7 +10152,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 0,
+          "hits": 5,
+          "blockedShots": 1
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -9882,7 +10218,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 1,
+          "assists": 0,
+          "points": 1,
+          "sog": 4,
+          "hits": 1,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -9919,7 +10269,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 0,
+          "hits": 4,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -9956,7 +10320,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 1,
+          "points": 1,
+          "sog": 1,
+          "hits": 0,
+          "blockedShots": 1
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -10067,7 +10445,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 1,
+          "assists": 1,
+          "points": 2,
+          "sog": 1,
+          "hits": 0,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -10662,7 +11054,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 1,
+          "points": 1,
+          "sog": 0,
+          "hits": 1,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "soccer",
@@ -10998,7 +11404,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 0,
+          "hits": 1,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "soccer",
@@ -11080,7 +11500,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 0,
+          "hits": 1,
+          "blockedShots": 1
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "college-football",
@@ -12230,7 +12664,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 1,
+          "points": 1,
+          "sog": 0,
+          "hits": 0,
+          "blockedShots": 2
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nfl",
@@ -12411,7 +12859,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 0,
+          "hits": 0,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "soccer",
@@ -12758,7 +13220,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 4,
+          "hits": 1,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -12795,7 +13271,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 2,
+          "assists": 1,
+          "points": 3,
+          "sog": 4,
+          "hits": 3,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "nhl",
@@ -14509,7 +14999,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 1,
+          "points": 1,
+          "sog": 3,
+          "hits": 1,
+          "blockedShots": 0
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "soccer",
@@ -14803,7 +15307,21 @@
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
-      "officialStatistics": null
+      "officialStatistics": {
+        "stats": {
+          "goals": 0,
+          "assists": 0,
+          "points": 0,
+          "sog": 1,
+          "hits": 3,
+          "blockedShots": 2
+        },
+        "finalReceiptDigests": [
+          "7c5b4565229c334a0df359cc789b5685c17e6254fdcb3b04fa8d4aa4fcb4a92d"
+        ],
+        "officialStatEvidenceVerified": true,
+        "prospectiveUseApproved": false
+      }
     },
     {
       "sport": "cs2",
@@ -174198,7 +174716,7 @@
     },
     "nativeCoverage": {
       "nhl": {
-        "playerGameRows": 9940
+        "playerGameRows": 10146
       },
       "nfl": {
         "playerGameRows": 48234
@@ -174264,7 +174782,7 @@
     "requiresOriginalOperatorOfferId": false,
     "reviewedResearchFacts": 0,
     "newlyQualifiedShadowInputs": 7573,
-    "officialFinalMetricsForMatchedEvents": 0,
+    "officialFinalMetricsForMatchedEvents": 222,
     "newlyQualifiedProductionInputs": 0
   }
 }

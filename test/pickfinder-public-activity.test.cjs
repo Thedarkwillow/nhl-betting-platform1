@@ -28,3 +28,24 @@ t('all registered scopes are visible without treating unsafe traversals as compl
   a.deepEqual(x,build({manifests:[require('../scripts/pickfinder-public-activity.cjs').summarizeBoard(b,now)],invalid:[]},now));
  }
 });
+
+t('on-demand digest deduplicates archive evidence and expires stale traversal at read time',()=>{
+ const summarize=require('../scripts/pickfinder-public-digest.cjs').build;
+ const report=build({manifests:[board],invalid:[]},now);
+ report.events.push(report.events[0]);
+ const x=summarize(report,now);
+ a.equal(x.registeredScopes,28);
+ a.equal(x.states.recentNoDetectedGaps,1);
+ a.equal(x.states.noObservation,27);
+ a.equal(x.boardObservations.length,1);
+ a.match(x.boardObservations[0].source,/boards\/[a-f0-9]{64}\.json$/);
+ a.equal(x.discordDeliveryVerifiedFromThisReport,false);
+ a.equal(x.morningScheduleVerifiedFromThisReport,false);
+ const stale=summarize(report,'2026-11-25T18:30:00Z');
+ a.equal(stale.states.historical,1);
+ a.equal(stale.states.recentNoDetectedGaps,0);
+ a.equal(stale.boardObservations[0].historical,true);
+ for(const bad of [{archiveInvalid:1},{modelApproved:true},{paidRequests:1}])
+  a.throws(()=>summarize({...report,...bad},now));
+ a.throws(()=>summarize(report,'2026-11-25T17:00:00Z'));
+});

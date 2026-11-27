@@ -113,15 +113,15 @@ function discoveryCandidates(directory,tables,facts){
  for(const {doc:d} of facts)for(const r of d.roster||[])
   for(const label of [r.name,...(r.aliases||[])])add(d.sport,label,d.source+':'+r.playerId);
  const listing={scanned:0,oneNameCandidate:0,ambiguousNameCandidates:0,noNameCandidate:0};
- const reference={scanned:0,playerNamedRows:0,oneNameCandidate:0,ambiguousNameCandidates:0,noNameCandidate:0};
+ const reference={scanned:0,playerColumnRows:0,oneNameCandidate:0,ambiguousNameCandidates:0,noNameCandidate:0};
  const discover=(o,sport,label)=>{
   const found=profiles.get(key(sport,norm(label)))?.size||0;
   o[found===1?'oneNameCandidate':found>1?'ambiguousNameCandidates':'noNameCandidate']++;
  };
  for(const d of directory.directories)for(const label of d.playerSlugs||[]){listing.scanned++;discover(listing,league(d.league),label);}
  for(const d of tables.sources)for(const t of d.tables){
-  const cols=t.columns||[],c=cols.findIndex(x=>/^player(?: name)?$/i.test(x));
-  for(const r of t.rows){reference.scanned++;if(c>=0&&norm(r[c])){reference.playerNamedRows++;discover(reference,league(d.league),r[c]);}}
+  const cols=t.columns||[],c=cols.findIndex(x=>/^player(?: name)?$/i.test(String(x).replace(/[↕↑↓]$/u,'').trim()));
+  for(const r of t.rows){reference.scanned++;if(c>=0&&norm(r[c])){reference.playerColumnRows++;discover(reference,league(d.league),r[c]);}}
  }
  return {directoryLinks:listing.scanned,referenceRows:reference.scanned,directory:listing,reference,
   directoryStatus:'names_and_links_only',referenceStatus:'no_event_bound_native_identity'};

@@ -61,8 +61,8 @@ test('an archived reviewed player ID survives absent current-event evidence but 
 test('directory and research discovery emits candidates only, never roster or event approvals',()=>{
  const {discoveryCandidates}=require('../scripts/pickfinder-current-identity.cjs');
  const d=discoveryCandidates({directories:[{league:'nhl',playerSlugs:['andre-example','a-example','other']}]},
-  {sources:[{league:'nhl',tables:[{columns:['Player'],rows:[['André Example']]}]}]},[facts]);
+  {sources:[{league:'nhl',tables:[{columns:['Player↕'],rows:[['André Example'],['AExampleBOS']]}]}]},[facts]);
  a.equal(d.directory.scanned,3);a.equal(d.directory.oneNameCandidate,1);
- a.equal(d.directory.ambiguousNameCandidates,1);a.equal(d.reference.oneNameCandidate,1);
+ a.equal(d.directory.ambiguousNameCandidates,1);a.equal(d.reference.oneNameCandidate,1);a.equal(d.reference.playerColumnRows,2);
  a.equal(d.referenceStatus,'no_event_bound_native_identity');
 });

@@ -38,6 +38,7 @@ test('same-hour fallback checks the exact immutable slot and never repeats a ver
  };
  assert.equal(backupPreflight('archive',env,actual,check).proceed,false);
  assert.equal(backupPreflight('archive',env,actual,()=>false).proceed,true);
+ assert.equal(backupPreflight('archive',env,'2026-11-26T17:28:59Z',()=>assert.fail('no early archive lookup')).state,'before_backup_minute');
  assert.equal(backupPreflight('archive',env,'2026-11-26T18:00:00Z',()=>assert.fail('no wrong hour archive lookup')).proceed,false);
  assert.equal(backupPreflight('archive',{...env,GITHUB_EVENT_SCHEDULE:'7 9 * * *'},actual,()=>assert.fail('primary unchanged')).proceed,true);
 });

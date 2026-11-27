@@ -34,8 +34,8 @@ function run(root,day,slot,now=new Date()){
  return {state:'public_pickfinder_morning_audit',day,slot,partitions:results,corePartitionsVerified:['nba','nhl','nfl'].every(s=>['prizepicks','underdog'].every(b=>results[s+'/'+b]?.verified>0)),originalPlatformAvailabilityVerified:false,modelApproved:false,privateRepoUsed:false};
 }
 function scheduledRunMatches(origin,run,day,slot,first){
- const hour=Number(slot.slice(0,2)),expected=[7,29].map(minute=>minute+' '+hour+' * * *');
- return !!origin&&origin.event==='schedule'&&expected.includes(origin.cron)&&/^[1-9][0-9]{0,19}$/.test(origin.runId)&&/^[1-9][0-9]{0,5}$/.test(origin.attempt)&&/^[a-f0-9]{40}$/.test(origin.revision)&&!!run&&String(run.id)===origin.runId&&String(run.run_attempt)===origin.attempt&&run.event==='schedule'&&run.head_sha===origin.revision&&run.head_branch==='main'&&run.repository?.full_name==='Thedarkwillow/nhl-betting-platform1'&&run.path==='.github/workflows/pickfinder-premium-hosted.yml'&&run.status==='completed'&&run.conclusion==='success'&&inHour(run.run_started_at,day,hour)&&Date.parse(run.run_started_at)<=Date.parse(first);
+ const hour=Number(slot.slice(0,2)),cronMinute=[7,29].find(m=>origin?.cron===m+' '+hour+' * * *');
+ return !!cronMinute&&origin.event==='schedule'&&/^[1-9][0-9]{0,19}$/.test(origin.runId)&&/^[1-9][0-9]{0,5}$/.test(origin.attempt)&&/^[a-f0-9]{40}$/.test(origin.revision)&&!!run&&String(run.id)===origin.runId&&String(run.run_attempt)===origin.attempt&&run.event==='schedule'&&run.head_sha===origin.revision&&run.head_branch==='main'&&run.repository?.full_name==='Thedarkwillow/nhl-betting-platform1'&&run.path==='.github/workflows/pickfinder-premium-hosted.yml'&&run.status==='completed'&&run.conclusion==='success'&&inHour(run.run_started_at,day,hour)&&pacific(run.run_started_at).minute>=cronMinute&&Date.parse(run.run_started_at)<=Date.parse(first);
 }
 async function verifyScheduled(root,report,env=process.env,client=fetch){
  if(report.state!=='public_pickfinder_morning_audit')return report;

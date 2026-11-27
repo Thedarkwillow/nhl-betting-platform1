@@ -9,8 +9,9 @@ function preflight(env=process.env,now=new Date()){
  // The public runner retains its unrelated research modes and its own clock check.
  if(!morning)return {proceed:true,state:'not_a_morning_capture'};
  const gate=decide({eventName,mode,schedule,now});
- const proceed=gate.allowed&&gate.clock.minute<55; // The existing board loop stops before :55.
- return {proceed,state:gate.allowed&&!proceed?'board_collection_cutoff':gate.state,
+ const earlyBackup=eventName==='schedule'&&/^29 [69] \* \* \*$/.test(schedule)&&gate.clock.minute<29;
+ const proceed=gate.allowed&&!earlyBackup&&gate.clock.minute<55; // The existing board loop stops before :55.
+ return {proceed,state:gate.allowed&&!proceed?(earlyBackup?'before_backup_minute':'board_collection_cutoff'):gate.state,
   expected:gate.expected,clock:gate.clock,providerRequests:0,originalSixToNineCaptureClaim:false};
 }
 function backupPreflight(root,env=process.env,now=new Date(),hasVerified=require('./pickfinder-public-morning-audit.cjs').hasVerifiedSlotPartition){

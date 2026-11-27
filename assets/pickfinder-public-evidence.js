@@ -24,6 +24,10 @@
   if(h){add(mount,'h3','Historical research readiness');add(mount,'p',n(h.fields)+' archived fields · '+n(h.candidates)+' statistical candidates · '+n(h.cacheRecords)+' reusable research facts · '+n(h.identityCandidates)+' identity candidates · '+n(h.reviewedIdentities)+' reviewed identities · '+n(h.qualifiedCache)+' qualified historical cache entries · '+n(h.qualifiedModelInputs)+' qualified model inputs. Candidate counts are not approved forecasts.');}
   for(const [sport,x] of Object.entries(activity.esportsScopeRecovery||{}))add(mount,'p',sport.toUpperCase()+': '+n(x.explicitSupportedScopes)+' / '+n(x.offerObservations)+' source scopes recognized; '+n(x.qualifiedModelInputs)+' qualified model inputs.');
   for(const [sport,x] of Object.entries(activity.sportsbookThresholdEvidence||{}))add(mount,'p',sport.toUpperCase()+': '+n(x.explicitThreshold)+' explicit sportsbook thresholds; '+n(x.exactPairs)+' same-snapshot price pairs. Independent offer verification remains required.');
+  const series=activity.esportsSeriesReview;
+  if(series?.counts){
+   add(mount,'p','Independent esports series review: '+n(series.counts.roster_and_map_corroborated)+' of '+n(series.scopes)+' scopes corroborated for player and maps · '+n(series.counts.player_unresolved)+' player identities unresolved · '+n(series.counts.map_scope_unresolved)+' map scopes unresolved.');
+  }
   const profile=activity.profileMarketEvidence;
   if(profile){
    add(mount,'h3','Historical quotes and NBA player context');

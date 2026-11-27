@@ -4,12 +4,15 @@
 const sportsbooks = new Set(['draftkings','fanduel','betmgm','caesars','pinnacle','bet365','espnbet','fanatics','betrivers','hardrockbet','betonline','bovada','fliff','betfair']);
 const workloadHeaders = new Set(['Reb Chances','D-Reb Chances','O-Reb Chances','Potential Asts','Passes']);
 const availability = new Set(['out','doubtful','questionable','probable','available']);
+const depthHeader = ' | Starter | 2nd | 3rd | 4th | 5th';
+const depthBadges = new Set(['OUT','Q','DOUBT','PROB']);
 const decimal = /^\d+(?:\.\d+)?$/;
 function rowCells(field) {
   if (!/^row [1-9]\d*$/.test(field.metric) || typeof field.value !== 'string') return null;
   let cells;
   try { cells = JSON.parse(field.value); } catch { return null; }
   const headers = (field.scope || '').split(' | ');
+  if (field.tab === 'Injuries' && field.scope === depthHeader) headers[0] = 'Position';
   if (!Array.isArray(cells) || cells.length !== headers.length || headers.some(h => !h) ||
       new Set(headers).size !== headers.length || cells.some(c => !c || !Array.isArray(c.labels))) return null;
   return Object.fromEntries(headers.map((h,i) => [h,cells[i]]));
@@ -32,9 +35,10 @@ function parseMovement(f, cells) {
 }
 
 function profileMarketEvidence(record, field, digest, archiveAt, clock) {
+  const depth = field.tab === 'Injuries' && field.scope === depthHeader;
   const defense = field.tab === 'Defense' && field.scope === 'STAT | SZN | L10 | L5 | STRENGTH';
   if (field.origin !== 'line_movement' && !(record.sport === 'nba' && field.origin === 'profile' &&
-      (defense || ['Player overview','Injuries'].includes(field.tab) && field.scope?.startsWith('Player | ')))) return [];
+      (depth || defense || ['Player overview','Injuries'].includes(field.tab) && field.scope?.startsWith('Player | ')))) return [];
   const observed = Date.parse(field.observedAt), archived = Date.parse(archiveAt), cutoff = Date.parse(clock);
   if (![observed,archived,cutoff].every(Number.isFinite) || observed > cutoff || archived > cutoff ||
       observed > archived + 999 || !/^[0-9a-f]{64}$/.test(digest) || record.status !== 'sampled') return [];
@@ -54,6 +58,18 @@ function profileMarketEvidence(record, field, digest, archiveAt, clock) {
   if (movement) return [{...base,kind:'historical_sportsbook_quote',...movement}];
   const context = {...base,tab:field.tab,window:field.window??null,filterSelection:field.filterSelection??null,
     fieldPeriod:field.period??null,fieldMapRange:field.mapRange??null,fieldGameMode:field.gameMode??null};
+  if (depth && field.origin === 'profile') {
+    if (!['PG','SG','SF','PF','C'].includes(cells.Position.value) || cells.Position.labels.length) return [];
+    const matches = Object.entries(cells).filter(([,cell])=>cell.labels.includes(record.player));
+    if (matches.length !== 1) return [];
+    const [slot,cell] = matches[0];
+    if (cell.labels.length !== 1 || typeof cell.value !== 'string') return [];
+    const [display,badge,...extra] = cell.value.split('\n');
+    const abbreviated = record.player.replace(/^(\S)\S* /u,'$1. ');
+    if (extra.length || ![record.player,abbreviated].includes(display) || !depthBadges.has(badge)) return [];
+    return [{...context,kind:'availability',metric:'depth_chart_badge',value:badge,normalizedStatus:badge==='OUT'?'out':null,
+      depthPosition:cells.Position.value,depthSlot:slot,independentInjuryVerified:false}];
+  }
   if (defense && field.origin === 'profile') {
     const stat = /^(Pts|Asts|Rebs|RA|PR|PA|PRA|Blks|Stls|3PM|PF|TO)\n(\d+(?:\.\d+)?) allowed\/g$/.exec(cells.STAT.value);
     if (!stat || !['TOUGH','SOLID','WEAK','AVERAGE','NEUTRAL'].includes(cells.STRENGTH.value)) return [];

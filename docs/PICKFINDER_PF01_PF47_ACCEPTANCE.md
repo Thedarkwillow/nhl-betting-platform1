@@ -111,6 +111,10 @@ Verified November 27, 2026 Pacific. Native iPhone push is excluded by owner dire
 
 PF-03 is complete for the scoped channel inventory, not delivery verification for any provider channel. PF-01/02/04/19 retain their own acceptance criteria.
 
+## On-demand digest readback
+
+**PF-16/PF-19 partial (2026-11-27 UTC).** [PR #462](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/462) merged at `33458fa0` after six hosted checks passed and one expected skip, including [public activity CI](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46078253052). The on-demand digest uses the same published website activity source. Post-merge readback produced six deduplicated archive references and 28 registered historical scopes, no currently fresh scope and zero paid requests. Run `node scripts/pickfinder-public-digest.cjs` in the repository. This does not prove a scheduled run, new Discord delivery, native alerts, or a complete unified delivery ledger.
+
 ## Remaining acceptance by task
 
 Owner scope update, November 27 Pacific. Native PickFinder iPhone push verification is excluded. The owner confirmed receiving project Discord only, which is not evidence of provider-member Discord or other channels. Do not request a device notification or treat one as a dependency.

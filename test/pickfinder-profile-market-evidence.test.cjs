@@ -99,13 +99,18 @@ test('movement probe uses unique exact pairs and tests timezone shift across mid
  assert.equal(compare([first,{...second,browserZone:'UTC'}]).state,'incomplete');
 });
 
-test('movement probe selects one archived market per supported sport without a fresh board',()=>{
- const {select}=require('../scripts/pickfinder-movement-clock-probe.cjs');
- const offer=(sport,player,eventId,market)=>({sport,player,eventId,market,
-  detailId:'/players/'+sport+'/profile?'+new URLSearchParams({prop:'id:'+market+':'+eventId+':1.5'})});
- const targets=select({latest:[{offers:[
-  offer('nba','First','n1','points'),offer('nba','Second','n2','rebounds'),
-  offer('nhl','Third','h1','shots'),offer('nfl','Fourth','f1','yards')
- ]}]},time);
- assert.deepEqual(targets.map(({sport,market,eventId})=>[sport,market,eventId]),[['nba','points','n1'],['nfl','yards','f1']]);
+test('movement probe ranks evidenced paired prices and excludes unsupported references',()=>{
+ const {select,aggregate}=require('../scripts/pickfinder-movement-clock-probe.cjs');
+ const quote=(player,eventId,book)=>({sport:'nfl',player,eventId,market:'yards',book,quoteLine:1.5,higher:'-110',lower:'-120',
+  kind:'historical_sportsbook_quote',observedAt:time,
+  detailId:'/players/nfl/'+player+'?'+new URLSearchParams({prop:'id:yards:'+eventId+':1.5'})});
+ const first=quote('First','n1','fanduel'),second=quote('Second','n2','draftkings');
+ const receipts=[{first:time,digest:'a'.repeat(64),doc:{schema:'pickfinder_profile_historical_sportsbook_recovery_v1',rows:[
+  first,first,{...second,higher:null},second,{...second,book:'fliff'},
+  {...quote('Invalid','n3','fanduel'),detailId:'https://example.com/players/nfl/Invalid?prop=id:yards:n3:1.5'},
+  {...quote('Old','n4','fanduel'),observedAt:'2026-11-01T00:00:00Z'}
+ ]}}];
+ assert.deepEqual(select(receipts,time).map(({player})=>player),['Second','First']);
+ assert.equal(aggregate([{matched:1,shifted:1,unchanged:0},{matched:1,shifted:1,unchanged:0}]).state,'browser_local_candidate');
+ assert.equal(aggregate([{matched:1,shifted:1,unchanged:0},{matched:1,shifted:0,unchanged:1}]).state,'inconclusive');
 });

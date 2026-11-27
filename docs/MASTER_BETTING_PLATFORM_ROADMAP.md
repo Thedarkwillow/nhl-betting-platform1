@@ -2,6 +2,8 @@
 
 ## 2026-11-27 — PickFinder builder and operator-rule reconciliation
 
+- **Open-checklist verification (PF-05/06/07/09/10/14/16/17/21/43/46).** [Payout/reference PR #459](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/459), [board/report PR #460](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/460), and [website PR #461](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/461) merged with applicable checks passing. The [main archive replay](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46077414686) published 28 registered scopes (10 no detected gaps, seven unproven, ten incomplete, one possible display cap), with zero invalid archive entries and zero paid requests. Registered or historical observations are not live bookable offers. Board duplicate-cause counters require the next fresh collector receipt. The public acceptance register records dashboard pagination, native/authenticated evidence and prospectively frozen model blockers. No checkboxes, schedules, model promotions or suggestion gates changed.
+
 - **PF-10/PF-14 remain open.** Published two-pick Flex differs between PrizePicks Player Picks and Underdog Fantasy Pick’em. Preserve separate dated public references and exact offer, payout and settlement receipts. Keep first-party quote eligibility and historical rule vintage unverified by public docs alone; no production model or qualified suggestions changed. [Acceptance and sources](PICKFINDER_PF01_PF47_ACCEPTANCE.md#pf-10pf-14-operator-reference-follow-up).
 
 ## 2026-11-27 — PickFinder directory coverage and alert gate

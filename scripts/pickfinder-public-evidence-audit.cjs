@@ -44,7 +44,7 @@ function quotes(offer,rows,cut,maxAge=300000){
 }
 function features(offer,rows){
  const out={},conflicts=new Set();for(const r of rows){
-  if(scope({...r,period:offer.period,mapRange:offer.mapRange,gameMode:offer.gameMode})!==scope(offer)||r.origin!=='board'||r.observedAt!==offer.observedAt)continue;
+  if(scope(r)!==scope(offer)||r.origin!=='board'||r.observedAt!==offer.observedAt)continue;
   const name=r.metric;if(!['L5','L10','L15','SZN','H2H','Avg L10'].includes(name)||typeof r.value!=='string')continue;
   const m=name==='Avg L10'?r.value.match(/^\d+(?:\.\d+)?$/):r.value.match(/^(\d+(?:\.\d+)?)%(?:\n(\d+)\/(\d+))?$/);if(!m)continue;
   const value=Number(m[1]??m[0])/(name==='Avg L10'?1:100);if(!Number.isFinite(value)||value<0||name!=='Avg L10'&&value>1)continue;
@@ -53,10 +53,35 @@ function features(offer,rows){
  }
  for(const k of conflicts)delete out[k];return out;
 }
+// The board reports the over-side H2H frequency against the displayed line.
+function matchupSample(offer, rows) {
+ if (offer.sport !== 'nba' || offer.period || offer.mapRange || offer.gameMode || !Number.isFinite(offer.line) ||
+     offer.line < 0 || offer.line % 1 !== .5) return null;
+ let url;
+ try { url = new URL(offer.detailId, 'https://www.pickfinder.app'); } catch { return null; }
+ const [prop] = url.searchParams.getAll('prop');
+ const parts = prop?.split(':') || [];
+ if (url.origin !== 'https://www.pickfinder.app' || !/^\/players\/nba\/[\w-]+$/.test(url.pathname) ||
+     url.searchParams.getAll('prop').length !== 1 || parts.length !== 4 || !parts[0] ||
+     parts[1] !== offer.market || parts[2] !== offer.eventId ||
+     !/^\d+\.5$/.test(parts[3]) || Number(parts[3]) !== offer.line) return null;
+ const matching = rows.filter(row => scope(row) === scope(offer) && row.origin === 'board' &&
+     row.metric === 'H2H' && row.observedAt === offer.observedAt && row.player === offer.player &&
+     row.boardBook === offer.book);
+ const values = new Set(matching.map(row => row.value));
+ if (values.size !== 1) return null;
+ const m = /^(\d+(?:\.\d+)?)%\n(\d+)\/(\d+)$/.exec(matching[0].value);
+ if (!m) return null;
+ const [percent, higher, games] = m.slice(1).map(Number);
+ if (games < 4 || games > 100 || higher > games || percent > 100 ||
+     Math.abs(higher / games - percent / 100) > .001) return null;
+ return {higher, games};
+}
+
 function analyze(archive,now=new Date().toISOString()){
  const bySport={},comp=new Map(),events=new Map(),featureRows=[];let offerRefs=0,exactComparisons=0;
  for(const a of archive.latest){
-  const m=a.m,s=m.sport,x=bySport[s]??={boards:{},offers:0,unresolved:0,unpricedGoblin:0,unpricedDemon:0,quotedSportsbooks:0,explicitThresholdQuotes:0,matchedTwoSidedQuotes:0,boardFeatureRows:0,missingStartAt:0,sourceEvents:0,exactCrossBookRows:0};
+  const m=a.m,s=m.sport,x=bySport[s]??={boards:{},offers:0,unresolved:0,unpricedGoblin:0,unpricedDemon:0,quotedSportsbooks:0,explicitThresholdQuotes:0,matchedTwoSidedQuotes:0,boardFeatureRows:0,matchupSampleOffers:0,missingStartAt:0,sourceEvents:0,exactCrossBookRows:0};
   x.boards[m.book]={state:m.boardState,pages:m.health.pages,displayedPages:m.displayedPageCount,offers:m.health.distinctOfferKeys,unresolved:m.health.unresolvedRows,observedAt:m.lastObservedAt,slot:m.slot,traversal:m.pageTraversalComplete};
   x.offers+=a.offers.length;x.unresolved+=m.health.unresolvedRows;
   x.unpricedGoblin+=a.unpricedTierObservations.filter(o=>o.tier==='goblin').length;x.unpricedDemon+=a.unpricedTierObservations.filter(o=>o.tier==='demon').length;
@@ -69,9 +94,11 @@ function analyze(archive,now=new Date().toISOString()){
    if(!valid(o.startAt))x.missingStartAt++;
    const ek=key([s,o.eventId]);if(!events.has(ek))events.set(ek,{sport:s,sourceEventId:o.eventId,players:new Set()});events.get(ek).players.add(o.player);
    const k=key([scope(o),o.line,o.tier??null,o.side]),v=comp.get(k)||new Map();const old=v.get(o.book);if(!old||dt(old.observedAt)<dt(o.observedAt))v.set(o.book,o);comp.set(k,v);
-   const b=features(o,f.get(key([o.detailId,o.eventId,o.market,o.observedAt]))||[]),c=quotes(o,q.get(scope(o))||[],new Date(Math.min(dt(o.observedAt),dt(a.first))).toISOString());
+   const scoped=f.get(key([o.detailId,o.eventId,o.market,o.observedAt]))||[];
+   const b=features(o,scoped),matchup=matchupSample(o,scoped),c=quotes(o,q.get(scope(o))||[],new Date(Math.min(dt(o.observedAt),dt(a.first))).toISOString());
+   if(matchup)x.matchupSampleOffers++;
    if(c.length)x.matchedTwoSidedQuotes++;if(Object.keys(b).length)x.boardFeatureRows++;
-   if(Object.keys(b).length||c.length)featureRows.push({offer:o,manifestDigest:a.digest,manifestFirst:a.first,features:b,quotes:c});
+   if(Object.keys(b).length||c.length||matchup)featureRows.push({offer:o,manifestDigest:a.digest,manifestFirst:a.first,features:b,quotes:c,...(matchup?{matchup}:{} )});
   }
  }
  for(const v of comp.values())if(v.size===2){const a=v.get('prizepicks'),b=v.get('underdog');if(Math.abs(dt(a.observedAt)-dt(b.observedAt))<=900000){exactComparisons++;bySport[a.sport].exactCrossBookRows++;}}
@@ -94,4 +121,4 @@ function coverage(root){
  }
  return {profileAttempts:profiles.length,uniqueCompletedCurrentVersion:done.size,dashboardSnapshots:dashboards.length,namedDashboardSnapshots,byDashboard,gameDialogReceipts,gameDialogObservations,gameDialogBySport,unclassifiedDashboardFiles,allFiltersVerified:false};
 }
-module.exports={load,analyze,coverage,features,quotes,scope,read,list,git};
+module.exports={load,analyze,coverage,features,matchupSample,quotes,scope,read,list,git};

@@ -23,4 +23,12 @@ jobs:
           node-version: '22'
       - run: node --test test/pickfinder-public-runner.test.cjs
       - name: Audit committed digest-verified profile archives (counts only)
-        run: node scripts/pickfinder-public-history-cache.cjs .
+        run: |
+          set -o pipefail
+          node scripts/pickfinder-public-history-cache.cjs . | tee "$RUNNER_TEMP/pickfinder-cache-audit.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pickfinder-cache-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pickfinder-cache-audit.json
+          if-no-files-found: error
+          retention-days: 7

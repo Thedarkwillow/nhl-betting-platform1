@@ -1,10 +1,10 @@
 name: Public PickFinder activity readiness
 on:
   pull_request:
-    paths: ['scripts/pickfinder-public-activity.cjs','test/pickfinder-public-activity.test.cjs','.github/workflows/pickfinder-public-activity.yml','assets/pickfinder-public-evidence.js']
+    paths: ['scripts/pickfinder-public-activity.cjs','config/esports/pickfinder-series-review-*.json','test/pickfinder-public-activity.test.cjs','.github/workflows/pickfinder-public-activity.yml','assets/pickfinder-public-evidence.js']
   push:
     branches: [main]
-    paths: ['scripts/pickfinder-public-activity.cjs','test/pickfinder-public-activity.test.cjs','.github/workflows/pickfinder-public-activity.yml']
+    paths: ['scripts/pickfinder-public-activity.cjs','config/esports/pickfinder-series-review-*.json','test/pickfinder-public-activity.test.cjs','.github/workflows/pickfinder-public-activity.yml','research/pickfinder-public-identity-v1/historical-reviewed-identities/*.json','research/pickfinder-public-validation-v1/nba-final-history/*.json']
   workflow_run:
     workflows: ['PickFinder Premium public orchestration','Public-only PickFinder research validation']
     types: [completed]

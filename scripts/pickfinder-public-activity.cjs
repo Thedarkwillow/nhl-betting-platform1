@@ -46,7 +46,11 @@ function run(root,clock=new Date().toISOString()){
  const report=build(archive,clock,{cacheSummary:cached,researchCoverage:{profileAttempts:c.profileAttempts??null,namedDashboardSnapshots:c.namedDashboardSnapshots??null,gameDialogObservations:c.gameDialogObservations??null},grading:{archivedPregameRows:g.archived,pendingNotDue:g.pendingNotDue,dueForIndependentGrade:g.selected.length,alreadyGraded:g.alreadyGraded,invalidPregameRows:g.invalid,gradeFrames:grades.length}});
  report.historicalRecovery={generatedAt:audit.generatedAt,fields:audit.profiles.fields,candidates:audit.nativeHistory.candidates,cacheRecords:audit.nativeHistory.reusableResearchCandidates,identityCandidates:audit.nativeHistory.identityEvidence.multipleGameCandidates,reviewedIdentities:audit.nativeHistory.independentlyReviewedProviderIdentities,qualifiedCache:audit.nativeHistory.qualifiedCacheEntries,qualifiedModelInputs:audit.nativeHistory.qualifiedModelInputs,bySport:Object.fromEntries(Object.entries(audit.nativeHistory.bySport).map(([k,v])=>[k,{candidates:v.candidates}]))};
  report.esportsScopeRecovery=audit.boards.esportsEvidence;
+ report.esportsSeriesReview=audit.esportsSeriesReview;
  report.sportsbookThresholdEvidence=audit.boards.quoteEvidence;
+ report.profileMarketEvidence=audit.profiles.profileMarketEvidence;
+ report.reviewedHistoryModel=audit.reviewedHistoryModel;
+ report.valorantRetrospective=require('./pickfinder-valorant-retrospective.cjs').run(root,clock);
  fs.writeFileSync(path.join(root,'data/pickfinder-public-activity.json'),JSON.stringify(report,null,2)+'\n');
  console.log(JSON.stringify({kind:report.kind,events:report.events.length,archiveInvalid:report.archiveInvalid,readiness:report.readiness,cache:report.cache,coverage:report.coverage,grading:report.grading,paidRequests:0}));
  return report;

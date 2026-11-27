@@ -101,4 +101,20 @@ function audit(documents,now=new Date()){return buildIndex(documents,now).summar
 // Consumers can reuse only an exact previously observed historical fact. No collection scope is skipped.
 function lookup(index,key){const row=index.get(key);return row&&!row.conflict?{field:row.field,digest:row.digest,observedAt:new Date(row.seen).toISOString()}:null;}
 module.exports={day,fullDate,priorSeason,seasonShape,dateShape,candidate,audit,buildIndex,lookup};
-if(require.main===module){try{const {read}=require('./pickfinder-public-archive.cjs');console.log(JSON.stringify(audit(read(process.argv[2]||'.','profiles'))));}catch{console.error('Historical cache audit failed closed');process.exitCode=1;}}
+if(require.main===module){
+ try{
+  const {iterate,archiveRevision}=require('./pickfinder-public-archive.cjs');
+  const {queue}=require('./pickfinder-public-runner.cjs');
+  const root=process.argv[2]||'.',revision=archiveRevision(root);
+  // Both reports must describe exactly the same input snapshot as the hosted queue.
+  const profiles=()=>iterate(root,'profiles',revision);
+  const history=audit(profiles());
+  const q=queue(iterate(root,'board-parts',revision),profiles());
+  const profileQueue={
+   distinctScopes:q.total,completedCheckpointScopes:q.done,pendingScopes:q.pending.length,
+   malformedHistoryPending:q.malformedHistoryPending,unresolvedHistoryRows:q.unresolvedHistoryRows,deferredHistoryScopes:q.deferredHistoryScopes,offerReferences:q.offerReferences,
+   sharedAcrossBooks:q.sharedAcrossBooks
+  };
+  console.log(JSON.stringify({...history,archiveRevision:revision,profileQueue},null,2));
+ }catch{console.error('Historical cache audit failed closed');process.exitCode=1;}
+}

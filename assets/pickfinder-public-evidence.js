@@ -21,14 +21,111 @@
   add(mount,'p','Historical cache: '+n(c.nonconflictingKeys)+' nonconflicting fact keys; '+n(c.conflictedKeys)+' conflicts; collection requests skipped: '+n(c.requestsSkipped)+'.');
   add(mount,'p','Independent grading queue: '+n(g.dueForIndependentGrade)+' due, '+n(g.pendingNotDue)+' not due, '+n(g.alreadyGraded)+' already graded.');
   const h=activity.historicalRecovery;
-  if(h){add(mount,'h3','Historical research readiness');add(mount,'p',n(h.fields)+' archived fields · '+n(h.candidates)+' statistical candidates · '+n(h.cacheRecords)+' reusable research facts · '+n(h.identityCandidates)+' identity candidates · '+n(h.reviewedIdentities)+' reviewed identities · '+n(h.qualifiedModelInputs)+' qualified model inputs. Candidate counts are not approved forecasts.');}
+  if(h){add(mount,'h3','Historical research readiness');add(mount,'p',n(h.fields)+' archived fields · '+n(h.candidates)+' statistical candidates · '+n(h.cacheRecords)+' reusable research facts · '+n(h.identityCandidates)+' identity candidates · '+n(h.reviewedIdentities)+' reviewed identities · '+n(h.qualifiedCache)+' qualified historical cache entries · '+n(h.qualifiedModelInputs)+' qualified model inputs. Candidate counts are not approved forecasts.');}
   for(const [sport,x] of Object.entries(activity.esportsScopeRecovery||{}))add(mount,'p',sport.toUpperCase()+': '+n(x.explicitSupportedScopes)+' / '+n(x.offerObservations)+' source scopes recognized; '+n(x.qualifiedModelInputs)+' qualified model inputs.');
   for(const [sport,x] of Object.entries(activity.sportsbookThresholdEvidence||{}))add(mount,'p',sport.toUpperCase()+': '+n(x.explicitThreshold)+' explicit sportsbook thresholds; '+n(x.exactPairs)+' same-snapshot price pairs. Independent offer verification remains required.');
+  const series=activity.esportsSeriesReview;
+  if(series?.counts){
+   add(mount,'p','Independent esports series review: '+n(series.counts.roster_and_map_corroborated)+' of '+n(series.scopes)+' scopes corroborated for player and maps · '+n(series.counts.player_unresolved??0)+' player identities unresolved · '+n(series.counts.roster_conflict??0)+' roster conflicts · '+n(series.counts.map_scope_unresolved)+' map scopes unresolved.');
+  }
+  const replay=activity.reviewedHistoryModel;
+  if(replay?.retrospective===true&&replay.modelApproved===false){
+   add(mount,'h3','NHL and NFL historical model replay');
+   for(const sport of ['nhl','nfl']){
+    const markets=Object.entries(replay.bySport?.[sport]||{});
+    add(mount,'h4',sport.toUpperCase());
+    const decided=markets.filter(([,m])=>m.decided>0);
+    if(!decided.length){add(mount,'p','No independently graded archive pairs met the pregame evidence gates.');continue;}
+    const table=add(mount,'table',''),header=add(add(table,'thead',''),'tr','');
+    for(const label of ['Market','Decisions','Games','Estimate','Brier score','Log loss'])add(header,'th',label);
+    const body=add(table,'tbody','');
+    for(const [market,m] of decided)for(const [key,label] of [
+     ['existing','Existing model'],['reviewed','Reviewed history'],['challenger','Combined'],['neutral','50% baseline']
+    ]){
+     const score=m.scores?.[key];
+     if(!Number.isFinite(score?.brier)||!Number.isFinite(score?.logLoss))continue;
+     const row=add(body,'tr','');
+     for(const v of [market,n(m.decided),n(m.distinctGames),label,score.brier.toFixed(3),score.logLoss.toFixed(3)])add(row,'td',v);
+    }
+   }
+  }
+  const valorant=activity.valorantRetrospective;
+  if(valorant?.prospective===false&&valorant.modelApproved===false){
+   add(mount,'h3','Valorant two-map retrospective');
+   add(mount,'p',n(valorant.examples)+' distinct propositions across '+n(valorant.series)+' series with independent results.');
+   const table=add(mount,'table',''),header=add(add(table,'thead',''),'tr','');
+   for(const label of ['Estimate','Brier score','Log loss'])add(header,'th',label);
+   const body=add(table,'tbody','');
+   for(const [key,label] of [['l10','Last ten'],['l5','Last five'],['l5L10Blend','Equal blend'],['even','50% baseline']]){
+    const score=valorant[key];
+    if(!Number.isFinite(score?.brier)||!Number.isFinite(score?.logLoss))continue;
+    const row=add(body,'tr','');
+    for(const v of [label,score.brier.toFixed(3),score.logLoss.toFixed(3)])add(row,'td',v);
+   }
+  }
+  const profile=activity.profileMarketEvidence;
+  if(profile){
+   add(mount,'h3','Historical quotes and NBA player context');
+   add(mount,'p',n(profile.historicalRows)+' archived book and threshold rows · '+n(profile.distinctUnconflictedPairedGroups)+' distinct two-sided prices. Movement times use the source display clock.');
+   add(mount,'p',n(profile.workloadObservations)+' workload observations · '+n(profile.defenseSplitObservations)+' defensive splits · '+n(profile.availabilityObservations)+' coded availability observations.');
+  }
   const fresh=Object.values(activity.readiness||{}).filter(x=>x.freshCompleteBoard&&Number.isFinite(Date.parse(x.observedAt))&&Date.parse(x.observedAt)<=Date.now()&&Date.now()-Date.parse(x.observedAt)<=900000);
   add(mount,'p','Fresh complete core boards: '+fresh.length+' / '+Object.keys(activity.readiness||{}).length+'. Old observations remain history, not live availability.');
  }catch{add(mount,'p','Public activity center report pending; no native notification delivery certified.');}
+ try{
+  const r=await fetch('./data/pickfinder-reviewed-history-performance.json',{cache:'no-store'});
+  if(!r.ok)throw Error();
+  const ledger=await r.json();
+  if(ledger.kind!=='pickfinder_nhlnfl_reviewed_history_performance_v1'||ledger.modelApproved!==false)throw Error();
+  add(mount,'h3','NHL and NFL prospective reviewed-history research');
+  add(mount,'p',n(ledger.pregameCommitted)+' pregame pairs archived · '+n(ledger.independentCommittedGrades)+' independently graded.');
+  const methods=[['existing','Existing model'],['reviewed','Reviewed history'],['challenger','Combined'],['neutral','50% baseline']];
+  const rows=Object.entries(ledger.bySport||{}).flatMap(([sport,markets])=>
+   Object.entries(markets).flatMap(([market,m])=>methods.flatMap(([key,label])=>{
+    const score=m.scores?.[key];
+    return m.graded>0&&Number.isFinite(score?.brier)&&Number.isFinite(score?.logLoss)?
+      [[sport,market,n(m.graded),n(m.distinctGames),label,score.brier.toFixed(3),score.logLoss.toFixed(3)]]:[];
+   })));
+  if(!rows.length)add(mount,'p','Awaiting independently graded pairs.');
+  else{
+   const table=add(mount,'table',''),header=add(add(table,'thead',''),'tr','');
+   for(const label of ['Sport','Market','Decisions','Games','Estimate','Brier score','Log loss'])add(header,'th',label);
+   const body=add(table,'tbody','');
+   for(const data of rows){
+    const row=add(body,'tr','');
+    for(const value of data)add(row,'td',value);
+   }
+  }
+ }catch{add(mount,'p','NHL and NFL prospective reviewed-history performance report is pending.');}
  const grading=d.independentGrading||{},coverage=d.researchCoverage||{};
  add(mount,'p','New NBA research forecasts: '+n(d.nbaShadowRows)+' · Archived pregame forecasts: '+n(grading.archivedPregameRows)+' · Not yet due: '+n(grading.pendingNotDue)+' · Due and awaiting results: '+n(grading.pendingDueAfterRun)+' · New independent grades: '+n(grading.newGrades)+' · No production approval.');
+ add(mount,'h3','NBA prospective model comparison');
+ const gradedMarkets=Object.entries(d.prospectiveComparisons||{}).filter(([,row])=>row?.approved===false);
+ const scoreColumns=['Brier score','Log loss'];
+ for(const comparison of [
+  {key:'frozenBaselineComparison',title:'Model and pregame baseline',arms:['Model','Pregame baseline']},
+  {key:'lowCountFeatureComparison',title:'PickFinder last-ten average on eligible NBA markets',arms:['With last-ten average','Without last-ten average']},
+  {key:'matchupFeatureComparison',title:'NBA head-to-head challenger',arms:['With head-to-head history','Native model']},
+  {key:'reviewedHistoryFeatureComparison',title:'NBA independently reviewed PickFinder history',arms:['With reviewed history','Existing model'],includeEven:true},
+  {key:'workloadFeatureComparison',title:'NBA native minutes challenger',arms:['Minutes-adjusted count model','Unadjusted count model']}
+ ]){
+  add(mount,'h4',comparison.title);
+  const paired=gradedMarkets.map(([market,row])=>[market,row[comparison.key]]).filter(([,p])=>
+   Number.isSafeInteger(p?.decided)&&p.decided>0&&
+   [p.modelBrier,p.baselineBrier,p.modelLogLoss,p.baselineLogLoss].every(x=>Number.isFinite(x)&&x>=0));
+  if(!paired.length){add(mount,'p','Awaiting independently graded pairs.');continue;}
+  const table=add(mount,'table',''),header=add(add(table,'thead',''),'tr','');
+  for(const label of ['Market','Decisions','Estimate',...scoreColumns])add(header,'th',label);
+  const body=add(table,'tbody','');
+  for(const [market,p] of paired){
+   const arms=[[comparison.arms[0],p.modelBrier,p.modelLogLoss],[comparison.arms[1],p.baselineBrier,p.baselineLogLoss]];
+   if(comparison.includeEven&&[p.evenBrier,p.evenLogLoss].every(Number.isFinite))arms.push(['50% baseline',p.evenBrier,p.evenLogLoss]);
+   for(const [label,brier,loss] of arms){
+    const row=add(body,'tr','');
+    for(const value of [market,n(p.decided),label,brier.toFixed(3),loss.toFixed(3)])add(row,'td',value);
+   }
+  }
+ }
  add(mount,'p','Profile attempts: '+n(coverage.profileAttempts)+' · Named dashboard snapshots: '+n(coverage.namedDashboardSnapshots)+' · Game-dialog observations: '+n(coverage.gameDialogObservations)+' · Full filter coverage remains pending.');
  const slots=Object.values(d.bySport||{}).flatMap(x=>Object.values(x.boards||{}));
  add(mount,'p','Latest manual board partitions: '+n(slots.filter(b=>b.slot==='manual').length)+' / '+n(slots.length)+'. A capture-slot label alone does not certify scheduled morning execution.');

@@ -104,7 +104,7 @@ test('feature inspector opens only a unique named navigation control and verifie
  const b={isVisible:async()=>true,isEnabled:async()=>true,click:async()=>calls.push('open')};
  const page={url:()=> 'https://www.pickfinder.app/props',locator:()=>({evaluateAll:async()=>[0],nth:()=>b}),waitForFunction:async()=>{},evaluate:async(fn,args)=>args.allowed?[]:{verified:true,controls:[{label:'Pick Builder',kind:'h2',disabled:false,inputType:null}]}};
  const x=await inspectTool(page,'builder',async()=>true);assert.equal(x.state,'read_only_schema_observed');assert.equal(x.method,'navigation_button');assert.equal(x.mutations,0);assert.deepEqual(calls,['open']);
- const ambiguous={...page,locator:()=>({evaluateAll:async()=>[0,1]})};
+ const ambiguous={...page,locator:()=>({evaluateAll:async()=>[0,1]}),evaluate:async(fn,args)=>args.allowed?[]:{verified:false,controls:[]}};
  assert.equal((await inspectTool(ambiguous,'builder',async()=>true)).state,'navigation_not_verified');
  const missing={...page,waitForFunction:async()=>{throw Error('missing panel')}};
  assert.equal((await inspectTool(missing,'alerts',async()=>true)).state,'panel_or_route_unverified');
@@ -172,7 +172,8 @@ test('header repair cannot clear a different malformed row or an incomplete repl
  const record=(fields,truncated=false)=>publicProfile({...x,research:fields,profileCollection:{truncated}});
  const old=record([row('row 1','Date | Opp',stamp),row('row 2','Date | Opp',stamp)]);
  const fixed1=row('row 1','Date | Opp | PTS',later,'span-grid-v1'),fixed2={...fixed1,metric:'row 2'};
- assert.equal(queue([b],[{records:[old,record([fixed1])]}]).repairPending.length,1);
+ const partial=queue([b],[{records:[old,record([fixed1])]}]);
+ assert.equal(partial.malformedHistoryPending,1);assert.equal(partial.unresolvedHistoryRows,1);assert.equal(partial.deferredHistoryScopes,1);
  assert.equal(queue([b],[{records:[old,record([fixed1,fixed2],true)]}]).repairPending.length,1);
  assert.equal(queue([b],[{records:[old,record([fixed1,fixed2])]}]).repairPending.length,0);
 });
@@ -183,4 +184,119 @@ test('notification menu follows only explicit same-origin allowlisted link',asyn
  const x=await inspectTool(page,'alerts',async()=>true);
  assert.equal(x.state,'read_only_schema_observed');assert.equal(x.method,'user_menu_link');assert.equal(x.mutations,0);
  assert.deepEqual(visits,['https://www.pickfinder.app/settings/notifications']);
+});
+
+test('named navigation can reference its visible control label by ID',async()=>{
+ const {navigationButton}=require('../scripts/pickfinder-tool-schema.cjs');
+ const attributes={'aria-labelledby':'tool title'};
+ const element={matches:()=>true,getAttribute:k=>attributes[k],ownerDocument:{getElementById:id=>({textContent:id==='tool'?'Pick':'Builder'})},querySelector:()=>null,closest:()=>null,getClientRects:()=>[{}]};
+ const button={isEnabled:async()=>true,isVisible:async()=>true};
+ const page={locator:()=>({evaluateAll:async(fn,names)=>fn([element],names),nth:()=>button})};
+ assert.equal(await navigationButton(page,['Pick Builder']),button);
+ assert.equal(await navigationButton(page,['Alerts']),null);
+});
+
+test('archived queue inputs stay pinned when a later commit adds a bad digest',t=>{
+ const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+ const {execFileSync}=require('node:child_process');
+ const {iterate,archiveRevision,ROOT,sha}=require('../scripts/pickfinder-public-archive.cjs');
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'pf-iterate-'));
+ t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const git=(...args)=>execFileSync('git',['-C',root,'-c','user.name=Test','-c','user.email=test@example.invalid',...args],{stdio:'pipe'});
+ git('init','-q');
+ const dir=path.join(root,ROOT,'profiles'),raw=JSON.stringify({records:[]});
+ fs.mkdirSync(dir,{recursive:true});
+ fs.writeFileSync(path.join(dir,sha(raw)+'.json'),raw);
+ git('add','.');git('commit','-qm','first');
+ const revision=archiveRevision(root);
+ fs.writeFileSync(path.join(dir,'a'.repeat(64)+'.json'),raw);
+ git('add','.');git('commit','-qm','second');
+ assert.deepEqual([...iterate(root,'profiles',revision)],[{records:[]}]);
+ assert.throws(()=>[...iterate(root,'profiles')],/archive digest mismatch/);
+});
+
+test('reads an already visible Pick Builder sidebar without opening or saving a pick',async()=>{
+ const {inspectTool}=require('../scripts/pickfinder-tool-schema.cjs');
+ const heading={kind:'h2',label:'Pick Builder'},button={kind:'button',label:'Export'};
+ for(const controls of [[heading],[heading,button]]){
+  const page={url:()=>'https://www.pickfinder.app/props',locator:()=>({evaluateAll:async()=>[]}),
+   evaluate:async(fn,args)=>{
+    if(args.allowed)return [];
+    assert.equal(args.panel,true);assert.deepEqual(args.names,['Pick Builder','Lineup Builder']);
+    return {verified:true,controls};
+   }};
+  const result=await inspectTool(page,'builder',async()=>true);
+  assert.equal(result.state,controls.length===1?'panel_only_observed':'read_only_schema_observed');
+  assert.equal(result.method,'visible_panel');assert.equal(result.mutations,0);assert.equal(result.submissionVerified,false);
+ }
+});
+
+
+test('floating popup launcher requires unique explicit opening intent and excludes mutable controls',async()=>{
+ const {navigationButton}=require('../scripts/pickfinder-tool-schema.cjs');
+ const allowed=['Alerts','Open Notifications'];
+ const button={isVisible:async()=>true,isEnabled:async()=>true};
+ const candidate=(label,popup,extra={})=>{
+  const attributes={'aria-label':label,'aria-haspopup':popup,...extra};
+  return {matches:()=>false,getAttribute:k=>attributes[k],hasAttribute:k=>Object.hasOwn(attributes,k),
+   getClientRects:()=>[{}],querySelector:()=>null,closest:()=>null};
+ };
+ const find=async elements=>navigationButton({locator:()=>({evaluateAll:(fn,args)=>fn(elements,args),nth:()=>button})},allowed);
+ assert.equal(await find([candidate('Open Notifications','dialog')]),button);
+ for(const rejected of [candidate('Enable notifications','dialog'),candidate('Alerts','true'),
+   candidate('Open Notifications','false'),candidate('Open Notifications','menu',{'aria-pressed':'false'}),
+   candidate('Open Notifications','dialog',{type:'submit'})])assert.equal(await find([rejected]),null);
+ assert.equal(await find([candidate('Open Notifications','dialog'),candidate('Open Notifications','menu')]),null);
+});
+
+test('rolling NBA log requires matching cells, context and header before clearing an old row',()=>{
+ const board={sport:'nba',book:'prizepicks',offers:[{player:'Fixture',market:'rebounds',eventId:'e',detailId:'/players/nba/f?prop=rebounds'}]};
+ const item=queue([board],[]).pending[0];
+ const first='2026-11-25T20:00:00Z',later='2026-11-26T22:00:00Z';
+ const row=(day,metric,when,aligned)=>({origin:'profile',tab:'Matchup',scope:aligned?'Date | Opp | REB':'Date | Opp',metric,
+  observedAt:when,headerLayout:aligned?'span-grid-v1':undefined,value:JSON.stringify([day,'TOR','8'].map(value=>({value})))});
+ const record=(...fields)=>publicProfile({...item,research:fields,profileCollection:{truncated:false}});
+ const old=row('11/23','row 1',first,false),differentGame=row('11/25','row 1',later,true),sameGame=row('11/23','row 2',later,true);
+ const check=(fields)=>queue([board],[{records:[record(old),record(...fields)]}]);
+ const gap=check([differentGame]);
+ assert.equal(gap.unresolvedHistoryRows,1);assert.equal(gap.done,0);assert.equal(gap.deferredHistoryScopes,1);
+ assert.equal(gap.repairPending.length,0);
+ const refreshed=check([differentGame,{...old,observedAt:'2026-11-27T22:00:00Z'}]);
+ assert.equal(refreshed.deferredHistoryScopes,0);assert.equal(refreshed.repairPending.length,1);
+ assert.equal(check([differentGame,sameGame]).done,1);
+ for(const change of [{tab:'Defense'},{filterSelection:[]},{scope:'Date | Team | REB'},{window:'Last 5 Games'}]){
+  assert.equal(check([differentGame,{...sameGame,...change}]).unresolvedHistoryRows,1);
+ }
+});
+
+test('opens exact Notifications menu item in the authenticated account modal',async()=>{
+ const {inspectTool}=require('../scripts/pickfinder-tool-schema.cjs');
+ const visited=[];
+ const visible=action=>({count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true,click:async()=>visited.push(action)});
+ const page={
+  url:()=> 'https://www.pickfinder.app/props',
+  locator:()=>({evaluateAll:async()=>[]}),
+  getByRole:(role,o)=>visible(role+':'+o.name),
+  evaluate:async(fn,args)=>args.allowed?[]:{verified:true,controls:[{label:'Board drops',kind:'h2'}]},
+  waitForFunction:async()=>{}
+ };
+ const result=await inspectTool(page,'alerts',async()=>true);
+ assert.equal(result.state,'read_only_schema_observed');
+ assert.deepEqual(visited,['button:Open user menu','menuitem:Notifications']);
+ assert.equal(result.mutations,0);
+});
+
+test('observes only the Builder side choices and dismisses the observed popover',async()=>{
+ const {openBoardBuilder}=require('../scripts/pickfinder-tool-schema.cjs'),calls=[];
+ const control={count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true};
+ const page={
+  getByText:()=>control,locator:()=>({...control,first:()=>({...control,click:async()=>calls.push('open')})}),
+  getByRole:role=>{assert.equal(role,'dialog');return {filter:()=>({
+   waitFor:async()=>{},getByRole:(kind,{name})=>({...control,count:async()=>Number(name==='Over')})
+  })};},keyboard:{press:async key=>calls.push(key)}
+ };
+ const receipt=await openBoardBuilder(page);
+ assert.deepEqual(receipt.controls.map(x=>x.label),['Over']);
+ assert.deepEqual(calls,['open','Escape']);
+ assert.equal(receipt.mutations,0);
 });

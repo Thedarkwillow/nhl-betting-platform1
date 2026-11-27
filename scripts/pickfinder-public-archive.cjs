@@ -44,8 +44,11 @@ async function persist(root,kind,data){
   }throw Error('public push rejected');
  }finally{fs.rmSync(tmp,{recursive:true,force:true});}
 }
-function read(root,kind){
- const dir=ROOT+'/'+kind,files=git(root,['ls-tree','-r','--name-only','HEAD','--',dir]).toString().trim().split('\n').filter(p=>new RegExp('^'+dir+'/[a-f0-9]{64}\\.json$').test(p));
- const out=[];for(const file of files){const raw=git(root,['show','HEAD:'+file]);if(sha(raw)!==path.basename(file,'.json'))throw Error('archive digest mismatch');out.push(JSON.parse(raw));}return out;
+function archiveRevision(root){return git(root,['rev-parse','HEAD']).toString().trim();}
+function* iterate(root,kind,commit=archiveRevision(root),{includeDigest=false}={}){
+ if(!/^[a-f0-9]{40}$/.test(commit))throw Error('invalid archive revision');
+ const dir=ROOT+'/'+kind,files=git(root,['ls-tree','-r','--name-only',commit,'--',dir]).toString().trim().split('\n').filter(p=>new RegExp('^'+dir+'/[a-f0-9]{64}\\.json$').test(p));
+ for(const file of files){const raw=git(root,['show',commit+':'+file]);const digest=path.basename(file,'.json');if(sha(raw)!==digest)throw Error('archive digest mismatch');const doc=JSON.parse(raw);yield includeDigest?{doc,digest}:doc;}
 }
-module.exports={ROOT,sha,safe,assertDestination,persist,read};
+function read(root,kind){return [...iterate(root,kind)];}
+module.exports={archiveRevision,iterate,ROOT,sha,safe,assertDestination,persist,read};

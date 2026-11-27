@@ -4,6 +4,7 @@ const {key,target,localMatchup}=require('./pickfinder-public-nba-context.cjs');
 const {classify,clockAt,ZONES}=require('./pickfinder-controlled-clock.cjs');
 const dt=Date.parse, norm=x=>String(x??'').trim().toLowerCase();
 const team=(sport,x)=>{const k=norm(x);return ({nba:{utah:'uta'},nfl:{was:'wsh',jac:'jax',az:'ari'}}[sport]?.[k]||k);};
+const eventSignature=s=>JSON.stringify([s.nativeNamespace??null,String(s.gameId),dt(s.startAt)]);
 const same=(a,b)=>!!a&&!!b&&['weekday','hour','minute','dayPeriod'].every(k=>a[k]===b[k]);
 function nativeMatches(r,scopes,at){
  return scopes.filter(s=>s.sport===r.sport.toUpperCase()&&norm(s.name)===norm(r.player)&&team(r.sport,s.team)===team(r.sport,r.team)&&team(r.sport,s.opponent)===team(r.sport,r.opponent)&&s.homeAway===r.localMatchup?.homeAway&&s.identityReviewed===true&&s.eventReviewed===true&&s.rosterReviewed===true&&s.evidenceKind==='automated_native_schedule_roster_only'&&/^[a-f0-9]{64}$/.test(s.receiptDigest||'')&&Number.isFinite(dt(s.firstGitAt))&&dt(s.firstGitAt)<=at&&Number.isFinite(dt(s.startAt))&&dt(s.startAt)>dt(r.observedAt)&&dt(s.startAt)<=dt(r.observedAt)+7*86400000);
@@ -26,7 +27,7 @@ function profileContexts(documents,clock){
    const local=localMatchup(displayedEvidence);
    if(!same(local,c.displayedLocalMatchup)||local.homeAway!==c.displayedLocalMatchup.homeAway)continue;
    records.push({...t,team:c.team,opponent:c.opponent,observedAt:c.observedAt,browserClock:c.browserClock,
-    displayedEvidence,displayedClocks:[],sourceProfileDigest:digest,routeVerified:true,playerLabelVerified:true});
+    displayedEvidence,displayedClocks:[],sourceProfileDigest:digest,sourceProfileAvailableAt:first,routeVerified:true,playerLabelVerified:true});
   }
  }
  return {schema:'pickfinder-public-nba-context-v1',records};
@@ -41,7 +42,9 @@ function recover(ctx,docs){
   if(m.length!==1){st.unresolved++;continue;}
   const s=m[0],result=classify(a,{sport,providerEventId:r.eventId,nativeEventId:s.gameId,source:s.receiptDigest,team:r.team,opponent:r.opponent,homeAway:s.homeAway,startAt:s.startAt,independentReviewVerified:true});
   if(result!=='browser_local_matches_schedule'){st.unresolved++;continue;}
-  st.matched++;const k=sport+'/'+r.eventId,old=qualified.get(k);if(old&&old!==s.startAt)qualified.set(k,null);else if(!qualified.has(k))qualified.set(k,s.startAt);
+  st.matched++;const k=sport+'/'+r.eventId,old=qualified.get(k),signature=eventSignature(s);
+  if(qualified.has(k)&&old?.signature!==signature){qualified.set(k,null);continue;}
+  if(!old)qualified.set(k,{signature,scope:s,source:r,samples:a});
  }
  let attempts=0;
  for(const d of docs.filter(x=>x.schema==='pickfinder-public-nba-context-v1'))for(const r of d.records||[]){
@@ -54,11 +57,11 @@ function recover(ctx,docs){
    if(!t||key(t)!==key(r)){reject('invalid_identity');continue;}
    const verifiedSample=qualified.get(r.sport+'/'+r.eventId);
    if(!verifiedSample){reject('event_not_independently_sampled');continue;}
-   const m=nativeMatches({...r,localMatchup:local},scopes,at).filter(s=>s.startAt===verifiedSample&&same(local,clockAt(s.startAt,zone)));
+   const m=nativeMatches({...r,localMatchup:local},scopes,at).filter(s=>eventSignature(s)===verifiedSample.signature&&same(local,clockAt(s.startAt,zone)));
    if(m.length!==1){reject('missing_or_conflicting_native_scope');continue;}
-   const s=m[0];rows.push({sport:r.sport,eventId:r.eventId,player:r.player,playerPath:r.playerPath,team:r.team,opponent:r.opponent,observedAt:r.observedAt,nativeGameId:s.gameId,nativePlayerId:s.playerId,nativeStartAt:s.startAt,nativeReceiptDigest:s.receiptDigest,...(r.sourceProfileDigest?{sourceProfileDigest:r.sourceProfileDigest,sourceDetailId:r.detailId}:{}),clockCorroborated:true,sourceClockVerified:false,modelApproved:false});
+   const s=m[0];rows.push({sport:r.sport,eventId:r.eventId,player:r.player,playerPath:r.playerPath,team:r.team,opponent:r.opponent,observedAt:r.observedAt,nativeGameId:s.gameId,nativePlayerId:s.playerId,nativeStartAt:s.startAt,nativeReceiptDigest:s.receiptDigest,nativeNamespace:s.nativeNamespace??null,nativeTeam:s.team,nativeOpponent:s.opponent,...(r.sourceProfileDigest?{sourceProfileDigest:r.sourceProfileDigest,sourceDetailId:r.detailId}:{}),clockCorroborated:true,sourceClockVerified:false,modelApproved:false});
   }catch{reject('invalid_record');}
  }
- return {rows,summary:{sample,attempts,corroboratedAttempts:rows.length,reasons,modelApproved:false,paidRequests:0}};
+ return {rows,qualifiedEvents:[...qualified.values()].filter(Boolean),summary:{sample,attempts,corroboratedAttempts:rows.length,reasons,modelApproved:false,paidRequests:0}};
 }
 module.exports={recover,nativeMatches,profileContexts};

@@ -82,3 +82,32 @@ test('exact profile retains displayed game clock and separate browser timezone w
  a.equal(captureProfileContext(row,{...snap,playerLabelVerified:false},at),null);
  a.equal(captureProfileContext(row,{...snap,entries:[...entries,{label:'Matchup',value:'PHI @ IND • Sat @ 4:30PM'}]},at).displayedMatchupLabel,undefined);
 });
+
+test('durable three-zone identity survives the event and does not use receipts unavailable at replay cutoff',()=>{
+ const {replay}=require('../scripts/pickfinder-durable-identities.cjs');
+ const {ZONES,clockAt}=require('../scripts/pickfinder-controlled-clock.cjs');
+ const clock='2026-11-29T00:00:00Z',first='2026-11-27T10:00:00Z',startAt='2026-11-28T02:30:00Z';
+ const sched={digest:'a'.repeat(64),first,doc:{sport:'nba',source:'espn:nba',observedAt:first,
+   proofs:[{url:'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=20261127',digest:'f'.repeat(64),observedAt:first},
+    {url:'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/7/roster',teamId:'7',digest:'f'.repeat(64),observedAt:first}],
+   events:[{eventId:'official-event',status:'pre',startAt,teams:[{id:'7',abbr:'DEN',homeAway:'away'},{id:'8',abbr:'UTAH',homeAway:'home'}]}],
+   roster:[{teamId:'7',team:'DEN',playerId:'123',name:'Test Player'}]}};
+ const p={sport:'nba',player:'Test Player',eventId:'source-event',market:'player_points',
+   detailId:'/players/nba/test?prop=player%3Aplayer_points%3Asource-event%3A10'};
+ const base={...p,playerPath:'/players/nba/test',routeVerified:true,playerLabelVerified:true,
+   team:'DEN',opponent:'UTA',observedAt:first,displayedClocks:[]};
+ const controls=ZONES.map((zone,i)=>({digest:String(i+1).repeat(64),first,doc:{schema:'pickfinder-controlled-clock-v1',records:[
+   {...base,requestedZone:zone,browserClock:{zone},localMatchup:{...clockAt(startAt,zone),homeAway:'away'}}]}}));
+ const profiles=[{digest:'b'.repeat(64),first,doc:{schema:'pickfinder-public-profiles-v1',records:[{...p,
+   independentReconciliationContext:{team:'DEN',opponent:'UTA',observedAt:first,providerDisplayZoneVerified:false,
+    browserClock:{zone:'UTC'},displayedMatchupLabel:'DEN @ UTA • Sat @ 2:30AM',
+    displayedLocalMatchup:{team:'DEN',opponent:'UTA',homeAway:'away',weekday:'Sat',hour:2,minute:30,dayPeriod:'AM'}}}]}}];
+ const input={facts:[sched],controls,profiles,clock,revision:'a'.repeat(40)};
+ const r=replay(input);
+ a.equal(r.events.length,1);a.equal(r.players[0].playerId,'123');
+ a.equal(r.aliases[0].nativeCode,'UTAH');a.equal(r.rows.filter(x=>x.profileDigest).length,1);
+ a.equal(replay({...input,clock:'2026-11-27T09:00:00Z'}).events.length,0);
+ a.equal(replay({...input,controls:controls.slice(1)}).events.length,0);
+ const conflict={...sched,digest:'c'.repeat(64),doc:{...sched.doc,events:[{...sched.doc.events[0],eventId:'conflict'}]}};
+ a.equal(replay({...input,facts:[sched,conflict]}).events.length,0);
+});

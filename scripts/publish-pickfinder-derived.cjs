@@ -33,6 +33,13 @@ function validate(raw,file,at){
  }else if(file==='data/pickfinder-public-activity.json'){
   if(!Array.isArray(x.events)||!x.readiness||!x.delivery||x.delivery.nativePickFinder!=='unverified')throw Error('activity contract');
  }else if(file==='data/pickfinder-current-identity-registry.json'){
+  const validDigest=d=>/^[a-f0-9]{64}$/.test(d||'');
+  if(x.qualifiedShadowStatistics!==undefined&&(!Array.isArray(x.qualifiedShadowStatistics)||x.qualifiedShadowStatistics.some(r=>
+   r.evidenceKind!=='verified_current_identity_and_independent_final_stat'||r.productionModelEligible!==false||
+   r.shadowResearchEligible!==true||r.operatorOfferVerified!==false||r.settlementVerified!==false||
+   !validDigest(r.nativeDigest)||!validDigest(r.profileDigest)||!validDigest(r.identityReceiptDigest)||
+   !Array.isArray(r.timezoneReceiptDigests)||r.timezoneReceiptDigests.length!==3||new Set(r.timezoneReceiptDigests).size!==3||
+   !r.timezoneReceiptDigests.every(validDigest)||!Number.isFinite(r.value)||!Number.isFinite(Date.parse(r.availableAt))||Date.parse(r.availableAt)>t)))throw Error('shadow statistic evidence contract');
   if(!Array.isArray(x.rows)||!Array.isArray(x.registry)||!sha(x.archiveRevision)||x.rows.some(r=>r.operatorOfferVerified!==false||r.settlementVerified!==false||r.statisticalModelEligible!==false))throw Error('identity registry contract');
  }else if(!Array.isArray(x.rows)||x.researchOnly!==true||x.privateRepoUsed!==false||x.calibrated!==false){
   throw Error('ranking contract');

@@ -64,7 +64,7 @@ class RouteConfigError extends Error {
   this.route=route;
  }
 }
-const generalEnabled=env=>!!env.PROJECT_DISCORD_CHANNEL_ID;
+const generalEnabled=env=>env.PROJECT_DISCORD_GENERAL_ENABLED!=='0'&&!!env.PROJECT_DISCORD_CHANNEL_ID;
 function platformDestinations(env,{includeGeneral=generalEnabled(env)}={}){
  const fail=(problem,route)=>{throw new RouteConfigError(problem,route);};
  const guild=env.PROJECT_DISCORD_GUILD_ID;

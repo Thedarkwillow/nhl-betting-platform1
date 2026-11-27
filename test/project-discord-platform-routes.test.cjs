@@ -123,7 +123,7 @@ test('bad setup exposes only fixed diagnostic codes and known route names, never
 });
 
 test('platform-only setup sends neither tests nor operations to general',async()=>{
- const f=fixture(),platformOnly={...env,PROJECT_DISCORD_CHANNEL_ID:'',PROJECT_DISCORD_WEBHOOK_URL:''};
+ const f=fixture(),platformOnly={...env,PROJECT_DISCORD_GENERAL_ENABLED:'0'};
  const opts={...f,env:platformOnly,now,runKey:'14'};
  const probe=await dispatch([],{...opts,mode:'test_routes'});a.equal(probe.delivered,4);
  a.equal((await dispatch([],{...opts,mode:'test'})).status,'general_disabled');

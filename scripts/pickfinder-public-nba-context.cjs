@@ -2,18 +2,19 @@
 // Visible, explicitly scoped sporting facts only. Do not infer a clock from an ID,
 // a historical game log, a line movement timestamp or a local time without zone.
 const ORIGIN='https://www.pickfinder.app',iso=x=>typeof x==='string'&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(x)&&Number.isFinite(Date.parse(x));
+const routes={nba:['nba'],nhl:['nhl'],nfl:['nfl'],mlb:['mlb'],wnba:['wnba'],'college-basketball':['cbb','college-basketball'],'college-football':['cfb','college-football']};
 const key=x=>JSON.stringify([x.sport,x.eventId,x.player,x.playerPath]);
 function target(o){
- if(!['nba','nhl','nfl'].includes(o.sport)||!o.eventId||!o.player||!o.detailId)return null;
+ if(!Object.hasOwn(routes,o.sport)||!o.eventId||!o.player||!o.detailId)return null;
  let u;try{u=new URL(o.detailId,ORIGIN);}catch{return null;}
  const p=u.searchParams.get('prop')?.split(':')||[];
- if(u.origin!==ORIGIN||!new RegExp('^/players/'+o.sport+'/[a-zA-Z0-9_-]+$').test(u.pathname)||u.searchParams.getAll('prop').length!==1||[...u.searchParams.keys()].some(k=>k!=='prop')||p.length!==4||p[2]!==o.eventId||p[1]!==o.market)return null;
+ if(u.origin!==ORIGIN||!new RegExp('^/players/(?:'+routes[o.sport].join('|')+')/[a-zA-Z0-9_-]+$').test(u.pathname)||u.searchParams.getAll('prop').length!==1||[...u.searchParams.keys()].some(k=>k!=='prop')||p.length!==4||p[2]!==o.eventId||p[1]!==o.market)return null;
  return {sport:o.sport,eventId:o.eventId,player:o.player,playerPath:u.pathname,detailId:u.pathname+'?'+u.searchParams.toString()};
 }
 function queue(archive,receipts,at){
  const completed=new Set(receipts.filter(x=>x.schema==='pickfinder-public-nba-context-v1').flatMap(x=>x.records||[]).filter(x=>x.state==='explicit_context_observed'&&iso(x.observedAt)&&iso(x.startAt)&&Date.parse(x.observedAt)<=Date.parse(at)&&Date.parse(x.startAt)>Date.parse(at)+900000&&Date.parse(at)-Date.parse(x.observedAt)<6*3600000).map(key));
  const seen=new Map();
- for(const b of archive.latest)for(const o of b.offers||[]){const t=target(o);if(!t)continue;const k=key(t),old=seen.get(k);if(!old)seen.set(k,{...t,offerReferences:1});else old.offerReferences++;}
+ for(const b of archive.latest)for(const o of b.offers||[]){const t=target(o);if(!t||!['nba','nhl','nfl'].includes(t.sport))continue;const k=key(t),old=seen.get(k);if(!old)seen.set(k,{...t,offerReferences:1});else old.offerReferences++;}
  const groups=new Map();for(const x of seen.values())if(!completed.has(key(x))){const a=groups.get(x.sport+'/'+x.eventId)||[];a.push(x);groups.set(x.sport+'/'+x.eventId,a);}
  const pending=[];for(let i=0;[...groups.values()].some(a=>i<a.length);i++)for(const a of groups.values())if(a[i])pending.push(a[i]);
  return {total:seen.size,pending,offerReferences:[...seen.values()].reduce((n,x)=>n+x.offerReferences,0)};
@@ -63,8 +64,9 @@ function normalize(t,s,at){
  const teams=new Set(({nba:'ATL BOS BKN CHA CHI CLE DAL DEN DET GSW HOU IND LAC LAL MEM MIA MIL MIN NOP NYK OKC ORL PHI PHX POR SAC SAS TOR UTA WAS',nhl:'ANA BOS BUF CAR CBJ CGY CHI COL DAL DET EDM FLA LAK MIN MTL NJD NSH NYI NYR OTT PHI PIT SEA SJS STL TBL TOR UTA VAN VGK WPG WSH',nfl:'ARI ATL BAL BUF CAR CHI CIN CLE DAL DEN DET GB HOU IND JAX JAC KC LAC LAR LA LV MIA MIN NE NO NYG NYJ PHI PIT SEA SF TB TEN WAS WSH'}[t.sport]||'').split(' '));
  const team=one('team'),opponent=one('opponent'),clocks=[...new Set([...(s.clocks||[]).map(x=>x.value),...entries.filter(x=>/^(?:game|match|event|scheduled)\s*(?:start|time)/i.test(x.label)).map(x=>x.value)].filter(iso).map(x=>new Date(x).toISOString()))];
  const startAt=clocks.length===1?clocks[0]:null;
- const explicit=s.routeVerified===true&&s.playerLabelVerified===true&&teams.has(team)&&teams.has(opponent)&&team!==opponent&&startAt&&iso(at)&&Date.parse(startAt)>Date.parse(at);
+ const validTeam=x=>teams.has(x)||(!['nba','nhl','nfl'].includes(t.sport)&&/^[A-Z]{2,4}$/.test(x||''));
+ const explicit=s.routeVerified===true&&s.playerLabelVerified===true&&validTeam(team)&&validTeam(opponent)&&team!==opponent&&startAt&&iso(at)&&Date.parse(startAt)>Date.parse(at);
  const local=localMatchup(entries);
- return {...t,observedAt:at,browserClock:browserClockEvidence(s),localMatchup:local,clockEvidenceState:startAt?'explicit_iso':local?'local_clock_zone_unverified':'missing_clock',state:explicit?'explicit_context_observed':'context_incomplete',routeVerified:s.routeVerified===true,playerLabelVerified:s.playerLabelVerified===true,team:teams.has(team)?team:null,opponent:teams.has(opponent)?opponent:null,startAt,displayedEvidence:entries,displayedClocks:s.clocks||[],independentReviewVerified:false,originalPlatformVerified:false};
+ return {...t,observedAt:at,browserClock:browserClockEvidence(s),localMatchup:local,clockEvidenceState:startAt?'explicit_iso':local?'local_clock_zone_unverified':'missing_clock',state:explicit?'explicit_context_observed':'context_incomplete',routeVerified:s.routeVerified===true,playerLabelVerified:s.playerLabelVerified===true,team:validTeam(team)?team:null,opponent:validTeam(opponent)?opponent:null,startAt,displayedEvidence:entries,displayedClocks:s.clocks||[],independentReviewVerified:false,originalPlatformVerified:false};
 }
 module.exports={queue,readVisible,normalize,target,key,localMatchup,browserClockEvidence};

@@ -1,6 +1,6 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),{normalize}=require('./pickfinder-premium-archive.cjs'),{collect,ORIGIN,readCompactBoardClocks}=require('./pickfinder-browser.cjs'),{enrich}=require('./pickfinder-player-research.cjs'),{VERSION}=require('./pickfinder-research-coverage.cjs'),{checkpointBuffer}=require('./pickfinder-checkpoint-buffer.cjs'),{pacific,decide}=require('./pacific-morning-capture-gate.cjs'),{prioritySports,registry}=require('./season-aware-collection.cjs'),{discover}=require('./season-aware-discovery.cjs'),{openHostedBoard}=require('./pickfinder-unattended-runner.cjs'),{persist,read,iterate,archiveRevision,safe,sha,assertDestination}=require('./pickfinder-public-archive.cjs');
-const {dashboardRoutes,captureGameDialogs,verifiedNavigation,traverseDashboardFilters,inspectCapabilities}=require('./pickfinder-dashboard-research.cjs');
+const {dashboardRoutes,captureGameDialogs,verifiedNavigation,traverseDashboardFilters,dashboardControlDiagnostics,inspectCapabilities}=require('./pickfinder-dashboard-research.cjs');
 const {inspectTool}=require('./pickfinder-tool-schema.cjs');
 const currentIdentity=require('./pickfinder-current-identity.cjs');
 const gameContext=require('./pickfinder-public-nba-context.cjs'),{load}=require('./pickfinder-public-evidence-audit.cjs');
@@ -232,7 +232,7 @@ async function main(root,env=process.env){
  if(p.gameTimezoneOnly){
   const probe=require('./pickfinder-controlled-clock.cjs'),until=Date.now()+6*60000;
   const alive=()=>{const c=pacific(new Date());return Date.now()<until&&c.day===p.clock.day&&!protectedMorningClock(c);};
-  const targets=probe.selectProfiles(iterate(root,'profiles'),read(root,'directory'),new Date().toISOString());
+  const targets=probe.selectProfiles(iterate(root,'profiles'),read(root,'directory'),new Date().toISOString(),{expanded:true});
   const result=targets.length?await probe.observe({targets,open:zone=>openHostedBoard(chromium,env,zone),alive,
    write:data=>persist(root,'directory',data),premium,origin:ORIGIN}):{targets:0,attempts:0,expected:0,providerDisplayZoneVerified:false};
   console.log(JSON.stringify({state:'public_game_timezone_experiment',...result,paidApiRequests:0}));return;
@@ -367,10 +367,18 @@ async function main(root,env=process.env){
     await page.goto(ORIGIN+'/props',{timeout:15000});if(!await waitPremium(page))throw Error('session unavailable');const href=await verifiedNavigation(page,name,dashboardRoutes(name));
     if(!href){errors++;console.log(JSON.stringify({state:'public_dashboard_route_pending',name}));continue;}
     await page.goto(href,{timeout:15000});if(!await waitPremium(page))throw Error('session unavailable');
+    const controlSurface=await dashboardControlDiagnostics(page,name);
     let snapshots=0,sequences=0;const result=await traverseDashboardFilters(page,name,{shouldContinue:featureAlive,
      onSnapshot:async s=>{const {controls,...sports}=s;const r=await write('dashboards',{schema:'pickfinder-public-dashboard-v1',...sports});snapshots++;return r.digest;},
      onSequence:async receipt=>{await write('dashboards',{...receipt,captureOrigin:captureOrigin(env,p)});sequences++;}
     });
+    if(p.featuresOnly&&featureAlive()){
+     const evidence=await write('capabilities',{schema:'pickfinder-public-dashboard-control-diagnostics-v1',name,
+      observedAt:new Date().toISOString(),path:new URL(href).pathname,captureOrigin:captureOrigin(env,p),
+      ...controlSurface,traversalState:result.state,nativeEligible:result.filterAudit?.eligibleControls??0,
+      customEligible:result.customFilterAudit?.maxEligibleControls??0,allDashboardDataVerified:false,accountMutations:0});
+     console.log(JSON.stringify({state:'public_dashboard_control_readback',name,digest:evidence.digest,traversal:result.state,controls:controlSurface.controls}));
+    }
     if(!snapshots){errors++;console.log(JSON.stringify({state:'public_dashboard_data_pending',name,reason:result.state}));}
     else console.log(JSON.stringify({state:'public_dashboard_pass',name,snapshots,sequences,filtersExhausted:result.filtersExhausted===true}));
    }catch{errors++;console.log(JSON.stringify({state:'public_dashboard_pending',name}));}

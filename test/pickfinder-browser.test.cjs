@@ -104,6 +104,8 @@ test('quote threshold requires an isolated sportsbook and its own visible descri
   group.innerText='Over 6.5 −110; Under 6.5 +105';
   assert.ok(read().every(p=>p.sourceQuoteDateTime===quoteTime&&p.sourceQuoteTimeBasis==='provider_quote_time_element'));
   assert.equal(readBoard(args).rows[0].startAt,gameTime);
+  group.innerText='Line 6.5; Over −110; Under +105';
+  assert.ok(read().every(p=>p.quoteLine===6.5&&p.sourceQuoteDateTime===quoteTime));
   // A tooltip-only line or a clock merely labeling an update can't bind both prices.
   group.innerText='Over −110; Under +105';tooltip.innerText='DraftKings Line 6.5';
   assert.ok(read().every(p=>p.quoteLine===6.5&&!p.sourceQuoteDateTime));

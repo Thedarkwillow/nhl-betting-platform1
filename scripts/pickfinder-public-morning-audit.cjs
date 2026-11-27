@@ -1,8 +1,10 @@
 'use strict';
 const {execFileSync}=require('node:child_process'),fs=require('node:fs'),path=require('node:path'),{ROOT,sha}=require('./pickfinder-public-archive.cjs'),{pacific}=require('./pacific-morning-capture-gate.cjs');
+const {PUBLIC_MORNING_MINUTES}=require('./pickfinder-public-morning-preflight.cjs');
 const REPOSITORY='Thedarkwillow/nhl-betting-platform1';
 const AUDIT_PATH='.github/workflows/morning-private-archive-health.yml';
-const AUDIT_CRONS={'20 7 * * *':{slot:'06:00',hour:7},'20 10 * * *':{slot:'09:00',hour:10}};
+const CAPTURE_PATH='.github/workflows/pickfinder-premium-hosted.yml';
+const AUDIT_CRONS=Object.fromEntries([7,10].flatMap(hour=>[20,47].map(minute=>[minute+' '+hour+' * * *',{slot:hour===7?'06:00':'09:00',hour,minute}])));
 const CORE_PARTITIONS=['nba','nhl','nfl'].flatMap(s=>['prizepicks','underdog'].map(b=>s+'/'+b));
 const validDay=day=>/^\d{4}-\d{2}-\d{2}$/.test(day)&&Number.isFinite(Date.parse(day))&&new Date(day).toISOString().slice(0,10)===day;
 const validRunId=id=>/^[1-9][0-9]{0,19}$/.test(id);
@@ -27,7 +29,7 @@ async function auditContext(slot,requestedDay,env=process.env,client=fetch,now=n
   run.head_branch!=='main'||run.path!==AUDIT_PATH||!Number.isFinite(Date.parse(run.created_at))||
   Date.parse(run.created_at)>Number(now))throw Error('unverified_scheduler_run_metadata');
  const time=pacific(run.created_at);
- if(time.hour<cron.hour||time.hour===cron.hour&&time.minute<20)throw Error('unverified_scheduler_day');
+ if(time.hour<cron.hour||time.hour===cron.hour&&time.minute<cron.minute)throw Error('unverified_scheduler_day');
  // A runner may start after Pacific midnight. Never roll to the execution day.
  // This binds to GitHub's run creation clock, not a fabricated nominal cron date.
  return {day:time.day,dayBasis:'github_run_created_at',auditRunId:id};
@@ -72,8 +74,8 @@ function run(root,day,slot,now=new Date(),evidence=slotEvidence){
  return {state:'public_pickfinder_morning_audit',day,slot,archiveRevision:revision,archiveMissingCorePartitions:CORE_PARTITIONS.filter(key=>!(results[key]?.verified>0)),partitions:results,corePartitionsVerified:CORE_PARTITIONS.every(key=>results[key]?.verified>0),originalPlatformAvailabilityVerified:false,modelApproved:false,privateRepoUsed:false};
 }
 function scheduledRunMatches(origin,run,day,slot,first){
- const hour=Number(slot.slice(0,2)),cronMinute=[7,29].find(m=>origin?.cron===m+' '+hour+' * * *');
- return !!cronMinute&&origin.event==='schedule'&&/^[1-9][0-9]{0,19}$/.test(origin.runId)&&/^[1-9][0-9]{0,5}$/.test(origin.attempt)&&/^[a-f0-9]{40}$/.test(origin.revision)&&!!run&&String(run.id)===origin.runId&&String(run.run_attempt)===origin.attempt&&run.event==='schedule'&&run.head_sha===origin.revision&&run.head_branch==='main'&&run.repository?.full_name==='Thedarkwillow/nhl-betting-platform1'&&run.path==='.github/workflows/pickfinder-premium-hosted.yml'&&run.status==='completed'&&run.conclusion==='success'&&inHour(run.run_started_at,day,hour)&&pacific(run.run_started_at).minute>=cronMinute&&Date.parse(run.run_started_at)<=Date.parse(first);
+ const hour=Number(slot.slice(0,2)),cronMinute=PUBLIC_MORNING_MINUTES.find(m=>origin?.cron===m+' '+hour+' * * *');
+ return !!cronMinute&&origin.event==='schedule'&&/^[1-9][0-9]{0,19}$/.test(origin.runId)&&/^[1-9][0-9]{0,5}$/.test(origin.attempt)&&/^[a-f0-9]{40}$/.test(origin.revision)&&!!run&&String(run.id)===origin.runId&&String(run.run_attempt)===origin.attempt&&run.event==='schedule'&&run.head_sha===origin.revision&&run.head_branch==='main'&&run.repository?.full_name==='Thedarkwillow/nhl-betting-platform1'&&run.path===CAPTURE_PATH&&run.status==='completed'&&run.conclusion==='success'&&inHour(run.run_started_at,day,hour)&&pacific(run.run_started_at).minute>=cronMinute&&Date.parse(run.run_started_at)<=Date.parse(first);
 }
 async function verifyScheduled(root,report,env=process.env,client=fetch,evidence=slotEvidence){
  if(report.state!=='public_pickfinder_morning_audit')return report;
@@ -103,19 +105,50 @@ async function verifyScheduled(root,report,env=process.env,client=fetch,evidence
  const scheduledMissingCorePartitions=CORE_PARTITIONS.filter(key=>!(results[key]?.scheduledVerified>0));
  return {...report,scheduledPartitions:results,scheduledReceipts:receipts,scheduledMissingCorePartitions,scheduledCorePartitionsVerified:scheduledMissingCorePartitions.length===0,scheduledFullCoverageCertified:false};
 }
+async function dispatchReadback(report,env=process.env,client=fetch){
+ const {day,slot}=report,hour=Number(slot?.slice(0,2));
+ if(report.state!=='public_pickfinder_morning_audit'||!validDay(day)||![6,9].includes(hour))return {state:'slot_not_audited'};
+ // Resolve Pacific slot to UTC from the real time-zone conversion, including DST.
+ const midnight=new Date(day+'T00:00:00Z').getTime();
+ const start=[7,8].map(offset=>new Date(midnight+(hour+offset)*3600000)).find(d=>inHour(d,day,hour));
+ if(!start)return {state:'capture_dispatch_history_unavailable'};
+ const end=new Date(+start+3599999);
+ const query=new URLSearchParams({branch:'main',event:'schedule',created:start.toISOString()+'..'+end.toISOString(),per_page:'100'});
+ let data;
+ try{
+  const result=await client('https://api.github.com/repos/'+REPOSITORY+'/actions/workflows/pickfinder-premium-hosted.yml/runs?'+query,requestOptions(env));
+  if(result.ok)data=await result.json();
+ }catch{}
+ if(!Array.isArray(data?.workflow_runs)||!Number.isSafeInteger(data.total_count)||data.total_count!==data.workflow_runs.length)
+  return {state:'capture_dispatch_history_unavailable'};
+ const states=new Set(['requested','queued','pending','waiting','in_progress','completed']);
+ const conclusions=new Set(['success','failure','cancelled','skipped','timed_out','action_required','neutral','stale','startup_failure']);
+ const rows=data.workflow_runs.filter(r=>r.event==='schedule'&&r.head_branch==='main'&&r.path===CAPTURE_PATH&&
+  r.repository?.full_name===REPOSITORY&&validRunId(String(r.id))&&inHour(r.created_at,day,hour));
+ if(data.workflow_runs.length!==rows.length||new Set(rows.map(r=>r.id)).size!==rows.length)return {state:'capture_dispatch_history_unavailable'};
+ const runs=rows.map(r=>({id:String(r.id),status:states.has(r.status)?r.status:null,
+  conclusion:conclusions.has(r.conclusion)?r.conclusion:null,createdAt:new Date(r.created_at).toISOString(),
+  startedWithinSlot:inHour(r.run_started_at,day,hour)}));
+ const state=report.scheduledCorePartitionsVerified?'scheduled_core_archived':!runs.length?'no_scheduled_dispatch_recorded_in_slot':
+  runs.some(r=>r.startedWithinSlot)?'scheduled_start_seen_missing_core_archives':'scheduled_dispatch_seen_no_in_slot_start';
+ return {state,runs};
+}
 function scheduledAuditExit(report){
  return report.state==='public_pickfinder_morning_audit'&&report.scheduledCorePartitionsVerified===true?0:1;
 }
-module.exports={assess,run,scheduledRunMatches,verifyScheduled,scheduledAuditExit,missingCoreSlotPartitions,auditContext};
+module.exports={assess,run,scheduledRunMatches,verifyScheduled,scheduledAuditExit,missingCoreSlotPartitions,auditContext,dispatchReadback};
 if(require.main===module){(async()=>{
  const root=process.argv[2],slot=process.argv[3],now=new Date();
  const context=await auditContext(slot,process.env.AUDIT_DAY,process.env,fetch,now);
  let pinned;
  const read=(...args)=>pinned??=(slotEvidence(...args));
  const report={...await verifyScheduled(root,run(root,context.day,slot,now,read),process.env,fetch,read),...context,generatedAt:now.toISOString()};
+ report.dispatch=await dispatchReadback(report);
  const evidence=JSON.stringify(report);
  if(process.env.AUDIT_OUTPUT)fs.writeFileSync(process.env.AUDIT_OUTPUT,evidence+'\n');
  console.log(evidence);
+ if(process.env.GITHUB_STEP_SUMMARY&&report.dispatch.state!=='slot_not_audited')
+  fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,`PickFinder ${report.day} ${report.slot} Pacific — ${report.dispatch.state}. Verified core archives: ${CORE_PARTITIONS.length-report.scheduledMissingCorePartitions.length}/${CORE_PARTITIONS.length}.\n`);
  if(process.argv.includes('--require-scheduled-core')&&scheduledAuditExit(report)!==0){
   console.error('::error::No independently verified complete scheduled core partitions for '+context.day+' '+report.slot+' Pacific. Audit only, no collection or retry.');
   process.exitCode=1;

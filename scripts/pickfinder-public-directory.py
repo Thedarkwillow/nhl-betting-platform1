@@ -1,7 +1,8 @@
 """Read-only, resumable crawl of linked public sporting pages; no paid endpoints."""
 import os,sys,json,hashlib,time,re,runpy,urllib.request,urllib.error,subprocess
 from pathlib import Path
-from collections import deque,defaultdict
+from tempfile import TemporaryDirectory
+from collections import defaultdict
 from datetime import datetime,timezone
 from urllib.parse import urlsplit,urljoin,parse_qs,urlencode
 M=runpy.run_path(str(Path(__file__).with_name("pickfinder-free-research.py")))
@@ -35,15 +36,22 @@ def safe(href):
 def priority(p):
     bits=p.split("?")[0].strip("/").split("/")
     return 0 if len(bits)<=2 else 1 if len(bits)==3 else 2
-def next_path(pending,existing,visited):
+def league(p):
+    return p.split("/")[2] if p.startswith("/leagues/") else "directory"
+
+def next_path(pending,existing,visited,attempt):
+    if "/free-research" in pending:return "/free-research"
+    # Reserve every fourth slot for due refreshes. If either lane is empty,
+    # lend that slot to the other without increasing the request budget.
+    refresh_turn=(attempt+1)%4==0
+    lane=[p for p in pending if (p in existing)==refresh_turn] or pending
     core={"nba","nhl","nfl"}; observed_active={"cs2","dota-2","valorant"}
-    def sport(p):return p.split("/")[2] if p.startswith("/leagues/") else "directory"
     def rank(p):
-        s=sport(p)
+        s=league(p)
         # Core and recently observed active boards first; round-robin within group.
         tier=0 if s=="directory" else 1 if s in core else 2 if s in observed_active else 3
-        return (priority(p),tier,p in existing,visited.get(s,0),p)
-    return min(pending,key=rank)
+        return (priority(p),tier,visited.get(s,0),p)
+    return min(lane,key=rank)
 def extract(html,rel):
     p=M["parse"](html)
     # Explicit links only. No guessed URLs or account/action navigation.
@@ -74,24 +82,19 @@ def main(root,budget=80):
     dest=root/'research'/('pickfinder-public-directory-v3' if public else 'pickfinder-public-directory-v2')
     if dest.is_symlink() or dest.parent.is_symlink():raise ValueError("symlink")
     dest.mkdir(parents=True,exist_ok=True)
-    now=datetime.now(timezone.utc);existing={}
-    for f in dest.glob("*.json"):
-        try:
-            raw=f.read_bytes()
-            if f.is_symlink() or hashlib.sha256(raw).hexdigest()!=f.stem:continue
-            d=json.loads(raw);p=d["path"];t=datetime.fromisoformat(d["observedAt"])
-            if safe(p)==p and (p not in existing or t>existing[p][0]):existing[p]=(t,d)
-        except Exception:continue
-    known={"/free-research"}
-    for _,d in existing.values():known.update(p for p in d.get("links",[]) if safe(p)==p)
+    now=datetime.now(timezone.utc)
+    existing,receipts,invalid=load_archive(dest)
+    known=linked_routes(existing)
+    first_observations=0
+    refreshes=0
     attempted=set();counts=defaultdict(lambda:{"pages":0,"tables":0,"rows":0,"playerLinks":0});failed=0;stopped=False;visited=defaultdict(int)
     def due(p):
         return due_route(p,existing,now)
     while len(attempted)<budget:
         pending=[p for p in known if p not in attempted and due(p)]
         if not pending:break
-        rel=next_path(pending,existing,visited)
-        visited[rel.split('/')[2] if rel.startswith('/leagues/') else 'directory']+=1
+        rel=next_path(pending,existing,visited,len(attempted))
+        visited[league(rel)]+=1
         attempted.add(rel)
         try:
             raw=fetch(rel);d=extract(raw.decode("utf-8"),rel)
@@ -99,8 +102,10 @@ def main(root,budget=80):
             payload=json.dumps(d,sort_keys=True,separators=(",",":")).encode()
             if public and re.search(rb'[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|\b(?:Bearer\s+\S+|github_pat_[A-Za-z0-9_]+|gh[pousr]_[A-Za-z0-9]+|eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)',payload,re.I):raise ValueError('sensitive text')
             with (dest/(hashlib.sha256(payload).hexdigest()+".json")).open("xb") as f:f.write(payload);f.flush();os.fsync(f.fileno())
+            if rel in existing:refreshes+=1
+            else:first_observations+=1
             known.update(d["links"]);existing[rel]=(datetime.fromisoformat(d["observedAt"]),d)
-            sport=rel.split("/")[2] if rel.startswith("/leagues/") else "directory"
+            sport=league(rel)
             a=counts[sport];a["pages"]+=1
             for key in ("tables","rows","playerLinks"):a[key]+=d["summary"][key]
         except urllib.error.HTTPError as e:
@@ -108,11 +113,59 @@ def main(root,budget=80):
             if e.code in (401,403,429):stopped=True;break
         except Exception:failed+=1
         time.sleep(1)
-    pending=sum(due(p) for p in known)
-    print(json.dumps({"state":"public_directory_progress","knownPaths":len(known),"observedPaths":sum(p in existing for p in known),"pendingOrRefreshDue":pending,"attempted":len(attempted),"failures":failed,"stoppedOnRefusal":stopped,"bySport":dict(counts),"allPagesCertified":False,"modelInputsApproved":False,"paidRequests":0,"publicSportingPagesArchived":public,"rawHtmlPublished":False}))
+    print(json.dumps({"state":"public_directory_progress",**coverage(existing,receipts+first_observations+refreshes,invalid,now),
+        "newlyArchivedPaths":first_observations,"refreshedPaths":refreshes,"attempted":len(attempted),
+        "failures":failed,"stoppedOnRefusal":stopped,"bySport":dict(counts),"publicSportingPagesArchived":public}))
+
+def load_archive(dest):
+    existing={};receipts=0;invalid=0
+    if dest.is_symlink() or dest.parent.is_symlink():raise ValueError("symlink")
+    for f in sorted(dest.glob("*.json")):
+        try:
+            if f.is_symlink() or not f.is_file():raise ValueError("archive file")
+            raw=f.read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=f.stem:raise ValueError("archive digest")
+            d=json.loads(raw);p=d["path"];t=datetime.fromisoformat(d["observedAt"])
+            if (d.get("schema")!="pickfinder_public_directory_v2" or d.get("modelInputsApproved") is not False
+                or t.utcoffset() is None or safe(p)!=p or not isinstance(d.get("links"),list)
+                or not all(isinstance(link,str) and safe(link)==link for link in d["links"])
+                or not re.fullmatch(r"[a-f0-9]{64}",d.get("responseSha256",""))):
+                raise ValueError("archive contract")
+            receipts+=1
+            if p not in existing or t>existing[p][0]:existing[p]=(t,d)
+        except (OSError,ValueError,TypeError,KeyError):invalid+=1
+    return existing,receipts,invalid
+
+def linked_routes(existing):
+    return {"/free-research"}.union(*(d["links"] for _,d in existing.values()))
+
+def coverage(existing,receipts,invalid,now):
+    known=linked_routes(existing)
+    root_links=set(existing.get("/free-research",(None,{}))[1].get("links",[]))
+    by_league=defaultdict(lambda:{"linked":0,"archived":0,"notYetArchived":0,"refreshDue":0})
+    for p in sorted(known):
+        a=by_league[league(p)];a["linked"]+=1
+        if p not in existing:a["notYetArchived"]+=1
+        else:
+            a["archived"]+=1
+            if due_route(p,existing,now):a["refreshDue"]+=1
+    return {"knownPaths":len(known),"observedPaths":len(known & existing.keys()),
+        "pendingOrRefreshDue":sum(due_route(p,existing,now) for p in known),
+        "archivedDistinctPaths":len(existing),"unseenLinkedPaths":len(known-existing.keys()),
+        "directIndexLinkedPaths":len(root_links),"directIndexArchivedPaths":len(root_links & existing.keys()),
+        "archiveReceipts":receipts,"invalidArchiveReceipts":invalid,"coverageByLeague":dict(by_league),
+        "allPagesCertified":False,"modelInputsApproved":False,"paidRequests":0,"rawHtmlPublished":False}
+
+def audit(root):
+    dest=root/"research"/"pickfinder-public-directory-v3"
+    if not dest.is_dir():raise ValueError("archive unavailable")
+    existing,receipts,invalid=load_archive(dest)
+    print(json.dumps({"state":"public_directory_archive_readback",**coverage(existing,receipts,invalid,datetime.now(timezone.utc))}))
+    if not receipts or invalid:raise ValueError("invalid or absent archive evidence")
+
 def test():
-    assert next_path(['/leagues/call-of-duty/players/a','/leagues/nhl/players/b'],{}, {})=='/leagues/nhl/players/b'
-    assert next_path(['/leagues/nba/players/a','/leagues/nhl/players/b'],{}, {'nba':1})=='/leagues/nhl/players/b'
+    assert next_path(['/leagues/call-of-duty/players/a','/leagues/nhl/players/b'],{}, {},0)=='/leagues/nhl/players/b'
+    assert next_path(['/leagues/nba/players/a','/leagues/nhl/players/b'],{}, {'nba':1},0)=='/leagues/nhl/players/b'
     assert safe("/leagues/cs2/players") == "/leagues/cs2/players"
     assert safe("/leagues/cs2/players/a?account=1") is None
     assert safe("/leagues/cs2/players?page=2")=="/leagues/cs2/players?page=2"
@@ -130,10 +183,32 @@ def test():
     now=datetime.now(timezone.utc)
     assert due_route("/free-research",{"/free-research":(now,{})},now)
     assert not due_route("/free-research",{"/free-research":(now,{"routeAllowlistVersion":ALLOWLIST_VERSION})},now)
+    refresh="/leagues/nba/players"; new="/leagues/tennis/players/a"
+    existing={refresh:(now,{"links":[new]})}
+    assert next_path([refresh,new],existing,{},0)==new
+    assert next_path([refresh,new],existing,{},3)==refresh
+    assert next_path([new],existing,{},3)==new
+    assert next_path([refresh],existing,{},0)==refresh
+    assert next_path(["/free-research",new],existing,{},0)=="/free-research"
+    report=coverage(existing,1,0,now)
+    assert report["unseenLinkedPaths"]==2 and report["archivedDistinctPaths"]==1
+    assert report["coverageByLeague"]["tennis"]["notYetArchived"]==1
+    assert report["allPagesCertified"] is False and report["paidRequests"]==0
+    with TemporaryDirectory() as temp:
+        dest=Path(temp)
+        d={"schema":"pickfinder_public_directory_v2","path":refresh,"observedAt":now.isoformat(),
+           "responseSha256":"a"*64,"modelInputsApproved":False,"links":[new]}
+        raw=json.dumps(d).encode()
+        (dest/(hashlib.sha256(raw).hexdigest()+".json")).write_bytes(raw)
+        (dest/("0"*64+".json")).write_bytes(raw)
+        (dest/"symlink.json").symlink_to(dest/("0"*64+".json"))
+        found,valid,invalid=load_archive(dest)
+        assert valid==1 and invalid==2 and list(found)==[refresh]
     d=extract('<a href="/leagues/cs2/players/fixture">Player</a><a href="/account">Account</a><table><tr><th>Stat</th></tr><tr><td>2</td></tr></table>',"/leagues/cs2/players")
     assert d["links"]==["/leagues/cs2/players/fixture"] and d["summary"]["rows"]==2
 if __name__=="__main__":
     try:
         if sys.argv[1]=="--test":test()
+        elif sys.argv[1]=="--audit" and len(sys.argv)==3:audit(Path(sys.argv[2]).resolve())
         else:main(Path(sys.argv[1]).resolve())
     except Exception:print("Public directory crawl failed closed",file=sys.stderr);sys.exit(1)

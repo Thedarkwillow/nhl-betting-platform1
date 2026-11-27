@@ -42,6 +42,11 @@ Replayed the read-only morning auditor with `--require-scheduled-core` for both 
 
 The two follow-up senders [46030456106](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46030456106) and [46030458393](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46030458393) each confirmed 72 prop alerts. Both reported zero PrizePicks new-release candidates. NBA, NHL and NFL PrizePicks each had an unresolved prior-board baseline in both runs. Keep PF-16 and PF-42 open. No schedules, release gates or model inputs changed, and no paid requests were made.
 
+## PF-13 public directory coverage
+
+- A pinned offline archive readback at [`ec1c83c5`](https://github.com/Thedarkwillow/nhl-betting-platform1/commit/ec1c83c5c06072c2922b1c3d37843cd5e676cfee) verified 400 content digests, 355 distinct archived paths and 1,171 linked paths not yet archived. All 44 links admitted by the previous root allowlist had archive evidence, but that allowlist was narrower than the separately verified 74-route, 13-league [official index inventory](../data/pickfinder-public-research-directory.json). The linked 54-source table inventory validated 180 tables and 5,859 rows as publisher reference evidence only.
+- Expanded the crawler only to officially observed league/view routes, including college basketball, college football, WNBA, soccer and tennis, and the existing Dota and LoL role-defense references. A versioned root refresh rediscovers current published links without waiting for the old root TTL. Preserve the request budget, refusal stop, no raw HTML, and no model promotion. PF-13 stays open for live archive readback, the remaining linked profiles and canonical evidence; an index link is not proof of a complete table or of a platform offer.
+
 ## Remaining acceptance by task
 
 | Task IDs | Verified scope | Evidence still needed |

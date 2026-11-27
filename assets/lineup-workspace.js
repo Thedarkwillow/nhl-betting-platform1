@@ -57,28 +57,56 @@
     }
     if(!validPartial(fixed,size))
       return {picks:[],reason:"Locked picks repeat a player or exceed the same-game limit."};
-    const top=[],seen=new Set(fixed.map(playerKey));
-    for(const p of all){
-      const who=playerKey(p);
-      if(seen.has(who)||excluded.has(who))continue;
-      seen.add(who);top.push(p);
-      if(top.length===30)break;
-    }
+    const available=all.filter(p=>!excluded.has(playerKey(p)));
     const selected=fixed.slice();
-    let nodes=0;
-    function search(start){
-      if(selected.length===size)return validComplete(selected,size);
-      if(top.length-start<size-selected.length||++nodes>25000)return false;
-      for(let i=start;i<top.length;i++){
-        selected.push(top[i]);
-        if(validPartial(selected,size)&&search(i+1))return true;
-        selected.pop();
+    // A player with offers in different games must keep all eligible edges.
+    // Capacitated matching proves that a candidate can finish the lineup,
+    // including when many higher-ranked offers are all in a single game.
+    function canFinish(picks,start){
+      const needed=size-picks.length;
+      if(!needed)return true;
+      const cap=size<=4?1:2;
+      const used=new Set(picks.map(playerKey)),counts=new Map(),edges=new Map();
+      for(const p of picks){
+        const game=norm(p.matchup);
+        counts.set(game,(counts.get(game)||0)+1);
+      }
+      for(let i=start;i<available.length;i++){
+        const p=available[i],who=playerKey(p),game=norm(p.matchup);
+        if(used.has(who)||(counts.get(game)||0)>=cap)continue;
+        if(!edges.has(who))edges.set(who,new Set());
+        edges.get(who).add(game);
+      }
+      const matches=new Map();
+      function match(who,visited){
+        for(const game of edges.get(who)){
+          for(let slot=counts.get(game)||0;slot<cap;slot++){
+            const id=JSON.stringify([game,slot]);
+            if(visited.has(id))continue;
+            visited.add(id);
+            const prior=matches.get(id);
+            if(prior===undefined||match(prior,visited)){
+              matches.set(id,who);
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+      let count=0;
+      for(const who of edges.keys()){
+        if(match(who,new Set())&&++count===needed)return true;
       }
       return false;
     }
-    if(!search(0))return {picks:[],reason:all.length?
+    if(!canFinish(selected,0))return {picks:[],reason:all.length?
       "No eligible combination meets the player, game and locked-pick restrictions.":
       "No fresh eligible Standard research props available."};
+    for(let i=0;i<available.length&&selected.length<size;i++){
+      const p=available[i];
+      selected.push(p);
+      if(!validPartial(selected,size)||!canFinish(selected,i+1))selected.pop();
+    }
     const games=new Set(selected.map(p=>norm(p.matchup)));
     return {picks:selected.slice(),reason:null,
       correlated:games.size<size,distinctGames:games.size};
@@ -94,8 +122,9 @@
     return candidates(props,at).filter(p=>{
       const who=playerKey(p);
       if(excluded.has(who)||already.has(who)||seen.has(who))return false;
+      if(!validComplete([...fixed,p],size))return false;
       seen.add(who);
-      return validComplete([...fixed,p],size);
+      return true;
     }).slice(0,30);
   }
 

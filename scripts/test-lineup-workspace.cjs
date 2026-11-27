@@ -45,6 +45,46 @@ assert.equal(W.validComplete([five[0],five[1],five[2],five[3],five[4]],4),false)
 assert.equal(W.validComplete(five.slice(0,4),4),false);
 const duplicate=[prop(1,{market:"Assists"}),prop(1,{market:"Shots on goal"})];
 assert.equal(W.build(duplicate,{size:2,at}).picks.length,0,"One person cannot occupy two slots");
+// More than 30 leading offers can share one event. A lower-ranked other
+// game must still be found, with no relaxation to the game cap.
+const crowded=Array.from({length:35},(_,i)=>prop(i+1,{matchup:"Only one game"}));
+const other=prop(36,{probability:.52});
+assert.deepEqual(W.build([...crowded,other],{size:2,at}).picks.map(W.key),
+ [W.key(crowded[0]),W.key(other)]);
+// Conflicting or alternate game records are not counted twice, but the
+// first same-name offer must not hide a compatible, separately scoped offer.
+const clash=prop(1,{matchup:"Game X"});
+const compatible=prop(1,{matchup:"Game Y",probability:.65});
+const partner=prop(2,{matchup:"Game X"});
+const locked=[W.key(partner)];
+assert.deepEqual(W.build([clash,compatible,partner],{size:2,at,lockedKeys:locked}).picks.map(W.key),
+ [W.key(partner),W.key(compatible)]);
+assert.deepEqual(W.swapOptions([clash,compatible,partner],[partner,compatible],1,{at}).map(W.key),
+ [W.key(compatible)]);
+// Augmenting matching must move a previously matched player to preserve
+// capacity for a player with only one usable event edge.
+const swapGames=[prop(1,{matchup:"Game X"}),prop(1,{matchup:"Game Y",probability:.65}),
+ prop(2,{matchup:"Game X"}),prop(3,{matchup:"Game Z"})];
+assert.equal(W.build(swapGames,{size:3,at}).picks.length,3);
+// Independent brute-force oracle for small deterministic randomized
+// slates, checking exact ranked feasibility across every supported size.
+let seed=5317;
+function next(mod){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed%mod;}
+function oracle(ordered,size,path=[],start=0){
+ if(path.length===size)return W.validComplete(path,size)?path:null;
+ for(let i=start;i<=ordered.length-(size-path.length);i++){
+  const answer=oracle(ordered,size,[...path,ordered[i]],i+1);
+  if(answer)return answer;
+ }
+ return null;
+}
+for(let fixture=0;fixture<24;fixture++){
+ const sample=Array.from({length:10},(_,i)=>prop(1+next(8),{
+   matchup:"Fixture Game "+next(5),line:i+.5,probability:.80-.01*i}));
+ const ordered=W.candidates(sample,at);
+ for(let size=2;size<=6;size++)assert.deepEqual(W.build(sample,{size,at}).picks.map(W.key),
+  (oracle(ordered,size)||[]).map(W.key),`Exact deterministic lineup on fixture ${fixture}, size ${size}`);
+}
 const lowPriority=W.key(pool[8]);
 assert.ok(W.build(pool,{size:2,at,lockedKeys:[lowPriority]}).picks.some(p=>W.key(p)===lowPriority),
  "Locked eligible pick must remain");

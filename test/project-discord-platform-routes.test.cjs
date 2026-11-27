@@ -35,7 +35,7 @@ function modelRow(book='prizepicks',sport='nba'){
  const oe=hash('source'),ce=hash('calibration'),revision='b'.repeat(40);
  return {offer:{sport,book,player:'Example Player',opponent:'Example Opponent',market:'Example Market',tier:'standard',side:'Higher',
   line:27.5,active:true,providerOfferId:'native-42',playerId:'player1',eventId:'game1',marketId:'metric',scope:'full-game',
-  originalPlatformVerified:true,exactCurrentOfferVerified:true,evidenceSha256:oe,gameStartAt:iso(90),verifiedAt:iso(-3)},
+  originalPlatformVerified:true,exactCurrentOfferVerified:true,playerIdentityVerified:true,eventIdentityVerified:true,gameStartVerified:true,evidenceSha256:oe,gameStartAt:iso(90),verifiedAt:iso(-3)},
  model:{projection:29.1,probability:0.615,confidence:'Moderate',evidenceSummary:'Verified game-log sample, n=32',dataObservedAt:iso(-5),
   calibrated:true,modelApproved:true,modelRevision:revision,calibrationEvidenceSha256:ce,offerEvidenceSha256:oe},
  qualification:{individualResearchEligible:true,existingGatesPassed:true,offerEvidenceSha256:oe,calibrationEvidenceSha256:ce,modelRevision:revision,reviewEvidenceSha256:hash('review'),reviewedAt:iso(-2)}};
@@ -88,7 +88,7 @@ test('suggestions abstain on stale or non-current offers, uncalibrated or unappr
  const row=modelRow();
  for(const [part,field,value] of [
   ['offer','originalPlatformVerified',false],['offer','active',false],['offer','exactCurrentOfferVerified',false],
-  ['offer','verifiedAt',iso(-16)],['offer','gameStartAt',iso(-1)],['offer','gameStartAt',iso(1500)],
+  ['offer','playerIdentityVerified',false],['offer','eventIdentityVerified',false],['offer','gameStartVerified',false],['offer','verifiedAt',iso(-16)],['offer','gameStartAt',iso(-1)],['offer','gameStartAt',iso(1500)],
   ['model','calibrated',false],['model','modelApproved',false],['model','probability',null],['model','dataObservedAt',iso(-91)],
   ['model','evidenceSummary',''],['model','offerEvidenceSha256',hash('other line')],
   ['qualification','existingGatesPassed',false],['qualification','individualResearchEligible',false],

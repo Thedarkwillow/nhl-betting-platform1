@@ -22,6 +22,7 @@ function buildSuggestions(report,now){
    !label(o.player,44)||!label(o.opponent,28)||!label(o.market,34)||
    !['Higher','Lower'].includes(o.side)||!Number.isFinite(o.line)||Math.abs(o.line)>100000||
    o.originalPlatformVerified!==true||o.exactCurrentOfferVerified!==true||o.active!==true||
+   o.playerIdentityVerified!==true||o.eventIdentityVerified!==true||o.gameStartVerified!==true||
    !digest(o.evidenceSha256)||!fresh(at(o.verifiedAt),now,15)||at(o.verifiedAt)>generated||
    !(at(o.gameStartAt)>now&&at(o.gameStartAt)-now<=24*60*M)||m.calibrated!==true||m.modelApproved!==true||
    !digest(m.calibrationEvidenceSha256)||!revision(m.modelRevision)||m.offerEvidenceSha256!==o.evidenceSha256||
@@ -40,9 +41,9 @@ function buildSuggestions(report,now){
    '% est · '+m.confidence+' · data '+clock+' · '+m.evidenceSummary;
   if(result.has(slot)){
    const prior=result.get(slot);
-   if(prior.id!==id||prior.text!==text||prior.offerEvidence!==o.evidenceSha256)conflicts.add(slot);
+   if(prior.id!==id||prior.text!==text||prior.offerEvidence!==o.evidenceSha256||prior.modelRevision!==m.modelRevision||prior.calibrationEvidence!==m.calibrationEvidenceSha256)conflicts.add(slot);
   }else result.set(slot,{id,kind:'suggestion',sport:o.sport,tier:o.tier,books:[o.book],
-   observedAt:o.verifiedAt,text,offerEvidence:o.evidenceSha256});
+   observedAt:o.verifiedAt,text,offerEvidence:o.evidenceSha256,modelRevision:m.modelRevision,calibrationEvidence:m.calibrationEvidenceSha256});
  }
  return [...result].filter(([slot])=>!conflicts.has(slot)).map(([,event])=>{
   Object.freeze(event.books);Object.freeze(event);authorized.add(event);return event;

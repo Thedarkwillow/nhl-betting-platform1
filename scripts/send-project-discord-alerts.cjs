@@ -67,7 +67,7 @@ function platformDestinations(env){
  for(const name of routeNames){
   const p=Object.hasOwn(routes,name)&&routes[name];
   if(!p||Array.isArray(p)||typeof p!=='object'||Object.keys(p).sort().join(',')!=='channelId,webhookUrl'||
-   !safeDiscordWebhook(p.webhookUrl)||!snow(p.channelId)||seenChannels.has(p.channelId)||hooks.has(hookId(p.webhookUrl)))throw Error('invalid platform route');
+   !safeDiscordWebhook(p.webhookUrl)||new URL(p.webhookUrl).port||!snow(p.channelId)||seenChannels.has(p.channelId)||hooks.has(hookId(p.webhookUrl)))throw Error('invalid platform route');
   seenChannels.add(p.channelId);hooks.add(hookId(p.webhookUrl));
   all.set(name,{url:p.webhookUrl,channel:p.channelId,guild:base.guild});
  }

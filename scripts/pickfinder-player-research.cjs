@@ -107,7 +107,7 @@ async function traverseMixed(page,collect,shouldContinue){
  for(const i of native.issues)issues.add(i);
  return {statesObserved:states,customControls,native,issues:[...issues],allFilterCombinationsVerified:false};
 }
-async function enrich(page,row,{navigate,maxFields=500,expanded=false,fullSportingHeaders=false,shouldContinue=()=>true}){
+async function enrich(page,row,{navigate,maxFields=500,expanded=false,fullSportingHeaders=false,includePropHistory=true,shouldContinue=()=>true}){
   if(!(maxFields===Infinity||Number.isInteger(maxFields)&&maxFields>=1&&maxFields<=2000))throw Error('invalid profile field budget');
   const url=new URL(row.detailId,'https://www.pickfinder.app');
   if(url.origin!=='https://www.pickfinder.app'||!url.pathname.startsWith('/players/'))throw Error('invalid profile');
@@ -129,7 +129,7 @@ async function enrich(page,row,{navigate,maxFields=500,expanded=false,fullSporti
       try{await target.click();await collect(name,'profile');if(expanded&&shouldContinue()){const audit=await traverseMixed(page,selection=>collect(name,'profile',selection),shouldContinue);tabFilterAudit.push({tab:name,audit});}}catch{tabAudit.push({tab:name,origin:'profile',state:'failed',fields:0});update();}
     }else tabAudit.push({tab:name,origin:'profile',state:'not_visible',fields:0});
   }
-  for(const [name,origin] of [['Line Movement','line_movement'],['Prop History','prop_history']]){
+  for(const [name,origin] of [['Line Movement','line_movement'],...(includePropHistory?[['Prop History','prop_history']]:[])]){
     if(!shouldContinue()){deadline=true;break;}
     const target=page.getByRole('button',{name,exact:true});
     if(await target.isVisible()){try{await target.click();await collect(name,origin);}catch{tabAudit.push({tab:name,origin,state:'failed',fields:0});update();}}else tabAudit.push({tab:name,origin,state:'not_visible',fields:0});

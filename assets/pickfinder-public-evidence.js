@@ -193,6 +193,19 @@
   add(mount,'p','Reviewed receipt scopes: '+n(bridge.reviewedReceiptScopes)+' · Explicit crosswalk rows: '+n(bridge.explicitCrosswalkRows)+' · New automated research forecasts: '+n(bridge.newForecastRows)+' · Intake status: '+(bridge.reason||'Pending')+'. Original-platform verification and model approval remain separate.');
  }catch{add(mount,'p','NBA alternate-history audit unavailable; automated intake not certified.');}
  try{
+  const res=await fetch('./data/pickfinder-public-research-directory.json',{cache:'no-store'});if(!res.ok)throw Error();
+  const d=await res.json();
+  if(d.kind!=='pickfinder_public_research_directory_v1'||d.actualOfferIdentityVerified!==false||
+     d.modelInputsApproved!==false||!Array.isArray(d.directories)||!Array.isArray(d.researchRoutes)||
+     !Number.isFinite(Date.parse(d.observedAt)))throw Error();
+  const dirs=d.directories.filter(x=>x.status==='listing_count_matches'&&Number.isSafeInteger(x.distinctPlayerLinks)&&
+     /^https:\/\/www\.pickfinder\.app\/leagues\/[a-z0-9-]+\/players$/.test(x.sourceUrl));
+  add(mount,'h3','Public PickFinder research directory');
+  add(mount,'p',n(d.researchRoutes.length)+' linked league routes. '+n(dirs.length)+' directory counts match the publisher’s listing. Observed '+new Date(d.observedAt).toLocaleString()+'. These are source links, not independently reconciled player IDs or live offers.');
+  const list=add(mount,'ul','');
+  for(const x of dirs){const li=add(list,'li','');const link=add(li,'a',x.league+' · '+n(x.distinctPlayerLinks)+' player links');link.href=x.sourceUrl;}
+ }catch{add(mount,'p','Public PickFinder research directory inventory is unavailable.');}
+ try{
   const res=await fetch('./data/prizepicks-model-rankings.json',{cache:'no-store'});if(!res.ok)throw Error();
   const m=await res.json();if(m.kind!=='public_prizepicks_model_ranking_v1'||m.researchOnly!==true||m.modelApproved!==false)throw Error();
   const now=Date.now(),at=Date.parse(m.generatedAt);

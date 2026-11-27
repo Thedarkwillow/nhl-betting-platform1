@@ -12,9 +12,10 @@ function invocation(env,now=new Date()){
  const clock=pacific(now),mode=env.REQUESTED_MODE||'board_and_deep';
  if(mode==='nba_history_repair'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual repair only');return {allowed:!protectedMorningClock(clock),expected:'manual',clock,deep:true,historyRepair:true,state:'nba_history_repair_gate'};}
  if(mode==='timezone_validation'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual experiment only');return {allowed:!protectedMorningClock(clock),expected:'manual',clock,timezoneOnly:true,state:'timezone_experiment_gate'};}
- if(!['board_and_deep','deep_research_now','probe_now','nba_context_only','features_only','boards_only'].includes(mode))throw Error('mode');
+ if(mode==='current_profiles'&&env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual current profile pass only');
+ if(!['current_profiles','board_and_deep','deep_research_now','probe_now','nba_context_only','features_only','boards_only'].includes(mode))throw Error('mode');
  if(protectedMorningClock(clock))return {allowed:false,state:'protect_morning_hour',clock};
- return {allowed:true,expected:'manual',clock,deep:['deep_research_now','nba_context_only','features_only'].includes(mode),contextOnly:mode==='nba_context_only',featuresOnly:mode==='features_only',boardsOnly:mode==='boards_only',probe:mode==='probe_now'};
+ return {allowed:true,expected:'manual',clock,deep:['current_profiles','deep_research_now','nba_context_only','features_only'].includes(mode),currentProfiles:mode==='current_profiles',contextOnly:mode==='nba_context_only',featuresOnly:mode==='features_only',boardsOnly:mode==='boards_only',probe:mode==='probe_now'};
 }
 function profileWorkers(env,p){return env.GITHUB_EVENT_NAME==='workflow_dispatch'&&env.REQUESTED_MODE==='deep_research_now'&&p.expected==='manual'&&p.deep&&!p.contextOnly?2:1;}
 function captureOrigin(env,policy){
@@ -108,6 +109,56 @@ function queue(boards,profiles,{historyAudit}={}){
  const i=new Map(),pending=[];while(sports.some(s=>(i.get(s)||0)<groups.get(s).length))for(const s of sports){const n=i.get(s)||0;if(n<groups.get(s).length){pending.push(groups.get(s)[n]);i.set(s,n+1);}}
  return {total:q.size,unresolvedHistoryRows,deferredHistoryScopes:[...deferred].filter(k=>q.has(k)).length,done:[...done].filter(k=>q.has(k)).length,pending,repairPending:pending.filter(x=>repairKeys.has(x.key)),malformedHistoryPending:[...repairKeys].filter(k=>q.has(k)).length,offerReferences:references,sharedAcrossBooks:[...q.values()].filter(x=>x.books.length>1).length};
 }
+// Only the current complete board defines work. Legacy repair rows are
+// never enqueued, and exact previously completed observations are reusable.
+function currentProfileQueue(archive,profiles,now=Date.now()){
+ const at=Number(now),day=8*3600000,dt=Date.parse;
+ if(!Number.isFinite(at))throw Error('current profile clock');
+ if(archive.invalid?.length)return {pending:[],total:0,reused:0,expired:0,eligiblePartitions:0,reason:'archive_integrity'};
+ const cache=new Map(),tries=new Map();
+ for(const d of profiles)for(const r of d.records||[]){
+  const scope=sharedScope(r);if(!scope)continue;
+  const id=sha(JSON.stringify(scope));
+  const fields=(r.research||[]).filter(f=>Number.isFinite(dt(f?.observedAt))&&dt(f.observedAt)<=at);
+  const seen=fields.reduce((latest,f)=>Math.max(latest,dt(f.observedAt)),-Infinity);
+  const attempt=dt(r.currentProfileAttemptedAt);
+  if(Number.isFinite(attempt)&&attempt<=at)tries.set(id,Math.max(tries.get(id)||0,attempt));
+  if(!Number.isFinite(seen)||seen>at)continue;
+  tries.set(id,Math.max(tries.get(id)||0,seen));
+  if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&fields.some(f=>f.origin==='profile'&&f.value!=null))
+   cache.set(id,Math.max(cache.get(id)||0,seen));
+ }
+ const targets=new Map();let eligiblePartitions=0,expired=0;
+ for(const b of archive.latest||[]){
+  const m=b.m,observed=dt(m?.lastObservedAt),first=dt(b.first);
+  if(!['prizepicks','underdog'].includes(m?.book)||m.authenticated!==true||m.boardState!=='populated'||
+     m.pageTraversalComplete!==true||m.lastPageReached!==true||m.health?.wrongSport!==0||m.health?.priceConflictKeys!==0||
+     !Number.isFinite(observed)||!Number.isFinite(first)||first>at||observed>at||observed>first+999||
+     at-observed>day||!Number.isFinite(dt(m.firstObservedAt))||dt(m.firstObservedAt)>observed)continue;
+  eligiblePartitions++;
+  for(const o of [...b.offers||[],...b.unpricedTierObservations||[]]){
+   const t=dt(o.observedAt),start=dt(o.startAt);
+   if(o.book!==m.book||o.sport!==m.sport||!Number.isFinite(t)||t<dt(m.firstObservedAt)||t>observed)continue;
+   if(Number.isFinite(start)&&start<=at){expired++;continue;}
+   const scope=sharedScope(o);if(!scope)continue;
+   const key=sha(JSON.stringify(scope)),prior=targets.get(key),books=[...new Set([...(prior?.books||[]),o.book])].sort();
+   targets.set(key,{key,...scope,books,book:books[0],observed:Math.max(prior?.observed||0,t)});
+  }
+ }
+ const rank=['nba','nhl','nfl','cs2','valorant','dota2','lol','cod'];
+ const groups=new Map();let reused=0;
+ for(const x of targets.values()){
+  const previous=cache.get(x.key);
+  if(previous>=x.observed&&at-previous<=day){reused++;continue;}
+  const a=groups.get(x.sport)||[];a.push(x);groups.set(x.sport,a);
+ }
+ for(const a of groups.values())a.sort((x,y)=>(tries.get(x.key)||0)-(tries.get(y.key)||0)||y.observed-x.observed||x.key.localeCompare(y.key));
+ const order=[...new Set([...rank,...groups.keys()])],pending=[];
+ for(let i=0;pending.length<targets.size-reused;i++)for(const sport of order){
+  const x=groups.get(sport)?.[i];if(x)pending.push(x);
+ }
+ return {pending,total:targets.size,reused,expired,eligiblePartitions,reason:eligiblePartitions?'current_exact_board_scopes':'no_recent_complete_partition'};
+}
 function publicProfile(row){
  const fields=[];for(const f of row.research||[]){
   // Account screens and unstructured panels are not published. Preserve scoped sporting rows and history.
@@ -131,14 +182,16 @@ async function main(root,env=process.env){
  assertDestination(root);const p=invocation(env);if(!p.allowed){console.log(JSON.stringify(p));return;}
  const fallback=isBackup(env)?backupPreflight(root,env):null;
  if(fallback){console.log(JSON.stringify(fallback));if(!fallback.proceed)return;}
+ const current=p.currentProfiles?currentProfileQueue(load(root,null,{latestOnly:true}),iterate(root,'profiles')):null;
+ if(current){const {pending,...counts}=current;console.log(JSON.stringify({state:'current_profile_plan',...counts,pending:pending.length,legacyRepair:false,paidApiRequests:0}));if(!pending.length)return;}
  const {chromium}=require('playwright');
  if(p.timezoneOnly){const probe=require('./pickfinder-movement-clock-probe.cjs'),until=Date.now()+8*60000;const alive=()=>{const c=pacific(new Date());return Date.now()<until&&c.day===p.clock.day&&!protectedMorningClock(c);};const prior=read(root,'directory');const targets=probe.select(require('./pickfinder-public-model-validation.cjs').history(root,'profile-market-evidence'),new Date().toISOString(),prior);const result=await probe.observe({targets,prior,open:zone=>openHostedBoard(chromium,env,zone),alive,write:data=>persist(root,'directory',data),premium,origin:ORIGIN});console.log(JSON.stringify({state:'movement_clock_experiment',...result}));return;}
  const {page,context}=await openHostedBoard(chromium,env);
- const started=Date.now(),deadline=started+(p.expected==='manual'?40:45)*60000,alive=()=>{const c=pacific(new Date());return Date.now()<deadline&&c.day===p.clock.day&&(p.expected==='manual'?!protectedMorningClock(c):c.hour===p.clock.hour&&c.minute<55);};
+ const started=Date.now(),deadline=started+(p.expected==='manual'?40:45)*60000,alive=()=>{const c=pacific(new Date());return Date.now()<deadline&&(p.currentProfiles||c.day===p.clock.day)&&(p.expected==='manual'?!protectedMorningClock(c):c.hour===p.clock.hour&&c.minute<55);};
  let boards=0,profiles=0,archiveMs=0,transactions=0,profileMs=0,errors=0;const write=async(kind,data)=>{const t=Date.now();const receipt=await persist(root,kind,data);archiveMs+=Date.now()-t;transactions++;return receipt;};
  try{
   if(p.probe){console.log(JSON.stringify({state:'public_hosted_auth_verified',accountDataPublished:false}));return;}
-  const evidence=p.historyRepair||fallback?null:await discover({env});
+  const evidence=p.historyRepair||p.currentProfiles||fallback?null:await discover({env});
   if(!p.deep){for(const {code,book} of boardTargets(evidence,fallback?.missingPartitions??null)){
    if(!alive())break;
    try{await page.goto(ORIGIN+'/props',{timeout:20000});const names=code==='DOTA2'?['DOTA2','Dota 2']:[code];let visible=false;for(const name of names){const b=page.getByRole('button',{name,exact:true});if(await b.count()===1&&await b.isVisible())visible=true;}if(!visible){console.log(JSON.stringify({state:'public_board_not_exposed',code,book,competition:'unknown'}));continue;}
@@ -152,7 +205,7 @@ async function main(root,env=process.env){
   if(p.expected!=='manual'||p.boardsOnly)return;
   // Capture game context before the potentially very long deep-profile queue.
   // Time-box this independently and never consume a protected morning window.
-  if(!p.historyRepair&&alive()){
+  if(!p.historyRepair&&!p.currentProfiles&&alive()){
    const until=Date.now()+90000,gameAlive=()=>alive()&&Date.now()<until;
    try{
     await page.goto(ORIGIN+'/props',{timeout:15000});
@@ -176,7 +229,7 @@ async function main(root,env=process.env){
     }
    }catch{errors++;console.log(JSON.stringify({state:'public_game_context_pending'}));}
   }
-  if(!p.historyRepair&&alive()&&!p.featuresOnly){
+  if(!p.historyRepair&&!p.currentProfiles&&alive()&&!p.featuresOnly){
    const until=Date.now()+(p.contextOnly?25:5)*60000,contextAlive=()=>alive()&&Date.now()<until;
    const q=gameContext.queue(load(root),read(root,'directory'),new Date().toISOString());
    const detail=await context.newPage();detail.setDefaultTimeout(5000);
@@ -202,11 +255,11 @@ async function main(root,env=process.env){
   if(p.contextOnly)return;
   // Reserve bounded feature discovery before the long player-profile queue.
   // Morning capture has already returned; context-only passes remain isolated.
-  if(!p.historyRepair&&alive()){
+  if(!p.historyRepair&&!p.currentProfiles&&alive()){
    try{await page.goto(ORIGIN+'/props',{timeout:15000});if(await waitPremium(page)){const labels=await inspectCapabilities(page);await write('capabilities',{schema:'pickfinder-public-capabilities-v1',labels,observedAt:new Date().toISOString(),captureOrigin:captureOrigin(env,p),accountMutations:0});}}catch{errors++;console.log(JSON.stringify({state:'public_capability_probe_pending'}));}
   }
   // Existing tool inspector was imported but never invoked by the public runner.
-  for(const kind of p.historyRepair?[]:['builder','alerts']){
+  for(const kind of p.historyRepair||p.currentProfiles?[]:['builder','alerts']){
    if(!alive())break;
    try{
     await page.goto(ORIGIN+'/props',{timeout:15000});
@@ -217,7 +270,7 @@ async function main(root,env=process.env){
     console.log(JSON.stringify({state:result.state==='read_only_schema_observed'?'public_tool_schema_pass':'public_tool_schema_pending',kind,result:result.state,archiveDigest:receipt.digest,mutations:0}));
    }catch{errors++;console.log(JSON.stringify({state:'public_tool_schema_pending',kind}));}
   }
-  for(const name of p.historyRepair?[]:['Games','Discrepancies','Popular']){
+  for(const name of p.historyRepair||p.currentProfiles?[]:['Games','Discrepancies','Popular']){
    if(!alive())break;
    const stop=Date.now()+90000,featureAlive=()=>alive()&&Date.now()<stop;
    try{
@@ -234,20 +287,22 @@ async function main(root,env=process.env){
   }
   if(p.featuresOnly)return;
   const revision=archiveRevision(root);
-  const q=queue(iterate(root,'board-parts',revision),iterate(root,'profiles',revision));if(p.historyRepair)q.pending=q.repairPending;console.log(JSON.stringify({state:'public_deep_queue',archiveRevision:revision,total:q.total,completed:q.done,remaining:q.pending.length,malformedHistoryPending:q.malformedHistoryPending,unresolvedHistoryRows:q.unresolvedHistoryRows,deferredHistoryScopes:q.deferredHistoryScopes,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
+  const q=current?{...current,pending:current.pending.slice(0,32)}:queue(iterate(root,'board-parts',revision),iterate(root,'profiles',revision));
+  if(p.historyRepair)q.pending=q.repairPending;
+  if(!current)console.log(JSON.stringify({state:'public_deep_queue',archiveRevision:revision,total:q.total,completed:q.done,remaining:q.pending.length,malformedHistoryPending:q.malformedHistoryPending,unresolvedHistoryRows:q.unresolvedHistoryRows,deferredHistoryScopes:q.deferredHistoryScopes,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
   // Explicit manual deep runs alone trial two isolated tabs; all archives remain serialized.
   // Never increase parallelism in the protected morning board or scheduled collection paths.
   const workers=profileWorkers(env,p),pages=[];
   const buffer=checkpointBuffer({write:rows=>write('profiles',{schema:'pickfinder-public-profiles-v1',observedAt:new Date().toISOString(),records:rows,modelInputsApproved:false}),onVerified:r=>{profiles++;console.log(JSON.stringify({state:'public_deep_scope_checkpoint_verified',sport:r.sport,book:r.book,status:r.status,truncated:r.truncated,verifiedThisRun:profiles}));}});
-  const deepStarted=Date.now();let attemptedProfiles=0,nontruncated=0;
+  const deepStarted=Date.now(),profileAlive=()=>alive()&&(!p.currentProfiles||Date.now()-deepStarted<18*60000);let attemptedProfiles=0,nontruncated=0;
   try{
    for(let n=0;n<workers;n++){const detail=await context.newPage();detail.setDefaultTimeout(5000);pages.push(detail);}
-   for(let i=0;i<q.pending.length&&alive();i+=workers){
+   for(let i=0;i<q.pending.length&&profileAlive();i+=workers){
     const items=q.pending.slice(i,i+workers);
     const results=await Promise.allSettled(items.map(async(item,n)=>{
      const detail=pages[n],row={...item,research:[]},t=Date.now();attemptedProfiles++;
-     try{await enrich(detail,row,{expanded:true,fullSportingHeaders:true,maxFields:Infinity,shouldContinue:alive,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(!await premium(detail))throw Error('session');}});}catch{row.profileCollection={truncated:true};}
-     return {record:publicProfile(row),elapsed:Date.now()-t,authenticated:await premium(detail).catch(()=>false)};
+     try{await enrich(detail,row,{expanded:true,fullSportingHeaders:true,maxFields:Infinity,includePropHistory:!p.currentProfiles,shouldContinue:profileAlive,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(!await premium(detail))throw Error('session');}});}catch{row.profileCollection={truncated:true};}
+     return {record:{...publicProfile(row),...(p.currentProfiles?{currentProfileAttemptedAt:new Date().toISOString()}: {})},elapsed:Date.now()-t,authenticated:await premium(detail).catch(()=>false)};
     }));
     let failed=false;for(const x of results){if(x.status!=='fulfilled'){failed=true;continue;}const {record,elapsed,authenticated}=x.value;profileMs+=elapsed;await buffer.add(record);if(record.status==='sampled'&&record.truncated===false)nontruncated++;if(!authenticated)failed=true;}
     if(failed)throw Error('session unavailable');
@@ -261,5 +316,5 @@ async function main(root,env=process.env){
   await context.close();console.log(JSON.stringify({state:'public_pickfinder_throughput',boards,profiles,profileMs,archiveMs,transactions,errors,elapsedMs:Date.now()-started,privateRepoUsed:false,modelInputsApproved:false}));
  }
 }
-module.exports={invocation,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers,waitPremium,boardTargets};
+module.exports={invocation,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers,waitPremium,boardTargets,currentProfileQueue};
 if(require.main===module)main(fs.realpathSync(process.argv[2])).catch(()=>{console.error(JSON.stringify({state:'public_pickfinder_failed_closed',privateRepoUsed:false,accountDataLogged:false}));process.exitCode=1;});

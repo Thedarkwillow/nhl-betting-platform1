@@ -119,7 +119,8 @@ function currentProfileQueue(archive,profiles,now=Date.now()){
  const at=Number(now),day=8*3600000,dt=Date.parse;
  if(!Number.isFinite(at))throw Error('current profile clock');
  if(archive.invalid?.length)return {pending:[],total:0,reused:0,expired:0,eligiblePartitions:0,reason:'archive_integrity'};
- const cache=new Map(),tries=new Map(),previouslySeen=new Set();
+ const cache=new Map(),tries=new Map(),previouslySeen=new Set(),currentAttempts=new Set();
+ const feature=x=>{const p=currentIdentity.sourceScope(x);return p?JSON.stringify([p.playerPath,x.eventId,x.market,x.period??null,x.mapRange??null,x.gameMode??null]):null;};
  for(const d of profiles)for(const r of d.records||[]){
   if(r.observationPurpose==='displayed_game_clock')continue;
   const scope=sharedScope(r);if(!scope)continue;
@@ -131,6 +132,7 @@ function currentProfileQueue(archive,profiles,now=Date.now()){
    tries.set(id,Math.max(tries.get(id)||0,attempt));
    const playerPath=currentIdentity.sourceScope(scope)?.playerPath;
    if(playerPath)previouslySeen.add(playerPath);
+   const fk=feature(scope);if(fk)currentAttempts.add(fk);
   }
   if(!Number.isFinite(seen)||seen>at)continue;
   tries.set(id,Math.max(tries.get(id)||0,seen));
@@ -156,16 +158,19 @@ function currentProfileQueue(archive,profiles,now=Date.now()){
  }
  for(const x of targets.values())if(tries.has(x.key))previouslySeen.add(currentIdentity.sourceScope(x)?.playerPath);
  const rank=['nba','nhl','nfl','cs2','valorant','dota2','lol','cod'];
- const groups=new Map();let reused=0;
+ const groups=new Map();let reused=0,unchangedSkipped=0;
  for(const x of targets.values()){
   const previous=cache.get(x.key);
   if(previous>=x.observed&&at-previous<=day){reused++;continue;}
+  if(currentAttempts.has(feature(x))){unchangedSkipped++;continue;}
   const a=groups.get(x.sport)||[];a.push(x);groups.set(x.sport,a);
  }
  const missingSaveLog=x=>Number(x.sport==='nhl'&&x.market==='player_saves'&&!x.period&&!x.mapRange&&!x.gameMode);
- for(const a of groups.values())a.sort((x,y)=>missingSaveLog(y)-missingSaveLog(x)||(tries.get(x.key)||0)-(tries.get(y.key)||0)||y.observed-x.observed||x.key.localeCompare(y.key));
+ const nflPriority=x=>Number(x.sport==='nfl'&&!x.period&&!x.mapRange&&!x.gameMode&&/^player_(?:field_goals(?:_made)?|extra_points_made|kicking_points|pass(?:ing)?_(?:yards|yds|attempts|completions))$/.test(x.market));
+ const priority=x=>missingSaveLog(x)+nflPriority(x);
+ for(const a of groups.values())a.sort((x,y)=>priority(y)-priority(x)||(tries.get(x.key)||0)-(tries.get(y.key)||0)||y.observed-x.observed||x.key.localeCompare(y.key));
  const order=[...new Set([...rank,...groups.keys()])],pending=[];
- for(let i=0;pending.length<targets.size-reused;i++)for(const sport of order){
+ for(let i=0;pending.length<targets.size-reused-unchangedSkipped;i++)for(const sport of order){
   const x=groups.get(sport)?.[i];if(x)pending.push(x);
  }
  const front=[],repeat=[],players=new Set(previouslySeen);
@@ -184,9 +189,10 @@ function currentProfileQueue(archive,profiles,now=Date.now()){
   else back.push(x);
  }
  const movementTargets=new Set(front.filter(x=>x.sport==='nhl'&&!x.period&&!x.mapRange&&!x.gameMode).slice(0,4).map(x=>x.key));
- const pendingOrdered=[...targeted,...front,...back];
+ const fSeen=new Set();
+ const pendingOrdered=[...targeted,...front,...back].filter(x=>{const k=feature(x);if(!k)return true;if(fSeen.has(k))return false;fSeen.add(k);return true;});
  return {pending:pendingOrdered.map(x=>movementTargets.has(x.key)?{...x,probeSportsbookMovement:true}:x),distinctNewPlayersQueued:front.length,distinctSeenGoaliesWithNewSavesScope:targeted.length,
-  savesScopesInFirstBatch:pendingOrdered.slice(0,96).filter(missingSaveLog).length,total:targets.size,reused,expired,eligiblePartitions,reason:eligiblePartitions?'current_exact_board_scopes':'no_recent_complete_partition'};
+  savesScopesInFirstBatch:pendingOrdered.slice(0,96).filter(missingSaveLog).length,total:targets.size,reused,unchangedSkipped,expired,eligiblePartitions,reason:eligiblePartitions?'current_exact_board_scopes':'no_recent_complete_partition'};
 }
 // Overview game logs often stay visible as unrelated dialogs open. Collapse
 // only identical aligned dated rows within this exact unfiltered profile

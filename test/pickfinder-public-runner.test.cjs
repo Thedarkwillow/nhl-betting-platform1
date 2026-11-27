@@ -379,7 +379,10 @@ test('current queue prioritizes exact goalie saves scope without retiring other 
  assert.deepEqual(q.pending.slice(0,2).map(x=>x.player),['goalie','new']);
  assert.equal(q.distinctSeenGoaliesWithNewSavesScope,1);
  assert.equal(q.distinctNewPlayersQueued,1);
- assert.equal(q.pending.filter(x=>x.player==='goalie').length,2);
+ assert.equal(q.pending.filter(x=>x.player==='goalie').length,1);
+ const after=currentProfileQueue({latest:[b],invalid:[]},[...prior,{records:[{...goalie,currentProfileAttemptedAt:iso(-5000)}]}],tick);
+ assert.equal(after.pending.filter(x=>x.player==='goalie').length,0);
+ assert.equal(after.unchangedSkipped,2);
 });
 
 test('Props pagination waits for a new row identity, a stable total, and actual return',async()=>{

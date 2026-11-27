@@ -113,8 +113,27 @@ test('dashboard traversal checkpoints every explicit page and never infers full 
  let i=1,saved=[];
  const page={url:()=> 'https://www.pickfinder.app/games',evaluate:async()=>({tables:[],cards:[{page:i}],clocks:[],controls:[],pagination:[{page:i,total:3}]}),getByRole:(role,opts)=>({count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true,click:async()=>{assert.equal(opts.name,'Next page');i++;}}),waitForFunction:async()=>{}};
  const out=await traverseDashboard(page,'Games',{onSnapshot:async x=>saved.push(x.cards[0].page)});
- assert.deepEqual(saved,[1,2,3]);assert.equal(out.state,'explicit_last_page_observed');assert.equal(out.filtersExhausted,false);
+ assert.deepEqual(saved,[1,2,3]);assert.equal(out.state,'explicit_last_page_observed');assert.equal(out.completePageSequenceVerified,true);assert.equal(out.filtersExhausted,false);
  await assert.rejects(traverseDashboard(page,'Popular'),/route/);
+});
+test('dashboard last-page labels cannot certify a skipped page, changed total, unchanged content or click timeout',async()=>{
+ const {traverseDashboard}=require('../scripts/pickfinder-dashboard-research.cjs');
+ const snap=(page,total,content=page)=>({tables:[],cards:[{content}],clocks:[],pagination:[{page,total}]});
+ for(const [snapshots,want,timeout=false] of [
+   [[snap(3,3)],'first_page_not_observed'],
+   [[snap(1,3),snap(3,3)],'pagination_changed_during_traversal'],
+   [[snap(1,3),snap(2,2)],'pagination_changed_during_traversal'],
+   [[snap(1,2),snap(2,2,1)],'unchanged_page_content'],
+   [[snap(1,2)],'next_page_unconfirmed',true]
+ ]){
+   let i=0;
+   const page={url:()=> 'https://www.pickfinder.app/games',evaluate:async()=>snapshots[i],
+    getByRole:()=>({count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true,click:async()=>{i++;}}),
+    waitForFunction:async()=>{if(timeout)throw Error('test timeout');}};
+   const out=await traverseDashboard(page,'Games');
+   assert.equal(out.state,want);assert.equal(out.completePageSequenceVerified,false);
+   assert.equal(out.pages,1);assert.equal(out.allDashboardDataVerified,false);
+ }
 });
 
 test('verified unpriced modifier scopes enter research queue without inventing an offer',()=>{

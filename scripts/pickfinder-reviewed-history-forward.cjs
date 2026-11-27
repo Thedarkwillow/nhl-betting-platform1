@@ -90,12 +90,14 @@ function results(forecasts,independent,clock){
 
 function scoreboard(forecasts,grades){
  const {scores}=require('./native-context-prospective-pairs.cjs');
+ const {compareByGame}=require('./prospective-game-comparison.cjs');
  const bySport={NHL:{},NFL:{}};
  for(const g of grades){
   const f=forecasts.get(g.id),p=f?.p;
   if(!p)continue;
-  const row=bySport[p.sport][p.market]??={graded:0,games:new Set(),nativeContextRows:[],scores:Object.fromEntries(methods.map(m=>[m,{brier:0,logLoss:0}]))};
+  const row=bySport[p.sport][p.market]??={graded:0,games:new Set(),nativeContextRows:[],pairedRows:[],scores:Object.fromEntries(methods.map(m=>[m,{brier:0,logLoss:0}]))};
   row.graded++;row.games.add(String(p.gameId));
+  row.pairedRows.push({gameId:p.gameId,candidate:p.reviewedHistoryPair.challenger,benchmark:p.reviewedHistoryPair.existing,outcome:g.outcome});
   if(p.nativeContextPair)row.nativeContextRows.push({gameId:p.gameId,nativeContextPair:p.nativeContextPair,result:g.outcome?'correct':'incorrect'});
   for(const m of methods){
    const q=p.reviewedHistoryPair[m];
@@ -106,6 +108,7 @@ function scoreboard(forecasts,grades){
  for(const sport of Object.values(bySport))for(const row of Object.values(sport)){
   row.distinctGames=row.games.size;delete row.games;
   row.nativeContextFeatureComparison=scores(row.nativeContextRows);delete row.nativeContextRows;
+  row.gameEqualChallengerComparison=compareByGame(row.pairedRows);delete row.pairedRows;
   for(const m of methods){row.scores[m].brier/=row.graded;row.scores[m].logLoss/=row.graded;}
  }
  return bySport;

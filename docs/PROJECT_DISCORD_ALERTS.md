@@ -17,3 +17,11 @@ A maximum of six entries per wake-up, with Discord mentions disabled. Eligible a
 The sender reserves event hashes on the separate `project-discord-alert-ledger` state ref before dispatch, and confirms a message using Discord's response. Ambiguous sends remain reserved rather than being retried automatically. Old receipts are pruned from the current ledger, but Git snapshots still contain only event hashes, timestamps, states, and keyed proof digests. No destination, credentials, source rows, or raw message identifiers are written to the ledger or workflow logs.
 
 If no events meet the evidence gates, the workflow sends nothing. A green preview or mock test is not proof of live delivery.
+
+## Optional filters and sport-specific channels
+
+Keep the default channel for everything by leaving both settings absent. The optional repository variable `PROJECT_DISCORD_FILTERS` accepts an allowlist such as `{"sports":["nba","nhl"],"tiers":["standard","goblin"],"kinds":["line_change","price_change","alternate_tier"]}`. Supported keys are sports, tiers, books and kinds. A discrepancy must match both configured books. Leave a key absent to avoid filtering that dimension.
+
+The optional **secret** `PROJECT_DISCORD_SPORT_ROUTES` accepts up to four sport overrides, each with `channelId` and `webhookUrl` properties. The target must be a different text channel on the same Discord server. Use a separate incoming webhook for each destination. Routes override the default only for events assigned to that sport. No additional routes are created by the workflow, and replayed events are not resent after a route change.
+
+Price-only moves have a separate filter category. Board alerts include the observed UTC clock, and independently committed fresh NBA availability reports may publish counts by status. Injuries do not establish actual participation or confirmed starters.

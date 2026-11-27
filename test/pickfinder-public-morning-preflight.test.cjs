@@ -34,13 +34,30 @@ test('same-hour fallback checks the exact immutable slot and never repeats a ver
  const actual='2026-11-26T17:29:00Z';
  const check=(root,day,slot)=>{
   assert.deepEqual([root,day,slot],['archive','2026-11-26','09:00']);
-  return true;
+  return [];
  };
  assert.equal(backupPreflight('archive',env,actual,check).proceed,false);
- assert.equal(backupPreflight('archive',env,actual,()=>false).proceed,true);
+ const partial=backupPreflight('archive',env,actual,()=>['nfl/underdog']);
+ assert.equal(partial.proceed,true);
+ assert.deepEqual(partial.missingPartitions,['nfl/underdog']);
+ assert.equal(partial.state,'backup_actual_hour_missing_core_partitions');
  assert.equal(backupPreflight('archive',env,'2026-11-26T17:28:59Z',()=>assert.fail('no early archive lookup')).state,'before_backup_minute');
  assert.equal(backupPreflight('archive',env,'2026-11-26T18:00:00Z',()=>assert.fail('no wrong hour archive lookup')).proceed,false);
  assert.equal(backupPreflight('archive',{...env,GITHUB_EVENT_SCHEDULE:'7 9 * * *'},actual,()=>assert.fail('primary unchanged')).proceed,true);
+});
+test('only exact verified core partitions are removed from actual-hour fallback work',()=>{
+ const {missingCoreSlotPartitions}=require('../scripts/pickfinder-public-morning-audit.cjs');
+ const day='2026-11-26',slot='09:00';
+ const doc={schema:'pickfinder-public-normalized-v1',localDay:day,slot,
+  sport:'nba',book:'prizepicks',authenticated:true,withinSlot:true,partDigests:[],
+  firstObservedAt:'2026-11-26T17:07:00Z',lastObservedAt:'2026-11-26T17:09:00Z',
+  boardState:'empty',explicitEmpty:true,health:{offers:0,distinctOfferKeys:0,researchFields:0,unpricedTierObservations:0,sportsbookQuoteObservations:0,pages:0}};
+ const first='2026-11-26T17:10:00Z',late='2026-11-26T18:10:00Z';
+ const boards=[{doc,first},{doc:{...doc,sport:'nhl',book:'underdog'},first},
+  {doc:{...doc,sport:'nfl'},first:late},{doc:{...doc,sport:'nfl',book:'underdog',partDigests:['missing']},first},
+  {doc:{...doc,sport:'cs2'},first}];
+ assert.deepEqual(missingCoreSlotPartitions('archive',day,slot,()=>({boards,parts:new Map()})),
+  ['nba/underdog','nhl/prizepicks','nfl/prizepicks','nfl/underdog']);
 });
 test('scheduled watchdog cannot pass on an empty, unverified, manual-only or unfinished slot',()=>{
  const {scheduledAuditExit}=require('../scripts/pickfinder-public-morning-audit.cjs');

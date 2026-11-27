@@ -33,6 +33,10 @@ function select(receipts,at,prior=[]){
  return [ranked[0],ranked.find(x=>x.sport!==ranked[0].sport)||ranked[1]];
 }
 
+function normalizeDisplayedClock(value){
+ const m=typeof value==='string'&&/^(0?[1-9]|1[012])\/(0?[1-9]|[12]\d|3[01]) (0?[1-9]|1[012]):([0-5]\d) ?(AM|PM)$/.exec(value);
+ return m?Number(m[1])+'/'+Number(m[2])+' '+Number(m[3])+':'+m[4]+m[5]:null;
+}
 function utcCandidates(value,at){
  const match=/^(\d{1,2})\/(\d{1,2}) (\d{1,2}):(\d\d)(AM|PM)$/.exec(value);
  if(!match)return [];
@@ -60,7 +64,7 @@ function matchedPairs(observations){
   const groups=new Map();
   for(const r of rows){
    if(!r.higher||!r.lower||!Number.isFinite(r.quoteLine)||!r.book||
-      !/^\d{1,2}\/\d{1,2} \d{1,2}:\d{2}(?:AM|PM)$/.test(r.displayedMovementClock))continue;
+      !normalizeDisplayedClock(r.displayedMovementClock))continue;
    const k=fingerprint(r),g=groups.get(k)||[];g.push(r);groups.set(k,g);
   }
   return groups;
@@ -69,7 +73,7 @@ function matchedPairs(observations){
  for(const [k,x] of first){
   const y=second.get(k);
   if(x.length!==1||y?.length!==1)continue;
-  const src=x[0].displayedMovementClock,dst=y[0].displayedMovementClock;
+  const src=normalizeDisplayedClock(x[0].displayedMovementClock),dst=normalizeDisplayedClock(y[0].displayedMovementClock);
   const shifted=src!==dst&&utcCandidates(src,firstAt).filter(d=>render(d,b.zone)===dst).length===1;
   matches.push({key:JSON.stringify([a.detailId,x[0].book,x[0].quoteLine]),shifted,unchanged:src===dst});
  }

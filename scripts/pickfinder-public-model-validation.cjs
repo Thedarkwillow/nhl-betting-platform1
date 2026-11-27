@@ -273,23 +273,27 @@ function verifiedComparisonRows(frames,grades,clock){
  });
 }
 function pairedStats(rows){
+ const {compareByGame}=require('./prospective-game-comparison.cjs');
+ const compared=rows=>compareByGame(rows.map(r=>({gameId:r.gameId,candidate:r.modelEstimate,
+  benchmark:r.baselineEstimate,outcome:Number(r.result==='correct')})));
+ const pairFor=(r,p)=>({gameId:r.gameId,modelEstimate:p.featureOn,baselineEstimate:p.featureOff,result:r.result});
  const by={},unique=new Map(),conflicts=new Set();for(const r of rows){if(!r.id)continue;const old=unique.get(r.id);if(old&&JSON.stringify(old)!==JSON.stringify(r))conflicts.add(r.id);else if(!old)unique.set(r.id,r);}for(const [id,r] of unique){if(conflicts.has(id)||!['correct','incorrect'].includes(r.result)||!Number.isFinite(r.actual)||!Number.isFinite(r.modelEstimate)||r.modelEstimate<0||r.modelEstimate>1)continue;const a=by[r.market]??={baselinePairs:[],lowCountPairs:[],matchupPairs:[],workloadPairs:[],reviewedHistoryPairs:[],nativeContextPairs:[],n:0,brier:0,logLoss:0,quoteN:0,quoteBrier:0,pairedModelBrier:0,avgN:0,avgMAE:0,pairedProjectionMAE:0};const pair=r.lowCountPair;
  if(pair?.revision===lowCountPairRevision&&[pair.featureOn,pair.featureOff].every(p=>Number.isFinite(p)&&p>=0&&p<=1))
-  a.lowCountPairs.push({modelEstimate:pair.featureOn,baselineEstimate:pair.featureOff,result:r.result});
+  a.lowCountPairs.push(pairFor(r,pair));
  const matchup=r.matchupPair;
  if(matchup?.revision===matchupPairRevision&&[matchup.featureOn,matchup.featureOff].every(p=>Number.isFinite(p)&&p>=0&&p<=1))
-  a.matchupPairs.push({modelEstimate:matchup.featureOn,baselineEstimate:matchup.featureOff,result:r.result});
+  a.matchupPairs.push(pairFor(r,matchup));
  const workload=r.workloadPair;
  if(workload?.revision===workloadPairRevision&&[workload.featureOn,workload.featureOff].every(p=>Number.isFinite(p)&&p>=0&&p<=1))
-  a.workloadPairs.push({modelEstimate:workload.featureOn,baselineEstimate:workload.featureOff,result:r.result});
+  a.workloadPairs.push(pairFor(r,workload));
  const reviewedHistory=r.reviewedHistoryPair;
  if(reviewedHistory?.revision===reviewedHistoryRevision&&Number.isSafeInteger(reviewedHistory.historyGames)&&
    reviewedHistory.historyGames>=reviewedHistoryMinimum&&[reviewedHistory.featureOn,reviewedHistory.featureOff].every(p=>Number.isFinite(p)&&p>=0&&p<=1))
-  a.reviewedHistoryPairs.push({modelEstimate:reviewedHistory.featureOn,baselineEstimate:reviewedHistory.featureOff,result:r.result});
+  a.reviewedHistoryPairs.push(pairFor(r,reviewedHistory));
  if(r.nativeContextPair)a.nativeContextPairs.push(r);
  const y=Number(r.result==='correct');if(Number.isFinite(r.baselineEstimate)&&r.baselineEstimate>=0&&r.baselineEstimate<=1)a.baselinePairs.push(r);a.n++;a.brier+=(r.modelEstimate-y)**2;a.logLoss-=Math.log(Math.max(1e-15,y?r.modelEstimate:1-r.modelEstimate));const qs=(r.quoteBenchmarks||[]).filter(q=>Number.isFinite(q.higher)&&q.higher>=0&&q.higher<=1);if(qs.length){const p=qs.reduce((s,q)=>s+(r.side==='Higher'?q.higher:1-q.higher),0)/qs.length;a.quoteN++;a.quoteBrier+=(p-y)**2;a.pairedModelBrier+=(r.modelEstimate-y)**2;}if(Number.isFinite(r.pickfinderAverage)&&Number.isFinite(r.modelProjection)){a.avgN++;a.avgMAE+=Math.abs(r.pickfinderAverage-r.actual);a.pairedProjectionMAE+=Math.abs(r.modelProjection-r.actual);}}
  return Object.fromEntries(Object.entries(by).map(([k,a])=>[k,{nativeContextFeatureComparison:require('./native-context-prospective-pairs.cjs').scores(a.nativeContextPairs),reviewedHistoryFeatureComparison:{revision:reviewedHistoryRevision,...baselineScores(a.reviewedHistoryPairs),
-   evenBrier:a.reviewedHistoryPairs.length ? .25 : null,evenLogLoss:a.reviewedHistoryPairs.length?Math.log(2):null},workloadFeatureComparison:{revision:workloadPairRevision,...baselineScores(a.workloadPairs)},matchupFeatureComparison:{revision:matchupPairRevision,...baselineScores(a.matchupPairs)},lowCountFeatureComparison:{revision:lowCountPairRevision,...baselineScores(a.lowCountPairs)},frozenBaselineComparison:baselineScores(a.baselinePairs),decided:a.n,modelBrier:a.brier/a.n,modelLogLoss:a.logLoss/a.n,pairedQuoteN:a.quoteN,quoteBrier:a.quoteN?a.quoteBrier/a.quoteN:null,pairedModelBrier:a.quoteN?a.pairedModelBrier/a.quoteN:null,pairedAverageN:a.avgN,pickfinderAverageMAE:a.avgN?a.avgMAE/a.avgN:null,modelProjectionMAE:a.avgN?a.pairedProjectionMAE/a.avgN:null,approved:false}]));
+   gameEqualComparison:compared(a.reviewedHistoryPairs),evenBrier:a.reviewedHistoryPairs.length ? .25 : null,evenLogLoss:a.reviewedHistoryPairs.length?Math.log(2):null},workloadFeatureComparison:{revision:workloadPairRevision,...baselineScores(a.workloadPairs),gameEqualComparison:compared(a.workloadPairs)},matchupFeatureComparison:{revision:matchupPairRevision,...baselineScores(a.matchupPairs),gameEqualComparison:compared(a.matchupPairs)},lowCountFeatureComparison:{revision:lowCountPairRevision,...baselineScores(a.lowCountPairs),gameEqualComparison:compared(a.lowCountPairs)},frozenBaselineComparison:baselineScores(a.baselinePairs),gameEqualFrozenBaselineComparison:compared(a.baselinePairs),decided:a.n,modelBrier:a.brier/a.n,modelLogLoss:a.logLoss/a.n,pairedQuoteN:a.quoteN,quoteBrier:a.quoteN?a.quoteBrier/a.quoteN:null,pairedModelBrier:a.quoteN?a.pairedModelBrier/a.quoteN:null,pairedAverageN:a.avgN,pickfinderAverageMAE:a.avgN?a.avgMAE/a.avgN:null,modelProjectionMAE:a.avgN?a.pairedProjectionMAE/a.avgN:null,approved:false}]));
 }
 async function main(root){
  const clock=now(),revision=git(root,['rev-parse','HEAD']),archive=load(root),a=analyze(archive,clock);a.summary.researchCoverage=coverage(root);

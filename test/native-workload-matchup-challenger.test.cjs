@@ -66,6 +66,8 @@ test('prospective report keeps ungraded and failed validation pairs out of perfo
  const a=scores([{gameId:'1',result:'correct',nativeContextPair:p},{gameId:'2',result:'incorrect',nativeContextPair:{...p,modelApproved:true}}]);
  assert.equal(a.workload.decisions,1);
  assert.equal(a.workload.scores.neutral.brier,.25);
+ assert.equal(a.workload.gameEqualComparison.distinctGames,1);
+ assert.equal(a.workload.gameEqualComparison.candidate.brier,a.workload.scores.candidate.brier);
 });
 test('website distinguishes verified prospective NBA and NHL/NFL feeds from retrospective and future reports',()=>{
  const {prospectiveRows}=require('../assets/native-context-performance.js'),score={brier:.25,logLoss:.6931};
@@ -76,10 +78,42 @@ test('website distinguishes verified prospective NBA and NHL/NFL feeds from retr
  const live={...nba,prospectiveComparisonEvidence:'first_git_forecast_and_official_grade_v1'};
  assert.equal(prospectiveRows('NBA',nba,now),null);
  assert.equal(prospectiveRows('NBA',live,now)[0].events,1);
+ const {compareByGame}=require('../scripts/prospective-game-comparison.cjs');
+ assert.equal(prospectiveRows('NBA',live,now)[0].gameEqual,'Unavailable');
+ item.nativeContextFeatureComparison.workload.gameEqualComparison=compareByGame([{gameId:1,candidate:.75,benchmark:.5,outcome:1}]);
+ assert.equal(prospectiveRows('NBA',live,now)[0].gameEqual,'-0.1875 / -0.4055 · Brier interval withheld');
  assert.equal(prospectiveRows('NBA',{...live,generatedAt:'2026-11-21T20:00Z'},now),null);
  const nhl={kind:'pickfinder_nhlnfl_reviewed_history_performance_v1',modelApproved:false,paidRequests:0,
   generatedAt:nba.generatedAt,retrospective:false,productionChanged:false,bySport:{NHL:{shotsOnGoal:item}}};
  assert.equal(prospectiveRows('NHL',nhl,now)[0].market,'Shots on goal');
  assert.deepEqual(prospectiveRows('NFL',nhl,now),[]);
  assert.equal(prospectiveRows('NHL',{...nhl,retrospective:true},now),null);
+});
+
+test('game-equal comparisons prevent crowded games from controlling a paired estimate',()=>{
+ const {compareByGame}=require('../scripts/prospective-game-comparison.cjs');
+ const hit={gameId:1,candidate:1,benchmark:.5,outcome:1},miss={gameId:2,candidate:0,benchmark:.5,outcome:1};
+ const many=compareByGame([hit,...Array(8).fill({...hit,gameId:'1'}),miss]);
+ const one=compareByGame([hit,miss]);
+ assert.equal(many.decisionCount,10);
+ assert.equal(many.distinctGames,2);
+ assert.equal(many.delta.brier,.25);
+ assert.deepEqual(many.delta,one.delta);
+ assert.deepEqual(many.candidate,one.candidate);
+ assert.equal(many.hitRate,1);
+ assert.equal(many.uncertainty.brier,null);
+ assert.equal(many.uncertainty.logLoss,null);
+ assert.equal(many.productionApproved,false);
+ assert.equal(compareByGame([{...hit,gameId:undefined},{...hit,benchmark:2},{...hit,outcome:'1'}]).candidate.brier,null);
+});
+
+test('descriptive uncertainty requires thirty distinct games rather than thirty offers',()=>{
+ const {compareByGame}=require('../scripts/prospective-game-comparison.cjs');
+ const rows=Array.from({length:30},(_,i)=>({gameId:i+1,candidate:i%2?.9:.8,benchmark:.5,outcome:1}));
+ assert.equal(compareByGame(Array(40).fill(rows[0])).uncertainty.brier,null);
+ const v=compareByGame(rows);
+ assert.equal(v.distinctGames,30);
+ assert.ok(v.uncertainty.brier[0]<v.delta.brier);
+ assert.ok(v.delta.brier<v.uncertainty.brier[1]);
+ assert.ok(v.uncertainty.logLoss[1]<0);
 });

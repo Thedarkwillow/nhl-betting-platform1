@@ -7,6 +7,7 @@ const availability = new Set(['out','doubtful','questionable','probable','availa
 const depthHeader = ' | Starter | 2nd | 3rd | 4th | 5th';
 const depthBadges = new Set(['OUT','Q','DOUBT','PROB']);
 const decimal = /^\d+(?:\.\d+)?$/;
+const {noVigHigher}=require('./pickfinder-quote-features.cjs');
 function rowCells(field) {
   if (!/^row [1-9]\d*$/.test(field.metric) || typeof field.value !== 'string') return null;
   let cells;
@@ -30,20 +31,27 @@ function explicitMovementClock(stamp, observed) {
   return {movementAtUtc:new Date(at).toISOString(),sourceMovementDateTime:stamp,movementTimeBasis:'provider_time_element'};
 }
 
+function observedBrowserZone(zone) {
+  if (typeof zone!=='string' || !/^[A-Za-z][A-Za-z0-9_+\/-]{0,63}$/.test(zone)) return null;
+  try { new Intl.DateTimeFormat('en-US',{timeZone:zone}); return zone; } catch { return null; }
+}
+
 function parseMovement(f, cells) {
   if (f.origin !== 'line_movement' || f.tab !== 'Line Movement' || f.scope !== 'Line | App | Time') return null;
   const {Line,App,Time} = cells;
   if (Line.labels.length || Time.labels.length || App.labels.length !== 1 || !sportsbooks.has(App.labels[0]) ||
       typeof Line.value !== 'string' || !decimal.test(Line.value) || !Number.isFinite(Number(Line.value)) ||
-      typeof Time.value !== 'string' || !/^(?:0?[1-9]|1[012])\/(?:0?[1-9]|[12]\d|3[01]) (?:0?[1-9]|1[012]):[0-5]\d[AP]M$/.test(Time.value)) return null;
+      typeof Time.value !== 'string' || !/^(?:0?[1-9]|1[012])\/(?:0?[1-9]|[12]\d|3[01]) (?:0?[1-9]|1[012]):[0-5]\d ?[AP]M$/.test(Time.value)) return null;
   const prices = {};
   for (const token of String(App.value).split('\n')) {
     const match = /^([OU])([+-]\d{3,4})$/.exec(token);
     if (!match || Math.abs(Number(match[2])) < 100 || Object.hasOwn(prices,match[1])) return null;
     prices[match[1]] = match[2];
   }
+  const at=explicitMovementClock(Time.sourceMovementDateTime,Date.parse(f.observedAt));
+  const zone=observedBrowserZone(Time.browserTimeZone);
   return {book:App.labels[0],quoteLine:Number(Line.value),higher:prices.O || null,lower:prices.U || null,
-    displayedMovementClock:Time.value,movementAtUtc:null,...explicitMovementClock(Time.sourceMovementDateTime,Date.parse(f.observedAt))};
+    displayedMovementClock:Time.value,movementAtUtc:null,...(zone?{browserTimeZone:zone}:{}),...at};
 }
 
 function profileMarketEvidence(record, field, digest, archiveAt, clock) {
@@ -108,7 +116,7 @@ function profileMarketEvidence(record, field, digest, archiveAt, clock) {
 }
 
 function summarize(receipts) {
-  const counts = {historicalRows:0,explicitMovementUtcRows:0,pairedRows:0,workloadObservations:0,availabilityObservations:0,defenseSplitObservations:0,byBook:{}};
+  const counts = {historicalRows:0,explicitMovementUtcRows:0,browserTimezoneRows:0,pairedRows:0,workloadObservations:0,availabilityObservations:0,defenseSplitObservations:0,byBook:{}};
   const groups = new Map();
   for (const row of receipts) {
     if (row.kind === 'workload') counts.workloadObservations++;
@@ -116,10 +124,13 @@ function summarize(receipts) {
     else if (row.kind === 'defense_splits') counts.defenseSplitObservations++;
     else {
       counts.historicalRows++;
-      if (row.movementTimeBasis==='provider_time_element' && row.movementAtUtc) counts.explicitMovementUtcRows++;
+      const utc=explicitMovementClock(row.sourceMovementDateTime,Date.parse(row.observedAt));
+      const zoned=row.movementTimeBasis==='provider_time_element' && utc && utc.movementAtUtc===row.movementAtUtc;
+      if (zoned) counts.explicitMovementUtcRows++;
+      if (observedBrowserZone(row.browserTimeZone)) counts.browserTimezoneRows++;
       const key = JSON.stringify([row.sport,row.eventId,row.detailId.split('?')[0],row.market,row.period,row.mapRange,
-        row.gameMode,row.book,row.quoteLine,row.displayedMovementClock]);
-      const group = groups.get(key) || {higher:new Set(),lower:new Set(),paired:false};
+        row.gameMode,row.book,row.quoteLine,zoned?['explicit',row.movementAtUtc]:['unzoned',row.displayedMovementClock]]);
+      const group = groups.get(key) || {higher:new Set(),lower:new Set(),paired:false,zoned,book:row.book};
       if (row.higher) group.higher.add(row.higher);
       if (row.lower) group.lower.add(row.lower);
       if (row.higher && row.lower) group.paired = true;
@@ -131,7 +142,16 @@ function summarize(receipts) {
   }
   const distinct = [...groups.values()];
   counts.conflictingMovementGroups = distinct.filter(g=>g.higher.size>1 || g.lower.size>1).length;
-  counts.distinctUnconflictedPairedGroups = distinct.filter(g=>g.paired && g.higher.size===1 && g.lower.size===1).length;
+  const pairs=distinct.filter(g=>g.paired && g.higher.size===1 && g.lower.size===1);
+  counts.distinctUnconflictedPairedGroups = pairs.length;
+  counts.unzonedPairedGroups=pairs.filter(g=>!g.zoned).length;
+  // A price is eligible for a probability only from one exact two-sided row
+  // at a source-supplied instant. Later captures cannot supply a missing side.
+  counts.offsetBoundNoVigPairedGroups=0;
+  for(const g of pairs)if(g.zoned&&noVigHigher([...g.higher][0],[...g.lower][0])!==null){
+    counts.offsetBoundNoVigPairedGroups++;
+    const b=counts.byBook[g.book];b.offsetBoundNoVigPairs=(b.offsetBoundNoVigPairs||0)+1;
+  }
   return counts;
 }
 module.exports = {profileMarketEvidence,summarize};

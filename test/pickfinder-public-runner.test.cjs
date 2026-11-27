@@ -416,3 +416,19 @@ test('reads an explicitly scoped builder export menu without interacting with pi
  assert.equal(r.controls[0].label,'Export');assert.equal(r.mutations,0);assert.equal(r.submissionVerified,false);
  assert.equal(calls.filter(x=>x.label==='pick builder').length,1);
 });
+
+test('profile timing cohorts bind exact ordered scope, selected book and movement probes',()=>{
+ const {profileBenchmarkScope}=require('../scripts/pickfinder-public-runner.cjs');
+ const a={sport:'nba',player:'A',market:'points',eventId:'a',book:'prizepicks',detailId:'/players/nba/a?prop=x'};
+ const b={...a,player:'B',detailId:'/players/nba/b?prop=y'};
+ const opts={currentProfiles:true};
+ const d=profileBenchmarkScope([a,b],opts);
+ assert.match(d.cohortDigest,/^[a-f0-9]{64}$/);
+ assert.equal(d.scopes,2);
+ assert.equal(profileBenchmarkScope([a,b],opts).cohortDigest,d.cohortDigest);
+ for(const [rows,how] of [[[b,a],opts],[[{...a,book:'underdog'},b],opts],
+  [[{...a,probeSportsbookMovement:true},b],opts],[[a,b],{}],[[{...a,period:'1H'},b],opts]])
+  assert.notEqual(profileBenchmarkScope(rows,how).cohortDigest,d.cohortDigest);
+ assert.equal(profileBenchmarkScope([a,a],opts).cohortDigest,null);
+ assert.equal(profileBenchmarkScope([{...a,detailId:'https://example.com/players/nba/a?prop=x'}],opts).cohortDigest,null);
+});

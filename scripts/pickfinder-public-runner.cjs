@@ -1,4 +1,5 @@
 'use strict';
+const {performance}=require('node:perf_hooks');
 const fs=require('node:fs'),path=require('node:path'),{normalize}=require('./pickfinder-premium-archive.cjs'),{collect,ORIGIN,readCompactBoardClocks}=require('./pickfinder-browser.cjs'),{enrich}=require('./pickfinder-player-research.cjs'),{VERSION}=require('./pickfinder-research-coverage.cjs'),{checkpointBuffer}=require('./pickfinder-checkpoint-buffer.cjs'),{pacific,decide}=require('./pacific-morning-capture-gate.cjs'),{prioritySports,registry}=require('./season-aware-collection.cjs'),{discover}=require('./season-aware-discovery.cjs'),{openHostedBoard}=require('./pickfinder-unattended-runner.cjs'),{persist,read,iterate,archiveRevision,safe,sha,assertDestination}=require('./pickfinder-public-archive.cjs');
 const {dashboardRoutes,captureGameDialogs,verifiedNavigation,traverseDashboardFilters,dashboardControlDiagnostics,inspectCapabilities}=require('./pickfinder-dashboard-research.cjs');
 const {inspectTool}=require('./pickfinder-tool-schema.cjs');
@@ -44,6 +45,16 @@ function sharedScope(s){
  let u;try{u=new URL(detailId,ORIGIN);}catch{return null;}
  if(u.origin!==ORIGIN||!u.pathname.startsWith('/players/')||u.searchParams.getAll('prop').length!==1||[...u.searchParams.keys()].some(k=>k!=='prop'))return null;
  return {sport,player,market,eventId,detailId:u.pathname+'?'+u.searchParams.toString(),period:s.period??null,mapRange:s.mapRange??null,gameMode:s.gameMode??null};
+}
+function profileBenchmarkScope(items,{currentProfiles=false,historyRepair=false}={}){
+ const mode=currentProfiles?'current_profiles':historyRepair?'history_repair':'deep_profiles';
+ const keys=items.map(r=>{
+  const scope=sharedScope(r);
+  return scope?sha(JSON.stringify([scope,r.book??null,[...(r.books||[])].sort(),currentProfiles&&r.probeSportsbookMovement===true])):null;
+ });
+ const cohortDigest=keys.length&&keys.every(Boolean)&&new Set(keys).size===keys.length
+  ?sha(JSON.stringify([VERSION,mode,keys])):null;
+ return {mode,cohortDigest,scopes:keys.length,coverageVersion:VERSION};
 }
 function queue(boards,profiles,{historyAudit}={}){
  const done=new Set(),attempted=new Map(),repairs=new Map(),aligned=new Map(),lastAligned=new Map();
@@ -430,29 +441,33 @@ async function main(root,env=process.env){
   // Never increase parallelism in the protected morning board or scheduled collection paths.
   const workers=profileWorkers(env,p),pages=[];
   const buffer=checkpointBuffer({write:rows=>write('profiles',{schema:'pickfinder-public-profiles-v1',observedAt:new Date().toISOString(),records:rows,modelInputsApproved:false}),onVerified:r=>{profiles++;console.log(JSON.stringify({state:'public_deep_scope_checkpoint_verified',sport:r.sport,book:r.book,status:r.status,truncated:r.truncated,verifiedThisRun:profiles}));}});
-  const deepStarted=Date.now(),profileAlive=()=>alive()&&(!p.currentProfiles||Date.now()-deepStarted<18*60000);let attemptedProfiles=0,nontruncated=0;
+  const deepStarted=Date.now(),archiveBefore=archiveMs,transactionsBefore=transactions,profilesBefore=profiles,profileAlive=()=>alive()&&(!p.currentProfiles||Date.now()-deepStarted<18*60000);let attemptedProfiles=0,nontruncated=0,navigationMs=0,researchMs=0;
   try{
    for(let n=0;n<workers;n++){const detail=await context.newPage();detail.setDefaultTimeout(5000);pages.push(detail);}
    for(let i=0;i<q.pending.length&&profileAlive();i+=workers){
     const items=q.pending.slice(i,i+workers);
     const results=await Promise.allSettled(items.map(async(item,n)=>{
-     const detail=pages[n],row={...item,research:[]},t=Date.now();attemptedProfiles++;
-     try{await enrich(detail,row,{expanded:true,fullSportingHeaders:true,maxFields:Infinity,includePropHistory:!p.currentProfiles,probeSportsbookMovement:p.currentProfiles&&item.probeSportsbookMovement===true,shouldContinue:profileAlive,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(!await premium(detail))throw Error('session');
-       const snap=await detail.evaluate(currentIdentity.readVisible,{player:row.player,detailId:row.detailId}).catch(()=>null);row.independentReconciliationContext=currentIdentity.captureProfileContext(row,snap,new Date().toISOString());}});}catch{row.profileCollection={truncated:true};}
+     const detail=pages[n],row={...item,research:[]},t=performance.now();let nav=0;attemptedProfiles++;
+     try{await enrich(detail,row,{expanded:true,fullSportingHeaders:true,maxFields:Infinity,includePropHistory:!p.currentProfiles,probeSportsbookMovement:p.currentProfiles&&item.probeSportsbookMovement===true,shouldContinue:profileAlive,navigate:async url=>{const n0=performance.now();try{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(!await premium(detail))throw Error('session');
+       const snap=await detail.evaluate(currentIdentity.readVisible,{player:row.player,detailId:row.detailId}).catch(()=>null);row.independentReconciliationContext=currentIdentity.captureProfileContext(row,snap,new Date().toISOString());
+       }finally{nav+=performance.now()-n0;}}});}catch{row.profileCollection={truncated:true};}
+     const reached=performance.now()-t;navigationMs+=nav;researchMs+=Math.max(0,reached-nav);
      const record={...publicProfile(row),independentReconciliationContext:row.independentReconciliationContext??null};
-     return {record:p.currentProfiles?compactCurrentProfile({...record,currentProfileAttemptedAt:new Date().toISOString()}):record,elapsed:Date.now()-t,authenticated:await premium(detail).catch(()=>false)};
+     return {record:p.currentProfiles?compactCurrentProfile({...record,currentProfileAttemptedAt:new Date().toISOString()}):record,elapsed:Math.round(performance.now()-t),authenticated:await premium(detail).catch(()=>false)};
     }));
     let failed=false;for(const x of results){if(x.status!=='fulfilled'){failed=true;continue;}const {record,elapsed,authenticated}=x.value;profileMs+=elapsed;await buffer.add(record);if(record.status==='sampled'&&record.truncated===false)nontruncated++;if(!authenticated)failed=true;}
     if(failed)throw Error('session unavailable');
    }
   }finally{
    try{if(!buffer.failed())await buffer.flush();}
-   finally{await Promise.allSettled(pages.map(page=>page.close()));console.log(JSON.stringify({state:'public_deep_worker_metrics',workers,attemptedProfiles,nontruncated,verifiedProfiles:profiles,workerElapsedMs:Date.now()-deepStarted,aggregateProfileMs:profileMs,archiveMs,transactions,parallelBoardCollection:false}));}
+   finally{await Promise.allSettled(pages.map(page=>page.close()));console.log(JSON.stringify({state:'public_deep_worker_metrics',workers,attemptedProfiles,nontruncated,verifiedProfiles:profiles,workerElapsedMs:Date.now()-deepStarted,aggregateProfileMs:profileMs,archiveMs,transactions,parallelBoardCollection:false,
+     benchmark:{...profileBenchmarkScope(q.pending.slice(0,attemptedProfiles),p),navigationAggregateMs:Math.round(navigationMs),featureReadAggregateMs:Math.round(researchMs),
+      profileArchiveMs:archiveMs-archiveBefore,profileArchiveTransactions:transactions-transactionsBefore,verifiedProfileWrites:profiles-profilesBefore}}));}
   }
 
  }finally{
   await context.close();console.log(JSON.stringify({state:'public_pickfinder_throughput',boards,profiles,profileMs,archiveMs,transactions,errors,elapsedMs:Date.now()-started,privateRepoUsed:false,modelInputsApproved:false}));
  }
 }
-module.exports={invocation,clockAuditTargets,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers,waitPremium,boardTargets,currentProfileQueue,compactCurrentProfile};
+module.exports={invocation,clockAuditTargets,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers,waitPremium,boardTargets,currentProfileQueue,compactCurrentProfile,profileBenchmarkScope};
 if(require.main===module)main(fs.realpathSync(process.argv[2])).catch(()=>{console.error(JSON.stringify({state:'public_pickfinder_failed_closed',privateRepoUsed:false,accountDataLogged:false}));process.exitCode=1;});

@@ -58,6 +58,14 @@ function samples(boardHistory,receipts,clock,observationsByManifest=new Map()){
   const entry={sport:o.sport,sourceEventId:o.eventId,sourcePlayer:o.player,profilePath:u.pathname,maps:scope.maps};
   const review=reconcileSeries([entry],clock).rows[0].independentSeriesEvidence;
   const {series}=final,available=dt(row.archiveFirst),start=dt(series.listedStartAt),seen=dt(o.observedAt),offerStart=dt(o.startAt);
+  const disposition=review.scheduleDisposition;
+  // The old offer belongs to the original schedule, not the new listing.
+  // Do not retrospectively rekey it to a rescheduled match.
+  if(disposition?.disposition==='relisted_no_final_maps'&&
+    (!Number.isFinite(offerStart)||Math.abs(offerStart-dt(disposition.currentListedStartAt))>300000||
+      Math.abs(start-dt(disposition.currentListedStartAt))>300000)){
+   reject('rescheduledOfferNotReissued');continue;
+  }
   if(!Number.isFinite(available)||!Number.isFinite(seen)||seen>available+999||available+900000>=start||
     Number.isFinite(offerStart)&&Math.abs(offerStart-start)>300000){reject('unprovedPregame');continue;}
   if(review.status!=='roster_and_map_corroborated'||typeof review.independentPlayerProfile!=='string'||

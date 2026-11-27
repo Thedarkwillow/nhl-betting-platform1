@@ -1,0 +1,27 @@
+{
+  "kind": "esports_independent_schedule_review_v1",
+  "reviewedAt": "2026-11-27T04:51:33Z",
+  "series": [
+    {
+      "sport": "valorant",
+      "priorListedStartAt": "2026-11-26T22:00:00Z",
+      "currentListedStartAt": "2026-11-28T22:00:00Z",
+      "historicalListing": "https://valolive.gg/en/match/leones-vs-bon-bon-bum-contra-26-11-2026/",
+      "currentListing": "https://www.vlr.gg/794180/leones-vs-contra-vct-2027-america-kickoff-latam-north-qualifier-playoffs-ubsf",
+      "disposition": "relisted_no_final_maps"
+    }
+  ],
+  "rosterExclusions": [
+    {
+      "sport": "cs2",
+      "pregameLabel": "bl1x1",
+      "actualMapParticipant": "interz",
+      "resultReferences": [
+        "https://www.hltv.org/stats/matches/mapstatsid/245050/drama-vs-forze-reload",
+        "https://www.hltv.org/stats/matches/mapstatsid/245056/forze-reload-vs-drama"
+      ],
+      "platformSettlement": "unverified",
+      "seriesUrl": "https://www.hltv.org/matches/2400657/forze-reload-vs-drama-cct-2026-europe-series-15"
+    }
+  ]
+}

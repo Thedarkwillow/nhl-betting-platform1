@@ -280,3 +280,38 @@ test('reviewed history challenger uses only prior exact native facts and leaves 
  assert.ok(result.scores.challenger.brier<result.scores.existing.brier);
  assert.equal(scorePairs([row],finals,startAt).nhl.shotsOnGoal.decided,0);
 });
+
+test('independent schedule relisting does not corroborate unplayed maps or relabel the original offer', () => {
+ const {reconcileSeries}=require('../scripts/pickfinder-esports-series-review.cjs');
+ const {series}=require('../config/esports/pickfinder-series-review-2026-11-27.json');
+ const event=series.find(x=>x.sourceEventId==='2026112600B7ED27');
+ const player=event.roster[0];
+ const scope={sport:'valorant',sourceEventId:event.sourceEventId,sourcePlayer:player.label,
+  profilePath:player.pickfinderProfilePath,maps:[1,2]};
+ const read=clock=>reconcileSeries([scope],clock);
+ const before=read('2026-11-27T04:51:32Z').rows[0].independentSeriesEvidence;
+ assert.equal(before.scheduleDisposition,undefined);
+ const after=read('2026-11-27T04:51:33Z');
+ const later=after.rows[0].independentSeriesEvidence;
+ assert.equal(later.status,'map_scope_unresolved');
+ assert.deepEqual(later.firstTwoMapNames,[]);
+ assert.equal(later.scheduleDisposition.priorListedStartAt,'2026-11-26T22:00:00Z');
+ assert.equal(later.scheduleDisposition.currentListedStartAt,'2026-11-28T22:00:00Z');
+ assert.equal(later.reportedDate,'2026-11-26');
+ assert.equal(after.summary.officialSettlementVerified,0);
+ assert.equal(after.summary.qualifiedModelInputs,0);
+});
+
+test('published final maps corroborate CS2 nonparticipation without asserting platform settlement', () => {
+ const {reconcileSeries}=require('../scripts/pickfinder-esports-series-review.cjs');
+ const scope={sport:'cs2',sourceEventId:'2026112650362690',sourcePlayer:'bl1x1',
+  profilePath:'/players/cs2/u2qbkafgxd78s8o',maps:[1,2]};
+ const other={...scope,sourcePlayer:'HeCkBNk'};
+ const {rows,summary}=reconcileSeries([scope,other],'2026-11-27T04:51:33Z');
+ assert.equal(rows[0].independentSeriesEvidence.status,'roster_conflict');
+ assert.equal(rows[0].independentSeriesEvidence.rosterExclusion.resultReferences.length,2);
+ assert.equal(rows[0].independentSeriesEvidence.rosterExclusion.actualMapParticipant,'interz');
+ assert.equal(rows[0].independentSeriesEvidence.rosterExclusion.platformSettlement,'unverified');
+ assert.equal(rows[1].independentSeriesEvidence.rosterExclusion,undefined);
+ assert.equal(summary.officialSettlementVerified,0);
+});

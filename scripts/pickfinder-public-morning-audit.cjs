@@ -50,5 +50,16 @@ async function verifyScheduled(root,report,env=process.env,client=fetch){
  }
  return {...report,scheduledPartitions:results,scheduledCorePartitionsVerified:['nba','nhl','nfl'].every(s=>['prizepicks','underdog'].every(b=>results[s+'/'+b]?.scheduledVerified>0)),scheduledFullCoverageCertified:false};
 }
-module.exports={assess,run,scheduledRunMatches,verifyScheduled};
-if(require.main===module){(async()=>{const day=pacific(new Date()).day,root=process.argv[2],report=run(root,day,process.argv[3]);console.log(JSON.stringify(await verifyScheduled(root,report)));})().catch(()=>{console.error('Public archive audit failed closed');process.exitCode=1;});}
+function scheduledAuditExit(report){
+ return report.state==='public_pickfinder_morning_audit'&&report.scheduledCorePartitionsVerified===true?0:1;
+}
+module.exports={assess,run,scheduledRunMatches,verifyScheduled,scheduledAuditExit};
+if(require.main===module){(async()=>{
+ const day=pacific(new Date()).day,root=process.argv[2];
+ const report=await verifyScheduled(root,run(root,day,process.argv[3]));
+ console.log(JSON.stringify(report));
+ if(process.argv.includes('--require-scheduled-core')&&scheduledAuditExit(report)!==0){
+  console.error('::error::No independently verified complete scheduled core partitions for '+day+' '+report.slot+' Pacific. Audit only, no collection or retry.');
+  process.exitCode=1;
+ }
+})().catch(()=>{console.error('Public archive audit failed closed');process.exitCode=1;});}

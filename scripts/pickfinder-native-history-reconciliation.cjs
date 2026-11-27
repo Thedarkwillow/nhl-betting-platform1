@@ -250,7 +250,7 @@ function historyForModel(index,{sport,playerId,market,asOf,gameStartAt}){
 // Use at most one explicit source label per NBA metric. MatchRow still requires
 // one aligned stat column, an independently resolved appearance, and exact value.
 const nbaLogMarkets=[...new Map(Object.entries(nbaMetrics).filter(([m])=>m.startsWith('player_')).map(([m,v])=>[v,m]))];
-function audit(documents,index,clock,reviews=[],{expandCurrentNhlLogs=false,expandCurrentNbaLogs=false}={}){
+function audit(documents,index,clock,reviews=[],{expandCurrentNhlLogs=false,expandCurrentNbaLogs=false,expandCurrentNflLogs=false}={}){
  const rows=new Map(),bySport={};let candidates=0,reassembledRows=0;
  for(const {doc,digest,first} of documents)for(const r of doc.records||[]){if(!['nhl','nfl','nba','cs2','valorant','dota2','lol','cod'].includes(r.sport))continue;
   const s=bySport[r.sport]??={attempts:0,candidates:0,reasons:{}};
@@ -262,6 +262,12 @@ function audit(documents,index,clock,reviews=[],{expandCurrentNhlLogs=false,expa
    if((header.has('date')||header.has('game date'))&&(header.has('opp')||header.has('opponent')))
     markets.push(...nbaLogMarkets.filter(([metric,m])=>metric!==base&&
      [m,norm(metric),...(columnAliases[metric]||[])].some(x=>header.has(x))).map(([,m])=>m));
+  }
+  if(expandCurrentNflLogs&&r.sport==='nfl'){
+   const header=new Set(String(f.scope||'').split(' | ').map(norm)),base=nflMetrics[sourceMarkets.nfl[norm(r.market)]??norm(r.market)];
+   if((header.has('date')||header.has('game date'))&&(header.has('opp')||header.has('opponent')))
+    markets.push(...Object.entries(nflMetrics).filter(([m,metric])=>metric!==base&&
+     [m,norm(metric),...(columnAliases[metric]||[])].some(x=>header.has(x))).map(([m])=>m));
   }
   for(const logMarket of markets){const x=matchRow(r,f,index,clock,{logMarket,allowObservedNhlHeaders:expandCurrentNhlLogs});if(!x.candidate){if(logMarket)continue;s.reasons[x.reason]=(s.reasons[x.reason]||0)+1;if(x.reason==='row_column_count_mismatch'){const h=s.rowColumnCounts??={};const k=Object.hasOwn(h,x.shape)||Object.keys(h).length<40?x.shape:'other';h[k]=(h[k]||0)+1;}if(x.reason==='missing_exact_columns'){const shape=columnShape(f);const h=s.columnShapes??={};const k=Object.hasOwn(h,shape)||Object.keys(h).length<40?shape:'other_shapes';h[k]=(h[k]||0)+1;}continue;}s.candidates++;candidates++;
    const c=x.candidate,k=sha(key([r.sport,r.detailId,r.market,c.playerId,c.eventId,c.market,c.value,f.filterSelection??null,f.tab,f.scope]));

@@ -354,3 +354,19 @@ test('current NBA replay expands only explicitly aligned and independently match
  assert.deepEqual([...replay(r,true).cache.values()].map(x=>x.market),['points','rebounds']);
  assert.equal(replay({...r,period:'first_half'},true).cache.size,0);
 });
+
+test('current NFL replay uses the explicit rushing and receiving columns independently',()=>{
+ const {nativeIndex,audit}=require('../scripts/pickfinder-native-history-reconciliation.cjs');
+ const {VERSION}=require('../scripts/pickfinder-research-coverage.cjs');
+ const clock='2026-11-27T10:00:00Z',startAt='2026-11-25T22:00:00Z',observedAt='2026-11-26T10:00:00Z',digest='a'.repeat(64),gsisId='00-1111111';
+ const index=nativeIndex({facts:[],nhlFinals:[],nflSeasons:[{digest,first:observedAt,doc:{observedAt,rosters:[{name:'Fixture',gsisId}],
+  games:[{gameId:'g',home:'ATL',away:'CAR',week:12,startAt,completedScoreObserved:true}],
+  playerRows:[{gameId:'g',playerId:gsisId,team:'ATL',opponent:'CAR',week:12,gameStartAt:startAt,stats:{rushing_yards:30,receiving_yards:12,receptions:3}}]}}]},clock);
+ const f={origin:'profile',metric:'row 1',tab:'Game Log',scope:'Date | Opponent | Rush Yds | Rec Yds | Rec',observedAt,
+  value:JSON.stringify(['11/25','CAR','30','12','2'].map(value=>({value})))};
+ const r={sport:'nfl',player:'Fixture',market:'player_rushing_yards',detailId:'/players/nfl/test',status:'sampled',truncated:false,coverageVersion:VERSION,research:[f]};
+ const replay=(record,expand)=>audit([{digest,first:clock,doc:{records:[record]}}],index,clock,[],{expandCurrentNflLogs:expand});
+ assert.deepEqual([...replay(r,false).cache.values()].map(x=>x.market),['rushing_yards']);
+ assert.deepEqual([...replay(r,true).cache.values()].map(x=>x.market),['rushing_yards','receiving_yards']);
+ assert.equal(replay({...r,period:'first_half'},true).cache.size,0);
+});

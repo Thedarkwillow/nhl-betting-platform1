@@ -54,6 +54,18 @@ The two follow-up senders [46030456106](https://github.com/Thedarkwillow/nhl-bet
 - [Automatic Discord run](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46062682348) confirmed 72 alerts in 12 messages. Replayed the exact [sender checkout](https://github.com/Thedarkwillow/nhl-betting-platform1/commit/3fe62a6936ab4f96139ff6ab1a8e9b9f24abaf29) and joined all 72 event IDs to the [counts-safe delivery ledger commit](https://github.com/Thedarkwillow/nhl-betting-platform1/commit/15b140023b8f2e2fa94c8dd61bca7e5025a92fb5) at the same sender clock. Verified 36 CS2 PrizePicks new props, 35 NHL Underdog new props and one NHL Underdog repost. Zero qualified suggestions or paid requests. This is the first verified PrizePicks new-prop delivery in this pass, not a core NBA/NHL/NFL PrizePicks new-prop receipt, native delivery or independently scheduled capture proof. Leave PF-32/42 open for the remaining scheduled and event-category checks.
 - [NHL/NFL baseline follow-up](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46062069706) is separate from the protected 6/9 a.m. Pacific windows. The midday core board passed the exact current membership test for NHL/NFL PrizePicks, but its earlier comparator did not. NBA had repeat links on both snapshots. Keep the no-false-absence admission rule.
 
+### Reproduce the counts-only Discord receipt check
+
+Fetch the named archive and counts-safe delivery ledger Git revisions, then run the offline replay from the checkout containing the same sender comparison algorithm. This uses the sender decision clock, not the message completion or workflow start clock.
+
+```sh
+node scripts/audit-project-discord-receipts.cjs . \
+  3fe62a6936ab4f96139ff6ab1a8e9b9f24abaf29 \
+  15b140023b8f2e2fa94c8dd61bca7e5025a92fb5 1795810761479
+```
+
+This returns counts by platform, sport and event kind, without outputting receipt IDs, proof tokens, player rows or message contents. It cannot verify native push, actual operator availability, excluded or unmodeled events, or the original bookmaker timestamp. Zero confirmations or any unmatched confirmation holds the replay open.
+
 ## Remaining acceptance by task
 
 | Task IDs | Verified scope | Evidence still needed |

@@ -1,5 +1,11 @@
 # Master Roadmap — Multi-Sport Player Prop Research Platform
 
+
+## 2026-11-27 — Full PrizePicksAPI NBA, NHL and NFL prop boards
+
+- [ ] **[PP-BOARD-01]** Collect the current PrizePicksAPI board separately for NBA, NHL and NFL, with all active markets, periods and rungs, including Standard, Goblin and Demon where offered. Request compact pages up to 1,000 rows and follow each cursor to its explicit end. Require a single fresh provider observation per league and reject duplicate IDs, wrong-league rows, stale/partial envelopes or missing pagination links. Report exact coverage, usage and tier counts without publishing licensed raw data. This is independent provider coverage, not proof of original-app availability.
+- **Acceptance:** verify independent live terminal cursors and counts for all three leagues, then verify restricted downstream retention/readback and existing research handoff before marking complete. The Nov 27 [single-page NBA receipt](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46019331441) is not a full board. This implementation permits a free authenticated preflight on merge and an opt-in, bounded request-plan capture only after the existing November quota lock permits it. No new purchases, public raw artifact, automatic retry or morning schedule change.
+
 ## 2026-11-25 — PickFinder Premium full-feature inventory and native prop alerts
 
 Owner requirement: audit everything accessible under the existing PickFinder Premium subscription, explicitly including PickFinder's own prop alerts and Discord notifications (not ChatGPT task notifications). Prioritize NBA, NHL, NFL and esports with verified active competition; cover all other supported categories season-aware. Reuse ESP-062 through ESP-073 and evidence lanes E1–E9; these are supplementary acceptance checks, not duplicate collectors or new completed milestones. Preserve existing model locks and the NHL/MLB projects.

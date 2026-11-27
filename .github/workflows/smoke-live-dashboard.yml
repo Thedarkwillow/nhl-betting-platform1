@@ -1,6 +1,8 @@
 name: Smoke Live NHL Dashboard
 on:
   workflow_dispatch:
+  pull_request:
+    paths: ['scripts/smoke-live-dashboard.cjs', 'test/smoke-live-dashboard.test.cjs', '.github/workflows/smoke-live-dashboard.yml']
   # Run live-site smoke only after Pages publication completes. A code push
   # can precede the published HTML/CSS/assets, causing a false failure.
   workflow_run:
@@ -9,8 +11,16 @@ on:
 permissions:
   contents: read
 jobs:
+  retry-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - run: node --test test/smoke-live-dashboard.test.cjs
   live:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 6
     steps:

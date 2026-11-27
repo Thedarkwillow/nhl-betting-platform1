@@ -1,7 +1,7 @@
 'use strict';
 
 // Only exact, self-contained profile table rows can support these research receipts.
-const sportsbooks = new Set(['draftkings','fanduel','betmgm','caesars','pinnacle','bet365','espnbet','fanatics','betrivers','hardrockbet','betonline','bovada','fliff','betfair']);
+const sportsbooks = new Set(['draftkings','fanduel','betmgm','caesars','pinnacle','bet365','espnbet','fanatics','betrivers','hardrockbet','betonline','bovada','fliff','betfair','novig']);
 const workloadHeaders = new Set(['Reb Chances','D-Reb Chances','O-Reb Chances','Potential Asts','Passes']);
 const availability = new Set(['out','doubtful','questionable','probable','available']);
 const depthHeader = ' | Starter | 2nd | 3rd | 4th | 5th';

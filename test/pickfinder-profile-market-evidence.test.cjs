@@ -186,3 +186,22 @@ test('current exact pick’em movements preserve explicit unpriced tiers without
  assert.deepEqual(extract(movement,[cell('20.5'),cell('O-119\nO-118',['underdog']),cell('11/25 4:06PM')],v),[]);
  assert.deepEqual(extract(movement,[cell('20.5'),cell('O-119',['underdog']),cell('11/25 4:06PM')],{...v,sport:'cs2'}),[]);
 });
+
+test('a selected sportsbook App row keeps its own line, paired prices and offsetless time',()=>{
+ const [r]=extract(movement,[cell('0.5'),cell('O-900\nU+170',['novig']),cell('11/27 2:09AM')],{
+  sport:'nhl',detailId:'/players/nhl/id?prop=id:points:event:1.5'});
+ assert.equal(r.quoteLine,.5);assert.equal(r.higher,'-900');assert.equal(r.lower,'+170');assert.equal(r.movementAtUtc,null);
+ assert.equal(require('../scripts/pickfinder-profile-market-evidence.cjs').summarize([r]).offsetBoundNoVigPairedGroups,0);
+});
+
+test('single observed App selector verifies the replacement brand before returning typed fields',async()=>{
+ const {sportsbookMovementSelection}=require('../scripts/pickfinder-player-research.cjs');
+ const calls=[];
+ const button={count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true,click:async()=>calls.push('click')};
+ const page={getByRole:(role)=>role==='table'?{...button,filter:()=>({...button,getByRole:()=>button})}:
+  {...button,evaluate:async()=> 'novig'},keyboard:{press:async()=>calls.push('dismiss')}};
+ const old={...movement,value:JSON.stringify([cell('1.5'),cell(null,['prizepicks','goblin']),cell('11/27 12:00AM')])};
+ const good={...movement,value:JSON.stringify([cell('0.5'),cell('O-900\nU+170',['novig']),cell('11/27 2:09AM')])};
+ assert.deepEqual(await sportsbookMovementSelection(page,async()=>[old,good],()=>true),[good]);
+ assert.deepEqual(calls,['click','click']);
+});

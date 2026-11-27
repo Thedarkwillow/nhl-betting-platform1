@@ -247,12 +247,28 @@ function historyForModel(index,{sport,playerId,market,asOf,gameStartAt}){
  if(!Number.isFinite(dt(asOf))||!Number.isFinite(dt(gameStartAt))||dt(asOf)>=dt(gameStartAt))return [];
  return [...index.values()].filter(x=>x.sport===sport&&x.playerId===String(playerId)&&x.market===market&&x.providerIdentityReviewed===true&&Number.isFinite(dt(x.availableAt))&&dt(x.availableAt)<=dt(asOf)&&Number.isFinite(dt(x.officialStartAt))&&dt(x.officialStartAt)<dt(asOf)).sort((a,b)=>dt(a.officialStartAt)-dt(b.officialStartAt)).map(x=>({eventId:x.eventId,value:x.value,knownAt:x.availableAt,reviewDigest:x.reviewDigest,nativeDigest:x.nativeDigest,profileDigest:x.profileDigest}));
 }
-function audit(documents,index,clock,reviews=[],{expandCurrentNhlLogs=false}={}){
+// Use at most one explicit source label per NBA metric. MatchRow still requires
+// one aligned stat column, an independently resolved appearance, and exact value.
+const nbaLogMarkets=[...new Map(Object.entries(nbaMetrics).filter(([m])=>m.startsWith('player_')).map(([m,v])=>[v,m]))];
+function audit(documents,index,clock,reviews=[],{expandCurrentNhlLogs=false,expandCurrentNbaLogs=false,expandCurrentNflLogs=false}={}){
  const rows=new Map(),bySport={};let candidates=0,reassembledRows=0;
  for(const {doc,digest,first} of documents)for(const r of doc.records||[]){if(!['nhl','nfl','nba','cs2','valorant','dota2','lol','cod'].includes(r.sport))continue;
   const s=bySport[r.sport]??={attempts:0,candidates:0,reasons:{}};
   for(const f of structuredFields(r.research||[])){if(f.origin!=='profile'||!/^row \d+$/.test(f.metric||''))continue;s.attempts++;if(f.reassembled)reassembledRows++;const primary=sourceMarkets.nhl[norm(r.market)]??norm(r.market);
-  const markets=expandCurrentNhlLogs&&r.sport==='nhl'?[undefined,...Object.keys(nhlMetrics).filter(m=>m!=='sog'&&nhlMetrics[m]!==nhlMetrics[primary])]:[undefined];
+  let markets=[undefined];
+  if(expandCurrentNhlLogs&&r.sport==='nhl')markets.push(...Object.keys(nhlMetrics).filter(m=>m!=='sog'&&nhlMetrics[m]!==nhlMetrics[primary]));
+  if(expandCurrentNbaLogs&&r.sport==='nba'){
+   const header=new Set(String(f.scope||'').split(' | ').map(norm)),base=nbaMetrics[norm(r.market)];
+   if((header.has('date')||header.has('game date'))&&(header.has('opp')||header.has('opponent')))
+    markets.push(...nbaLogMarkets.filter(([metric,m])=>metric!==base&&
+     [m,norm(metric),...(columnAliases[metric]||[])].some(x=>header.has(x))).map(([,m])=>m));
+  }
+  if(expandCurrentNflLogs&&r.sport==='nfl'){
+   const header=new Set(String(f.scope||'').split(' | ').map(norm)),base=nflMetrics[sourceMarkets.nfl[norm(r.market)]??norm(r.market)];
+   if((header.has('date')||header.has('game date'))&&(header.has('opp')||header.has('opponent')))
+    markets.push(...Object.entries(nflMetrics).filter(([m,metric])=>metric!==base&&
+     [m,norm(metric),...(columnAliases[metric]||[])].some(x=>header.has(x))).map(([m])=>m));
+  }
   for(const logMarket of markets){const x=matchRow(r,f,index,clock,{logMarket,allowObservedNhlHeaders:expandCurrentNhlLogs});if(!x.candidate){if(logMarket)continue;s.reasons[x.reason]=(s.reasons[x.reason]||0)+1;if(x.reason==='row_column_count_mismatch'){const h=s.rowColumnCounts??={};const k=Object.hasOwn(h,x.shape)||Object.keys(h).length<40?x.shape:'other';h[k]=(h[k]||0)+1;}if(x.reason==='missing_exact_columns'){const shape=columnShape(f);const h=s.columnShapes??={};const k=Object.hasOwn(h,shape)||Object.keys(h).length<40?shape:'other_shapes';h[k]=(h[k]||0)+1;}continue;}s.candidates++;candidates++;
    const c=x.candidate,k=sha(key([r.sport,r.detailId,r.market,c.playerId,c.eventId,c.market,c.value,f.filterSelection??null,f.tab,f.scope]));
    const next={...c,profileDigest:digest,profileAvailableAt:first??null,sourceDetailId:r.detailId,sourcePlayer:r.player,cacheKey:k},old=rows.get(k);

@@ -39,10 +39,16 @@ function validate(raw,file,at){
    validDigest(r.crosswalkReceiptDigest)&&r.crosswalkReceiptDigest===r.nativeReceiptDigest&&/^\d+$/.test(String(r.playerId))&&
    Number.isFinite(Date.parse(r.proofAvailableAt))&&Date.parse(r.proofAvailableAt)<Date.parse(r.startAt)).
    map(r=>JSON.stringify([String(r.playerId),r.crosswalkReceiptDigest])));
+  const reviewedPaths=new Map((x.reviewedStatIdentities||[]).filter(r=>
+   r.evidenceKind==='archived_independently_reviewed_player_identity'&&validDigest(r.nativeReceiptDigest)&&
+   validDigest(r.identityEvidenceSha256)&&Number.isFinite(Date.parse(r.proofAvailableAt))&&Date.parse(r.proofAvailableAt)<=t
+  ).map(r=>[JSON.stringify([r.sport,String(r.playerId),r.nativeReceiptDigest,r.identityEvidenceSha256]),Date.parse(r.proofAvailableAt)]));
+  const archiveIdentity=r=>r.timezoneReceiptDigests.length===0&&validDigest(r.archivedIdentityEvidenceSha256)&&
+   (reviewedPaths.get(JSON.stringify([r.sport,String(r.playerId),r.identityReceiptDigest,r.archivedIdentityEvidenceSha256]))??Infinity)<=Date.parse(r.availableAt);
   const identityEvidence=r=>Array.isArray(r.timezoneReceiptDigests)&&(
    r.timezoneReceiptDigests.length===3&&new Set(r.timezoneReceiptDigests).size===3&&r.timezoneReceiptDigests.every(validDigest)||
    r.sport==='nba'&&r.timezoneReceiptDigests.length===0&&r.crosswalkReceiptDigest===r.identityReceiptDigest&&
-   reviewedNba.has(JSON.stringify([String(r.playerId),r.crosswalkReceiptDigest])));
+   reviewedNba.has(JSON.stringify([String(r.playerId),r.crosswalkReceiptDigest]))||archiveIdentity(r));
   if(x.qualifiedShadowStatistics!==undefined&&(!Array.isArray(x.qualifiedShadowStatistics)||x.qualifiedShadowStatistics.some(r=>
    r.evidenceKind!=='verified_current_identity_and_independent_final_stat'||r.productionModelEligible!==false||
    r.shadowResearchEligible!==true||r.operatorOfferVerified!==false||r.settlementVerified!==false||

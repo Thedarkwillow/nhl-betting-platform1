@@ -142,3 +142,20 @@ test('statistical crosswalks reuse the verified NBA review or exact NFL event an
  const contradictory=structuredClone(season);contradictory.doc.rosters[0].gsisId='00-0000002';
  a.equal(crosswalk({rows:[nfl]},[],[season,contradictory],at).length,0);
 });
+
+test('stat identity reuse authenticates immutable review body and rejects a conflicting durable person',()=>{
+ const {createHash}=require('node:crypto');
+ const {reviewedStatIdentities}=require('../scripts/pickfinder-stat-identity-crosswalk.cjs');
+ const first='2026-11-27T10:00:00Z',observed='2026-11-27T09:00:00Z',d='a'.repeat(64);
+ const e={providerDetail:'/players/nfl/test?prop=x%3Ay%3Ae%3A5',providerEvent:'e',nativePlayerId:'00-1234567',
+  nativeRoster:d,rosterProof:d,boardManifest:d,boardObservedAt:observed,rosterObservedAt:observed,name:'fixture player'};
+ const r={sport:'nfl',sourcePlayer:e.name,profilePath:'/players/nfl/test',nativePlayerId:e.nativePlayerId,
+  identityEvidence:e,identityEvidenceSha256:createHash('sha256').update(JSON.stringify(e)).digest('hex'),
+  independentReviewVerified:true,modelApproved:false,verifiedAt:observed,nativeDigests:[d],profileDigests:[d]};
+ const receipt={first,digest:d,doc:{kind:'pickfinder_historical_reviewed_identity_v1',rows:[r]}};
+ const good=reviewedStatIdentities([receipt],{rows:[]},first);
+ a.equal(good.length,1);a.equal(good[0].playerId,r.nativePlayerId);a.equal(Date.parse(good[0].proofAvailableAt),Date.parse(first));
+ a.equal(reviewedStatIdentities([receipt],{rows:[{namespace:'nfl:gsis',sourcePlayerPath:r.profilePath,playerId:'00-7654321'}]},first).length,0);
+ a.equal(reviewedStatIdentities([{...receipt,doc:{...receipt.doc,rows:[{...r,identityEvidence:{...e,providerEvent:'fake'}}]}}],{rows:[]},first).length,0);
+ a.equal(reviewedStatIdentities([receipt],{rows:[]},observed).length,0);
+});

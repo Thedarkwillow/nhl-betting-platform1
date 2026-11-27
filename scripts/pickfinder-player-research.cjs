@@ -107,7 +107,43 @@ async function traverseMixed(page,collect,shouldContinue){
  for(const i of native.issues)issues.add(i);
  return {statesObserved:states,customControls,native,issues:[...issues],allFilterCombinationsVerified:false};
 }
-async function enrich(page,row,{navigate,maxFields=500,expanded=false,fullSportingHeaders=false,includePropHistory=true,shouldContinue=()=>true}){
+// A visible row-level App selector can reveal a different book's historical
+// threshold and prices. Use one verified table and one selector, never infer
+// the price threshold from the fantasy offer or the clock from observation time.
+const visibleQuoteOption=/^(?:novig|draftkings|fanduel|betmgm|caesars|pinnacle|bet365|fanatics|betrivers|hardrockbet|bovada|fliff) O[+-]\d{3,4} U[+-]\d{3,4}$/i;
+async function sportsbookMovementSelection(page,read,alive){
+ const table=page.getByRole('table').filter({has:page.getByRole('columnheader',{name:'Time',exact:true})});
+ if(await table.count()!==1)return [];
+ const selector=table.getByRole('combobox');
+ if(!alive()||await selector.count()!==1||!await selector.isVisible()||!await selector.isEnabled())return [];
+ await selector.click({timeout:2000});
+ const choice=page.getByRole('option',{name:visibleQuoteOption});
+ let book=null;
+ try{
+  if(!alive()||await choice.count()!==1||!await choice.isVisible()||!await choice.isEnabled())return [];
+  // The option label includes an image alternative and may not be innerText.
+  const profile=await choice.evaluate(e=>{
+   const labels=[...e.querySelectorAll('img[alt]')].map(x=>x.alt.toLowerCase());
+   return labels.length===1?labels[0]:null;
+  });
+  if(!profile||!visibleQuoteOption.test(profile+' O-110 U-110'))return [];
+  await choice.click({timeout:2000});
+  book=profile;
+ }finally{if(book===null)await page.keyboard.press('Escape');}
+ for(let i=0;i<5&&alive();i++){
+  const fields=await read();
+  const exact=fields.filter(f=>{
+   if(f.scope!=='Line | App | Time'||!/^row [1-9]\d*$/.test(f.metric))return false;
+   try{const [line,app,time]=JSON.parse(f.value);return app.labels?.length===1&&app.labels[0]===book&&
+    /^\d+(?:\.\d+)?$/.test(line.value)&&/^O[+-]\d{3,4}\nU[+-]\d{3,4}$/.test(app.value)&&!!time.value;}
+   catch{return false;}
+  });
+  if(exact.length)return exact;
+  if(i<4)await new Promise(r=>setTimeout(r,250));
+ }
+ return [];
+}
+async function enrich(page,row,{navigate,maxFields=500,expanded=false,fullSportingHeaders=false,includePropHistory=true,probeSportsbookMovement=false,shouldContinue=()=>true}){
   if(!(maxFields===Infinity||Number.isInteger(maxFields)&&maxFields>=1&&maxFields<=2000))throw Error('invalid profile field budget');
   const url=new URL(row.detailId,'https://www.pickfinder.app');
   if(url.origin!=='https://www.pickfinder.app'||!url.pathname.startsWith('/players/'))throw Error('invalid profile');
@@ -132,8 +168,17 @@ async function enrich(page,row,{navigate,maxFields=500,expanded=false,fullSporti
   for(const [name,origin] of [['Line Movement','line_movement'],...(includePropHistory?[['Prop History','prop_history']]:[])]){
     if(!shouldContinue()){deadline=true;break;}
     const target=page.getByRole('button',{name,exact:true});
-    if(await target.isVisible()){try{await target.click();await collect(name,origin);}catch{tabAudit.push({tab:name,origin,state:'failed',fields:0});update();}}else tabAudit.push({tab:name,origin,state:'not_visible',fields:0});
+    if(await target.isVisible()){try{await target.click();await collect(name,origin);
+     if(probeSportsbookMovement&&origin==='line_movement'&&shouldContinue()){
+      // Keep a bounded selector miss from invalidating otherwise valid game logs.
+      try{
+       const fields=await sportsbookMovementSelection(page,()=>page.evaluate(readSections,{tab:name,origin,fullSportingHeaders,
+        observedAt:new Date().toISOString(),context}),shouldContinue);
+       if(fields.length)groups.push(fields);
+      }catch{}
+     }
+    }catch{tabAudit.push({tab:name,origin,state:'failed',fields:0});update();}}else tabAudit.push({tab:name,origin,state:'not_visible',fields:0});
   }
   update();
 }
-module.exports={enrich,readSections,traverseMixed};
+module.exports={enrich,readSections,traverseMixed,sportsbookMovementSelection};

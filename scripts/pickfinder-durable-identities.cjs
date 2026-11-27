@@ -85,12 +85,13 @@ function replay({facts,controls,profiles,clock,revision}){
 function qualifyResearch(independentFacts,durable,clock){
  const at=dt(clock),ns={nba:'nba:official',nhl:'nhl:official',nfl:'nfl:gsis'},identities=new Map(),out=[];
  const norm=x=>String(x||'').normalize('NFKC').trim().toLowerCase();
- for(const r of [...durable.rows,...(durable.statisticalCrosswalks||[])]){
+ for(const r of [...durable.rows,...(durable.statisticalCrosswalks||[]),...(durable.reviewedStatIdentities||[])]){
   const k=key(r.sport,r.sourcePlayerPath,r.playerId),prev=identities.get(k);
   const controlled=r.timezoneReceiptDigests?.length===3&&new Set(r.timezoneReceiptDigests).size===3&&r.timezoneReceiptDigests.every(hash);
   const bridge=hash(r.crosswalkReceiptDigest)&&(r.sport==='nba'&&r.evidenceKind==='independent_nba_schedule_and_roster_review'||
    r.sport==='nfl'&&controlled&&r.evidenceKind==='independent_nflverse_schedule_and_weekly_roster');
-  if(r.namespace!==ns[r.sport]||!hash(r.nativeReceiptDigest)||!controlled&&!bridge||
+  const reviewed=r.evidenceKind==='archived_independently_reviewed_player_identity'&&hash(r.identityEvidenceSha256);
+  if(r.namespace!==ns[r.sport]||!hash(r.nativeReceiptDigest)||!controlled&&!bridge&&!reviewed||
      !Number.isFinite(dt(r.proofAvailableAt))||dt(r.proofAvailableAt)>at)continue;
   if(!prev||dt(r.proofAvailableAt)<dt(prev.proofAvailableAt))identities.set(k,r);
  }
@@ -104,7 +105,7 @@ function qualifyResearch(independentFacts,durable,clock){
   out.push({sport:x.sport,playerId:x.playerId,eventId:x.eventId,market:x.market,value:x.value,officialStartAt:x.officialStartAt,
    availableAt:new Date(Math.max(profile,native,dt(id.proofAvailableAt))).toISOString(),
    profileDigest:x.profileDigest,nativeDigest:x.nativeDigest,identityReceiptDigest:id.nativeReceiptDigest,
-   timezoneReceiptDigests:id.timezoneReceiptDigests??[],...(id.crosswalkReceiptDigest?{crosswalkReceiptDigest:id.crosswalkReceiptDigest}:{}),evidenceKind:'verified_current_identity_and_independent_final_stat',
+   timezoneReceiptDigests:id.timezoneReceiptDigests??[],...(id.identityEvidenceSha256?{archivedIdentityEvidenceSha256:id.identityEvidenceSha256}:{}),...(id.crosswalkReceiptDigest?{crosswalkReceiptDigest:id.crosswalkReceiptDigest}:{}),evidenceKind:'verified_current_identity_and_independent_final_stat',
    shadowResearchEligible:true,productionModelEligible:false,operatorOfferVerified:false,settlementVerified:false});
  }
  return out;

@@ -364,3 +364,35 @@ test('clock audit is strictly manual and keeps exact unique-board profile scope'
  assert.equal(selected.length,2);assert.equal(selected[0].detailId,r.detailId.slice(0,-1)+'5');
  assert.equal(selected[0].boardArchiveDigest,r.boardArchiveDigest);assert.equal(selected[0].eventId,'event');
 });
+
+test('current queue prioritizes exact goalie saves scope without retiring other unique players',()=>{
+ const {currentProfileQueue}=require('../scripts/pickfinder-public-runner.cjs');
+ const tick=Date.parse('2026-11-27T08:00:00Z'),iso=ms=>new Date(tick+ms).toISOString();
+ const offer=(player,market,event='e',line='4')=>({book:'prizepicks',sport:'nhl',player,market,eventId:event,
+  detailId:'/players/nhl/'+player+'?prop='+encodeURIComponent('p:'+market+':'+event+':'+line),observedAt:iso(-9000),startAt:iso(900000)});
+ const goalie=offer('goalie','player_saves'),duplicate=offer('goalie','player_saves','e','5'),newPlayer=offer('new','player_shots_on_goal'),seen=offer('seen','player_points');
+ const b={m:{book:'prizepicks',sport:'nhl',authenticated:true,boardState:'populated',pageTraversalComplete:true,lastPageReached:true,
+  health:{wrongSport:0,priceConflictKeys:0},firstObservedAt:iso(-9000),lastObservedAt:iso(-9000)},first:iso(-8000),offers:[newPlayer,seen,goalie,duplicate]};
+ const prior=[{records:[{...offer('seen','player_goals','old'),currentProfileAttemptedAt:iso(-60000)},
+  {...offer('goalie','player_goals','old'),currentProfileAttemptedAt:iso(-60000)}]}];
+ const q=currentProfileQueue({latest:[b],invalid:[]},prior,tick);
+ assert.deepEqual(q.pending.slice(0,2).map(x=>x.player),['goalie','new']);
+ assert.equal(q.distinctSeenGoaliesWithNewSavesScope,1);
+ assert.equal(q.distinctNewPlayersQueued,1);
+ assert.equal(q.pending.filter(x=>x.player==='goalie').length,2);
+});
+
+test('Props pagination waits for a new row identity, a stable total, and actual return',async()=>{
+ const {observePropsPager,qualifiesPage}=require('../scripts/pickfinder-dashboard-controls.cjs');
+ const a={page:1,total:3,rows:2,keys:['p1','p2']};
+ const stale={...a,page:2},priceOnly={...stale,keys:['p2','p1']},unstable={...stale,total:4,keys:['p3','p4']};
+ const b={...unstable,total:3};
+ for(const x of [stale,priceOnly,unstable,{...b,keys:['p3','p3']}])assert.equal(qualifiesPage(x,2,3,a),false);
+ const snapshots=[a,stale,priceOnly,unstable,b,a],actions=[];
+ const page={url:()=> 'https://www.pickfinder.app/props',getByRole:(r,{name})=>({count:async()=>1,isVisible:async()=>true,
+  isEnabled:async()=>true,click:async()=>actions.push(name)})};
+ const out=await observePropsPager(page,()=>true,{read:async()=>snapshots.shift(),pause:async()=>{}});
+ assert.equal(out.state,'verified_bounded_transition');
+ assert.deepEqual(actions,['Next page','Previous page']);assert.equal(out.returnToFirstVerified,true);
+ assert.equal(out.fullTraversalVerified,false);assert.equal(out.before.count,2);assert.notEqual(out.before.membersSha256,out.after.membersSha256);
+});

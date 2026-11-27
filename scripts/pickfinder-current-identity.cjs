@@ -237,11 +237,13 @@ function run(root,clock=new Date().toISOString()){
  const durable=require('./pickfinder-durable-identities.cjs').replay({facts,controls,profiles:profileDocuments,clock,revision});
  durable.statisticalCrosswalks=require('./pickfinder-stat-identity-crosswalk.cjs').crosswalk(durable,reviews,
   receipts(root,'research/pickfinder-public-nfl-v1/season','nflverse_public_native_history_v1',clock),clock);
+ durable.reviewedStatIdentities=require('./pickfinder-stat-identity-crosswalk.cjs').reviewedStatIdentities(known,durable,clock);
  durable.players.push(...durable.statisticalCrosswalks.map(x=>({...x,receiptDigest:x.crosswalkReceiptDigest})));
  const result=build(profiles,facts,reviews,read('pickfinder-public-research-directory.json'),read('pickfinder-public-research-tables.json'),{clock,revision,finals,known,durable});
- const audit=require('./pickfinder-native-history-reconciliation.cjs').fromArchive(root,profileDocuments,clock,undefined,{expandCurrentNhlLogs:true});
+ const audit=require('./pickfinder-native-history-reconciliation.cjs').fromArchive(root,profileDocuments,clock,undefined,{expandCurrentNhlLogs:true,expandCurrentNbaLogs:true,expandCurrentNflLogs:true});
  result.qualifiedShadowStatistics=require('./pickfinder-durable-identities.cjs').qualifyResearch(audit.cache,durable,clock);
  result.statisticalCrosswalks=durable.statisticalCrosswalks;
+ result.reviewedStatIdentities=durable.reviewedStatIdentities;
  const qualifiedBySportMarket={};
  for(const row of result.qualifiedShadowStatistics){
   const sport=qualifiedBySportMarket[row.sport]??={};

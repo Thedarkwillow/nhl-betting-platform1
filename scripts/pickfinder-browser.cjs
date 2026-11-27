@@ -104,12 +104,19 @@ function readBoard({book, code, sport, observedAt}) {
     // Keep the provider's displayed clock on this exact player/market link.
     // The visible weekday and time do not, by themselves, establish a date or zone.
     const localMatchups=new Map();
-    const playerCell=a.closest?.('td');
-    const textSources=[a.innerText,playerCell&&playerCell!==cell?playerCell.innerText:null];
-    for(const text of textSources)for(const raw of (text||'').split('\n')){
-      const label=raw.trim();
-      const m=label.match(/^([A-Z]{2,4})\s+(@|vs\.?)\s+([A-Z]{2,4})\s*[•·]\s*(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*@\s*(?:1[0-2]|[1-9]):[0-5]\d\s*[AP]M$/i);
-      if(m&&m[1].toUpperCase()!==m[3].toUpperCase())localMatchups.set(label,m);
+    const props=[...(tr.querySelectorAll?.('a[href*="/players/"][href*="prop="]')||[])];
+    const singleProp=props.every(other=>other.href===a.href);
+    const textSources=[a.innerText,...(singleProp?[...tr.cells].filter((c,i)=>c!==cell&&
+      !/^(?:Apps|Implied|Odds|Price|Sportsbook|Movement|History)/i.test(headers[i]||'')).map(c=>c.innerText):[])];
+    for(const text of textSources){
+      const lines=(text||'').split('\n').map(x=>x.trim()).filter(Boolean);
+      for(let i=0;i<lines.length;i++){
+        for(const raw of [lines[i],i+1<lines.length?lines[i]+' '+lines[i+1]:'']){
+          const label=raw.trim();
+          const m=label.match(/^([A-Z]{2,4})\s+(@|vs\.?)\s+([A-Z]{2,4})\s*[•·]\s*(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*@\s*(?:1[0-2]|[1-9]):[0-5]\d\s*[AP]M$/i);
+          if(m&&m[1].toUpperCase()!==m[3].toUpperCase())localMatchups.set(label.replace(/\s+/g,' '),m);
+        }
+      }
     }
     const local=localMatchups.size===1?[...localMatchups.entries()][0]:null;
     const matchups=(a.innerText||'').split('\n').map(line=>line.trim().match(/^([A-Za-z0-9][A-Za-z0-9 ._-]{0,39}?)\s+(@|vs\.?)\s+([A-Za-z0-9][A-Za-z0-9 ._-]{0,39})$/i)).filter(Boolean);
@@ -132,6 +139,41 @@ function readBoard({book, code, sport, observedAt}) {
   }
   return {authenticated,rows,number:Number(pages?.[1]),total:Number(pages?.[2]),
     empty:table?.innerText.includes('No props found')===true};
+}
+// Compact cards are sampled separately: no book, price, board coverage, or UTC start is inferred.
+function readCompactBoardClocks({sport,observedAt,limit=20}){
+  const authenticated=document.body.innerText.split('\n').some(x=>x.trim()==='Premium')&&
+    !!document.querySelector('button[aria-label="Open user menu"]');
+  const visible=e=>e.getClientRects().length>0;
+  if(!authenticated||location.origin!=='https://www.pickfinder.app'||location.pathname!=='/props')return {authenticated:false,records:[]};
+  const selector='a[href*="/players/"][href*="prop="]';
+  const links=[...document.querySelectorAll(selector)].filter(visible), records=[], seen=new Set();
+  for(const a of links){
+    const u=new URL(a.href),bits=u.searchParams.get('prop')?.split(':');
+    if(u.origin!==location.origin||!new RegExp('^/players/'+sport+'/[A-Za-z0-9_-]+$').test(u.pathname)||
+       u.searchParams.getAll('prop').length!==1||bits?.length!==4||!bits[0]||!bits[2]||
+       !/^[a-z0-9_+]+$/i.test(bits[1])||!/^\d+(?:\.\d+)?$/.test(bits[3]))continue;
+    const detailId=u.pathname+'?'+new URLSearchParams({prop:bits.join(':')}).toString();
+    if(seen.has(detailId))continue;
+    for(let card=a,depth=0;card&&card!==document.body&&depth<6;card=card.parentElement,depth++){
+      if(!visible(card)||[...card.querySelectorAll(selector)].some(x=>visible(x)&&x.href!==a.href))break;
+      const lines=(card.innerText||'').split('\n').map(x=>x.trim()).filter(Boolean);
+      if(lines.length>40)break;
+      const propLines=lines.map((x,i)=>({i,m:x.match(/^(?:O\/U|Over\/Under)\s+(\d+(?:\.\d+)?)\s+([\w ()+&/.-]{2,100})$/i)})).filter(x=>x.m);
+      const prop=propLines.length===1?propLines[0]:null;
+      if(!prop||prop.i<1||Number(prop.m[1])!==Number(bits[3]))continue;
+      const player=lines[prop.i-1].replace(/\s*\([A-Za-z0-9/.-]{1,12}\)\s*$/,'').trim();
+      if(!/^[\p{L}\p{M}][\p{L}\p{M} .’'-]{1,79}$/u.test(player))continue;
+      const matchups=[...new Set([lines[prop.i+1],lines.slice(prop.i+1,prop.i+3).join(' ')].filter(x=>
+        /^([A-Z]{2,4})\s+(@|vs\.?)\s+([A-Z]{2,4})\s*[•·]\s*(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*@\s*(?:1[0-2]|[1-9]):[0-5]\d\s*[AP]M$/i.test(x||'')))];
+      if(matchups.length!==1)continue;
+      records.push({sport,player,market:bits[1],eventId:bits[2],threshold:Number(bits[3]),detailId,
+        displayedPropLabel:prop.m[0],displayedMatchupLabel:matchups[0],observedAt,startAt:null,sourceBook:null});
+      seen.add(detailId);break;
+    }
+    if(records.length>=limit)break;
+  }
+  return {authenticated,visiblePropLinks:links.length,records};
 }
 async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldContinue=()=>true,onPage=async()=>{}}) {
   if(!['prizepicks','underdog'].includes(book)||!(maxPages===Infinity||Number.isSafeInteger(maxPages)&&maxPages>=1))throw Error('invalid partition');
@@ -199,4 +241,4 @@ async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldCon
   result.endedAt=new Date().toISOString();
   return result;
 }
-module.exports={ORIGIN,collect,readBoard};
+module.exports={ORIGIN,collect,readBoard,readCompactBoardClocks};

@@ -1,5 +1,5 @@
 'use strict';
-const fs=require('node:fs'),path=require('node:path'),{normalize}=require('./pickfinder-premium-archive.cjs'),{collect,ORIGIN}=require('./pickfinder-browser.cjs'),{enrich}=require('./pickfinder-player-research.cjs'),{VERSION}=require('./pickfinder-research-coverage.cjs'),{checkpointBuffer}=require('./pickfinder-checkpoint-buffer.cjs'),{pacific,decide}=require('./pacific-morning-capture-gate.cjs'),{prioritySports,registry}=require('./season-aware-collection.cjs'),{discover}=require('./season-aware-discovery.cjs'),{openHostedBoard}=require('./pickfinder-unattended-runner.cjs'),{persist,read,iterate,archiveRevision,safe,sha,assertDestination}=require('./pickfinder-public-archive.cjs');
+const fs=require('node:fs'),path=require('node:path'),{normalize}=require('./pickfinder-premium-archive.cjs'),{collect,ORIGIN,readCompactBoardClocks}=require('./pickfinder-browser.cjs'),{enrich}=require('./pickfinder-player-research.cjs'),{VERSION}=require('./pickfinder-research-coverage.cjs'),{checkpointBuffer}=require('./pickfinder-checkpoint-buffer.cjs'),{pacific,decide}=require('./pacific-morning-capture-gate.cjs'),{prioritySports,registry}=require('./season-aware-collection.cjs'),{discover}=require('./season-aware-discovery.cjs'),{openHostedBoard}=require('./pickfinder-unattended-runner.cjs'),{persist,read,iterate,archiveRevision,safe,sha,assertDestination}=require('./pickfinder-public-archive.cjs');
 const {dashboardRoutes,captureGameDialogs,verifiedNavigation,traverseDashboardFilters,inspectCapabilities}=require('./pickfinder-dashboard-research.cjs');
 const {inspectTool}=require('./pickfinder-tool-schema.cjs');
 const currentIdentity=require('./pickfinder-current-identity.cjs');
@@ -256,6 +256,24 @@ async function main(root,env=process.env){
    }catch{errors++;console.log(JSON.stringify({state:'public_board_partition_pending',code,book}));if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
   }}
   if(p.clockAudit){
+   if(alive()){
+    const compact=await context.newPage();
+    try{
+     await compact.setViewportSize({width:412,height:915});
+     await compact.goto(ORIGIN+'/props',{timeout:12000});
+     if(await waitPremium(compact)&&alive()){
+      await compact.getByRole('button',{name:'NBA',exact:true}).first().click({timeout:3500}).catch(()=>{});
+      await compact.locator('a[href*="/players/nba/"][href*="prop="]:visible').first().waitFor({timeout:5000}).catch(()=>{});
+      const sample=await compact.evaluate(readCompactBoardClocks,{sport:'nba',observedAt:new Date().toISOString(),limit:20});
+      if(sample.authenticated){
+       const r=await write('directory',{schema:'pickfinder-compact-board-clock-sample-v1',...sample,
+        captureOrigin:captureOrigin(env,p),viewportWidth:412,boardCompletenessVerified:false});
+       console.log(JSON.stringify({state:'public_compact_board_clock_audit',archiveDigest:r.digest,visiblePropLinks:sample.visiblePropLinks,clocks:sample.records.length}));
+      }
+     }
+    }catch(e){errors++;console.log(JSON.stringify({state:'public_compact_board_clock_audit_unavailable',reason:e.name}));}
+    finally{await compact.close();}
+   }
    const records=[];
    for(const item of clockAuditTargets(auditRows)){
     if(!alive())break;

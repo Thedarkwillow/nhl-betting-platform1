@@ -16,9 +16,13 @@ jobs:
         with:
           persist-credentials: false
       - run: node --test test/nba-public-schedule-corroboration.test.cjs test/nba-research-pipeline-v1.test.cjs
+      - name: Record that the historical November 25 live diagnostic is retired
+        run: echo 'Offline schedule parser and research contracts only. This dated November 25, 2026 job does not certify current games or forecasts.' >> "$GITHUB_STEP_SUMMARY"
   diagnostic:
     needs: test
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.NBA_DIRECT_SOURCE_AUTHORIZED == '1'
+    # This one-day comparison cannot run for today's schedule. Leave the historical
+    # definition intact without exposing archive credentials on future parser edits.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:

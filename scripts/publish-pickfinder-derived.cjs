@@ -49,11 +49,26 @@ function validate(raw,file,at){
    r.timezoneReceiptDigests.length===3&&new Set(r.timezoneReceiptDigests).size===3&&r.timezoneReceiptDigests.every(validDigest)||
    r.sport==='nba'&&r.timezoneReceiptDigests.length===0&&r.crosswalkReceiptDigest===r.identityReceiptDigest&&
    reviewedNba.has(JSON.stringify([String(r.playerId),r.crosswalkReceiptDigest]))||archiveIdentity(r));
+  const goalieGroup=r=>JSON.stringify([String(r.playerId),r.profileDigest,r.identityReceiptDigest]);
+  const goalieEvent=r=>JSON.stringify([String(r.eventId),r.officialStartAt,r.availableAt,r.nativeDigest]);
+  const goalieKind='authenticated_goalie_overview_and_official_final',goalie=new Map();
+  for(const r of Array.isArray(x.qualifiedShadowStatistics)?x.qualifiedShadowStatistics:[]){
+   if(r?.evidenceKind!==goalieKind)continue;
+   if(r.sport!=='nhl'||!/^[0-9]+$/.test(String(r.playerId))||!/^[0-9]+$/.test(String(r.eventId))||
+      !['saves','goalsAgainst'].includes(r.market)||!Number.isSafeInteger(r.value)||r.value<0||
+      !Array.isArray(r.timezoneReceiptDigests)||r.timezoneReceiptDigests.length!==0||
+      !Number.isFinite(Date.parse(r.officialStartAt))||Date.parse(r.officialStartAt)>=Date.parse(r.availableAt))throw Error('goalie shadow scope contract');
+   const group=goalie.get(goalieGroup(r))||new Map(),k=goalieEvent(r),e=group.get(k)||{event:String(r.eventId),markets:new Set()};
+   if(e.markets.has(r.market))throw Error('duplicate goalie shadow market');
+   e.markets.add(r.market);group.set(k,e);goalie.set(goalieGroup(r),group);
+  }
+  for(const group of goalie.values())if(new Set([...group.values()].map(e=>e.event)).size!==group.size||group.size<2||
+    [...group.values()].some(e=>e.markets.size!==2))throw Error('goalie shadow paired-game contract');
   if(x.qualifiedShadowStatistics!==undefined&&(!Array.isArray(x.qualifiedShadowStatistics)||x.qualifiedShadowStatistics.some(r=>
-   r.evidenceKind!=='verified_current_identity_and_independent_final_stat'||r.productionModelEligible!==false||
-   r.shadowResearchEligible!==true||r.operatorOfferVerified!==false||r.settlementVerified!==false||
+   !r||!(r.evidenceKind===goalieKind||r.evidenceKind==='verified_current_identity_and_independent_final_stat'&&identityEvidence(r))||
+   r.productionModelEligible!==false||r.shadowResearchEligible!==true||r.operatorOfferVerified!==false||r.settlementVerified!==false||
    !validDigest(r.nativeDigest)||!validDigest(r.profileDigest)||!validDigest(r.identityReceiptDigest)||
-   !identityEvidence(r)||!Number.isFinite(r.value)||!Number.isFinite(Date.parse(r.availableAt))||Date.parse(r.availableAt)>t)))throw Error('shadow statistic evidence contract');
+   !Number.isFinite(r.value)||!Number.isFinite(Date.parse(r.availableAt))||Date.parse(r.availableAt)>t)))throw Error('shadow statistic evidence contract');
   if(!Array.isArray(x.rows)||!Array.isArray(x.registry)||!sha(x.archiveRevision)||x.rows.some(r=>r.operatorOfferVerified!==false||r.settlementVerified!==false||r.statisticalModelEligible!==false))throw Error('identity registry contract');
  }else if(!Array.isArray(x.rows)||x.researchOnly!==true||x.privateRepoUsed!==false||x.calibrated!==false){
   throw Error('ranking contract');

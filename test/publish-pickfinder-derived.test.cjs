@@ -111,3 +111,21 @@ t('NBA shadow statistics can publish only with the matching committed independen
   {qualifiedShadowStatistics:[{...row,settlementVerified:true}]},{qualifiedShadowStatistics:[{...row,sport:'nfl'}]}])
   a.throws(()=>validate(JSON.stringify({...doc,...revision}),registryFile,at),/shadow statistic evidence contract/);
 });
+
+t('goalie overview publication requires two NHL games with complete paired provenance',()=>{
+ const hash='a'.repeat(64),file='data/pickfinder-current-identity-registry.json';
+ const base={sport:'nhl',playerId:'123',evidenceKind:'authenticated_goalie_overview_and_official_final',
+  productionModelEligible:false,shadowResearchEligible:true,operatorOfferVerified:false,settlementVerified:false,
+  nativeDigest:hash,profileDigest:hash,identityReceiptDigest:hash,timezoneReceiptDigests:[],
+  officialStartAt:'2026-11-25T22:00:00Z',availableAt:'2026-11-27T07:50:00Z'};
+ const stats=['123','124'].flatMap(eventId=>[{...base,eventId,market:'saves',value:20},{...base,eventId,market:'goalsAgainst',value:2}]);
+ const doc={kind:'pickfinder_current_identity_registry_v1',generatedAt:'2026-11-27T07:55:00Z',
+  paidRequests:0,modelApproved:false,originalPlatformVerified:false,rows:[],registry:[],archiveRevision:'f'.repeat(40)};
+ const run=rows=>validate(JSON.stringify({...doc,qualifiedShadowStatistics:rows}),file,at);
+ a.doesNotThrow(()=>run(stats));
+ a.throws(()=>run(stats.slice(0,3)),/paired-game contract/);
+ a.throws(()=>run([...stats,{...stats[0]}]),/duplicate goalie shadow market/);
+ a.throws(()=>run([{...stats[0],sport:'nfl'},...stats.slice(1)]),/scope contract/);
+ a.throws(()=>run([{...stats[0],operatorOfferVerified:true},...stats.slice(1)]),/statistic evidence contract/);
+ a.throws(()=>run([{...stats[0],nativeDigest:'b'.repeat(64)},...stats.slice(1)]),/paired-game contract/);
+});

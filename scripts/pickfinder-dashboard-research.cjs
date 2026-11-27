@@ -68,7 +68,17 @@ async function captureGameDialogs(page,sport,shouldContinue,onGame){
   }
  }
 }
-function dashboardState(x){const data=(x.tables||[]).some(t=>t.rows?.length)||(x.cards||[]).length||(x.gameCards||[]).length;return x.busy?'loading':data?'data_observed':x.empty===true?'explicit_empty':'unverified';}
+const pageContent=x=>JSON.stringify([x.tables??[],x.cards??[],x.gameCards??[]]);
+function pageMarker(x){
+ const scopes=[...new Map((Array.isArray(x.pagination)?x.pagination:[]).map(p=>[p?.page+':'+p?.total,p])).values()];
+ const p=scopes.length===1?scopes[0]:null;
+ return Number.isSafeInteger(p?.page)&&Number.isSafeInteger(p?.total)&&p.page>0&&p.total>=p.page?p:null;
+}
+function dashboardState(x){
+ const data=(Array.isArray(x.tables)&&x.tables.some(t=>Array.isArray(t?.rows)&&t.rows.length))||
+  (Array.isArray(x.cards)&&x.cards.length)||(Array.isArray(x.gameCards)&&x.gameCards.length);
+ return x.busy?'loading':data?'data_observed':x.empty===true?'explicit_empty':'unverified';
+}
 async function readyDashboard(page,name,shouldContinue,{attempts=6,pause=ms=>new Promise(r=>setTimeout(r,ms))}={}){
  let x;for(let i=0;i<attempts&&shouldContinue();i++){x=await captureDashboard(page,name);const state=dashboardState(x);if(state==='data_observed'||state==='explicit_empty')return {...x,dataState:state};if(i+1<attempts&&shouldContinue())await pause(1000);}
  return null;
@@ -77,9 +87,8 @@ async function traverseDashboard(page,name,{shouldContinue=()=>true,onSnapshot=a
  const seen=new Set(),seenContent=new Set();let pages=0,state='unverified_pagination',expectedPage=1,totalPages=null;
  while(shouldContinue()){
   const x=await readyDashboard(page,name,shouldContinue);if(!x){state='dashboard_data_unverified';break;}
-  const scopes=[...new Map(x.pagination.map(p=>[p.page+':'+p.total,p])).values()];
-  const p=scopes.length===1?scopes[0]:null;
-  const content=JSON.stringify([x.tables,x.cards,x.gameCards,x.clocks]);
+  const p=pageMarker(x);
+  const content=pageContent(x);
   const fingerprint=JSON.stringify([p,content]);
   if(seen.has(fingerprint)){state='repeated_page';break;}
   // A click or an updated page marker may arrive before its content. Require
@@ -89,8 +98,8 @@ async function traverseDashboard(page,name,{shouldContinue=()=>true,onSnapshot=a
   }
   if(expectedPage>1&&seenContent.has(content)){state='unchanged_page_content';break;}
   seen.add(fingerprint);seenContent.add(content);await onSnapshot({...x,filterSelection});pages++;
-  if(x.dataState==='explicit_empty'){state=expectedPage===1&&(!scopes.length||p?.page===1&&p.total===1)?'explicit_empty_observed':'pagination_changed_during_traversal';break;}
-  if(!p||!Number.isSafeInteger(p.page)||!Number.isSafeInteger(p.total)||p.page<1||p.total<p.page){state='pagination_not_explicit';break;}
+  if(x.dataState==='explicit_empty'){state=expectedPage===1&&(!x.pagination?.length||p?.page===1&&p.total===1)?'explicit_empty_observed':'pagination_changed_during_traversal';break;}
+  if(!p){state='pagination_not_explicit';break;}
   if(p.page!==expectedPage){state='first_page_not_observed';break;}
   totalPages=p.total;
   if(p.page===p.total){state='explicit_last_page_observed';break;}
@@ -125,13 +134,50 @@ async function verifiedNavigation(page,name,allowed){
  const unique=[...new Set(candidates)].filter(s=>{try{const u=new URL(s);return u.origin==='https://www.pickfinder.app'&&allowed.includes(u.pathname)&&!u.search&&!u.hash;}catch{return false;}});
  return unique.length===1?unique[0]:null;
 }
-async function traverseDashboardFilters(page,name,{shouldContinue=()=>true,onSnapshot=async()=>{}}={}){
- const defaultTraversal=await traverseDashboard(page,name,{shouldContinue,onSnapshot});
- const filterAudit=await traverseNativeFilters(page,{shouldContinue,maxMs:60000,onState:async selection=>{
-  const x=await traverseDashboard(page,name,{shouldContinue,onSnapshot,filterSelection:selection});
-  if(x.state!=='explicit_last_page_observed')throw Error('filter pagination incomplete');
- }});
- const customFilterAudit=await traverseCustomFilters(page,{shouldContinue,maxMs:60000,onState:async selection=>{const x=await traverseDashboard(page,name,{shouldContinue,onSnapshot,filterSelection:selection});if(x.state!=='explicit_last_page_observed')throw Error('filter pagination incomplete');}});
+const dashboardSequenceSchema='pickfinder-public-dashboard-sequence-v1';
+function receiptTime(source){
+ if(typeof source!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{3})?Z$/.test(source))return NaN;
+ const t=Date.parse(source);
+ return Number.isFinite(t)&&new Date(t).toISOString()===source.replace(/:\d\dZ$/,m=>m.slice(0,-1)+'.000Z')?t:NaN;
+}
+function verifyDashboardSequence(receipt,pages){
+ if(receipt?.schema!==dashboardSequenceSchema||!['Games','Discrepancies','Popular'].includes(receipt.name)||
+  !dashboardRoutes(receipt.name).includes(receipt.path)||!Object.hasOwn(receipt,'filterSelection')||
+  receipt.allDashboardDataVerified!==false||receipt.filtersExhausted!==false||
+  !Array.isArray(receipt.pageDigests)||receipt.pageDigests.length<1||
+  new Set(receipt.pageDigests).size!==receipt.pageDigests.length)return false;
+ const seen=new Set(),doneAt=receiptTime(receipt.observedAt);
+ let firstAt=null,previousAt=null;
+ return Number.isFinite(doneAt)&&receipt.pageDigests.every((digest,index)=>{
+  if(!/^[a-f0-9]{64}$/.test(digest))return false;
+  const page=pages.get(digest);
+  if(page?.schema!=='pickfinder-public-dashboard-v1'||page.name!==receipt.name||page.path!==receipt.path||
+   JSON.stringify(page.filterSelection)!==JSON.stringify(receipt.filterSelection)||
+   page.dataState!=='data_observed'||dashboardState(page)!=='data_observed')return false;
+  const marker=pageMarker(page),at=receiptTime(page.observedAt),content=pageContent(page);
+  if(index===0)firstAt=at;
+  if(marker?.page!==index+1||marker?.total!==receipt.pageDigests.length||!Number.isFinite(at)||
+   at>doneAt||index>0&&at<previousAt||at-firstAt>90000||seen.has(content))return false;
+  previousAt=at;seen.add(content);return true;
+ });
+}
+async function traverseDashboardFilters(page,name,{shouldContinue=()=>true,onSnapshot=async()=>{},onSequence=async()=>{}}={}){
+ const traverse=async(filterSelection)=>{
+  const path=new URL(page.url()).pathname,pageDigests=[];
+  const result=await traverseDashboard(page,name,{shouldContinue,filterSelection,onSnapshot:async s=>{
+   const digest=await onSnapshot(s);pageDigests.push(digest);
+  }});
+  if(result.completePageSequenceVerified&&pageDigests.length===result.pages&&pageDigests.every(d=>/^[a-f0-9]{64}$/.test(d)))
+   await onSequence({schema:dashboardSequenceSchema,name,path,filterSelection,pageDigests,
+    observedAt:new Date().toISOString(),filtersExhausted:false,allDashboardDataVerified:false});
+  return result;
+ };
+ const defaultTraversal=await traverse(null);
+ const onState=async selection=>{const x=await traverse(selection);
+  if(!['explicit_last_page_observed','explicit_empty_observed'].includes(x.state))throw Error('filter pagination incomplete');
+ };
+ const filterAudit=await traverseNativeFilters(page,{shouldContinue,maxMs:60000,onState});
+ const customFilterAudit=await traverseCustomFilters(page,{shouldContinue,maxMs:60000,onState});
  return {...defaultTraversal,filterAudit,customFilterAudit,filtersExhausted:false,allDashboardDataVerified:false};
 }
-module.exports={dashboardRoutes,captureGameDialogs,captureDashboard,traverseDashboard,traverseDashboardFilters,inspectCapabilities,verifiedNavigation,dashboardState,readyDashboard};
+module.exports={dashboardRoutes,captureGameDialogs,captureDashboard,traverseDashboard,traverseDashboardFilters,inspectCapabilities,verifiedNavigation,dashboardState,readyDashboard,pageMarker,verifyDashboardSequence,dashboardSequenceSchema};

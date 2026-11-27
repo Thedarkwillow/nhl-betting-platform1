@@ -57,6 +57,31 @@ test('full-game NBA TO resolves to independent turnovers without consuming a per
   assert.equal(audit.run(source).rows[0].retrospectiveOnly,true);
 });
 
+test('period route with full-game points and PRA is audited without qualifying the requested period', () => {
+ const scope=header.replace('Archive statistic number 0','PRA').replace('Archive statistic number 1','2Q Pts');
+ const official=index.byPlayer.get(JSON.stringify(['nba','4']))[0];
+ const source={...index,byPlayer:new Map([[JSON.stringify(['nba','4']),
+   [{...official,stats:{points:12,pointsReboundsAssists:20}}]]])};
+ const replay=({period='1st_half',fieldPeriod=period,minutes='30.1',pra='20'}={})=>{
+  const a=createLayoutAudit(clock);
+  const row={...field,scope:scope.slice(0,500),period:fieldPeriod};
+  const values=JSON.parse(row.value);values[2].value=minutes;values[8].value=pra;row.value=JSON.stringify(values);
+  const player={...make('Athlete'),market:period+'_player_points',period};
+  a.gaps.push(a.pin(player,row,'a'.repeat(64),58));
+  for(const [name,hex] of [['A','b'],['B','c']])
+    a.observe(make(name),{...row,scope,headerLayout:'span-grid-v1'},hex.repeat(64),58);
+  return a.run(source);
+ };
+ const match=replay();
+ assert.equal(match.summary.reasons.unsupported_scope,1);
+ assert.equal(match.summary.independentlyMatched,0);
+ assert.deepEqual(match.summary.periodRouteFullGameBody,{byRoute:{'1st_half':1},distinctPlayerGames:1,requestedPeriodQualified:false});
+ assert.deepEqual(match.rows,[]);
+ for(const opts of [{minutes:'24'},{pra:'19'},{fieldPeriod:'1st_quarter'}])
+   assert.equal(replay(opts).summary.periodRouteFullGameBody.distinctPlayerGames,0);
+ assert.equal(replay({period:'1st_quarter',minutes:'15.1'}).summary.periodRouteFullGameBody.distinctPlayerGames,1);
+});
+
 test('legacy fantasy rows need two exact bracketing book boards and a later singleton profile',()=>{
  const scope=header.replace('Archive statistic number 0','FP');
  const row={...field,scope:scope.slice(0,500)};

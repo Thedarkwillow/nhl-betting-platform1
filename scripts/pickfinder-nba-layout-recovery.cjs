@@ -20,6 +20,32 @@ function clippedScope(header) {
 
 const dt = Date.parse, dayMs = 86400000;
 const fantasyMarket = 'player_fantasy_score_all_';
+const periodRoutes = new Map([
+  ['1st_quarter_player_points',['1st_quarter',12]],
+  ['1st_half_player_points',['1st_half',24]],
+  ['1st_half_player_points_+_rebounds_+_assists',['1st_half',24]],
+  ['1st_half_player_fantasy_score_all_',['1st_half',24]]
+]);
+function corroborateFullGameBody(record,field,index,clock) {
+  const route=periodRoutes.get(record.market);
+  if (record.sport!=='nba'||!route||record.period!==route[0]||field.period!==route[0]||
+      [record.mapRange,record.gameMode,field.mapRange,field.gameMode].some(x=>x!=null)) return null;
+  const headers=field.scope.split(' | ');
+  if (headers[0]!=='Date'||headers[1]!=='Opponent'||headers[2]!=='Min'||
+      headers.filter(h=>h==='Min').length!==1) return null;
+  let cells;try{cells=JSON.parse(field.value);}catch{return null;}
+  const minutes=cells?.[2]?.value;
+  if (!Array.isArray(cells)||cells.length!==headers.length||typeof minutes!=='string'||
+      !/^\d{1,2}(?:\.\d{1,2})?$/.test(minutes)||Number(minutes)<=route[1]||Number(minutes)>70) return null;
+  // The selected offer can set the record/field period without scoping the
+  // history table. Independently corroborate the unqualified points and PRA
+  // columns as full-game totals. Keep this diagnostic disjoint from matches.
+  const find=market=>matchRow({...record,market,period:null},{...field,period:null},index,clock,
+    {allowNbaExtendedFinals:true}).candidate;
+  const pts=find('player_points'),pra=find('player_points_+_rebounds_+_assists');
+  if (!pts||!pra||pts.playerId!==pra.playerId||pts.eventId!==pra.eventId||pts.nativeDigest!==pra.nativeDigest) return null;
+  return {period:route[0],playerId:pts.playerId,eventId:pts.eventId};
+}
 function formulaScope(r) {
   if (r.sport !== 'nba' || r.market !== fantasyMarket || r.period != null || r.mapRange != null ||
       r.gameMode != null || typeof r.player !== 'string' || !r.player.trim() || !profilePath(r.sport,r.detailId)) return null;
@@ -97,7 +123,7 @@ function createLayoutAudit(clock) {
       layouts.set(width, refs);
     },
     run(index) {
-      const reasons = {}, rows = [], facts = new Set();
+      const reasons = {}, rows = [], facts = new Set(), fullGameBodyGames=new Set(), fullGameBodyPeriods={};
       let reconstructed = 0, independentlyMatched = 0, archivedFormulaBindings = 0;
       for (const {record, field, digest, width} of gaps) {
         const prefix = field.scope.startsWith(tablePrefix) ? clippedScope(field.scope) : null;
@@ -112,6 +138,13 @@ function createLayoutAudit(clock) {
             const scopedRecord = binding ? {...record,books:[binding.book]} : record;
             const result = matchRow(scopedRecord, {...field, scope:normalized}, index, clock, {allowNbaExtendedFinals:true});
             reason = result.reason;
+            if (reason==='unsupported_scope') {
+              const body=corroborateFullGameBody(record,{...field,scope:normalized},index,clock);
+              if (body) {
+                fullGameBodyPeriods[body.period]=(fullGameBodyPeriods[body.period]||0)+1;
+                fullGameBodyGames.add(JSON.stringify([body.playerId,body.eventId]));
+              }
+            }
             if (result.candidate) {
               const fact = result.candidate;
               reason = 'independent_stat_match';
@@ -129,7 +162,9 @@ function createLayoutAudit(clock) {
         reasons[reason] = (reasons[reason] || 0) + 1;
       }
       return {summary:{originalGaps:gaps.length,reconstructedHeaders:reconstructed,independentlyMatched,
-        distinctMatchedFacts:facts.size,archivedFormulaBindings,reasons,qualifiedCacheChanged:false,collectionSkipAuthorized:false,modelApproved:false},rows};
+        distinctMatchedFacts:facts.size,archivedFormulaBindings,reasons,
+        periodRouteFullGameBody:{byRoute:fullGameBodyPeriods,distinctPlayerGames:fullGameBodyGames.size,
+          requestedPeriodQualified:false},qualifiedCacheChanged:false,collectionSkipAuthorized:false,modelApproved:false},rows};
     }
   };
 }

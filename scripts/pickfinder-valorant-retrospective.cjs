@@ -99,16 +99,37 @@ function score(examples,estimate){
  }
  return examples.length?{brier:brier/examples.length,logLoss:loss/examples.length}:{brier:null,logLoss:null};
 }
+function seriesStress(rows){
+ const groups=new Map();
+ for(const row of rows){
+  const a=groups.get(row.event)||[];
+  a.push(row);groups.set(row.event,a);
+ }
+ // A series with more posted lines should not dominate cross-series evidence.
+ // These are fixed pregame estimates, not fitted leave-one-out predictions.
+ const methods={even:()=>.5,l10:x=>x.l10,l5:x=>x.l5,l5L10Blend:x=>(x.l5+x.l10)/2};
+ const results={};
+ for(const [method,estimate] of Object.entries(methods)){
+  const scores=[...groups.values()].map(a=>score(a,estimate));
+  const n=scores.length;
+  const avg=k=>n?scores.reduce((s,x)=>s+x[k],0)/n:null;
+  const range=k=>n>1?[Math.min(...scores.map(x=>x[k])),Math.max(...scores.map(x=>x[k]))]:null;
+  results[method]={brier:avg('brier'),logLoss:avg('logLoss'),perSeriesBrierRange:range('brier'),
+   perSeriesLogLossRange:range('logLoss'),betterThanEvenOnSeries:scores.filter(x=>x.brier<.25&&x.logLoss<Math.log(2)).length};
+ }
+ return {series:groups.size,uncertaintyEstimated:false,aggregates:results};
+}
 function run(root,clock=new Date().toISOString()){
  const archive=load(root,'valorant');
  if(archive.invalid.length)throw Error('invalid Valorant archive');
  const observations=new Map(archive.manifests.map(b=>[b.digest,b.researchObservations||[]]));
  const {examples,skip,conflicts}=samples(auditBoards(archive,clock).history,history(root,'../pickfinder-public-identity-v1/valorant-map-finals'),clock,observations);
  const scores=rows=>({examples:rows.length,series:new Set(rows.map(x=>x.event)).size,even:score(rows,()=>.5),
-  l10:score(rows,x=>x.l10),l5:score(rows,x=>x.l5),l5L10Blend:score(rows,x=>(x.l5+x.l10)/2)});
+  l10:score(rows,x=>x.l10),l5:score(rows,x=>x.l5),l5L10Blend:score(rows,x=>(x.l5+x.l10)/2),
+  seriesEqual:seriesStress(rows)});
  return {kind:'pickfinder_valorant_matched_retrospective_v1',generatedAt:clock,...scores(examples),
   byMarket:Object.fromEntries([...new Set(examples.map(x=>x.market))].map(m=>[m,scores(examples.filter(x=>x.market===m))])),
   skip,conflicts,modelApproved:false,paidRequests:0,prospective:false,platformSettlementVerified:false,frozenModelsChanged:false};
 }
 if(require.main===module)console.log(JSON.stringify(run(process.argv[2]||'.')));
-module.exports={run,samples,score,finalIndex,scopedFeatures};
+module.exports={run,samples,score,finalIndex,scopedFeatures,seriesStress};

@@ -29,6 +29,18 @@ test('partial, conflicting, stale or unresolved partitions cannot fabricate chan
  a.equal(compare([fresh,board('underdog',2,[['Alice',4.5,'standard','1H']])],time).events.length,0);
  a.throws(()=>compare([p,{invalidDigest:'bad'}],time),/integrity/);
 });
+test('ambiguous exact scopes never become fabricated new, removed or discrepancy alerts',()=>{
+ const duplicate=(b)=>{b.entry.offers.push({...b.entry.offers[0],displayedPrice:'-125'});return b;};
+ const clean=board('prizepicks',2,[['Alice',2.5],['New',5.5]]),
+  baseline=board('prizepicks',100,[['Alice',2.5]]);
+ const ambiguousPrior=compare([duplicate(baseline),clean,board('underdog',3,[['Alice',4.5]])],time);
+ a.deepEqual(ambiguousPrior.events.map(e=>e.kind),['new_prop']);
+ a.match(ambiguousPrior.events[0].text,/New/);
+ const old=board('prizepicks',100,[['Alice',2.5],['Bob',5.5]]);
+ const ambiguousCurrent=compare([old,duplicate(board('prizepicks',2,[['Alice',2.5]]))],time);
+ a.deepEqual(ambiguousCurrent.events.map(e=>e.kind),['removed_prop']);
+ a.match(ambiguousCurrent.events[0].text,/Bob/);
+});
 test('unchanged cross-book discrepancy is not announced again',()=>{
  const data=[board('prizepicks',120,[['A',2.5]]),board('underdog',119,[['A',4.5]]),
   board('prizepicks',2,[['A',2.5]]),board('underdog',3,[['A',4.5]])];

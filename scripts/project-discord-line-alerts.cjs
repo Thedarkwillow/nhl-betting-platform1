@@ -35,7 +35,11 @@ function slot(b,now){
   // Conflicting duplicates mark the entire scope unusable for this comparison.
   g.set(o.line,existing===undefined?{...o,tier}:null);map.set(scope,g);
  }
- return new Map([...map].filter(([,rows])=>[...rows.values()].every(Boolean)));
+ const blocked=new Set();
+ for(const [scope,rows] of map)if([...rows.values()].some(row=>!row)){
+  blocked.add(scope);map.delete(scope);
+ }
+ return {rows:map,blocked};
 }
 function event(kind,scope,a,b,line){
  const o=b||a;
@@ -55,13 +59,14 @@ function compare(chunks,now){
  const events=[],usable=new Map();
  for(const [key,[current,old]] of partitions){
   if(!complete(current)||now-dt(current.m.lastObservedAt)>fresh||old&&dt(old.m.lastObservedAt)===dt(current.m.lastObservedAt))continue;
-  const rows=slot(current,now);
-  usable.set(key,{current,old,rows});
+  const latest=slot(current,now),{rows}=latest;
+  usable.set(key,{current,old,...latest});
   if(!old||!complete(old)||dt(old.m.lastObservedAt)>=dt(current.m.lastObservedAt))continue;
   const prior=slot(old,now),before=old.digest,after=current.digest;
   const keyDate=k=>JSON.stringify([k,before,after]);
   for(const [k,range] of rows){
-   const p=prior.get(k);
+   if(prior.blocked.has(k))continue;
+   const p=prior.rows.get(k);
    if(range.size===1&&p?.size===1){
     const a=[...p.values()][0],b=[...range.values()][0];
     if(a.line!==b.line)events.push(event('line_change',keyDate(k),a,b,b.book+' '+a.line+' → '+b.line));
@@ -71,7 +76,8 @@ function compare(chunks,now){
    for(const [v,b] of range)if(!p?.has(v))events.push(event(b.tier==='standard'?'new_prop':'alternate_tier',keyDate(k),null,b,b.book+' '+v));
   }
   // Incomplete row interpretation cannot certify absence. Require an actual future start.
-  if(current.m.health.unresolvedRows===0)for(const [k,range] of prior){
+  if(current.m.health.unresolvedRows===0)for(const [k,range] of prior.rows){
+   if(latest.blocked.has(k))continue;
    const n=rows.get(k);
    if(range.size===1&&n?.size===1)continue;
    for(const [v,a] of range)if(!n?.has(v)&&dt(a.startAt)>now)events.push({...event('removed_prop',keyDate(k),a,null,a.book+' '+v),observedAt:current.m.lastObservedAt});
@@ -85,7 +91,8 @@ function compare(chunks,now){
   for(const [k] of p.rows){
    const a=uniqueMatch(p.rows,k),b=uniqueMatch(u.rows,k);
    if(!a||!b||a.line===b.line||Math.abs(dt(a.observedAt)-dt(b.observedAt))>15*M)continue;
-   const x=uniqueMatch(p0,k),y=uniqueMatch(u0,k);
+   if(p0?.blocked.has(k)||u0?.blocked.has(k))continue;
+   const x=uniqueMatch(p0?.rows,k),y=uniqueMatch(u0?.rows,k);
    if(x?.line===a.line&&y?.line===b.line&&Math.abs(dt(x.observedAt)-dt(y.observedAt))<=15*M)continue;
    events.push(event('discrepancy',k,a,b,'PrizePicks '+a.line+' vs Underdog '+b.line));
   }

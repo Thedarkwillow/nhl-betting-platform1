@@ -64,7 +64,10 @@ test('manual board, feature, and context sessions are isolated from deep and pro
  const env={PICKFINDER_AUTOMATION_AUTHORIZED:'1',PICKFINDER_PUBLIC_DATA_AUTHORIZED:'1',GITHUB_EVENT_NAME:'workflow_dispatch'};
  const at=new Date('2026-11-25T20:00:00Z'),b=invocation({...env,REQUESTED_MODE:'boards_only'},at),f=invocation({...env,REQUESTED_MODE:'features_only'},at),c=invocation({...env,REQUESTED_MODE:'nba_context_only'},at);
  assert.equal(b.boardsOnly,true);assert.equal(b.deep,false);assert.equal(f.featuresOnly,true);assert.equal(f.deep,true);assert.equal(c.contextOnly,true);
- for(const mode of ['boards_only','features_only','nba_context_only'])for(const hour of [13,14,16,17])assert.equal(invocation({...env,REQUESTED_MODE:mode},new Date('2026-11-25T'+hour+':01:00Z')).allowed,false);
+ for(const mode of ['boards_only','features_only','nba_context_only','board_and_deep','deep_research_now','probe_now','nba_history_repair','timezone_validation'])for(const hour of [13,14,16,17])assert.equal(invocation({...env,REQUESTED_MODE:mode},new Date('2026-11-25T'+hour+':01:00Z')).allowed,false);
+ const delayed={...env,GITHUB_EVENT_NAME:'schedule',GITHUB_EVENT_SCHEDULE:'7 16 * * *'};
+ assert.equal(invocation(delayed,new Date('2026-11-25T13:20:00Z')).allowed,false);
+ assert.equal(invocation(delayed,new Date('2026-11-25T18:00:00Z')).allowed,true);
 });
 
 test('historical cache exact lookup excludes conflicts',()=>{

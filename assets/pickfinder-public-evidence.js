@@ -37,7 +37,22 @@
   for(const [sport,x] of Object.entries(activity.sportsbookThresholdEvidence||{}))add(mount,'p',sport.toUpperCase()+': '+n(x.explicitThreshold)+' explicit sportsbook thresholds; '+n(x.exactPairs)+' same-snapshot price pairs. Independent offer verification remains required.');
   const series=activity.esportsSeriesReview;
   if(series?.counts){
-   add(mount,'p','Independent esports series review: '+n(series.counts.roster_and_map_corroborated)+' of '+n(series.scopes)+' scopes corroborated for player and maps · '+n(series.counts.player_unresolved??0)+' player identities unresolved · '+n(series.counts.roster_conflict??0)+' roster conflicts · '+n(series.counts.map_scope_unresolved)+' map scopes unresolved.');
+   const reviewed=Number.isSafeInteger(series.scopes)&&Number.isSafeInteger(series.counts.series_unreviewed??0)?
+    series.scopes-(series.counts.series_unreviewed??0):null;
+   add(mount,'p','Independent esports series review: '+n(series.counts.roster_and_map_corroborated)+' of '+n(reviewed)+' reviewed scopes corroborated for player and maps · '+n(series.counts.series_unreviewed??0)+' additional scopes not reviewed · '+n(series.counts.player_unresolved??0)+' player identities unresolved · '+n(series.counts.roster_conflict??0)+' roster conflicts · '+n(series.counts.map_scope_unresolved??0)+' map scopes unresolved.');
+  }
+  const esports=activity.esportsOriginalOfferReadiness;
+  if(esports?.kind==='pickfinder_esports_original_offer_readiness_v1'&&esports.modelApproved===false&&esports.rawRowsPublished===0){
+   add(mount,'h3','Esports offer and grading coverage');
+   const table=add(mount,'table',''),header=add(add(table,'thead',''),'tr','');
+   for(const label of ['Title','Archived offer observations','Exact supported scope','Retrospective examples','Verified platform settlements','Prospective grades'])add(header,'th',label);
+   const body=add(table,'tbody','');
+   for(const sport of ['cs2','valorant','dota2','lol','cod']){
+    const x=esports.bySport?.[sport];if(!x)continue;
+    const row=add(body,'tr','');for(const v of [sport.toUpperCase(),n(x.archiveOfferObservations),n(x.explicitSupportedScopeObservations),
+      n(x.independentlyMatchedRetrospectiveExamples),n(x.originalPlatformSettlementsVerified),n(x.prospectiveGradesVerified)])add(row,'td',v);
+   }
+   add(mount,'p','An archived scope or an independent game result does not by itself verify the platform settlement.');
   }
   const replay=activity.reviewedHistoryModel;
   if(replay?.retrospective===true&&replay.modelApproved===false){
@@ -65,19 +80,22 @@
    add(mount,'h3','Valorant two-map retrospective');
    add(mount,'p',n(valorant.examples)+' distinct propositions across '+n(valorant.series)+' series with independent results.');
    const table=add(mount,'table',''),header=add(add(table,'thead',''),'tr','');
-   for(const label of ['Estimate','Brier score','Log loss'])add(header,'th',label);
+   for(const label of ['Estimate','Offer-equal Brier','Log loss','Series-equal Brier','Series-equal log loss'])add(header,'th',label);
    const body=add(table,'tbody','');
    for(const [key,label] of [['l10','Last ten'],['l5','Last five'],['l5L10Blend','Equal blend'],['even','50% baseline']]){
     const score=valorant[key];
     if(!Number.isFinite(score?.brier)||!Number.isFinite(score?.logLoss))continue;
     const row=add(body,'tr','');
-    for(const v of [label,score.brier.toFixed(3),score.logLoss.toFixed(3)])add(row,'td',v);
+    const equal=valorant.seriesEqual?.aggregates?.[key],value=x=>Number.isFinite(x)?x.toFixed(3):'Pending';
+    for(const v of [label,score.brier.toFixed(3),score.logLoss.toFixed(3),value(equal?.brier),value(equal?.logLoss)])add(row,'td',v);
    }
+   add(mount,'p','Series-equal weighting gives each completed series the same weight, regardless of how many lines were posted. This small retrospective does not establish calibration or prospective accuracy.');
   }
   const profile=activity.profileMarketEvidence;
   if(profile){
    add(mount,'h3','Historical quotes and NBA player context');
-   add(mount,'p',n(profile.historicalRows)+' archived book and threshold rows · '+n(profile.distinctUnconflictedPairedGroups)+' distinct two-sided prices. Movement times use the source display clock.');
+   add(mount,'p',n(profile.historicalRows)+' archived book and threshold rows · '+n(profile.distinctUnconflictedPairedGroups)+' distinct two-sided prices · '+n(profile.unzonedPairedGroups)+' unzoned pairs withheld from timestamp-based comparisons · '+n(profile.offsetBoundNoVigPairedGroups)+' offset-backed paired no-vig candidates.');
+   add(mount,'p','Browser timezone metadata is not a historical source offset. A paired candidate does not verify an opening or closing price, first-party quote or model edge.');
    add(mount,'p',n(profile.workloadObservations)+' workload observations · '+n(profile.defenseSplitObservations)+' defensive splits · '+n(profile.availabilityObservations)+' coded availability observations.');
   }
   const fresh=Object.values(activity.readiness||{}).filter(x=>x.freshCompleteBoard&&Number.isFinite(Date.parse(x.observedAt))&&Date.parse(x.observedAt)<=Date.now()&&Date.now()-Date.parse(x.observedAt)<=900000);
@@ -149,6 +167,19 @@
    gameEqualNote(market+' · '+label,direct?c:c?.gameEqualComparison,direct?row.frozenBaselineComparison?.decided:c?.decided);
   }
  add(mount,'p','Profile attempts: '+n(coverage.profileAttempts)+' · Named dashboard snapshots: '+n(coverage.namedDashboardSnapshots)+' · Game-dialog observations: '+n(coverage.gameDialogObservations)+' · Full filter coverage remains pending.');
+ if(coverage.dashboardEvidence&&coverage.allFiltersVerified===false){
+  add(mount,'h3','Archived dashboard coverage');
+  const wrapper=add(mount,'div','');wrapper.style.overflowX='auto';
+  const table=add(wrapper,'table',''),header=add(add(table,'thead',''),'tr','');
+  for(const label of ['Dashboard','Sporting data','Explicit empty','Unverified','Explicit page marker','Complete page sequences'])add(header,'th',label);
+  const body=add(table,'tbody','');
+  for(const name of ['Games','Discrepancies','Popular']){
+   const s=coverage.dashboardEvidence[name];if(!s)continue;
+   const tr=add(body,'tr','');
+   for(const v of [name,n(s.dataSnapshots),n(s.explicitEmptySnapshots),n(s.unverifiedSnapshots),n(s.withExplicitPage),n(s.verifiedSequences)])add(tr,'td',v);
+  }
+  add(mount,'p','A complete page sequence applies only to its captured selection. Empty is not evidence of offseason or full filter coverage.');
+ }
  const slots=Object.values(d.bySport||{}).flatMap(x=>Object.values(x.boards||{}));
  add(mount,'p','Latest manual board partitions: '+n(slots.filter(b=>b.slot==='manual').length)+' / '+n(slots.length)+'. A capture-slot label alone does not certify scheduled morning execution.');
  try{

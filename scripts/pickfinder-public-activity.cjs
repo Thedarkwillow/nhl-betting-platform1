@@ -63,6 +63,8 @@ function run(root,clock=new Date().toISOString()){
  report.profileMarketEvidence=audit.profiles.profileMarketEvidence;
  report.reviewedHistoryModel=audit.reviewedHistoryModel;
  report.valorantRetrospective=require('./pickfinder-valorant-retrospective.cjs').run(root,clock);
+ report.esportsOriginalOfferReadiness=require('./pickfinder-esports-original-offer-readiness.cjs')
+  .report(audit,report.valorantRetrospective);
  fs.writeFileSync(path.join(root,'data/pickfinder-public-activity.json'),JSON.stringify(report,null,2)+'\n');
  console.log(JSON.stringify({kind:report.kind,events:report.events.length,archiveInvalid:report.archiveInvalid,readiness:report.readiness,cache:report.cache,coverage:report.coverage,grading:report.grading,paidRequests:0}));
  return report;

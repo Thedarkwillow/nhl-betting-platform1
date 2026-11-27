@@ -3,17 +3,17 @@ const fs=require('node:fs'),path=require('node:path'),{normalize}=require('./pic
 const {dashboardRoutes,captureGameDialogs,verifiedNavigation,traverseDashboardFilters,inspectCapabilities}=require('./pickfinder-dashboard-research.cjs');
 const {inspectTool}=require('./pickfinder-tool-schema.cjs');
 const gameContext=require('./pickfinder-public-nba-context.cjs'),{load}=require('./pickfinder-public-evidence-audit.cjs');
-const {backupPreflight,isBackup}=require('./pickfinder-public-morning-preflight.cjs');
+const {backupPreflight,isBackup,protectedMorningClock}=require('./pickfinder-public-morning-preflight.cjs');
 const CORE=['NBA','NHL','NFL','CS2','DOTA2','VAL','LOL','COD','MLB','WNBA','CFB','CBB','TENNIS','SOCCER'],BOOKS=['prizepicks','underdog'];
 function invocation(env,now=new Date()){
  if(env.PICKFINDER_AUTOMATION_AUTHORIZED!=='1'||env.PICKFINDER_PUBLIC_DATA_AUTHORIZED!=='1')throw Error('authorization required');
  if(env.GITHUB_EVENT_NAME==='schedule'&&/^[0-9]+ (6|9) \* \* \*$/.test(env.GITHUB_EVENT_SCHEDULE))return decide({eventName:'schedule',schedule:env.GITHUB_EVENT_SCHEDULE,now});
  if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&['capture_0600','capture_0900'].includes(env.REQUESTED_MODE))return decide({eventName:'workflow_dispatch',mode:env.REQUESTED_MODE,now});
  const clock=pacific(now),mode=env.REQUESTED_MODE||'board_and_deep';
- if(mode==='nba_history_repair'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual repair only');return {allowed:![5,6,8,9].includes(clock.hour),expected:'manual',clock,deep:true,historyRepair:true,state:'nba_history_repair_gate'};}
- if(mode==='timezone_validation'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual experiment only');return {allowed:![5,6,8,9].includes(clock.hour),expected:'manual',clock,timezoneOnly:true,state:'timezone_experiment_gate'};}
+ if(mode==='nba_history_repair'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual repair only');return {allowed:!protectedMorningClock(clock),expected:'manual',clock,deep:true,historyRepair:true,state:'nba_history_repair_gate'};}
+ if(mode==='timezone_validation'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual experiment only');return {allowed:!protectedMorningClock(clock),expected:'manual',clock,timezoneOnly:true,state:'timezone_experiment_gate'};}
  if(!['board_and_deep','deep_research_now','probe_now','nba_context_only','features_only','boards_only'].includes(mode))throw Error('mode');
- if([6,9].includes(clock.hour)||(['features_only','boards_only','nba_context_only'].includes(mode)&&[5,8].includes(clock.hour)))return {allowed:false,state:'protect_morning_hour',clock};
+ if(protectedMorningClock(clock))return {allowed:false,state:'protect_morning_hour',clock};
  return {allowed:true,expected:'manual',clock,deep:['deep_research_now','nba_context_only','features_only'].includes(mode),contextOnly:mode==='nba_context_only',featuresOnly:mode==='features_only',boardsOnly:mode==='boards_only',probe:mode==='probe_now'};
 }
 function profileWorkers(env,p){return env.GITHUB_EVENT_NAME==='workflow_dispatch'&&env.REQUESTED_MODE==='deep_research_now'&&p.expected==='manual'&&p.deep&&!p.contextOnly?2:1;}
@@ -132,9 +132,9 @@ async function main(root,env=process.env){
  const fallback=isBackup(env)?backupPreflight(root,env):null;
  if(fallback){console.log(JSON.stringify(fallback));if(!fallback.proceed)return;}
  const {chromium}=require('playwright');
- if(p.timezoneOnly){const probe=require('./pickfinder-movement-clock-probe.cjs'),until=Date.now()+8*60000;const alive=()=>Date.now()<until&&pacific(new Date()).day===p.clock.day&&![5,6,8,9].includes(pacific(new Date()).hour);const prior=read(root,'directory');const targets=probe.select(require('./pickfinder-public-model-validation.cjs').history(root,'profile-market-evidence'),new Date().toISOString(),prior);const result=await probe.observe({targets,prior,open:zone=>openHostedBoard(chromium,env,zone),alive,write:data=>persist(root,'directory',data),premium,origin:ORIGIN});console.log(JSON.stringify({state:'movement_clock_experiment',...result}));return;}
+ if(p.timezoneOnly){const probe=require('./pickfinder-movement-clock-probe.cjs'),until=Date.now()+8*60000;const alive=()=>{const c=pacific(new Date());return Date.now()<until&&c.day===p.clock.day&&!protectedMorningClock(c);};const prior=read(root,'directory');const targets=probe.select(require('./pickfinder-public-model-validation.cjs').history(root,'profile-market-evidence'),new Date().toISOString(),prior);const result=await probe.observe({targets,prior,open:zone=>openHostedBoard(chromium,env,zone),alive,write:data=>persist(root,'directory',data),premium,origin:ORIGIN});console.log(JSON.stringify({state:'movement_clock_experiment',...result}));return;}
  const {page,context}=await openHostedBoard(chromium,env);
- const started=Date.now(),deadline=started+(p.expected==='manual'?40:45)*60000,alive=()=>{const c=pacific(new Date());return Date.now()<deadline&&c.day===p.clock.day&&(p.expected==='manual'?!(p.featuresOnly||p.boardsOnly||p.contextOnly||p.historyRepair?[5,6,8,9]:[6,9]).includes(c.hour):c.hour===p.clock.hour&&c.minute<55);};
+ const started=Date.now(),deadline=started+(p.expected==='manual'?40:45)*60000,alive=()=>{const c=pacific(new Date());return Date.now()<deadline&&c.day===p.clock.day&&(p.expected==='manual'?!protectedMorningClock(c):c.hour===p.clock.hour&&c.minute<55);};
  let boards=0,profiles=0,archiveMs=0,transactions=0,profileMs=0,errors=0;const write=async(kind,data)=>{const t=Date.now();const receipt=await persist(root,kind,data);archiveMs+=Date.now()-t;transactions++;return receipt;};
  try{
   if(p.probe){console.log(JSON.stringify({state:'public_hosted_auth_verified',accountDataPublished:false}));return;}
@@ -224,9 +224,12 @@ async function main(root,env=process.env){
     await page.goto(ORIGIN+'/props',{timeout:15000});if(!await waitPremium(page))throw Error('session unavailable');const href=await verifiedNavigation(page,name,dashboardRoutes(name));
     if(!href){errors++;console.log(JSON.stringify({state:'public_dashboard_route_pending',name}));continue;}
     await page.goto(href,{timeout:15000});if(!await waitPremium(page))throw Error('session unavailable');
-    let snapshots=0;const result=await traverseDashboardFilters(page,name,{shouldContinue:featureAlive,onSnapshot:async s=>{const {controls,...sports}=s;await write('dashboards',{schema:'pickfinder-public-dashboard-v1',...sports});snapshots++;}});
+    let snapshots=0,sequences=0;const result=await traverseDashboardFilters(page,name,{shouldContinue:featureAlive,
+     onSnapshot:async s=>{const {controls,...sports}=s;const r=await write('dashboards',{schema:'pickfinder-public-dashboard-v1',...sports});snapshots++;return r.digest;},
+     onSequence:async receipt=>{await write('dashboards',{...receipt,captureOrigin:captureOrigin(env,p)});sequences++;}
+    });
     if(!snapshots){errors++;console.log(JSON.stringify({state:'public_dashboard_data_pending',name,reason:result.state}));}
-    else console.log(JSON.stringify({state:'public_dashboard_pass',name,snapshots,filtersExhausted:result.filtersExhausted===true}));
+    else console.log(JSON.stringify({state:'public_dashboard_pass',name,snapshots,sequences,filtersExhausted:result.filtersExhausted===true}));
    }catch{errors++;console.log(JSON.stringify({state:'public_dashboard_pending',name}));}
   }
   if(p.featuresOnly)return;

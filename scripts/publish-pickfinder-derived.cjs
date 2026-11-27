@@ -9,6 +9,7 @@ const validationReport='data/pickfinder-public-research-health.json';
 const archiveRoot='research/pickfinder-public-validation-v1/';
 const files={
  'data/pickfinder-public-activity.json':'public_pickfinder_activity_readiness_v1',
+ 'data/pickfinder-current-identity-registry.json':'pickfinder_current_identity_registry_v1',
  'data/prizepicks-model-rankings.json':'public_prizepicks_model_ranking_v1',
  [validationReport]:'pickfinder_public_research_health_v1'
 };
@@ -31,6 +32,8 @@ function validate(raw,file,at){
   if(x.privateRepoUsed!==false||!x.bySport||!x.independentGrading)throw Error('validation report contract');
  }else if(file==='data/pickfinder-public-activity.json'){
   if(!Array.isArray(x.events)||!x.readiness||!x.delivery||x.delivery.nativePickFinder!=='unverified')throw Error('activity contract');
+ }else if(file==='data/pickfinder-current-identity-registry.json'){
+  if(!Array.isArray(x.rows)||!Array.isArray(x.registry)||!sha(x.archiveRevision)||x.rows.some(r=>r.operatorOfferVerified!==false||r.settlementVerified!==false||r.statisticalModelEligible!==false))throw Error('identity registry contract');
  }else if(!Array.isArray(x.rows)||x.researchOnly!==true||x.privateRepoUsed!==false||x.calibrated!==false){
   throw Error('ranking contract');
  }

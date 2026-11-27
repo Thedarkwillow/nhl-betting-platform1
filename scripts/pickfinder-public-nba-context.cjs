@@ -28,12 +28,12 @@ function readVisible({player,detailId}){
  // Restrict to a small header ancestor; never traverse historical tables or all body text.
  let scope=names[0];for(let i=0;i<4;i++){const parent=scope.parentElement;if(!parent||parent===main||parent===document.body||parent.querySelector('table,[role=tabpanel]')||parent.innerText.length>1600)break;scope=parent;}
  const entries=[];
- const add=(label,value)=>{label=clean(label);value=clean(value);if(/^(?:team|opponent|matchup|game time|game start|game start time|match start|event start|scheduled start)$/i.test(label)&&value&&value.length<=100)entries.push({label,value});};
+ const add=(label,value)=>{label=clean(label);value=clean(value);if(/^(?:team|opponent|matchup|game date utc|event date utc|game time|game start|game start time|match start|event start|scheduled start)$/i.test(label)&&value&&value.length<=100)entries.push({label,value});};
  for(const dt of scope.querySelectorAll('dt'))if(visible(dt)&&dt.nextElementSibling?.tagName==='DD'&&visible(dt.nextElementSibling))add(dt.innerText,dt.nextElementSibling.innerText);
  for(const el of scope.querySelectorAll('[aria-label],[title]'))if(visible(el))for(const label of [el.getAttribute('aria-label'),el.getAttribute('title')]){
-  const m=String(label||'').match(/^(Team|Opponent|Matchup|Game time|Game start(?: time)?|Event start|Scheduled start)\s*:\s*(.+)$/i);if(m)add(m[1],m[2]);
+  const m=String(label||'').match(/^(Team|Opponent|Matchup|Game date UTC|Event date UTC|Game time|Game start(?: time)?|Event start|Scheduled start)\s*:\s*(.+)$/i);if(m)add(m[1],m[2]);
  }
- for(const el of scope.querySelectorAll('p,span,div'))if(visible(el)&&el.children.length===0){const m=clean(el.innerText).match(/^(Team|Opponent|Matchup|Game time|Game start(?: time)?|Event start|Scheduled start)\s*:\s*(.+)$/i);if(m)add(m[1],m[2]);}
+ for(const el of scope.querySelectorAll('p,span,div'))if(visible(el)&&el.children.length===0){const m=clean(el.innerText).match(/^(Team|Opponent|Matchup|Game date UTC|Event date UTC|Game time|Game start(?: time)?|Event start|Scheduled start)\s*:\s*(.+)$/i);if(m)add(m[1],m[2]);}
  // The profile's identity header precedes a separate current-matchup heading.
  for(const el of main.querySelectorAll('h2')){
   if(!visible(el))continue;

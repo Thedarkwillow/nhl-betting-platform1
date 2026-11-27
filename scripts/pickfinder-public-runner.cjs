@@ -2,6 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),{normalize}=require('./pickfinder-premium-archive.cjs'),{collect,ORIGIN}=require('./pickfinder-browser.cjs'),{enrich}=require('./pickfinder-player-research.cjs'),{VERSION}=require('./pickfinder-research-coverage.cjs'),{checkpointBuffer}=require('./pickfinder-checkpoint-buffer.cjs'),{pacific,decide}=require('./pacific-morning-capture-gate.cjs'),{prioritySports,registry}=require('./season-aware-collection.cjs'),{discover}=require('./season-aware-discovery.cjs'),{openHostedBoard}=require('./pickfinder-unattended-runner.cjs'),{persist,read,iterate,archiveRevision,safe,sha,assertDestination}=require('./pickfinder-public-archive.cjs');
 const {dashboardRoutes,captureGameDialogs,verifiedNavigation,traverseDashboardFilters,inspectCapabilities}=require('./pickfinder-dashboard-research.cjs');
 const {inspectTool}=require('./pickfinder-tool-schema.cjs');
+const currentIdentity=require('./pickfinder-current-identity.cjs');
 const gameContext=require('./pickfinder-public-nba-context.cjs'),{load}=require('./pickfinder-public-evidence-audit.cjs');
 const {backupPreflight,isBackup,protectedMorningClock}=require('./pickfinder-public-morning-preflight.cjs');
 const CORE=['NBA','NHL','NFL','CS2','DOTA2','VAL','LOL','COD','MLB','WNBA','CFB','CBB','TENNIS','SOCCER'],BOOKS=['prizepicks','underdog'];
@@ -145,6 +146,8 @@ function currentProfileQueue(archive,profiles,now=Date.now()){
    targets.set(key,{key,...scope,books,book:books[0],observed:Math.max(prior?.observed||0,t)});
   }
  }
+ const previouslySeen=new Set();
+ for(const x of targets.values())if(tries.has(x.key))previouslySeen.add(currentIdentity.sourceScope(x)?.playerPath);
  const rank=['nba','nhl','nfl','cs2','valorant','dota2','lol','cod'];
  const groups=new Map();let reused=0;
  for(const x of targets.values()){
@@ -157,7 +160,13 @@ function currentProfileQueue(archive,profiles,now=Date.now()){
  for(let i=0;pending.length<targets.size-reused;i++)for(const sport of order){
   const x=groups.get(sport)?.[i];if(x)pending.push(x);
  }
- return {pending,total:targets.size,reused,expired,eligiblePartitions,reason:eligiblePartitions?'current_exact_board_scopes':'no_recent_complete_partition'};
+ const front=[],repeat=[],players=new Set(previouslySeen);
+ for(const x of pending){
+   const k=currentIdentity.sourceScope(x)?.playerPath;
+   if(!k||players.has(k))repeat.push(x);
+   else {players.add(k);front.push(x);}
+ }
+ return {pending:[...front,...repeat],distinctNewPlayersQueued:front.length,total:targets.size,reused,expired,eligiblePartitions,reason:eligiblePartitions?'current_exact_board_scopes':'no_recent_complete_partition'};
 }
 // Overview game logs often stay visible as unrelated dialogs open. Collapse
 // only identical aligned dated rows within this exact unfiltered profile
@@ -321,9 +330,10 @@ async function main(root,env=process.env){
     const items=q.pending.slice(i,i+workers);
     const results=await Promise.allSettled(items.map(async(item,n)=>{
      const detail=pages[n],row={...item,research:[]},t=Date.now();attemptedProfiles++;
-     try{await enrich(detail,row,{expanded:true,fullSportingHeaders:true,maxFields:Infinity,includePropHistory:!p.currentProfiles,shouldContinue:profileAlive,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(!await premium(detail))throw Error('session');}});}catch{row.profileCollection={truncated:true};}
+     try{await enrich(detail,row,{expanded:true,fullSportingHeaders:true,maxFields:Infinity,includePropHistory:!p.currentProfiles,shouldContinue:profileAlive,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(!await premium(detail))throw Error('session');
+       if(p.currentProfiles){const snap=await detail.evaluate(currentIdentity.readVisible,{player:row.player,detailId:row.detailId}).catch(()=>null);row.independentReconciliationContext=currentIdentity.captureProfileContext(row,snap,new Date().toISOString());}}});}catch{row.profileCollection={truncated:true};}
      const record=publicProfile(row);
-     return {record:p.currentProfiles?compactCurrentProfile({...record,currentProfileAttemptedAt:new Date().toISOString()}):record,elapsed:Date.now()-t,authenticated:await premium(detail).catch(()=>false)};
+     return {record:p.currentProfiles?compactCurrentProfile({...record,currentProfileAttemptedAt:new Date().toISOString(),independentReconciliationContext:row.independentReconciliationContext??null}):record,elapsed:Date.now()-t,authenticated:await premium(detail).catch(()=>false)};
     }));
     let failed=false;for(const x of results){if(x.status!=='fulfilled'){failed=true;continue;}const {record,elapsed,authenticated}=x.value;profileMs+=elapsed;await buffer.add(record);if(record.status==='sampled'&&record.truncated===false)nontruncated++;if(!authenticated)failed=true;}
     if(failed)throw Error('session unavailable');

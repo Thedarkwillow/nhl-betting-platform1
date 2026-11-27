@@ -14,7 +14,7 @@ const toiSeconds=x=>{const m=typeof x==='string'&&/^(\d{1,3}):([0-5]\d)$/.exec(x
 // similarly named first-period columns or a projection/summary table.
 const currentNhlHeaders={assists:['asts'],blockedShots:['bs'],hits:['hit']};
 const currentNbaHeaders={rebounds:['rebs'],assists:['asts'],steals:['stls'],blocks:['blks'],turnovers:['to']};
-const currentNflHeaders={receptions:['recs'],targets:['tgts'],passing_tds:['pass td'],rushing_tds:['rush td'],receiving_tds:['rec td'],completions:['pass comp'],passing_interceptions:['int']};
+const currentNflHeaders={receptions:['recs'],targets:['tgts'],passing_tds:['pass td'],rushing_tds:['rush td'],receiving_tds:['rec td'],completions:['pass comp'],passing_interceptions:['int'],fg_made:['fgs'],pat_made:['xp'],kicking_points:['kpts']};
 const nhlMetrics={'time on ice':'iceTimeSeconds',goals:'goals',assists:'assists',points:'points','shots on goal':'sog','sog':'sog',hits:'hits','blocked shots':'blockedShots','saves':'saves'};
 const nflMetrics={'passing yards':'passing_yards','rushing yards':'rushing_yards','receiving yards':'receiving_yards','receptions':'receptions','passing touchdowns':'passing_tds','rushing touchdowns':'rushing_tds','receiving touchdowns':'receiving_tds','passing attempts':'attempts','passing completions':'completions','receiving targets':'targets','rushing attempts':'carries','interceptions thrown':'passing_interceptions','field goals made':'fg_made','extra points made':'pat_made','kicking points':'kicking_points'};
 // Explicit source slugs from the existing PickFinder model adapter; native stat keys

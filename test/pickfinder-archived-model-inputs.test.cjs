@@ -361,12 +361,12 @@ test('current NFL replay uses the explicit rushing and receiving columns indepen
  const clock='2026-11-27T10:00:00Z',startAt='2026-11-25T22:00:00Z',observedAt='2026-11-26T10:00:00Z',digest='a'.repeat(64),gsisId='00-1111111';
  const index=nativeIndex({facts:[],nhlFinals:[],nflSeasons:[{digest,first:observedAt,doc:{observedAt,rosters:[{name:'Fixture',gsisId}],
   games:[{gameId:'g',home:'ATL',away:'CAR',week:12,startAt,completedScoreObserved:true}],
-  playerRows:[{gameId:'g',playerId:gsisId,team:'ATL',opponent:'CAR',week:12,gameStartAt:startAt,stats:{rushing_yards:30,receiving_yards:12,receptions:3,targets:4,receiving_tds:1,rushing_tds:0,completions:3,passing_interceptions:0,fg_made:0}}]}}]},clock);
- const f={origin:'profile',metric:'row 1',tab:'Game Log',scope:'Date | Opponent | Rush Yds | Rec Yds | Recs | TGTs | Rec TD | Rush TD | Pass Comp | Int | Field Goals Made',observedAt,
-  value:JSON.stringify(['11/25','CAR','30','12','2','4','1','0','3','0','0'].map(value=>({value})))};
+  playerRows:[{gameId:'g',playerId:gsisId,team:'ATL',opponent:'CAR',week:12,gameStartAt:startAt,stats:{rushing_yards:30,receiving_yards:12,receptions:3,targets:4,receiving_tds:1,rushing_tds:0,completions:3,passing_interceptions:0,fg_made:2,pat_made:1,kicking_points:7}}]}}]},clock);
+ const f={origin:'profile',metric:'row 1',tab:'Game Log',scope:'Date | Opponent | Rush Yds | Rec Yds | Recs | TGTs | Rec TD | Rush TD | Pass Comp | Int | FGs | XP | KPts | 2Q KPts',observedAt,
+  value:JSON.stringify(['11/25','CAR','30','12','2','4','1','0','3','0','2','1','7','1'].map(value=>({value})))};
  const r={sport:'nfl',player:'Fixture',market:'player_rushing_yards',detailId:'/players/nfl/test',status:'sampled',truncated:false,coverageVersion:VERSION,research:[f]};
  const replay=(record,expand)=>audit([{digest,first:clock,doc:{records:[record]}}],index,clock,[],{expandCurrentNflLogs:expand});
  assert.deepEqual([...replay(r,false).cache.values()].map(x=>x.market),['rushing_yards']);
- assert.deepEqual([...replay(r,true).cache.values()].map(x=>x.market),['rushing_yards','receiving_yards','rushing_tds','receiving_tds','completions','targets','passing_interceptions','fg_made']);
+ assert.deepEqual([...replay(r,true).cache.values()].map(x=>x.market),['rushing_yards','receiving_yards','rushing_tds','receiving_tds','completions','targets','passing_interceptions','fg_made','pat_made','kicking_points']);
  assert.equal(replay({...r,period:'first_half'},true).cache.size,0);
 });

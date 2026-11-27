@@ -4,7 +4,7 @@ November 27, 2026 Pacific. The [master roadmap](MASTER_BETTING_PLATFORM_ROADMAP.
 
 ## Results verified in this pass
 
-The master roadmap now checks off **23 of 47** tasks. The earlier pass verified PF-15, PF-20, PF-26, PF-27 and PF-29. The subsequent four-route receipt readback and exact production delivery replay closed the scoped PF-42 split-routing milestone.
+The master roadmap now checks off **24 of 47** tasks. PF-03 is complete for the scoped channel inventory. The earlier pass verified PF-15, PF-20, PF-26, PF-27 and PF-29. The subsequent four-route receipt readback and exact production delivery replay closed the scoped PF-42 split-routing milestone.
 
 - The [authenticated features-only run](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46024212997) archived the native Alerts schema and bounded controls on Props, Games, Discrepancies and Popular. The Props test changed page 1 to page 2 of 501, preserving the displayed total and changing member digests. The Games test switched NHL Start time to Biggest favorites and restored the original. Discrepancies switched from NBA (52 displayed) to NHL (12) and back. Popular's Goblin modifier changed the 50 displayed identities and reversed correctly. The three named dashboards did not expose explicit pagination in this run. The initial hosted Builder probe returned navigation_not_verified. After [PR #451](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/451), the [post-merge features run](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46025750843) verified both Builder and Alerts, archived three named dashboards, and completed 13 archive transactions with zero collector errors. The two capability receipts independently matched their archived SHA-256 values. No account settings, picks or export actions were changed.
 - The signed-in notification panel listed 12 book-specific sport buttons each for PrizePicks and Underdog, plus an all-sports control per book. It directs activation and delivery to the iPhone app. Players, +EV picks, and Custom filters were disabled and described as coming soon. This is configuration UI evidence, not a delivery receipt or proof of Android/browser push.
@@ -97,13 +97,27 @@ The research builder surfaces dated operator format references without changing 
 - **PF-07/09 dashboard/profile checkpoint.** [Published research health](https://github.com/Thedarkwillow/nhl-betting-platform1/blob/f156cfceb6cdde3051ae3f7d10270a472eadf461/data/pickfinder-public-research-health.json) reported 2,806 profile attempts and 41 named dashboard snapshots, including 28 with sporting data, one explicitly empty, and 12 unverified. No dashboard snapshot in that rollup had an explicit page marker or a verified full sequence. An attempt is not a distinct player or a completed scope.
 - **PF-21/43/46 remain evidence-gated.** [Browser comparison](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46024615275) still shows Playwright authenticated with one board table and Selenium stopped before verified Premium access. No Selenium promotion. The [published NBA alternate evidence](https://github.com/Thedarkwillow/nhl-betting-platform1/blob/f156cfceb6cdde3051ae3f7d10270a472eadf461/data/pickfinder-public-nba-alternate-health.json) has no independently reviewed prospective crosswalk in that bridge, zero new forecasts and no exact operator offer verification. Do not substitute linked or provider-only evidence for the time-stamped pretip operator observation.
 
+## PF-03 notification channel inventory
+
+Verified November 27, 2026 Pacific. Native iPhone push is excluded by owner direction. This inventory distinguishes observable capability from delivery.
+
+| Surface | Evidence status |
+| --- | --- |
+| PickFinder web settings | Observed in the [signed-in features run](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46024212997) and [confirmed hosted receipt](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46025750843). Both books expose sport-level board-drop controls. Players, +EV and Custom filters were labeled Coming soon. |
+| PickFinder web or in-app notification feed | Delivery channel unknown from the observed settings. A settings control is not a delivered message. |
+| PickFinder email | [Privacy policy](https://www.pickfinder.app/privacy) documents general notification use. No prop-specific email control or delivery was evidenced. |
+| PickFinder member Discord | [Official guide](https://www.pickfinder.app/blog/general/how-to-join-the-pickfinder-member-discord) documents line alerts and role-linked member access. The signed-in workflow showed the linking surface. Actual member channel content, automation permission and individual delivery remain open under PF-02. |
+| Our Discord channels | Actual delivery verified separately by [project sender receipts](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46065918810) and confirmed received by the owner. |
+
+PF-03 is complete for the scoped channel inventory, not delivery verification for any provider channel. PF-01/02/04/19 retain their own acceptance criteria.
+
 ## Remaining acceptance by task
 
 Owner scope update, November 27 Pacific. Native PickFinder iPhone push verification is excluded. The owner confirmed receiving project Discord only, which is not evidence of provider-member Discord or other channels. Do not request a device notification or treat one as a dependency.
 
 | Task IDs | Verified scope | Evidence still needed |
 | --- | --- | --- |
-| PF-01, PF-02, PF-03, PF-04, PF-19 | Native settings schema and two books; existing project-owned Discord is separate | Remaining alert controls, source timestamps and exact offer reconciliation; inspect member-channel coverage only with an authorized access/collection method. No native iPhone push, device receipt, or screenshot required. |
+| PF-01, PF-02, PF-04, PF-19 | Native settings schema and two books; existing project-owned Discord is separate | Remaining alert controls, source timestamps and exact offer reconciliation; inspect member-channel coverage only with an authorized access/collection method. No native iPhone push, device receipt, or screenshot required. |
 | PF-05, PF-06 | Timestamped observations, alternate tiles, and bounded board traversal | Lifecycle labels with exact prior and current membership, all-sport pagination/sort completeness, source clocks, and original-app scope; do not infer absence from partial traversal |
 | PF-07, PF-11, PF-18, PF-26 | Player history/cache, NBA shooting and play types, and reviewed shadow statistics | PF-26’s exact original 462-key cohort is verified. Remaining parent work includes additional season/sport scopes, native sport-specific reproduction, and separately approved point-in-time model inputs. |
 | PF-08, PF-27 | PF-27's scoped profile threshold recovery is verified; zero source-clock qualified pairs | PF-08 needs exact book/market/side and source time on the broader board/movement inventory; do not inherit prop thresholds or invent dates/offsets |

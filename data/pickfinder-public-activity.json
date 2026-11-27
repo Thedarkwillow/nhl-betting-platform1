@@ -1,8 +1,203 @@
 {
   "kind": "public_pickfinder_activity_readiness_v1",
-  "generatedAt": "2026-11-27T11:47:08.698Z",
+  "generatedAt": "2026-11-27T11:50:34.294Z",
   "archiveInvalid": 0,
   "events": [
+    {
+      "kind": "board_observation",
+      "sport": "tennis",
+      "book": "underdog",
+      "observedAt": "2026-11-27T11:48:05.572Z",
+      "archivedAt": "2026-11-27T11:48:12Z",
+      "manifestDigest": "c7a7f7df555d7ac25c4991fbe0e906bdf2fdfd2a1c2c8965068e332f44b9c0cb",
+      "state": "populated",
+      "offers": 180,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "cf97f46adca808f298180e58fef38bb6f3b2832635cabff823424857a9016792"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "tennis",
+      "book": "prizepicks",
+      "observedAt": "2026-11-27T11:47:51.840Z",
+      "archivedAt": "2026-11-27T11:48:00Z",
+      "manifestDigest": "48cb7ce5cc21c66db74331b99968007d6f9b45020bdaafdbcf56d11606ec191e",
+      "state": "populated",
+      "offers": 34,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "8594e7ddcba81924e42a93768c93bb2f304640e74040d6613fd3e2b5c53f334e"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "wnba",
+      "book": "underdog",
+      "observedAt": "2026-11-27T11:47:47.861Z",
+      "archivedAt": "2026-11-27T11:47:48Z",
+      "manifestDigest": "2d949a9df3f2993a696d38ff002b54b5351b5c4f1887ba73596381f63a1b5e48",
+      "state": "disabled",
+      "offers": 0,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "1f98bc51e7d045e105d014c8627a67dc5041469e42967d544273cb5e64ffcad7"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "wnba",
+      "book": "prizepicks",
+      "observedAt": "2026-11-27T11:47:45.077Z",
+      "archivedAt": "2026-11-27T11:47:45Z",
+      "manifestDigest": "7be32ee51daa927705f00b93480859faa8df0dbd4272142ad2a88856ba885a2f",
+      "state": "disabled",
+      "offers": 0,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "4f0091135b430bb0289419e125e591670c9615a42d7e04b9fca1ed051e0211ee"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "mlb",
+      "book": "underdog",
+      "observedAt": "2026-11-27T11:47:42.391Z",
+      "archivedAt": "2026-11-27T11:47:42Z",
+      "manifestDigest": "154d60758f68897b8fca83c796cca49b66f18aebb6e6a4e5393254cf3aa1182e",
+      "state": "disabled",
+      "offers": 0,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "a5fdc2b5d366a05558da3cffa71eb98857341f35cf90f495e9c310e83c0713fd"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "mlb",
+      "book": "prizepicks",
+      "observedAt": "2026-11-27T11:47:39.578Z",
+      "archivedAt": "2026-11-27T11:47:39Z",
+      "manifestDigest": "8e56f6124283674aa95bc8fdaaae4278a222255ae1f51a5d14e080f1cb29ef3d",
+      "state": "disabled",
+      "offers": 0,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "95b71ce12aa758b2a3902058ca13ccb22612004dce98e5be15727ac7044938b6"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "cod",
+      "book": "underdog",
+      "observedAt": "2026-11-27T11:47:36.884Z",
+      "archivedAt": "2026-11-27T11:47:37Z",
+      "manifestDigest": "cd4e8f56e147bb46fa7a93006881f312156629f69fc95c6cd6e54ceb2cafb82b",
+      "state": "empty",
+      "offers": 0,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "799e88ced7d16c8b104e08d4786e7e26ae00ed019981668d2189a5ffb9a81a55"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "cod",
+      "book": "prizepicks",
+      "observedAt": "2026-11-27T11:47:32.562Z",
+      "archivedAt": "2026-11-27T11:47:32Z",
+      "manifestDigest": "38bbb56f44a9cfaa2684f6953e81a18b52fec87aaabace0cd7666daf9f4fd7e8",
+      "state": "empty",
+      "offers": 0,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "3b005254ac85d8174edbba1ad5e1a5f740ff407bc3238bd77c8f81b771fbd038"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "lol",
+      "book": "underdog",
+      "observedAt": "2026-11-27T11:47:25.296Z",
+      "archivedAt": "2026-11-27T11:47:28Z",
+      "manifestDigest": "ec8404b537861064a02814d9cd01ecb441f408d85bd1c1082baa0e0b74f7f4bc",
+      "state": "empty",
+      "offers": 0,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "4fd30d61ea0ae2b5185ab20421ae5eec272f032d952c2303260241314ce3d4c4"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "lol",
+      "book": "prizepicks",
+      "observedAt": "2026-11-27T11:47:20.953Z",
+      "archivedAt": "2026-11-27T11:47:21Z",
+      "manifestDigest": "2fe453edb8af299b89884e9c90a85ca22f1395fd3d026d0fc11c3cc7dca9210d",
+      "state": "empty",
+      "offers": 0,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "2cf91acc12d189ffacf284c8094cbb16ad3419a60f7570ce2e8a4297b4d752fd"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "valorant",
+      "book": "underdog",
+      "observedAt": "2026-11-27T11:47:10.075Z",
+      "archivedAt": "2026-11-27T11:47:16Z",
+      "manifestDigest": "64f9c11ef89a4ff4953b9b787caff43d29418e892e187c6b8bd43d79be70acfd",
+      "state": "populated",
+      "offers": 21,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "ccec8e23bea0b1d67115804a54d40f8642dae328e476c0fec051fa4a15e252a3"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "valorant",
+      "book": "prizepicks",
+      "observedAt": "2026-11-27T11:47:06.080Z",
+      "archivedAt": "2026-11-27T11:47:06Z",
+      "manifestDigest": "f28935dd49f39ba1872373cbda28a4023b9805ed20d23dc4959fb1d8d750ed73",
+      "state": "empty",
+      "offers": 0,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "d0f40c7a9e9a41cd39df2a5910b99754ec5dcbc1af53aec363200369bdbaf5d6"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "dota2",
+      "book": "underdog",
+      "observedAt": "2026-11-27T11:46:55.046Z",
+      "archivedAt": "2026-11-27T11:47:01Z",
+      "manifestDigest": "e9fb3da39b7508e55b3a6d007b7121b671ac94e6463e093cacd111a5e9678a29",
+      "state": "populated",
+      "offers": 30,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "58ac4bbbe70abf65336f427f80fd742a938eb2e38950909d82df6a1a43397433"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "dota2",
+      "book": "prizepicks",
+      "observedAt": "2026-11-27T11:46:45.011Z",
+      "archivedAt": "2026-11-27T11:46:51Z",
+      "manifestDigest": "4de44611aab90dd5a41ba5cb871c1cec53668ec3bba961c7bc190212e3a2639b",
+      "state": "populated",
+      "offers": 10,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "157af2a85a44bc72032530dbb874df3d4214f53aefb106c7b3090d25ba8f2470"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "soccer",
+      "book": "underdog",
+      "observedAt": "2026-11-27T11:46:21.785Z",
+      "archivedAt": "2026-11-27T11:46:41Z",
+      "manifestDigest": "9ed66f32ffff5c792ac2294190100e375a847591d0fdcc59d3e3f22833a6fd6d",
+      "state": "populated",
+      "offers": 1942,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "da62d6f6170a803e7872f9853381d22f05950908e32ea63896b75b55e4a0317f"
+    },
     {
       "kind": "board_observation",
       "sport": "soccer",
@@ -1107,207 +1302,12 @@
       "slot": "manual",
       "nativeNotificationVerified": false,
       "id": "aef1af2f0db139b580fc25c05c2a3bd2f51fc931a47df2acd500a263d9ca8a28"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "mlb",
-      "book": "underdog",
-      "observedAt": "2026-11-26T02:56:22.436Z",
-      "archivedAt": "2026-11-26T02:56:22Z",
-      "manifestDigest": "dcfd7d276f3eb196628e5f394819f3c53aaff0a28c436af1707c3de4b902babe",
-      "state": "disabled",
-      "offers": 0,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "4ae5a0d4740a43ab765ff2ffb9be562e9e58484d5cecdf019c32a5c85aa194bb"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "mlb",
-      "book": "prizepicks",
-      "observedAt": "2026-11-26T02:56:19.924Z",
-      "archivedAt": "2026-11-26T02:56:20Z",
-      "manifestDigest": "1911d33e405f3314fbaf3d344654da8a7612a03b46392098b0da022d1af1267f",
-      "state": "disabled",
-      "offers": 0,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "2812263a9b17fed465c971aae0f1acbee7e149b072feb34a3b12b2ce067da52d"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "cod",
-      "book": "underdog",
-      "observedAt": "2026-11-26T02:56:17.299Z",
-      "archivedAt": "2026-11-26T02:56:17Z",
-      "manifestDigest": "cd470335dd967edf4dacc8300c69f1115be094749f4f06b2cb5102e0650390c0",
-      "state": "empty",
-      "offers": 0,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "4eb02fc6121e5fc7f1cde2f663e61d7fd8f377ac8ac4fab14d78bb9f649a5135"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "cod",
-      "book": "prizepicks",
-      "observedAt": "2026-11-26T02:56:12.881Z",
-      "archivedAt": "2026-11-26T02:56:13Z",
-      "manifestDigest": "5963c189c3ed8c64f49142bdb454f802587ba2118cbdd123518a2b5478d65805",
-      "state": "empty",
-      "offers": 0,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "d25c0d13e6f16afcf3ac0af71284521ec327e519ca8b28ff454e2797f045aedc"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "lol",
-      "book": "underdog",
-      "observedAt": "2026-11-26T02:56:08.675Z",
-      "archivedAt": "2026-11-26T02:56:08Z",
-      "manifestDigest": "f1b8247791ba533dca2b2d576e4558b11b21e6e7c23a3963c895a75ef0b4a055",
-      "state": "empty",
-      "offers": 0,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "3f3bbae816ad8146921df9eb2bb33479e33f966c9c5a4d019a10caf613cea6ba"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "lol",
-      "book": "prizepicks",
-      "observedAt": "2026-11-26T02:56:04.550Z",
-      "archivedAt": "2026-11-26T02:56:04Z",
-      "manifestDigest": "52be905c9858399708f0756c313cc24c07bef488f3328b30472dcc6a7e549c04",
-      "state": "empty",
-      "offers": 0,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "4ae91527ad267ce977d1beb4fc0606a00b97968aef5634a5d38283d05de1dbf0"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "valorant",
-      "book": "underdog",
-      "observedAt": "2026-11-26T02:55:53.478Z",
-      "archivedAt": "2026-11-26T02:56:00Z",
-      "manifestDigest": "d25898fe6a564ec906805c4141b7dde56805e4fec50833b1960a2a7a3e04073c",
-      "state": "populated",
-      "offers": 21,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "586d6a15fa47b3e7393c5f6531189b2b7030f5504fcdf27c79dd4f397face7a3"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "valorant",
-      "book": "prizepicks",
-      "observedAt": "2026-11-26T02:55:49.456Z",
-      "archivedAt": "2026-11-26T02:55:49Z",
-      "manifestDigest": "ef642d436faf4a5603c330f172e8d726e32553d5197e219b58964ee4f605e27c",
-      "state": "empty",
-      "offers": 0,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "45746a9ccfce95d862b8499ba45c1f0447790b3b8ab581f7da96ebf53af928d2"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "dota2",
-      "book": "underdog",
-      "observedAt": "2026-11-26T02:55:35.972Z",
-      "archivedAt": "2026-11-26T02:55:45Z",
-      "manifestDigest": "da2cafb120fe26c47ca703b27106e14359e8dc3b751acbd5837aa2bf065f2871",
-      "state": "populated",
-      "offers": 52,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "09e10d6f869312dadb42fb0525103d77b96624e19f9d642035604fed7c96d65b"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "dota2",
-      "book": "prizepicks",
-      "observedAt": "2026-11-26T02:55:26.116Z",
-      "archivedAt": "2026-11-26T02:55:32Z",
-      "manifestDigest": "cee0f3feff6bbda527b7fb55bff64f3a1e78d084ff2c65fdbd2044aad82ac2c5",
-      "state": "populated",
-      "offers": 40,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "d855c40f98341b860c308dc718b87a035dd5ec5a55e241d2a9e9ed043f8a8e2e"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "cs2",
-      "book": "underdog",
-      "observedAt": "2026-11-26T02:55:10.128Z",
-      "archivedAt": "2026-11-26T02:55:22Z",
-      "manifestDigest": "96b65c03fa878e3b69a725cc1402fdaee9040ca9d97710b100f1ed8113b585b6",
-      "state": "populated",
-      "offers": 340,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "2467f8f69d01810ab34b514631a3c3f5719ac58475b3645ce9e406f141ecd9d2"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "cs2",
-      "book": "prizepicks",
-      "observedAt": "2026-11-26T02:54:57.521Z",
-      "archivedAt": "2026-11-26T02:55:04Z",
-      "manifestDigest": "4633a23549fd20e754134f8a1453671d488c06a107f409168765fe049f8fa7a3",
-      "state": "populated",
-      "offers": 166,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "a32ec3a130af1cb1ab480147cb4be0667323d8c290e5950e7d6f93f853e3ff65"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "nfl",
-      "book": "underdog",
-      "observedAt": "2026-11-26T02:54:18.269Z",
-      "archivedAt": "2026-11-26T02:54:52Z",
-      "manifestDigest": "2a31537c5e2098df6b36bc52e0b4df377ae7248b1e40a1e7cba4ae937b7c3f10",
-      "state": "populated",
-      "offers": 5838,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "ac42230a933677b28a8361470a5987bb2113a379c8b80e354ff7538b319cbb13"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "nfl",
-      "book": "prizepicks",
-      "observedAt": "2026-11-26T02:51:55.074Z",
-      "archivedAt": "2026-11-26T02:53:15Z",
-      "manifestDigest": "5a43ef5be99ce0fc04c0a123a52e1d32146201370ed78fe67d3b782f7d3a49e2",
-      "state": "populated",
-      "offers": 3074,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "0b9d030adda33a9ea3692744f848cb4033f12206c584114c42efbd516c49ee1b"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "nhl",
-      "book": "underdog",
-      "observedAt": "2026-11-26T02:48:58.776Z",
-      "archivedAt": "2026-11-26T02:49:05Z",
-      "manifestDigest": "04437474ee848aab5e76a27347154869b4e9d24c1807ac931cfa0fedd2cdb62b",
-      "state": "populated",
-      "offers": 369,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "bc13cd052cf49c8e0c08e2518ae8ab9c5712a4bc1f52da9561666e1497b1b206"
     }
   ],
   "readiness": {
     "nba/prizepicks": {
       "observedAt": "2026-11-27T11:27:04.861Z",
-      "ageMs": 1203837,
+      "ageMs": 1409433,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 3403,
@@ -1316,7 +1316,7 @@
     },
     "nba/underdog": {
       "observedAt": "2026-11-27T11:29:01.450Z",
-      "ageMs": 1087248,
+      "ageMs": 1292844,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 2236,
@@ -1325,7 +1325,7 @@
     },
     "nhl/prizepicks": {
       "observedAt": "2026-11-27T11:30:24.994Z",
-      "ageMs": 1003704,
+      "ageMs": 1209300,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 661,
@@ -1334,7 +1334,7 @@
     },
     "nhl/underdog": {
       "observedAt": "2026-11-27T11:31:31.526Z",
-      "ageMs": 937172,
+      "ageMs": 1142768,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 2200,
@@ -1343,16 +1343,16 @@
     },
     "nfl/prizepicks": {
       "observedAt": "2026-11-27T11:34:08.306Z",
-      "ageMs": 780392,
+      "ageMs": 985988,
       "boardState": "populated",
-      "freshCompleteBoard": true,
+      "freshCompleteBoard": false,
       "observedOffers": 2296,
       "freshClockScopedOffers": 0,
-      "reason": "exact_pregame_source_clock_missing"
+      "reason": "fresh_complete_populated_board_missing"
     },
     "nfl/underdog": {
       "observedAt": "2026-11-27T11:36:06.841Z",
-      "ageMs": 661857,
+      "ageMs": 867453,
       "boardState": "populated",
       "freshCompleteBoard": true,
       "observedOffers": 4465,
@@ -1361,7 +1361,7 @@
     },
     "cs2/prizepicks": {
       "observedAt": "2026-11-27T11:43:15.301Z",
-      "ageMs": 233397,
+      "ageMs": 438993,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -1370,7 +1370,7 @@
     },
     "cs2/underdog": {
       "observedAt": "2026-11-27T11:43:20.144Z",
-      "ageMs": 228554,
+      "ageMs": 434150,
       "boardState": "populated",
       "freshCompleteBoard": true,
       "observedOffers": 134,
@@ -1378,26 +1378,26 @@
       "reason": "exact_pregame_source_clock_missing"
     },
     "dota2/prizepicks": {
-      "observedAt": "2026-11-27T03:03:49.128Z",
-      "ageMs": 31399570,
+      "observedAt": "2026-11-27T11:46:45.011Z",
+      "ageMs": 229283,
       "boardState": "populated",
-      "freshCompleteBoard": false,
-      "observedOffers": 40,
+      "freshCompleteBoard": true,
+      "observedOffers": 10,
       "freshClockScopedOffers": 0,
-      "reason": "fresh_complete_populated_board_missing"
+      "reason": "exact_pregame_source_clock_missing"
     },
     "dota2/underdog": {
-      "observedAt": "2026-11-27T03:03:56.714Z",
-      "ageMs": 31391984,
+      "observedAt": "2026-11-27T11:46:55.046Z",
+      "ageMs": 219248,
       "boardState": "populated",
-      "freshCompleteBoard": false,
-      "observedOffers": 59,
+      "freshCompleteBoard": true,
+      "observedOffers": 30,
       "freshClockScopedOffers": 0,
-      "reason": "fresh_complete_populated_board_missing"
+      "reason": "exact_pregame_source_clock_missing"
     },
     "valorant/prizepicks": {
-      "observedAt": "2026-11-27T03:04:04.781Z",
-      "ageMs": 31383917,
+      "observedAt": "2026-11-27T11:47:06.080Z",
+      "ageMs": 208214,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -1405,17 +1405,17 @@
       "reason": "fresh_complete_populated_board_missing"
     },
     "valorant/underdog": {
-      "observedAt": "2026-11-27T03:04:07.941Z",
-      "ageMs": 31380757,
+      "observedAt": "2026-11-27T11:47:10.075Z",
+      "ageMs": 204219,
       "boardState": "populated",
-      "freshCompleteBoard": false,
-      "observedOffers": 32,
+      "freshCompleteBoard": true,
+      "observedOffers": 21,
       "freshClockScopedOffers": 0,
-      "reason": "fresh_complete_populated_board_missing"
+      "reason": "exact_pregame_source_clock_missing"
     },
     "lol/prizepicks": {
-      "observedAt": "2026-11-27T03:04:16.333Z",
-      "ageMs": 31372365,
+      "observedAt": "2026-11-27T11:47:20.953Z",
+      "ageMs": 193341,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -1423,8 +1423,8 @@
       "reason": "fresh_complete_populated_board_missing"
     },
     "lol/underdog": {
-      "observedAt": "2026-11-27T03:04:19.523Z",
-      "ageMs": 31369175,
+      "observedAt": "2026-11-27T11:47:25.296Z",
+      "ageMs": 188998,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -1432,8 +1432,8 @@
       "reason": "fresh_complete_populated_board_missing"
     },
     "cod/prizepicks": {
-      "observedAt": "2026-11-27T03:04:22.868Z",
-      "ageMs": 31365830,
+      "observedAt": "2026-11-27T11:47:32.562Z",
+      "ageMs": 181732,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -1441,8 +1441,8 @@
       "reason": "fresh_complete_populated_board_missing"
     },
     "cod/underdog": {
-      "observedAt": "2026-11-27T03:04:26.058Z",
-      "ageMs": 31362640,
+      "observedAt": "2026-11-27T11:47:36.884Z",
+      "ageMs": 177410,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -1452,7 +1452,7 @@
   },
   "cache": {
     "state": "historical_cache_shadow_audit",
-    "generatedAt": "2026-11-27T11:47:08.698Z",
+    "generatedAt": "2026-11-27T11:50:34.294Z",
     "profiles": 2614,
     "fields": 1396076,
     "candidates": 0,
@@ -1502,7 +1502,7 @@
   "originalPlatformVerified": false,
   "modelApproved": false,
   "historicalRecovery": {
-    "generatedAt": "2026-11-27T11:47:08.698Z",
+    "generatedAt": "2026-11-27T11:50:34.294Z",
     "fields": 1396076,
     "candidates": 26551,
     "cacheRecords": 2506,
@@ -1533,12 +1533,12 @@
   },
   "esportsScopeRecovery": {
     "dota2": {
-      "offerObservations": 419,
-      "explicitSupportedScopes": 289,
-      "unresolvedScopes": 130,
+      "offerObservations": 459,
+      "explicitSupportedScopes": 319,
+      "unresolvedScopes": 140,
       "qualifiedModelInputs": 0,
       "unresolvedMarketSlugs": {
-        "1st_2_maps_player_fantasy_score_underdog_": 130
+        "1st_2_maps_player_fantasy_score_underdog_": 140
       }
     },
     "cs2": {
@@ -1549,8 +1549,8 @@
       "unresolvedMarketSlugs": {}
     },
     "valorant": {
-      "offerObservations": 136,
-      "explicitSupportedScopes": 136,
+      "offerObservations": 157,
+      "explicitSupportedScopes": 157,
       "unresolvedScopes": 0,
       "qualifiedModelInputs": 0,
       "unresolvedMarketSlugs": {}
@@ -1677,18 +1677,18 @@
       "conflictingPairs": 0
     },
     "soccer": {
-      "observed": 38304,
+      "observed": 38899,
       "explicitThreshold": 0,
-      "missingThreshold": 38304,
+      "missingThreshold": 38899,
       "missingBook": 0,
       "invalidSideOrPrice": 0,
       "exactPairs": 0,
       "conflictingPairs": 0
     },
     "tennis": {
-      "observed": 1072,
+      "observed": 1230,
       "explicitThreshold": 0,
-      "missingThreshold": 1072,
+      "missingThreshold": 1230,
       "missingBook": 0,
       "invalidSideOrPrice": 0,
       "exactPairs": 0,
@@ -1774,7 +1774,7 @@
   },
   "valorantRetrospective": {
     "kind": "pickfinder_valorant_matched_retrospective_v1",
-    "generatedAt": "2026-11-27T11:47:08.698Z",
+    "generatedAt": "2026-11-27T11:50:34.294Z",
     "examples": 10,
     "series": 2,
     "even": {
@@ -1932,7 +1932,7 @@
       }
     },
     "skip": {
-      "missingFinal": 55,
+      "missingFinal": 76,
       "unprovedPregame": 61
     },
     "conflicts": 0,
@@ -1958,8 +1958,8 @@
         ]
       },
       "valorant": {
-        "archiveOfferObservations": 136,
-        "explicitSupportedScopeObservations": 136,
+        "archiveOfferObservations": 157,
+        "explicitSupportedScopeObservations": 157,
         "independentlyMatchedRetrospectiveExamples": 10,
         "independentlyMatchedRetrospectiveSeries": 2,
         "originalPlatformSettlementsVerified": 0,
@@ -1970,8 +1970,8 @@
         ]
       },
       "dota2": {
-        "archiveOfferObservations": 419,
-        "explicitSupportedScopeObservations": 289,
+        "archiveOfferObservations": 459,
+        "explicitSupportedScopeObservations": 319,
         "independentlyMatchedRetrospectiveExamples": 0,
         "independentlyMatchedRetrospectiveSeries": 0,
         "originalPlatformSettlementsVerified": 0,

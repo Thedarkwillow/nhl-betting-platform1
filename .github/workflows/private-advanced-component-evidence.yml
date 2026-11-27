@@ -40,7 +40,7 @@ jobs:
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-          for cmd in scripts/report-advanced-component-evidence.cjs src/nfl-position-kicker-context-trial.cjs scripts/backtest-nfl-yardage-volume-efficiency.cjs scripts/report-nhl-validation-and-paper-audit.cjs; do
+          for cmd in scripts/report-advanced-component-evidence.cjs src/nfl-position-kicker-context-trial.cjs; do
             if ! node "$cmd" >"$log" 2>&1; then
               echo "::error::Research report failed: $cmd"
               grep -E '^(TypeError|ReferenceError|RangeError|SyntaxError|Error):' "$log" | head -1 | cut -c1-200 || true
@@ -53,8 +53,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f outputs/health/nhl-form-usage-position-v4-latest.json outputs/health/advanced-component-evidence-latest.json outputs/nfl/backtests/position-kicker-context-latest.json outputs/health/nhl-standard-tail-weight-v5-latest.json outputs/nfl/backtests/yardage-volume-efficiency-latest.json outputs/health/nhl-validation-and-paper-audit-latest.json
-          if [ -d outputs/research/market-calibration-v3 ]; then git add -f outputs/research/market-calibration-v3; fi
+          git add -f outputs/health/nhl-form-usage-position-v4-latest.json outputs/health/advanced-component-evidence-latest.json outputs/nfl/backtests/position-kicker-context-latest.json outputs/health/nhl-standard-tail-weight-v5-latest.json
           git diff --cached --quiet && exit 0
           git commit -qm 'research: archive advanced NHL components, tier audits and NFL context trial'
           for i in 1 2 3; do
@@ -64,3 +63,7 @@ jobs:
             sleep "$i"
           done
           exit 1
+
+# Single writers: private-seven-priority-nov16-research owns the yardage replay;
+# private-nhl-validation-paper-audit owns the paper audit and immutable calibration trials.
+# Do not regenerate or stage either owner's outputs in this workflow.

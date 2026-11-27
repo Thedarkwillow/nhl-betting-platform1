@@ -198,7 +198,7 @@ test('single observed App selector verifies the replacement brand before returni
  const {sportsbookMovementSelection}=require('../scripts/pickfinder-player-research.cjs');
  const calls=[];
  const button={count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true,click:async()=>calls.push('click')};
- const page={getByRole:(role)=>role==='table'?{...button,filter:()=>({...button,getByRole:()=>button})}:
+ const page={getByRole:(role)=>role==='table'?{...button,filter:()=>({...button,getByRole:()=>button})}:role==='columnheader'?button:
   {...button,evaluate:async()=> 'novig'},keyboard:{press:async()=>calls.push('dismiss')}};
  const old={...movement,value:JSON.stringify([cell('1.5'),cell(null,['prizepicks','goblin']),cell('11/27 12:00AM')])};
  const good={...movement,value:JSON.stringify([cell('0.5'),cell('O-900\nU+170',['novig']),cell('11/27 2:09AM')])};
@@ -242,4 +242,18 @@ test('collector separates the visible threshold from the exact movement badge wi
    else assert.deepEqual(r,[]);
   }
  }finally{global.document=prior;}
+});
+
+test('one verified sportsbook can be selected from a menu with several books',async()=>{
+ const {sportsbookMovementSelection}=require('../scripts/pickfinder-player-research.cjs');
+ const calls=[];
+ const button={count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true,click:async()=>calls.push('open')};
+ const page={getByRole:(role,opts)=>role==='table'?{...button,filter:()=>({...button,getByRole:()=>button})}:role==='columnheader'?button:
+  (()=>{const available=['fanduel O-106 U-122','novig O+120 U-130','draftkings O+102'].filter(x=>opts.name.test(x));return {...button,count:async()=>available.length,evaluate:async()=>available[0].split(' ')[0],click:async()=>calls.push(available[0])};})(),
+  keyboard:{press:async()=>calls.push('dismiss')}};
+ const old={...movement,value:JSON.stringify([cell('14.5'),cell('O-119\nU-119',['prizepicks']),cell('11/26 1:07PM')])};
+ const good={...movement,value:JSON.stringify([cell('14.5'),cell('O-106\nU-122',['fanduel']),cell('11/27 6:13AM')])};
+ assert.deepEqual(await sportsbookMovementSelection(page,async()=>[old,good],()=>true),[good]);
+ assert.deepEqual(calls,['open','fanduel O-106 U-122']);
+ assert.equal(extract(good,JSON.parse(good.value))[0].movementAtUtc,null);
 });

@@ -122,25 +122,30 @@ async function traverseMixed(page,collect,shouldContinue){
 // A visible row-level App selector can reveal a different book's historical
 // threshold and prices. Use one verified table and one selector, never infer
 // the price threshold from the fantasy offer or the clock from observation time.
-const visibleQuoteOption=/^(?:novig|draftkings|fanduel|betmgm|caesars|pinnacle|bet365|fanatics|betrivers|hardrockbet|bovada|fliff) O[+-]\d{3,4} U[+-]\d{3,4}$/i;
+const movementBookPriority=['fanduel','draftkings','betmgm','caesars','pinnacle','bet365','fanatics','betrivers','hardrockbet','bovada','fliff','novig'];
 async function sportsbookMovementSelection(page,read,alive){
  const table=page.getByRole('table').filter({has:page.getByRole('columnheader',{name:'Time',exact:true})});
  if(await table.count()!==1)return [];
  const selector=table.getByRole('combobox');
  if(!alive()||await selector.count()!==1||!await selector.isVisible()||!await selector.isEnabled())return [];
  await selector.click({timeout:2000});
- const choice=page.getByRole('option',{name:visibleQuoteOption});
  let book=null;
  try{
-  if(!alive()||await choice.count()!==1||!await choice.isVisible()||!await choice.isEnabled())return [];
-  // The option label includes an image alternative and may not be innerText.
-  const profile=await choice.evaluate(e=>{
-   const labels=[...e.querySelectorAll('img[alt]')].map(x=>x.alt.toLowerCase());
-   return labels.length===1?labels[0]:null;
-  });
-  if(!profile||!visibleQuoteOption.test(profile+' O-110 U-110'))return [];
-  await choice.click({timeout:2000});
-  book=profile;
+  // There may be many legitimate books. Choose one deterministically, but
+  // only when its exact visible two-sided option and image agree.
+  for(const preferred of movementBookPriority){
+   if(!alive())return [];
+   const choice=page.getByRole('option',{name:new RegExp('^'+preferred+' O[+-]\\d{3,4} U[+-]\\d{3,4}$','i')});
+   if(await choice.count()!==1||!await choice.isVisible()||!await choice.isEnabled())continue;
+   const profile=await choice.evaluate(e=>{
+    const labels=[...e.querySelectorAll('img[alt]')].map(x=>x.alt.toLowerCase());
+    return labels.length===1?labels[0]:null;
+   });
+   if(profile!==preferred)continue;
+   await choice.click({timeout:2000});
+   book=profile;break;
+  }
+  if(!book)return [];
  }finally{if(book===null)await page.keyboard.press('Escape');}
  for(let i=0;i<5&&alive();i++){
   const fields=await read();

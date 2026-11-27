@@ -24,3 +24,13 @@ test('stops before a projection if quota is at the reserve',async()=>{
  const r=await capture({key:'fixture',clock:()=>now,coverage:()=>{const c=coverage();c.quota.remainingRequests=100;return c;},client:()=>a.fail('request')});
  a.equal(r.projectionAttempts,0);a.equal(r.status,'coverage_or_quota_not_verified');
 });
+test('manual catch-up carries its actual time and cannot be called a 6 AM capture',async()=>{
+ const at='2026-11-27T15:07:00Z';
+ const r=await capture({mode:'manual_now',key:'fixture',clock:()=>at,coverage:()=>({...coverage(),chargedCredits:null}),client:async()=>response(at)});
+ a.equal(r.status,'captured_at_actual_time');a.equal(r.requestedPacificSlot,null);
+ a.equal(r.providerObservesAt,'2026-11-27T15:07:00.000Z');a.equal(r.accepted,1);
+});
+test('manual catch-up diagnoses missing quota without calling projections',async()=>{
+ const r=await capture({mode:'manual_now',key:'fixture',clock:()=>now,coverage:()=>{const x=coverage();x.quota.remainingRequests=null;return x;},client:()=>a.fail('request')});
+ a.equal(r.diagnostic,'request_balance_missing');a.equal(r.projectionAttempts,0);
+});

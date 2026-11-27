@@ -33,6 +33,8 @@ The master roadmap now checks off 22 of 47 tasks. PF-15, PF-20, PF-26, PF-27 and
 
 PrizePicks rows with unconfirmed prices or repeated details remain separate. These are observed PickFinder counts, not first-party, fully resolved or gradeable offers. One soccer partition archived partial progress when the protected morning window began. The manual pass cannot verify the scheduled 6 AM or 9 AM capture.
 
+[The automatic Discord run triggered by the manual capture](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46029956092) confirmed 72 delivered alerts in 12 messages: 24 PrizePicks line-change alerts and 48 Underdog new-prop alerts. There were zero qualified suggestions and zero paid requests. This verifies live delivery to both prop channels, but not an independently scheduled delivery or PrizePicks new-prop detection. The six core sport/book release baselines reported unresolved prior rows, so no core-board new release was inferred from them.
+
 ## Remaining acceptance by task
 
 | Task IDs | Verified scope | Evidence still needed |
@@ -47,7 +49,7 @@ PrizePicks rows with unconfirmed prices or repeated details remain separate. The
 | PF-15 | Premium vs Pro entitlements verified by signed-in web and publisher/platform documentation | Live notification delivery stays under PF-01–03, not this matrix |
 | PF-16, PF-17 | Published source-aware activity report, immutable archive evidence and separate shadow status | Consecutive authentic 06:00 and 09:00 Pacific readbacks, exhaustive category accounting, qualified model intake and website promotion gates |
 | PF-21, PF-22 | Offline engine comparison and existing operational checkpoint timing | Selenium live Premium access; comparable protected one-vs-two worker pilot with no session/coverage regression |
-| PF-32, PF-42 | Project alerts, platform routing probes and genuine Underdog receipts | Genuine scheduled PrizePicks receipt and verified categories without false absences; unpriced alternate tiles never prove price or sides |
+| PF-32, PF-42 | Project alerts, platform routing probes and genuine prop receipts on both routes | Independently scheduled PrizePicks receipt, genuine PrizePicks new-prop evidence and verified categories without false absences; unpriced alternate tiles never prove price or sides |
 | PF-43, PF-46 | Sender abstention and a PickFinder/official-fixture candidate | A fresh original-operator board observation before tip, independently calibrated eligible forecast and same-offer baselines, then official final and genuine suggestion receipt |
 
 Previously verified milestones preserved unchanged: **PF-23–25, PF-30–31, PF-33–41, PF-44–45 and PF-47**. This register does not open new IDs or promote a model.

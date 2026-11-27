@@ -68,6 +68,12 @@ node scripts/audit-project-discord-receipts.cjs . \
 
 This returns counts by platform, sport and event kind, without outputting receipt IDs, proof tokens, player rows or message contents. It cannot verify native push, actual operator availability, excluded or unmodeled events, or the original bookmaker timestamp. Zero confirmations or any unmatched confirmation holds the replay open.
 
+### Nov 27 core-sport follow-through
+
+[Comparison capture](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46062069706) succeeded. Remote digest and source-binding readback verified 28 manifests, including 15,004 priced observations and all six displayed NBA/NHL/NFL traversals. The matched consecutive NHL and NFL PrizePicks boards met exact membership without filling in missing prices or sides. At the end of the [automatic sender run](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46065918810), the production diagnostics recorded 347 NHL and 772 NFL PrizePicks release candidates. NBA remained blocked by repeated links in both traversals.
+
+The pinned sender checkout `b68aad11` and [receipt ledger](https://github.com/Thedarkwillow/nhl-betting-platform1/commit/06c1b6b91d1e1f4f5e5b442be5f2d6a1a285e7ff) replay matched all 72 exact delivery IDs across 125 board manifests. Verified **two NHL PrizePicks new props, one NHL PrizePicks repost and 27 NHL PrizePicks alternate-tier deliveries**. The remaining deliveries were 31 NFL Underdog new props, five NFL Underdog reposts, two tennis PrizePicks new props and four tennis PrizePicks alternates. No NFL PrizePicks delivery verified from this batch. The decision clock was 20:47:52.310 UTC. No model qualifications, first-party app proof, native delivery, or scheduled morning-slot proof. No paid API calls.
+
 ## Remaining acceptance by task
 
 | Task IDs | Verified scope | Evidence still needed |
@@ -82,7 +88,7 @@ This returns counts by platform, sport and event kind, without outputting receip
 | PF-15 | Premium vs Pro entitlements verified by signed-in web and publisher/platform documentation | Live notification delivery stays under PF-01–03, not this matrix |
 | PF-16, PF-17 | Published source-aware activity report, immutable archive evidence and separate shadow status | Consecutive authentic 06:00 and 09:00 Pacific readbacks, exhaustive category accounting, qualified model intake and website promotion gates |
 | PF-21, PF-22 | Offline engine comparison and existing operational checkpoint timing | Selenium live Premium access; comparable protected one-vs-two worker pilot with no session/coverage regression |
-| PF-32 | Project alerts, platform routing probes and genuine prop receipts on both routes. PF-42 split routing is verified. | Independently scheduled PrizePicks receipt, core-sport new-prop coverage and remaining category verification without false absences; unpriced alternate tiles never prove price or sides |
+| PF-32 | Project alerts, platform routing probes and genuine prop receipts on both routes. PF-42 split routing is verified. | Independently scheduled PrizePicks receipt, remaining core-sport new-prop coverage and category verification without false absences. NHL PrizePicks new-prop delivery now verified.; unpriced alternate tiles never prove price or sides |
 | PF-43, PF-46 | Sender abstention and a PickFinder/official-fixture candidate | A fresh original-operator board observation before tip, independently calibrated eligible forecast and same-offer baselines, then official final and genuine suggestion receipt |
 
 Previously verified milestones preserved unchanged: **PF-23–25, PF-30–31, PF-33–41, PF-44–45 and PF-47**. This register does not open new IDs or promote a model.

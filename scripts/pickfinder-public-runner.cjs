@@ -52,11 +52,14 @@ function queue(boards,profiles){
    let cells;try{cells=JSON.parse(f.value);}catch{continue;}
    if(!Array.isArray(cells)||!Number.isFinite(Date.parse(f.observedAt)))continue;
    const n=String(f.scope||'').split(' | ').length,at=Date.parse(f.observedAt);
-   if(n!==cells.length||String(f.scope).endsWith('[header truncated]'))repairs.set(key,Math.max(repairs.get(key)||0,at));
-   else if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&String(f.scope).length>500)aligned.set(key,Math.max(aligned.get(key)||0,at));
+   // Repair each tab/filter/row independently; one repaired table must not
+   // clear a different still-malformed historical table in the same profile.
+   const rowKey=JSON.stringify([key,f.tab??null,f.filterSelection??null,f.metric]);
+   if(n!==cells.length||String(f.scope).endsWith('[header truncated]'))repairs.set(rowKey,{key,at:Math.max(repairs.get(rowKey)?.at||0,at)});
+   else if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&(f.headerLayout==='span-grid-v1'||String(f.scope).length>500))aligned.set(rowKey,Math.max(aligned.get(rowKey)||0,at));
   }
  }
- const repairKeys=new Set([...repairs].filter(([k,at])=>(aligned.get(k)||0)<=at).map(([k])=>k));
+ const repairKeys=new Set([...repairs].filter(([k,v])=>(aligned.get(k)||0)<=v.at).map(([,v])=>v.key));
  for(const k of repairKeys)done.delete(k);
  const q=new Map();let references=0;
  for(const b of boards)for(const o of [...b.offers||[],...b.unpricedTierObservations||[],...(['offers','unpricedTierObservations'].includes(b.field)?b.rows:[])]){
@@ -76,7 +79,7 @@ function publicProfile(row){
  const fields=[];for(const f of row.research||[]){
   // Account screens and unstructured panels are not published. Preserve scoped sporting rows and history.
   if(!['profile','line_movement','prop_history'].includes(f.origin)||!f.metric||/^displayed panel/.test(f.metric))continue;
-  try{fields.push(safe({origin:f.origin,tab:f.tab,scope:f.scope,metric:f.metric,value:f.value,observedAt:f.observedAt,period:f.period??null,mapRange:f.mapRange??null,gameMode:f.gameMode??null,window:f.window??null,filterSelection:f.filterSelection??null}));}catch{}
+  try{fields.push(safe({origin:f.origin,tab:f.tab,scope:f.scope,metric:f.metric,value:f.value,observedAt:f.observedAt,period:f.period??null,mapRange:f.mapRange??null,gameMode:f.gameMode??null,window:f.window??null,filterSelection:f.filterSelection??null,...(f.headerLayout==='span-grid-v1'?{headerLayout:f.headerLayout}:{})}));}catch{}
  }
  return {key:row.key,book:row.book,books:row.books||[row.book],bookCoverageVerified:false,sport:row.sport,player:row.player,market:row.market,eventId:row.eventId,detailId:row.detailId,period:row.period,mapRange:row.mapRange,gameMode:row.gameMode,status:fields.length?'sampled':'empty',coverageVersion:VERSION,truncated:row.profileCollection?.truncated!==false,research:fields,excludedFields:(row.research||[]).length-fields.length,modelInputsApproved:false,originalOffersVerified:false};
 }

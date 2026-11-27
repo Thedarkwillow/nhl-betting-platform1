@@ -64,6 +64,12 @@ test('native historical matching resolves a partial date only with unique player
  assert.equal(matchRow(r,field,make([receipt,other]),clock).reason,'ambiguous_native_game');
  const out=audit([{digest,doc:{records:[{...r,research:[field,field]}]}}],idx,clock);
  assert.equal(out.summary.candidates,2);assert.equal(out.summary.distinctCandidates,1);assert.equal(out.summary.qualifiedCacheEntries,0);assert.equal(out.summary.qualifiedModelInputs,0);
+ const docs=[{digest:'b'.repeat(64),first:clock,doc:{records:[{...r,research:[field]}]}},{digest:'c'.repeat(64),first:observedAt,doc:{records:[{...r,research:[field]}]}}];
+ const earlier=audit(docs,idx,clock),reversed=audit([...docs].reverse(),idx,clock);
+ assert.equal(earlier.summary.distinctCandidates,1);
+ assert.equal([...earlier.rows.values()][0].profileDigest,'c'.repeat(64));
+ assert.equal([...reversed.rows.values()][0].profileDigest,'c'.repeat(64));
+ assert.equal(earlier.summary.qualifiedCacheEntries,0);
 });
 
 test('official NBA dated history corroborates exact game rows without inventing tipoff',()=>{

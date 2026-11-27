@@ -1,14 +1,14 @@
 'use strict';
 // Inspect only static schema, never account values or create, save, export, or submit anything.
 const {verifiedNavigation}=require('./pickfinder-dashboard-research.cjs');
-const routes={builder:['/pick-builder','/builder'],alerts:['/alerts','/line-alerts']};
+const routes={builder:['/pick-builder','/builder'],alerts:['/alerts','/line-alerts','/notifications','/settings/notifications','/settings/alerts','/account/notifications']};
 const labels={builder:/^(?:pick builder|add pick|remove pick|payout|potential payout|correlation|higher|lower|over|under|platform|app|book|sport|market|clear|export|copy|flex|power|entry|lineup|picks|select picks|number of picks)$/i,alerts:/^(?:line alerts?|alerts?|notifications?|board drops?|create alert|new alert|target line|notification|threshold|sport|market|app|book|higher|lower|above|below|email|discord|frequency|line movement|price|direction|condition|player|save|cancel)$/i};
 // Some capabilities live inside a board-side panel rather than a standalone route.
 // Only an exact, visible, non-submit navigation button may be opened. Never click
 // a player star, create alert, export, connect Discord, or any form control.
 async function navigationButton(page,names){
  if(typeof page.locator!=='function')return null; // missing browser capability: fail closed
- const selector='header button,nav button,aside button,header [role=button],nav [role=button],aside [role=button],main button[aria-haspopup],main [role=button][aria-haspopup]';
+ const selector='header button,nav button,aside button,header [role=button],nav [role=button],aside [role=button],main button[aria-haspopup],main [role=button][aria-haspopup],nav [role=tab][aria-controls],aside [role=tab][aria-controls],main [role=tablist] [role=tab][aria-controls],[role=menu] [role=menuitem][aria-haspopup],[role=menu] button[aria-haspopup]';
  const buttons=page.locator(selector);
  const indices=await buttons.evaluateAll((els,names)=>els.flatMap((e,i)=>{
   const norm=x=>String(x||'').trim().replace(/\s+/g,' ').toLowerCase();
@@ -38,23 +38,38 @@ async function featureNavigationHints(page,kind){
 }
 async function inspectTool(page,kind,premium){
  if(!routes[kind])throw Error('unknown capability');
- const names=kind==='builder'?['Pick Builder','Open Pick Builder','Toggle Pick Builder','Show Pick Builder']:['Line Alerts','Alerts','Notifications','Open Alerts','Open Notifications','Open Line Alerts','Notification Settings'];
- const links=[];for(const n of names){const href=await verifiedNavigation(page,n,routes[kind]);if(href)links.push(href);}
- const distinct=[...new Set(links)];
+ const names=kind==='builder'?['Pick Builder','Open Pick Builder','Toggle Pick Builder','Show Pick Builder','Lineup Builder','Build Picks']:['Line Alerts','Alerts','Notifications','Open Alerts','Open Notifications','Open Line Alerts','Notification Settings','Board Drops','Board Drop Notifications'];
+ const findLinks=async()=>{const links=[];for(const n of names){const href=await verifiedNavigation(page,n,routes[kind]);if(href)links.push(href);}return [...new Set(links)];};
+ let distinct=await findLinks();
  if(distinct.length>1)return {state:'navigation_ambiguous',mutations:0};
  let method='visible_link',panel=false;
  if(distinct.length===1){
   await page.goto(distinct[0],{timeout:15000});
  }else{
   if(!await premium(page))return {state:'session_or_route_unverified',mutations:0};
-  const button=await navigationButton(page,names);
+  let button=await navigationButton(page,names);
+  // Notifications may be reachable through the existing authenticated user menu.
+  // Open only the exact navigation menu, never inspect or serialize its account values.
+  // Follow a visible, allowlisted notification link or an explicit submenu opener.
+  if(!button&&kind==='alerts'&&typeof page.getByRole==='function'){
+   const menu=page.getByRole('button',{name:'Open user menu',exact:true});
+   if(await menu.count()===1&&await menu.isVisible()&&await menu.isEnabled()){
+    await menu.click({timeout:3000});
+    distinct=await findLinks();
+    if(distinct.length>1)return {state:'navigation_ambiguous',mutations:0};
+    if(distinct.length===1){await page.goto(distinct[0],{timeout:15000});method='user_menu_link';}
+    else button=await navigationButton(page,names);
+   }
+  }
+  if(method!=='user_menu_link'){
   if(!button)return {state:'navigation_not_verified',navigationHints:await featureNavigationHints(page,kind),mutations:0};
   // Opening the named navigation control is read-only. Do not submit or change settings.
   await button.click({timeout:3000});method='navigation_button';
   try{await page.waitForFunction(({names,paths})=>{
    const norm=s=>String(s||'').trim().replace(/\s+/g,' ').toLowerCase();
-   return paths.includes(location.pathname)||[...document.querySelectorAll('[role=dialog],aside,[role=region]')].some(e=>e.getClientRects().length&&[e.getAttribute('aria-label'),...Array.from(e.querySelectorAll('h1,h2,h3,[role=heading]')).map(h=>h.innerText)].some(t=>names.map(norm).includes(norm(t))));
+   return paths.includes(location.pathname)||[...document.querySelectorAll('[role=dialog],aside,[role=region],[role=tabpanel]')].some(e=>e.getClientRects().length&&[e.getAttribute('aria-label'),document.getElementById(e.getAttribute('aria-labelledby')||'')?.innerText,...Array.from(e.querySelectorAll('h1,h2,h3,[role=heading]')).map(h=>h.innerText)].some(t=>names.map(norm).includes(norm(t))));
   },{names,paths:routes[kind]},{timeout:5000});}catch{return {state:'panel_or_route_unverified',method,mutations:0};}
+  }
  }
  const url=new URL(page.url());
  if(url.origin!=='https://www.pickfinder.app'||!await premium(page))return {state:'session_or_route_unverified',mutations:0};
@@ -66,7 +81,7 @@ async function inspectTool(page,kind,premium){
   const wanted=new RegExp(pattern,flags),visible=e=>e.getClientRects().length>0;
   const norm=s=>String(s||'').trim().replace(/\s+/g,' ').toLowerCase();
   const namesSet=new Set(names.map(norm));
-  const roots=panel?[...document.querySelectorAll('[role=dialog],aside,[role=region]')].filter(e=>visible(e)&&[e.getAttribute('aria-label'),...Array.from(e.querySelectorAll('h1,h2,h3,[role=heading]')).map(h=>h.innerText)].some(t=>namesSet.has(norm(t)))):[...document.querySelectorAll('main')].filter(visible);
+  const roots=panel?[...document.querySelectorAll('[role=dialog],aside,[role=region],[role=tabpanel]')].filter(e=>visible(e)&&[e.getAttribute('aria-label'),document.getElementById(e.getAttribute('aria-labelledby')||'')?.innerText,...Array.from(e.querySelectorAll('h1,h2,h3,[role=heading]')).map(h=>h.innerText)].some(t=>namesSet.has(norm(t)))):[...document.querySelectorAll('main')].filter(visible);
   if(roots.length!==1)return {verified:false,controls:[]};
   const controls=[...roots[0].querySelectorAll('button,label,[role=tab],h1,h2,h3,input,select,[role=switch]')].filter(visible).flatMap(e=>{
    const raw=(e.getAttribute('aria-label')||[...e.labels||[]].map(l=>l.innerText).join(' ')||e.innerText||e.getAttribute('title')||'').trim();

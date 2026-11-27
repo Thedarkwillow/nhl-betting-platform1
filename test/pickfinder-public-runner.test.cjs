@@ -399,3 +399,20 @@ test('Props pagination waits for a new row identity, a stable total, and actual 
  assert.deepEqual(actions,['Next page','Previous page']);assert.equal(out.returnToFirstVerified,true);
  assert.equal(out.fullTraversalVerified,false);assert.equal(out.before.count,2);assert.notEqual(out.before.membersSha256,out.after.membersSha256);
 });
+test('reads an explicitly scoped builder export menu without interacting with picks or export',async()=>{
+ const {inspectTool}=require('../scripts/pickfinder-tool-schema.cjs');
+ const calls=[],page={url:()=> 'https://www.pickfinder.app/props',
+  getByRole:()=>({all:async()=>[],count:async()=>0}),
+  locator:()=>({evaluateAll:async()=>[]}),
+  evaluate:async(_fn,args)=>{
+   calls.push(args);
+   if(args.allowed)return [];
+   if(args.label==='pick builder')return {method:'local_builder_export_menu_visible',
+    controls:[{label:'Export',kind:'button',disabled:false,inputType:null}]};
+   return {verified:false,controls:[]};
+  }};
+ const r=await inspectTool(page,'builder',async()=>true);
+ assert.equal(r.state,'read_only_schema_observed');assert.equal(r.method,'local_builder_export_menu_visible');
+ assert.equal(r.controls[0].label,'Export');assert.equal(r.mutations,0);assert.equal(r.submissionVerified,false);
+ assert.equal(calls.filter(x=>x.label==='pick builder').length,1);
+});

@@ -224,3 +224,54 @@ test('release diagnostics distinguish unresolved prior evidence from an eligible
  a.equal(noChange.releaseBaselines['nba/prizepicks'].releaseCandidates,0);
  a.equal(noChange.events.length,0);
 });
+function withTileMembership(b,tierDetails=[]){
+ const {m,offers}=b.entry;
+ const t=m.lastObservedAt;
+ b.entry.unpricedTierObservations=tierDetails.map(([player,line,tier='goblin'])=>({
+  ...offers[0],player,line,tier,side:null,displayedPrice:null,originalPlatformVerified:false,
+  eligibleForLockedModel:false,observedAt:t,detailId:'/players/nba/'+player+'?prop='+encodeURIComponent('id:points:ev:'+line)
+ }));
+ const distinct=new Set([...offers,...b.entry.unpricedTierObservations].map(o=>o.detailId)).size,n=tierDetails.length;
+ Object.assign(m.health,{appearances:distinct,distinctDetailLinks:distinct,repeatOrUnresolvedLinks:0,
+  unresolvedRows:n,unpricedTierObservations:n,distinctOfferKeys:offers.length,reasons:[],
+  unresolvedEvidence:{legacyNoEvidence:0,bookBadgeMissing:0,tierWithoutExplicitPrice:n,
+   bookBadgeWithoutExplicitPrice:0,ambiguousBookGroup:0,lineMissing:0}});
+ return b;
+}
+test('exact unpriced alternate tiles support observed membership only, without inventing a direction or removal',()=>{
+ const prior=withTileMembership(board('prizepicks',70,[['Alice',2.5]]),[['SeenGoblin',1.5]]);
+ const next=withTileMembership(board('prizepicks',2,[['Alice',2.5],['NewPlayer',3.5]]),[['NewGoblin',1.5]]);
+ const result=compare([prior,next],time);
+ a.equal(result.releaseBaselines['nba/prizepicks'].latest,'eligible');
+ a.deepEqual(result.events.map(x=>x.kind),['new_prop','alternate_tier']);
+ a.match(result.events[1].text,/sides unverified/);
+ a.deepEqual(result.events[1].availableDirections,[]);
+ a.equal(result.events.some(x=>x.kind==='removed_prop'),false);
+});
+test('a missing, repeated, conflicting or mismatched card cannot establish an absence baseline',()=>{
+ for(const mutate of [
+  x=>x.m.health.repeatOrUnresolvedLinks++,
+  x=>x.m.health.unresolvedEvidence.bookBadgeMissing++,
+  x=>x.m.health.distinctDetailLinks++,
+  x=>x.m.health.reasons.push('possible_display_cap_requires_partition_reconciliation'),
+  x=>x.unpricedTierObservations[0].eventId='wrong',
+  x=>x.unpricedTierObservations[0].line=4.5,
+  x=>x.unpricedTierObservations[0].side='Higher',
+  x=>x.unpricedTierObservations[0].detailId+='&prop=conflicting',
+  x=>x.unpricedTierObservations[0].observedAt=iso(time+1),
+  x=>x.unpricedTierObservations[0].detailId='https://example.com'+x.unpricedTierObservations[0].detailId,
+  x=>x.m.health.unresolvedEvidence={tierWithoutExplicitPrice:1},
+  x=>x.unpricedTierObservations.pop()
+ ]){
+  const p=withTileMembership(board('prizepicks',80,[['Alice',2.5]]),[['SeenGoblin',1.5]]);
+  const n=withTileMembership(board('prizepicks',2,[['Alice',2.5],['NewPlayer',3.5]]));
+  mutate(p.entry);
+  a.equal(compare([p,n],time).releaseBaselines['nba/prizepicks'].latest,'prior_unresolved_rows');
+  a.equal(compare([p,n],time).events.some(x=>x.kind==='new_prop'),false);
+ }
+});
+test('a previously displayed line with a passed game start is not a new release if the current row lacks the clock',()=>{
+ const p=board('prizepicks',90,[['Alice',2.5]]),n=board('prizepicks',2,[['Alice',2.5]]);
+ p.entry.offers[0].startAt=iso(time-5*60000);n.entry.offers[0].startAt=null;
+ a.deepEqual(compare([p,n],time).events,[]);
+});

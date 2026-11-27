@@ -2,7 +2,7 @@
 // Inspect only static schema, never account values or create, save, export, or submit anything.
 const {verifiedNavigation}=require('./pickfinder-dashboard-research.cjs');
 const routes={builder:['/pick-builder','/builder'],alerts:['/alerts','/line-alerts','/notifications','/settings/notifications','/settings/alerts','/account/notifications']};
-const labels={builder:/^(?:pick builder|add pick|remove pick|payout|potential payout|correlation|higher|lower|over|under|platform|app|book|sport|market|clear|export|copy|flex|power|entry|lineup|picks|select picks|number of picks)$/i,alerts:/^(?:line alerts?|alerts?|notifications?|board drops?|create alert|new alert|target line|notifications?|threshold|sport|market|app|book|higher|lower|above|below|email|discord|frequency|line movement|price|direction|condition|player|save|cancel)$/i};
+const labels={builder:/^(?:pick builder|add pick|remove pick|payout|potential payout|correlation|higher|lower|over|under|platform|app|book|sport|market|clear|export|copy|flex|power|entry|lineup|picks|select picks|number of picks)$/i,alerts:/^(?:line alerts?|alerts?|notifications?|board drops?|create alert|new alert|target line|notifications?|threshold|sport|market|app|book|higher|lower|above|below|email|discord|frequency|line movement|price|direction|condition|players?|coming soon|\+ev picks|custom filters|save|cancel)$/i};
 // Some capabilities live inside a board-side panel rather than a standalone route.
 // Only an exact, visible, non-submit navigation button may be opened. Never click
 // alert creation, export, Discord connection, or any form control.
@@ -87,6 +87,29 @@ async function openBoardBuilder(page){
  }catch{return {state:'panel_or_route_unverified',method:'prop_star_dialog',mutations:0};}
  finally{await page.keyboard.press('Escape');}
 }
+// A populated builder can render as an ordinary sidebar rather than an
+// ARIA region. Look only for its exact heading and local read-only
+// witnesses. Never click Export, Clear, or any pick control.
+async function readVisibleBuilder(page){
+ try{return await page.evaluate(({label})=>{
+  const norm=s=>String(s||'').trim().replace(/\s+/g,' ').toLowerCase(),visible=e=>!!e.getClientRects().length;
+  const labels=[...document.querySelectorAll('h1,h2,h3,[role=heading],span,p,div')].filter(e=>
+   !e.children.length&&visible(e)&&norm(e.innerText)===label);
+  if(labels.length!==1)return null;
+  let scope=labels[0].parentElement;
+  for(let depth=0;scope&&depth<7&&!['MAIN','BODY','HTML'].includes(scope.tagName);depth++,scope=scope.parentElement){
+   const controls=[...scope.querySelectorAll('button,[role=button]')].filter(visible);
+   const exp=controls.find(e=>/^export(?:\s|$)/i.test(norm(e.getAttribute('aria-label')||e.innerText))&&
+    ['true','menu','dialog'].includes(e.getAttribute('aria-haspopup')));
+   if(exp)return {method:'local_builder_export_menu_visible',controls:[{label:'Export',kind:'button',
+    disabled:!!exp.disabled||exp.getAttribute('aria-disabled')==='true',inputType:null}]};
+   const hint=[...scope.querySelectorAll('p,span,div')].find(e=>!e.children.length&&visible(e)&&
+    /^(?:click|tap) on the star icon to add a\b/i.test(norm(e.innerText)));
+   if(hint)return {method:'local_empty_builder_instruction_visible',controls:[]};
+  }
+  return null;
+ },{label:'pick builder'});}catch{return null;}
+}
 async function inspectTool(page,kind,premium){
  if(!routes[kind])throw Error('unknown capability');
  const names=kind==='builder'?['Pick Builder','Open Pick Builder','Toggle Pick Builder','Show Pick Builder','Lineup Builder','Build Picks']:['Line Alerts','Alerts','Notifications','Open Alerts','Open Notifications','Open Line Alerts','Notification Settings','Board Drops','Board Drop Notifications'];
@@ -129,6 +152,9 @@ async function inspectTool(page,kind,premium){
     }
    }
    if(kind==='builder'&&page.url?.()==='https://www.pickfinder.app/props'){
+    const passive=await readVisibleBuilder(page);
+    if(passive?.method)return {state:passive.controls.length?'read_only_schema_observed':'panel_only_observed',
+     route:'/props',...passive,mutations:0,submissionVerified:false};
     const observed=await openBoardBuilder(page);
     if(observed)return observed;
    }

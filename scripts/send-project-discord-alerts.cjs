@@ -64,17 +64,21 @@ class RouteConfigError extends Error {
   this.route=route;
  }
 }
-function platformDestinations(env){
+const generalEnabled=env=>!!env.PROJECT_DISCORD_CHANNEL_ID;
+function platformDestinations(env,{includeGeneral=generalEnabled(env)}={}){
  const fail=(problem,route)=>{throw new RouteConfigError(problem,route);};
- if(!safeDiscordWebhook(env.PROJECT_DISCORD_WEBHOOK_URL))fail('invalid_general_webhook','general');
- if(!snow(env.PROJECT_DISCORD_GUILD_ID))fail('invalid_guild_id','general');
- if(!snow(env.PROJECT_DISCORD_CHANNEL_ID))fail('invalid_channel_id','general');
- const base=allowDestination(env);
+ const guild=env.PROJECT_DISCORD_GUILD_ID;
+ if(!snow(guild))fail('invalid_guild_id');
  let routes;
  try{routes=jsonConfig(env.PROJECT_DISCORD_PLATFORM_ROUTES,12000);}catch{fail('invalid_routes_json');}
- const all=new Map([['general',base]]), seenChannels=new Set([base.channel]);
+ const all=new Map(),seenChannels=new Set(),hooks=new Set();
  const hookId=url=>new URL(url).pathname.split('/')[3];
- const hooks=new Set([hookId(base.url)]);
+ if(includeGeneral){
+  if(!safeDiscordWebhook(env.PROJECT_DISCORD_WEBHOOK_URL))fail('invalid_general_webhook','general');
+  if(!snow(env.PROJECT_DISCORD_CHANNEL_ID))fail('invalid_channel_id','general');
+  const base=allowDestination(env);
+  all.set('general',base);seenChannels.add(base.channel);hooks.add(hookId(base.url));
+ }
  for(const name of routeNames){
   if(!Object.hasOwn(routes,name))fail('missing_route',name);
   const p=routes[name];
@@ -84,7 +88,7 @@ function platformDestinations(env){
   if(seenChannels.has(p.channelId))fail('duplicate_channel_id',name);
   if(hooks.has(hookId(p.webhookUrl)))fail('duplicate_webhook',name);
   seenChannels.add(p.channelId);hooks.add(hookId(p.webhookUrl));
-  all.set(name,{url:p.webhookUrl,channel:p.channelId,guild:base.guild});
+  all.set(name,{url:p.webhookUrl,channel:p.channelId,guild});
  }
  if(Object.keys(routes).length!==routeNames.length)fail('unrecognized_route_keys');
  return all;
@@ -102,7 +106,7 @@ function deliveryBatches(events,env){
   const destinations=platformDestinations(env), groups=new Map();
   for(const e of events){
    const route=platformRoute(e);
-   if(!route)continue;
+   if(!destinations.has(route))continue;
    if(!groups.has(route))groups.set(route,{route,destination:destinations.get(route),events:[]});
    groups.get(route).events.push(e);
   }
@@ -139,8 +143,9 @@ async function dispatch(events,{env,mode,runKey,now,ledger,client=fetch}){
  const split=mode==='deliver'&&splitEnabled(env);
  if(split&&!env.PROJECT_DISCORD_PLATFORM_ROUTES)return {status:'routes_unconfigured',delivered:0};
  if(mode!=='test')events=events.filter(filterConfig(env.PROJECT_DISCORD_FILTERS)).filter(e=>e.kind!=='suggestion'||isQualifiedSuggestion(e));
- if(mode==='deliver')events=events.filter(e=>split?platformRoute(e):!['suggestion','collection_status'].includes(e.kind));
+ if(mode==='deliver')events=events.filter(e=>split?(platformRoute(e)&&(!systemKinds.has(e.kind)||generalEnabled(env))):!['suggestion','collection_status'].includes(e.kind));
  if(mode==='preview'||mode==='deliver'&&env.PROJECT_DISCORD_ALERTS_ENABLED!=='1')return {status:'preview',candidates:events.length,delivered:0};
+ if((mode==='test'||mode==='deliver'&&!split)&&!generalEnabled(env))return {status:'general_disabled',delivered:0};
  if(mode==='test'){
   if(!/^\d+$/.test(runKey))throw Error('run reference');
   events=[{id:hash('channel test '+runKey),kind:'research_update',text:'Channel setup test. No live offer or prediction.'}];
@@ -186,7 +191,7 @@ async function testRoutes(env,runKey,ctx){
  if(!/^\d+$/.test(runKey))throw Error('run reference');
  const results={};
  let delivered=0;
- for(const [route,destination] of platformDestinations(env)){
+ for(const [route,destination] of platformDestinations(env,{includeGeneral:false})){
   const event={id:hash('platform route test '+route+' '+runKey),kind:'research_update',
    text:'Route setup test for #'+route+'. No live offer or prediction.'};
   try{
@@ -238,7 +243,7 @@ async function main(){
   // Only read an approved public artifact from the checked-out commit, never a local untracked file.
   const tracked=git(root,['ls-tree','--name-only','HEAD','data/'+filename]).trim();
   if(tracked)r.events.push(...buildSuggestions(report(filename),now));
-  if(mode==='deliver'&&splitEnabled(process.env))r.events.push(...collectionStatus(report('pickfinder-public-activity.json'),now));
+  if(mode==='deliver'&&splitEnabled(process.env)&&generalEnabled(process.env))r.events.push(...collectionStatus(report('pickfinder-public-activity.json'),now));
  }
  const categories={};for(const e of r.events)categories[e.kind]=(categories[e.kind]||0)+1;
  const outcome=await dispatch(r.events,{env:process.env,mode,runKey:process.env.GITHUB_RUN_ID,now,ledger:gitLedger(root)});

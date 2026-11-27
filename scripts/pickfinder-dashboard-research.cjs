@@ -117,6 +117,34 @@ async function traverseDashboard(page,name,{shouldContinue=()=>true,onSnapshot=a
  }
  return {pages,state,completePageSequenceVerified:state==='explicit_last_page_observed',filtersExhausted:false,allDashboardDataVerified:false};
 }
+// Diagnostic only: distinguish absent controls, portals outside main, and
+// controls that lack a safe semantic link. Never publish account text or values.
+async function dashboardControlDiagnostics(page,name){
+ const u=new URL(page.url());
+ if(u.origin!=='https://www.pickfinder.app'||!dashboardRoutes(name).includes(u.pathname))throw Error('dashboard diagnostics route');
+ return page.evaluate(allowed=>{
+  const norm=x=>String(x||'').trim().toLowerCase().replace(/\s+/g,' ');
+  const visible=e=>e.getClientRects().length>0;
+  const headers=document.querySelectorAll('main,[role=main]').length;
+  const focusables=[...document.querySelectorAll('select,[role=combobox],button,[role=button],th[aria-sort],a[rel=next]')];
+  const controls={visibleNativeSelects:0,visibleComboboxes:0,linkedListboxTriggers:0,unlinkedListboxTriggers:0,
+   visibleAllowedLabels:0,allowedOutsideMain:0,visibleSortHeaders:0,visiblePagingActions:0};
+  const found=new Set();
+  for(const e of focusables.filter(visible)){
+   const linked=(e.getAttribute('aria-labelledby')||'').split(/\s+/).map(id=>document.getElementById(id)?.innerText||'').join(' ');
+   const label=norm(e.getAttribute('aria-label')||linked.trim()||e.getAttribute('title')||e.innerText||'');
+   const allowedLabel=allowed.includes(label)||/^(?:sort by|next|previous) (?:page|date|time|line|hit rate|odds)$/.test(label);
+   if(e.tagName==='SELECT')controls.visibleNativeSelects++;
+   const box=e.getAttribute('role')==='combobox'||e.getAttribute('aria-haspopup')==='listbox';
+   if(e.getAttribute('role')==='combobox')controls.visibleComboboxes++;
+   if(box)controls[e.getAttribute('aria-controls')?'linkedListboxTriggers':'unlinkedListboxTriggers']++;
+   if(e.hasAttribute('aria-sort'))controls.visibleSortHeaders++;
+   if(/^(?:next|previous) page$/.test(label)||e.getAttribute('rel')==='next')controls.visiblePagingActions++;
+   if(allowedLabel){controls.visibleAllowedLabels++;found.add(label);if(!e.closest('main,[role=main]'))controls.allowedOutsideMain++;}
+  }
+  return {mainLandmarks:headers,controls,visibleAllowlistedLabels:[...found].sort()};
+ },filterLabels);
+}
 // Read only capability labels; never capture account-specific form values or click submit.
 async function inspectCapabilities(page){
  return page.evaluate(()=>{
@@ -221,4 +249,4 @@ async function traverseDashboardFilters(page,name,{shouldContinue=()=>true,onSna
  return {...defaultTraversal,filterAudit,customFilterAudit:{maxEligibleControls,issues:[...issues]},
   selectionStats,filtersExhausted:false,allDashboardDataVerified:false};
 }
-module.exports={dashboardRoutes,captureGameDialogs,captureDashboard,traverseDashboard,traverseDashboardFilters,inspectCapabilities,verifiedNavigation,dashboardState,readyDashboard,pageMarker,verifyDashboardSequence,dashboardSequenceSchema,dashboardFilterKind};
+module.exports={dashboardRoutes,captureGameDialogs,captureDashboard,traverseDashboard,traverseDashboardFilters,dashboardControlDiagnostics,inspectCapabilities,verifiedNavigation,dashboardState,readyDashboard,pageMarker,verifyDashboardSequence,dashboardSequenceSchema,dashboardFilterKind};

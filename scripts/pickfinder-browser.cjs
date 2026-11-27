@@ -67,7 +67,12 @@ function readBoard({book, code, sport, observedAt}) {
         const quoteTime=quoteTimes.length===1&&/^(?:sportsbook )?quote (?:time|updated at)$/i.test(
           (quoteTimes[0].getAttribute('aria-label')||quoteTimes[0].getAttribute('title')||'').trim())?
           quoteTimes[0].getAttribute('datetime'):null;
-        const inlinePair=prices.length===2&&prices[0].side!==prices[1].side&&prices[0].quoteLine!==null&&prices[0].quoteLine===prices[1].quoteLine;
+        const literalBlock=normalizeOdds(display),inlineThresholds=[...new Set([...literalBlock.matchAll(
+         /\b(?:sportsbook\s+)?(?:line|threshold)(?:\s*[:=]\s*|\s+)(\d+(?:\.\d+)?)(?=\s|[,;)]|$)/gi)].map(m=>Number(m[1])))];
+        const inlineClockLine=inlineThresholds.length===1?inlineThresholds[0]:null;
+        const inlinePair=inlineThresholds.length<=1&&prices.length===2&&prices[0].side!==prices[1].side&&
+         (prices[0].quoteLine??inlineClockLine)!==null&&(prices[0].quoteLine??inlineClockLine)===(prices[1].quoteLine??inlineClockLine)&&
+         (inlineClockLine===null||prices.every(p=>p.quoteLine===null||p.quoteLine===inlineClockLine));
         const local=[group,...group.querySelectorAll('[aria-label],[title],[aria-describedby]')];
         // Only a visible tooltip explicitly associated with this isolated book
         // and explicitly naming it may contribute. Never use the fantasy line,

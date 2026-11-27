@@ -14,13 +14,13 @@ function select(archive,at){
  }
  return out;
 }
-function selectProfiles(documents,prior,at){
+function selectProfiles(documents,prior,at,{expanded=false}={}){
  const end=Date.parse(at),groups=new Map(),out=[];
  if(!Number.isFinite(end))return out;
  for(const d of prior.filter(x=>x.schema==='pickfinder-controlled-clock-v1'))for(const r of d.records||[]){
   if(!r.routeVerified||!r.playerLabelVerified||!r.localMatchup||!ZONES.includes(r.requestedZone)||
      r.browserClock?.zone!==r.requestedZone||Date.parse(r.observedAt)>end)continue;
-  const k=r.sport+'/'+r.eventId,z=groups.get(k)||new Set();z.add(r.requestedZone);groups.set(k,z);
+  const k=r.sport+'/'+r.eventId,a=groups.get(k)||new Map(),z=a.get(r.detailId)||new Set();z.add(r.requestedZone);a.set(r.detailId,z);groups.set(k,a);
  }
  const latest=new Map();
  for(const d of documents)for(const r of d.records||[]){
@@ -28,10 +28,14 @@ function selectProfiles(documents,prior,at){
   if(!t||!Number.isFinite(when)||when>end||end-when>3*3600000||c?.conflictingClock||c?.startAt||
      !c?.displayedMatchupLabel||!c.displayedLocalMatchup)continue;
   const key=t.sport+'/'+t.eventId;
-  if(groups.get(key)?.size===ZONES.length)continue;
+  if([...groups.get(key)?.values()||[]].some(z=>z.size===ZONES.length))continue;
   const prev=latest.get(key);if(!prev||prev.when<when)latest.set(key,{...t,when});
  }
- for(const sport of SPORTS){const t=[...latest.values()].filter(x=>x.sport===sport).sort((a,b)=>b.when-a.when)[0];if(t){const {when,...target}=t;out.push(target);}}
+ const order=expanded?[...SPORTS,'college-basketball','college-football','wnba','mlb']:SPORTS;
+ const batches=order.map(sport=>[...latest.values()].filter(x=>x.sport===sport).sort((a,b)=>b.when-a.when));
+ for(let wave=0;wave<(expanded?2:1);wave++)for(let i=0;i<batches.length&&out.length<8;i++){
+  const t=wave===1&&i>=SPORTS.length?null:batches[i][wave];if(t){const {when,...target}=t;out.push(target);}
+ }
  return out;
 }
 function clockAt(startAt,zone){

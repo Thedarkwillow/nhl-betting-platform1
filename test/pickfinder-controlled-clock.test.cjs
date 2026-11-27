@@ -47,3 +47,15 @@ test('game-clock targets are recent exact profiles, at most one event per suppor
   browserClock:{zone:requestedZone},routeVerified:true,playerLabelVerified:true,localMatchup:{},observedAt}))}];
  a.deepEqual(selectProfiles([{records:[old,row('nba','already'),row('nba','a'),row('nba','b'),row('nhl','c'),row('cs2','d')]}],prior,at).map(x=>x.eventId),['a','c']);
 });
+
+test('expanded clock sampling prioritizes core sports, includes roster-backed leagues, and stays bounded',()=>{
+ const clock='2026-11-27T08:30:00Z',sports=['nba','nhl','nfl','college-basketball','college-football','wnba','mlb','soccer'];
+ const rows=sports.flatMap(sport=>Array.from({length:3},(_,i)=>({sport,player:'Example',eventId:sport+i,market:'points',
+  detailId:'/players/'+sport+'/a?prop=x:points:'+sport+i+':2',independentReconciliationContext:
+   {observedAt:clock,displayedMatchupLabel:'AAA @ BBB • Fri @ 5:00PM',displayedLocalMatchup:{team:'AAA',opponent:'BBB'}}})));
+ const {selectProfiles}=require('../scripts/pickfinder-controlled-clock.cjs');
+ const x=selectProfiles([{records:rows}],[],clock,{expanded:true});
+ a.equal(x.length,8);
+ a.deepEqual(x.slice(0,5).map(t=>t.sport),sports.slice(0,5));
+ a.ok(!x.some(t=>t.sport==='soccer'));
+});

@@ -36,13 +36,17 @@ const validProof=(d,pattern)=>Array.isArray(d.proofs)&&d.proofs.some(p=>typeof p
 function build({facts,nhlFinals,nflSeasons,archive,clock,revision}){
  const at=dt(clock),scopes=[],identityScopes=[],status={};
  if(!Number.isFinite(at)||!rev(revision)||archive.invalid.length)throw Error('context_archive');
- for(const sport of ['NBA','NHL','NFL']){
+ const core=['NBA','NHL','NFL'];
+ const leagues={NBA:'basketball/nba',NFL:'football/nfl',MLB:'baseball/mlb',WNBA:'basketball/wnba',
+  'COLLEGE-BASKETBALL':'basketball/mens-college-basketball','COLLEGE-FOOTBALL':'football/college-football'};
+ const espn='https://site.api.espn.com/apis/site/v2/sports/';
+ for(const sport of [...core,'COLLEGE-BASKETBALL','COLLEGE-FOOTBALL','WNBA','MLB']){
   const lower=sport.toLowerCase(),expected=sport==='NHL'?'nhl:official':'espn:'+lower;
   const f=newest(facts.filter(x=>x.doc.sport===lower&&x.doc.source===expected));
   const games=f?.doc.events||[],roster=f?.doc.roster||[];
   const st=status[sport]={nativeFacts:!!f,sourceObservedAt:f?.doc.observedAt??null,upcomingGames:games.filter(g=>g.status==='pre'&&dt(g.startAt)>at+900000).length,rosterPlayers:roster.length,eligibleContextScopes:0,reason:'missing_or_stale_native_facts'};
   if(!f||!fresh(f.doc.observedAt,at,3600000))continue;
-  if(!validProof(f.doc,sport==='NHL'?/^https:\/\/api-web\.nhle\.com\/v1\/schedule\//:sport==='NBA'?/^https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\/basketball\/nba\/scoreboard\?/:/^https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\/football\/nfl\/scoreboard\?/))continue;
+  if(!validProof(f.doc,sport==='NHL'?/^https:\/\/api-web\.nhle\.com\/v1\/schedule\//:{test:u=>u.startsWith(espn+leagues[sport]+'/scoreboard?')}))continue;
   st.reason='no_verified_prior_history';
   const seasonDocs=[2024,2025,2026].map(y=>newest(nflSeasons.filter(x=>x.doc.season===y))).filter(Boolean);
   const current=newest(seasonDocs.filter(x=>x.doc.season===2026));
@@ -51,10 +55,10 @@ function build({facts,nhlFinals,nflSeasons,archive,clock,revision}){
    for(const p of roster.filter(p=>g.teams.some(t=>t.id===p.teamId)&&p.name&&p.playerId)){
     const own=g.teams.find(t=>t.id===p.teamId),opp=g.teams.find(t=>t.id!==p.teamId);
     if(p.team!==own.abbr||roster.filter(x=>x.teamId===p.teamId&&name(x.name)===name(p.name)).length!==1)continue;
-    if(!f.doc.proofs.some(q=>q.teamId===p.teamId&&hash(q.digest)&&fresh(q.observedAt,dt(f.doc.observedAt),3600000)&&typeof q.url==='string'&&(sport==='NHL'?q.url.startsWith('https://api-web.nhle.com/v1/roster/'+p.teamId+'/'):q.url==='https://site.api.espn.com/apis/site/v2/sports/'+(sport==='NBA'?'basketball/nba':'football/nfl')+'/teams/'+p.teamId+'/roster')))continue;
+    if(!f.doc.proofs.some(q=>q.teamId===p.teamId&&hash(q.digest)&&fresh(q.observedAt,dt(f.doc.observedAt),3600000)&&typeof q.url==='string'&&(sport==='NHL'?q.url.startsWith('https://api-web.nhle.com/v1/roster/'+p.teamId+'/'):q.url===espn+leagues[sport]+'/teams/'+p.teamId+'/roster')))continue;
     const identity=baseScope(sport,f,[],g,p,opp.abbr,clock);
     if(identity)identityScopes.push({...identity,evidenceKind:'automated_native_schedule_roster_only',nativeNamespace:expected,homeAway:own.homeAway??null,historyVerified:false});
-    if(sport==='NBA')continue;
+    if(sport==='NBA'||!core.includes(sport))continue;
     if(sport==='NHL'){
      if(!/^\d+$/.test(p.playerId)||p.position==='G')continue; // no starting-goalie evidence
      const hist=[],used=[];

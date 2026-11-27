@@ -44,7 +44,7 @@ function build(archive,clock,{cacheSummary=null,researchCoverage=null,grading=nu
   const fresh=current?(a.freshOfferCount??freshOffers(offers,sport,book,at)):0;
   readiness[k]={observedAt:a?.m.lastObservedAt??null,ageMs:age,boardState:x?.event.state??'unknown',freshCompleteBoard:current,observedOffers:countOffers(a),freshClockScopedOffers:fresh,reason:invalid?'invalid_archive':!a?'no_observation':!current?'fresh_complete_populated_board_missing':!fresh?'exact_pregame_source_clock_missing':'independent_identity_and_result_validation_required'};
  }
- return {kind:'public_pickfinder_activity_readiness_v1',generatedAt:clock,archiveInvalid:invalid,events:[...events.values()].sort((a,b)=>dt(b.observedAt)-dt(a.observedAt)||a.id.localeCompare(b.id)).slice(0,100),readiness,cache:cacheSummary,coverage:researchCoverage,grading,delivery:{website:'public_derived_activity',nativePickFinder:'unverified',discord:'destination_not_configured',nativeMobile:'unverified'},paidRequests:0,originalPlatformVerified:false,modelApproved:false};
+ return {kind:'public_pickfinder_activity_readiness_v1',generatedAt:clock,archiveInvalid:invalid,events:[...events.values()].sort((a,b)=>dt(b.observedAt)-dt(a.observedAt)||a.id.localeCompare(b.id)).slice(0,100),readiness,cache:cacheSummary,coverage:researchCoverage,grading,delivery:{website:'public_derived_activity',nativePickFinder:'unverified',discord:'not_measured_by_board_report',nativeMobile:'unverified'},paidRequests:0,originalPlatformVerified:false,modelApproved:false};
 }
 function run(root,clock=new Date().toISOString()){
  const manifests=[];

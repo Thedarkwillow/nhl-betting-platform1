@@ -240,8 +240,23 @@ function run(root,clock=new Date().toISOString()){
  durable.reviewedStatIdentities=require('./pickfinder-stat-identity-crosswalk.cjs').reviewedStatIdentities(known,durable,clock);
  durable.players.push(...durable.statisticalCrosswalks.map(x=>({...x,receiptDigest:x.crosswalkReceiptDigest})));
  const result=build(profiles,facts,reviews,read('pickfinder-public-research-directory.json'),read('pickfinder-public-research-tables.json'),{clock,revision,finals,known,durable});
- const audit=require('./pickfinder-native-history-reconciliation.cjs').fromArchive(root,profileDocuments,clock,undefined,{expandCurrentNhlLogs:true,expandCurrentNbaLogs:true,expandCurrentNflLogs:true});
+ const native=require('./pickfinder-native-history-reconciliation.cjs'),index=native.indexFromArchive(root,clock);
+ const audit=native.fromArchive(root,profileDocuments,clock,index,{expandCurrentNhlLogs:true,expandCurrentNbaLogs:true,expandCurrentNflLogs:true});
  result.qualifiedShadowStatistics=require('./pickfinder-durable-identities.cjs').qualifyResearch(audit.cache,durable,clock);
+ const goalkeeper=require('./pickfinder-goalie-overview.cjs'),goalieDocs=[];
+ for(const {doc,digest} of iterate(root,'capabilities',revision,{includeDigest:true})){
+  if(doc.schema!==goalkeeper.schema)continue;
+  const first=firstCommit('capabilities',digest);if(first)goalieDocs.push({doc,digest,first});
+ }
+ const {statistics:goalieStats,...goalieAudit}=goalkeeper.reconcile(goalieDocs,index,facts,finals,durable,clock);
+ const qualified=new Map(result.qualifiedShadowStatistics.map(x=>[key(x.sport,x.playerId,x.eventId,x.market),x])), conflicts=new Set();
+ for(const x of goalieStats){
+  const k=key(x.sport,x.playerId,x.eventId,x.market),prior=qualified.get(k);
+  if(prior&&prior.value!==x.value)conflicts.add(k);
+  else if(!prior||date(x.availableAt)<date(prior.availableAt))qualified.set(k,x);
+ }
+ for(const k of conflicts)qualified.delete(k);
+ result.qualifiedShadowStatistics=[...qualified.values()];
  result.statisticalCrosswalks=durable.statisticalCrosswalks;
  result.reviewedStatIdentities=durable.reviewedStatIdentities;
  const qualifiedBySportMarket={};
@@ -251,6 +266,7 @@ function run(root,clock=new Date().toISOString()){
  }
  result.statisticalResearchAudit={
   qualifiedBySportMarket,
+  goalieOverview:{...goalieAudit,candidateFacts:goalieStats.length,conflicts:conflicts.size},
   ...audit.summary,
   currentScopesReplayed:profiles.length,archivedProfileReceipts:profileDocuments.length,
   separateEventIdentityGate:true,requiresOriginalOperatorOfferId:false,

@@ -1,0 +1,48 @@
+name: PrizePicksAPI full NBA NHL NFL boards
+on:
+  pull_request:
+    paths: ['.github/workflows/prizepicks-full-board.yml', 'scripts/prizepicks-full-board.cjs', 'test/prizepicks-full-board.test.cjs']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/prizepicks-full-board.yml']
+  workflow_dispatch:
+    inputs:
+      approve_requests:
+        description: 'Use up to 36 existing request-plan units, preserve a reserve of 100, and honor the November lock. Default is free coverage only.'
+        required: true
+        default: false
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('prizepicks-full-board-ci-{0}', github.event.pull_request.number) || 'prizepicks-full-board' }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/prizepicks-full-board.test.cjs test/prizepicks-nba-0600-20261127.test.cjs test/esports-zero-credit-coverage.test.cjs test/prizepicksapi-november-quota-lock.test.cjs
+  capture:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Inspect coverage or run manually approved request-plan capture
+        env:
+          APPROVE_PRIZEPICKS_REQUESTS: ${{ inputs.approve_requests }}
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+        run: node scripts/prizepicks-full-board.cjs "$RUNNER_TEMP/prizepicks-full-board-receipt.json"
+      - name: Upload counts-only receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prizepicks-full-board-counts
+          path: ${{ runner.temp }}/prizepicks-full-board-receipt.json
+          if-no-files-found: error

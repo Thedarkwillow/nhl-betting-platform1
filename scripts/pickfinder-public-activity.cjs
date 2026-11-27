@@ -8,7 +8,6 @@ const {history,gradingQueue}=require('./pickfinder-public-model-validation.cjs')
 const {run:archiveAudit}=require('./pickfinder-archived-model-inputs.cjs');
 const dt=Date.parse,valid=x=>Number.isFinite(dt(x)),digest=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 const sports=new Set(['nba','nhl','nfl','cs2','dota2','valorant','lol','cod','mlb','wnba','college-football','college-basketball','tennis','soccer']);
-const core=['nba','nhl','nfl','cs2','dota2','valorant','lol','cod'];
 const books=new Set(['prizepicks','underdog']);
 function usable(a,at){
  return a&&digest(a.digest)&&sports.has(a.m?.sport)&&books.has(a.m?.book)&&valid(a.m.lastObservedAt)&&valid(a.first)&&dt(a.m.lastObservedAt)<=at&&dt(a.first)<=at&&dt(a.m.lastObservedAt)<=dt(a.first)+999;
@@ -18,9 +17,19 @@ function freshOffers(offers,sport,book,at){
  for(const o of offers)if(o.sport===sport&&o.book===book&&valid(o.observedAt)&&dt(o.observedAt)<=at&&at-dt(o.observedAt)<=15*60000&&valid(o.startAt)&&dt(o.startAt)>at+900000&&o.detailId&&o.eventId&&o.player&&Number.isFinite(o.line)&&['Higher','Lower'].includes(o.side))n++;
  return n;
 }
+function membershipState(m){
+ if(m.authenticated!==true)return 'authentication_unproven';
+ if(m.pageTraversalComplete!==true||m.lastPageReached!==true)return 'incomplete_traversal';
+ const h=m.health;
+ if(!h||!Array.isArray(h.reasons)||![h.repeatOrUnresolvedLinks,h.unresolvedRows,h.wrongSport,h.priceConflictKeys]
+  .every(x=>Number.isSafeInteger(x)&&x>=0))return 'membership_accounting_missing';
+ if(h.reasons.includes('possible_display_cap_requires_partition_reconciliation'))return 'possible_display_cap';
+ if(h.repeatOrUnresolvedLinks||h.unresolvedRows||h.wrongSport||h.priceConflictKeys)return 'membership_unproven';
+ return 'no_detected_membership_gaps';
+}
 function summarizeBoard({digest,m,first,offers},clock){
  const {sport,book,lastObservedAt,boardState,slot,pageTraversalComplete}=m;
- return {digest,m:{sport,book,lastObservedAt,boardState,slot,pageTraversalComplete},first,offerCount:offers.length,
+ return {digest,m:{sport,book,lastObservedAt,boardState,slot,pageTraversalComplete},first,membership:membershipState(m),offerCount:offers.length,
   freshOfferCount:freshOffers(offers,sport,book,dt(clock))};
 }
 const countOffers=b=>b?.offerCount??(Array.isArray(b?.offers)?b.offers.length:0);
@@ -37,12 +46,14 @@ function build(archive,clock,{cacheSummary=null,researchCoverage=null,grading=nu
   latest.set(k,{a,event});
  }
  const readiness={};
- for(const sport of core)for(const book of books){
+ for(const sport of sports)for(const book of books){
   const k=sport+'/'+book,x=latest.get(k),a=x?.a,offers=a?.offers||[];
   const age=a?Math.max(0,at-dt(a.m.lastObservedAt)):null;
-  const current=!!a&&age<=15*60000&&a.m.boardState==='populated'&&a.m.pageTraversalComplete===true;
+  const freshTraversal=!!a&&age<=15*60000&&a.m.boardState==='populated'&&a.m.pageTraversalComplete===true;
+  const membership=a?(a.membership??membershipState(a.m)):null;
+  const current=freshTraversal&&membership==='no_detected_membership_gaps';
   const fresh=current?(a.freshOfferCount??freshOffers(offers,sport,book,at)):0;
-  readiness[k]={observedAt:a?.m.lastObservedAt??null,ageMs:age,boardState:x?.event.state??'unknown',freshCompleteBoard:current,observedOffers:countOffers(a),freshClockScopedOffers:fresh,reason:invalid?'invalid_archive':!a?'no_observation':!current?'fresh_complete_populated_board_missing':!fresh?'exact_pregame_source_clock_missing':'independent_identity_and_result_validation_required'};
+  readiness[k]={observedAt:a?.m.lastObservedAt??null,ageMs:age,boardState:x?.event.state??'unknown',freshCompleteBoard:current,freshTraversal,membership,originalBoardCompletenessVerified:false,observedOffers:countOffers(a),freshClockScopedOffers:fresh,reason:invalid?'invalid_archive':!a?'no_observation':!freshTraversal?'fresh_complete_populated_board_missing':!current?membership:!fresh?'exact_pregame_source_clock_missing':'independent_identity_and_result_validation_required'};
  }
  return {kind:'public_pickfinder_activity_readiness_v1',generatedAt:clock,archiveInvalid:invalid,events:[...events.values()].sort((a,b)=>dt(b.observedAt)-dt(a.observedAt)||a.id.localeCompare(b.id)).slice(0,100),readiness,cache:cacheSummary,coverage:researchCoverage,grading,delivery:{website:'public_derived_activity',nativePickFinder:'unverified',discord:'not_measured_by_board_report',nativeMobile:'unverified'},paidRequests:0,originalPlatformVerified:false,modelApproved:false};
 }

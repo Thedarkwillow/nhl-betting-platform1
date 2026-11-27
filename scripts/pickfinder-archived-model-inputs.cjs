@@ -19,10 +19,11 @@ function classify(f){
  return 'other_profile';
 }
 const {profileMarketEvidence,summarize}=require('./pickfinder-profile-market-evidence.cjs');
-function auditProfiles(documents,clock){
+function auditProfiles(documents,clock,historyAudit=null){
  const profileEvidence=new Map();
  const bySport={},cache=new Map();let records=0,fields=0,invalid=0;
  for(const {doc,digest,first} of documents)for(const r of doc.records||[]){
+  historyAudit?.observeFormulaProfile(r,digest,doc.observedAt,first);
   records++;const a=bySport[r.sport]??={records:0,fields:0,observed:{},cacheCandidates:0};a.records++;
   for(const f of r.research||[]){fields++;a.fields++;
    if(!valid(f.observedAt)||dt(f.observedAt)>dt(clock)){invalid++;continue;}
@@ -167,12 +168,14 @@ function shadowHistoryJoin(index,scopes,clock){
 }
 function run(root,clock=new Date().toISOString(),{packetPath=null,onBoard=null}={}){
  const index=nativeHistory.indexFromArchive(root,clock);
- const p=auditProfiles(committedProfiles(root),clock);
+ const historyAudit=packetPath?createLayoutAudit(clock):null;
+ const p=auditProfiles(committedProfiles(root),clock,historyAudit);
  const model=require('./pickfinder-reviewed-history-model.cjs'),archive={manifests:[],latest:[],invalid:[]};
  function* inputs(){
   for(const {entry,invalidDigest} of walkBoards(root)){
    if(!entry){archive.invalid.push(invalidDigest);continue;}
    if(onBoard)onBoard(entry);
+   historyAudit?.observeFormulaBoard(entry);
    const offers=model.pregameBoardOffers(entry);
    // This replay needs only source-clock-eligible offers and their exact metadata.
    // Keep no rows from unrelated board partitions in the working set.
@@ -189,7 +192,7 @@ function run(root,clock=new Date().toISOString(),{packetPath=null,onBoard=null}=
  const series=reconcileSeries(esportsReviewQueue(b.history),clock);
  let nbaLegacyLayoutRecovery;
  if(packetPath){
-  const revision=archiveRevision(root),historyAudit=createLayoutAudit(clock);
+  const revision=archiveRevision(root);
   require('./pickfinder-public-runner.cjs').queue([],iterate(root,'profiles',revision,{includeDigest:true}),{historyAudit});
   const recovery=historyAudit.run(index);
   nbaLegacyLayoutRecovery={archiveRevision:revision,...recovery.summary};

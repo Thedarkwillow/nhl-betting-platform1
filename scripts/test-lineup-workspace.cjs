@@ -125,4 +125,14 @@ assert.equal(riskSame.correlationCoefficientVerified,false);
 assert.equal(W.structuralRisk([prop(42)],at+31*60000).status,"source_expired_or_invalid");
 assert.equal(W.structuralRisk([],at).status,"unavailable");
 
+assert.deepEqual(W.oneRemovalShape(pool.slice(0,2),0,"power"),{prizePicks:"Refund case",underdog:"Refund case"});
+assert.deepEqual(W.oneRemovalShape(pool.slice(0,2),0,"flex"),{prizePicks:"Refund case",underdog:"Not offered"});
+assert.deepEqual(W.oneRemovalShape(pool.slice(0,3),0,"flex"),{prizePicks:"2-pick Power",underdog:"2-pick Standard"});
+for(let n=4;n<=6;n++)assert.deepEqual(W.oneRemovalShape(pool.slice(0,n),0,"flex"),
+ {prizePicks:`${n-1}-pick Flex`,underdog:`${n-1}-pick Flex`});
+assert.deepEqual(W.oneRemovalShape([pool[0],pool[1],{...pool[2],team:pool[1].team.toLowerCase()}],0,"power"),
+ {prizePicks:"Refund case",underdog:"Refund case"});
+assert.equal(W.oneRemovalShape([pool[0],{...pool[1],team:""}],0,"power"),null);
+assert.equal(W.oneRemovalShape(pool.slice(0,4),4,"power"),null);
+
 console.log("NHL interactive workspace: 2–6 picks, source age, watchlists, tiers, games, locks, swaps and exclusions verified");

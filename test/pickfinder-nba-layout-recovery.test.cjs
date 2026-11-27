@@ -56,3 +56,37 @@ test('full-game NBA TO resolves to independent turnovers without consuming a per
   assert.equal(audit.run(source).rows[0].value,3);
   assert.equal(audit.run(source).rows[0].retrospectiveOnly,true);
 });
+
+test('legacy fantasy rows need two exact bracketing book boards and a later singleton profile',()=>{
+ const scope=header.replace('Archive statistic number 0','FP');
+ const row={...field,scope:scope.slice(0,500)};
+ const values=JSON.parse(row.value);values[8].value='31.60';row.value=JSON.stringify(values);
+ const athlete={...make('Athlete'),book:'prizepicks',eventId:'ev1',market:'player_fantasy_score_all_',
+  detailId:'/players/nba/athlete?prop=abc%3Aplayer_fantasy_score_all_%3Aev1%3A24'};
+ const game=index.byPlayer.get(JSON.stringify(['nba','4']))[0];
+ const exact={...index,byPlayer:new Map([[JSON.stringify(['nba','4']),[{...game,stats:{prizePicksFantasyScore:31.6}}]]])};
+ const start='2026-11-25T23:59:00Z',end='2026-11-26T00:01:00Z';
+ const audit=()=>{const a=createLayoutAudit(clock);a.gaps.push(a.pin(athlete,row,'a'.repeat(64),58));
+  a.observe(make('A'),{...row,scope,headerLayout:'span-grid-v1'},'b'.repeat(64),58);
+  a.observe(make('B'),{...row,scope,headerLayout:'span-grid-v1'},'c'.repeat(64),58);
+  return a;};
+ const board=(a,d,at,opts={})=>{
+  const {line=24,book='prizepicks',sides=['Higher','Lower'],market=athlete.market}=opts;
+  a.observeFormulaBoard({m:{sport:'nba',authenticated:true,book,firstObservedAt:at,lastObservedAt:at},first:at,
+    digest:d.repeat(64),offers:sides.map(side=>({...athlete,book,market,line,side,observedAt:at}))});};
+ const prepare=(a,opts)=>{board(a,'d',start);board(a,'e',end,opts);
+  a.observeFormulaProfile({...athlete,books:['prizepicks']},'f'.repeat(64),end,end);return a;};
+ const good=prepare(audit()).run(exact);
+ assert.equal(good.summary.archivedFormulaBindings,1);
+ assert.equal(good.rows[0].value,31.6);
+ assert.equal(good.rows[0].archivedFormulaBinding.originalSettlementVerified,false);
+ assert.equal(good.summary.qualifiedCacheChanged,false);
+ assert.equal(prepare(audit(),{line:25}).run(exact).summary.archivedFormulaBindings,0);
+ assert.equal(prepare(audit(),{sides:['Higher']}).run(exact).summary.archivedFormulaBindings,0);
+ const mixed=prepare(audit());board(mixed,'9',end,{book:'underdog'});
+ assert.equal(mixed.run(exact).summary.archivedFormulaBindings,0);
+ const noDonor=audit();board(noDonor,'d',start);board(noDonor,'e',end);
+ assert.equal(noDonor.run(exact).summary.archivedFormulaBindings,0);
+ noDonor.observeFormulaProfile({...athlete,books:['prizepicks']},'f'.repeat(64),'2026-11-28T00:00:00Z','2026-11-28T00:00:00Z');
+ assert.equal(noDonor.run(exact).summary.archivedFormulaBindings,0);
+});

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_research_progress_counts_v1",
-  "generatedAt": "2026-11-26T23:41:25.160Z",
+  "generatedAt": "2026-11-27T00:49:42.666Z",
   "sourceReportAt": "2026-11-25T10:01:27.262Z",
   "periodHistory": {
     "accountedDays": 261,
@@ -390,9 +390,9 @@
   },
   "nhlOpponentEvidence": {
     "kind": "public_nhl_official_opponent_coverage_counts_v1",
-    "sourceReportAt": "2026-11-26T08:56:02.758Z",
-    "verifiedHistoricalConcessionGames": 151,
-    "verifiedHistoricalAttemptGames": 142,
+    "sourceReportAt": "2026-11-27T00:02:26.530Z",
+    "verifiedHistoricalConcessionGames": 153,
+    "verifiedHistoricalAttemptGames": 156,
     "byMarket": {
       "shotsOnGoal": {
         "teamsVerified": 32,
@@ -407,13 +407,13 @@
         "minimumPriorGames": 8
       },
       "points": {
-        "teamsVerified": 30,
+        "teamsVerified": 31,
         "teamsWithFourOrMore": 32,
         "teamsEvaluated": 32,
         "minimumPriorGames": 8
       },
       "assists": {
-        "teamsVerified": 30,
+        "teamsVerified": 31,
         "teamsWithFourOrMore": 32,
         "teamsEvaluated": 32,
         "minimumPriorGames": 8

@@ -1,82 +1,82 @@
 {
   "schema": "pickfinder_public_checkpoint_progress_v1",
-  "generatedAt": "2026-11-26T14:53:27.432Z",
-  "archiveRevision": "a3add12d87337ba89ec37a928eafc1c35d4e7234",
-  "archiveTree": "b55392c90fea464b1286d5a0905e23117ecd9c99",
-  "latestCheckpointAt": "2026-11-26T08:47:59.344Z",
-  "boardPartFiles": 782,
-  "profileCheckpointFiles": 201,
+  "generatedAt": "2026-11-27T05:25:27.844Z",
+  "archiveRevision": "fbebcb8abcf724c0ce758793e85695b9f2e901b8",
+  "archiveTree": "fb6c89bb0b280b0a6f180e65ebffad6a76eb62ce",
+  "latestCheckpointAt": "2026-11-27T03:27:06.550Z",
+  "boardPartFiles": 965,
+  "profileCheckpointFiles": 238,
   "invalid": {
     "boardParts": 0,
     "profiles": 0
   },
   "countsComplete": true,
-  "total": 64953,
-  "completedSampledScopes": 1521,
-  "remaining": 63432,
-  "offerReferences": 212843,
-  "sharedAcrossBooks": 9594,
-  "profileAttempts": 1682,
-  "nontruncatedSampleAttempts": 1678,
+  "total": 77130,
+  "completedSampledScopes": 1810,
+  "remaining": 75320,
+  "offerReferences": 258310,
+  "sharedAcrossBooks": 11605,
+  "profileAttempts": 1994,
+  "nontruncatedSampleAttempts": 1989,
   "bySport": {
     "college-basketball": {
-      "total": 6342,
-      "completedSampledScopes": 180,
-      "remaining": 6162,
-      "sharedAcrossBooks": 1344
+      "total": 6899,
+      "completedSampledScopes": 208,
+      "remaining": 6691,
+      "sharedAcrossBooks": 1460
     },
     "college-football": {
-      "total": 10362,
-      "completedSampledScopes": 181,
-      "remaining": 10181,
-      "sharedAcrossBooks": 1653
+      "total": 11719,
+      "completedSampledScopes": 210,
+      "remaining": 11509,
+      "sharedAcrossBooks": 2209
     },
     "cs2": {
-      "total": 328,
-      "completedSampledScopes": 82,
-      "remaining": 246,
-      "sharedAcrossBooks": 43
+      "total": 499,
+      "completedSampledScopes": 111,
+      "remaining": 388,
+      "sharedAcrossBooks": 66
     },
     "dota2": {
-      "total": 113,
-      "completedSampledScopes": 94,
-      "remaining": 19,
-      "sharedAcrossBooks": 0
+      "total": 167,
+      "completedSampledScopes": 123,
+      "remaining": 44,
+      "sharedAcrossBooks": 6
     },
     "nba": {
-      "total": 11812,
-      "completedSampledScopes": 183,
-      "remaining": 11629,
-      "sharedAcrossBooks": 1638
+      "total": 16436,
+      "completedSampledScopes": 212,
+      "remaining": 16224,
+      "sharedAcrossBooks": 2233
     },
     "nfl": {
-      "total": 14442,
-      "completedSampledScopes": 182,
-      "remaining": 14260,
-      "sharedAcrossBooks": 2831
+      "total": 15800,
+      "completedSampledScopes": 211,
+      "remaining": 15589,
+      "sharedAcrossBooks": 3140
     },
     "nhl": {
-      "total": 5786,
-      "completedSampledScopes": 182,
-      "remaining": 5604,
-      "sharedAcrossBooks": 1481
+      "total": 7864,
+      "completedSampledScopes": 211,
+      "remaining": 7653,
+      "sharedAcrossBooks": 1874
     },
     "soccer": {
-      "total": 15337,
-      "completedSampledScopes": 181,
-      "remaining": 15156,
-      "sharedAcrossBooks": 569
+      "total": 17169,
+      "completedSampledScopes": 210,
+      "remaining": 16959,
+      "sharedAcrossBooks": 572
     },
     "tennis": {
-      "total": 355,
-      "completedSampledScopes": 180,
-      "remaining": 175,
-      "sharedAcrossBooks": 35
+      "total": 469,
+      "completedSampledScopes": 209,
+      "remaining": 260,
+      "sharedAcrossBooks": 45
     },
     "valorant": {
-      "total": 76,
-      "completedSampledScopes": 76,
-      "remaining": 0,
+      "total": 108,
+      "completedSampledScopes": 105,
+      "remaining": 3,
       "sharedAcrossBooks": 0
     }
   },

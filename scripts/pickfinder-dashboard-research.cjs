@@ -6,22 +6,23 @@ function dashboardRoutes(name){return name==='Games'?['/games','/game-lines']:['
 async function captureDashboard(page,name){
  if(!['Games','Discrepancies','Popular'].includes(name))throw Error('dashboard scope');
  const url=new URL(page.url());if(url.origin!=='https://www.pickfinder.app'||!dashboardRoutes(name).includes(url.pathname))throw Error('route');
- const snapshot=await page.evaluate(()=>{
+ const snapshot=await page.evaluate(name=>{
   const visible=e=>e.getClientRects().length>0;
   const cell=c=>({text:c.innerText.trim().slice(0,1000),labels:[...c.querySelectorAll('img[alt]')].map(i=>i.alt.slice(0,100))});
   const tables=[...document.querySelectorAll('main table')].filter(visible).map(t=>({headers:[...t.querySelectorAll('thead th')].map(cell),rows:[...t.querySelectorAll('tbody tr')].filter(visible).map(tr=>[...tr.cells].map(cell))}));
-  const cards=[...document.querySelectorAll('main a[href*="/players/"],main a[href*="/games/"]')].filter(visible).flatMap(a=>{
-   const u=new URL(a.href);if(u.origin!==location.origin)return [];
+  const cards=[...document.querySelectorAll('a[href*="/players/"],main a[href*="/games/"]')].filter(visible).flatMap(a=>{
+   const u=new URL(a.href);
+   if(u.origin!==location.origin||!a.closest('main')&&(!['Popular','Discrepancies'].includes(name)||u.searchParams.get('from')!==name.toLowerCase()||!u.searchParams.get('prop')||!/^View .+ details$/i.test(a.getAttribute('aria-label')||'')))return [];
    return [{path:u.pathname,prop:u.searchParams.get('prop'),text:a.innerText.trim().slice(0,1000),displayedTimes:[...a.querySelectorAll('time[datetime]')].filter(visible).map(t=>({datetime:t.getAttribute('datetime'),label:t.innerText.trim().slice(0,100)}))}];
   });
   const clocks=[...document.querySelectorAll('main time[datetime]')].filter(visible).map(t=>({datetime:t.getAttribute('datetime'),label:t.innerText.trim().slice(0,100)}));
   const controls=[...document.querySelectorAll('main button,main [role=tab],main select')].filter(visible).map(e=>({label:(e.getAttribute('aria-label')||e.innerText||'').trim().slice(0,160),disabled:e.disabled===true||e.getAttribute('aria-disabled')==='true',selected:e.getAttribute('aria-selected')==='true'})).filter(x=>x.label);
   const pagination=[...document.querySelectorAll('main nav,main [aria-label="Pagination"],main [role=status]')].filter(visible).map(e=>e.innerText.trim().match(/\b(?:Page\s+)?(\d+)\s+(?:of|\/)\s+(\d+)\b/i)).filter(Boolean).map(m=>({page:Number(m[1]),total:Number(m[2])}));
   const gameCards=[...document.querySelectorAll('article[data-tour-sport]')].filter(visible).flatMap(a=>{const sport=a.getAttribute('data-tour-sport');if(!/^(nba|nhl|nfl|mlb|wnba|cbb|cfb|cs2|valorant|val|dota2|lol|cod|soccer|tennis)$/i.test(sport||''))return [];const buttons=[...a.querySelectorAll('button[aria-label]')].filter(visible).map(b=>b.getAttribute('aria-label')).filter(t=>/^Matchup details, [A-Za-z0-9 .&'’@/-]{1,100}$/.test(t));return buttons.length?[{sport,matchups:buttons.slice(0,100)}]:[];});
-  const empty=[...document.querySelectorAll('main p,main [role=status]')].filter(visible).some(e=>/^(?:No (?:games|props|results|discrepancies|popular props) (?:found|available)|No (?:games|props|results) to display)\.?$/i.test(e.innerText.trim()));
+  const empty=[...document.querySelectorAll('main p,main [role=status],p')].filter(visible).some(e=>/^(?:No (?:games|props|results|discrepancies|popular props) (?:found|available)|No (?:games|props|results) to display)\.?$/i.test(e.innerText.trim())||name==='Discrepancies'&&e.innerText.trim()==='Nothing matches these filters. Try another sport or app.');
   const busy=[...document.querySelectorAll('main [aria-busy=true],main [role=progressbar]')].some(visible);
   return {tables,cards,clocks,controls,pagination,gameCards,empty,busy};
- });
+ },name);
  return {name,path:url.pathname,observedAt:new Date().toISOString(),...snapshot,originalOffersVerified:false,modelInputsApproved:false};
 }
 

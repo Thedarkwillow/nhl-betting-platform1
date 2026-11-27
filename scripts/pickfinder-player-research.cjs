@@ -60,7 +60,18 @@ function readSections({tab,origin,observedAt,context,fullSportingHeaders=false})
     if(!header.trim())continue;
     let i=0;
     for(const tr of table.querySelectorAll('tbody tr')){
-      const cells=[...tr.cells].map(c=>({value:c.innerText.trim()||null,labels:[...c.querySelectorAll('img[alt]')].map(e=>e.alt)}));
+      const movementTimeIndex=origin==='line_movement'&&header==='Line | App | Time'?headers.indexOf('Time'):-1;
+      const cells=[...tr.cells].map((c,column)=>{
+        const result={value:c.innerText.trim()||null,labels:[...c.querySelectorAll('img[alt]')].map(e=>e.alt)};
+        if(column===movementTimeIndex){
+          const clocks=[...c.querySelectorAll('time[datetime]')].filter(el=>el.getClientRects().length&&el.innerText.trim()===result.value);
+          if(clocks.length===1){
+            const stamp=clocks[0].getAttribute('datetime');
+            if(/^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d(?:\.\d{1,3})?)?(?:Z|[+-]\d\d:\d\d)$/.test(stamp))result.sourceMovementDateTime=stamp;
+          }
+        }
+        return result;
+      });
       const index=++i;
       if(origin==='line_movement'&&isMovement){
         // Keep the app label, quoted sides and source-displayed time together; never infer year/timezone or book.

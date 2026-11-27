@@ -44,7 +44,9 @@
  const scoreColumns=['Brier score','Log loss'];
  for(const comparison of [
   {key:'frozenBaselineComparison',title:'Model and pregame baseline',arms:['Model','Pregame baseline']},
-  {key:'lowCountFeatureComparison',title:'PickFinder last-ten average on eligible NBA markets',arms:['With last-ten average','Without last-ten average']}
+  {key:'lowCountFeatureComparison',title:'PickFinder last-ten average on eligible NBA markets',arms:['With last-ten average','Without last-ten average']},
+  {key:'matchupFeatureComparison',title:'NBA head-to-head challenger',arms:['With head-to-head history','Native model']},
+  {key:'workloadFeatureComparison',title:'NBA native minutes challenger',arms:['Minutes-adjusted count model','Unadjusted count model']}
  ]){
   add(mount,'h4',comparison.title);
   const paired=gradedMarkets.map(([market,row])=>[market,row[comparison.key]]).filter(([,p])=>

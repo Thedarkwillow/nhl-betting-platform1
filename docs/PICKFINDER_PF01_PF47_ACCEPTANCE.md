@@ -20,6 +20,19 @@ The master roadmap now checks off 22 of 47 tasks. PF-15, PF-20, PF-26, PF-27 and
 - For two of the Dota series, four direct public OpenDota match details (Valve IDs 9106031971, 9106095670, 9106185090, 9106299101) contained final KDA, last hits and account IDs for all 40 map appearances. Cross-checked exact KDA/team and the same unique account across both maps against the reviewed player rosters. This supports 20 two-map research score reconstructions using the [documented Underdog formula](https://help.underdogsports.com/en/articles/10905524-pick-em-scoring-esports), not verification of its historical rule vintage, payouts, or operator settlement. No raw response, score rows, or model changes published.
 - PF-22 performance evidence is real but not a controlled comparison. [Two-worker manual capture](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45999237702) completed 96 of 96 nontruncated, verified current profiles in 275.4 worker seconds with 27.1 archive seconds. The [one-worker scheduled baseline](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/45930204840) archived 290 profiles, 289 nontruncated, in 989.7 worker seconds after a separate 28-board collection. Markets, history scope, and archive batching differed. No causal speedup, coverage parity, schedule repair, or production worker increase is claimed.
 
+## Fresh manual board capture
+
+[The actual-time board run](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46025900706) archived 13 sport/platform checkpoints. The six NBA, NHL, and NFL traversals reached their reported last page.
+
+| Sport | PrizePicks priced observations | Underdog priced observations |
+| --- | ---: | ---: |
+| NBA | 3,746 | 2,333 |
+| NHL | 735 | 2,636 |
+| NFL | 2,303 | 4,447 |
+| **Total** | **6,784** | **9,416** |
+
+PrizePicks rows with unconfirmed prices or repeated details remain separate. These are observed PickFinder counts, not first-party, fully resolved or gradeable offers. One soccer partition archived partial progress when the protected morning window began. The manual pass cannot verify the scheduled 6 AM or 9 AM capture.
+
 ## Remaining acceptance by task
 
 | Task IDs | Verified scope | Evidence still needed |

@@ -23,3 +23,9 @@ test("matched clock is not official status evidence; access refusal stops",async
  const y=await corroborate(provider,at,url,async()=>new Response("",{status:403}));
  assert.equal(y.matches.length,0);assert.equal(y.excluded.sourceUnavailable,1);
 });
+test('historical NBA diagnostic runs only offline checks after its dated window',()=>{
+ const fs=require('node:fs');
+ const yml=fs.readFileSync(new URL('../.github/workflows/nba-public-schedule-corroboration.yml','file://'+__filename),'utf8');
+ assert.match(yml,/Offline schedule parser and research contracts only/);
+ assert.match(yml,/diagnostic:\n\s+needs: test\n(?:\s+#.*\n)*\s+if: \$\{\{ false \}\}/);
+});

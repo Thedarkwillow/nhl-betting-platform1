@@ -1,10 +1,17 @@
 "use strict";
 const assert=require("node:assert/strict");
 const ROOT="https://thedarkwillow.github.io/nhl-betting-platform1/";
-async function get(url){
- const r=await fetch(url,{headers:{"Cache-Control":"no-cache"},signal:AbortSignal.timeout(20000)});
- assert.equal(r.status,200,"Public NHL website unavailable: "+url+" HTTP "+r.status);
- return r;
+// Retry temporary Pages/CDN responses, never missing files or content assertions.
+async function get(url,{read=fetch,wait=ms=>new Promise(resolve=>setTimeout(resolve,ms))}={}){
+ for(let i=0;i<3;i++){
+  const r=await read(url,{headers:{"Cache-Control":"no-cache"},signal:AbortSignal.timeout(20000)});
+  if(r.status===200)return r;
+  if(i===2||![429,502,503,504].includes(r.status))
+   assert.equal(r.status,200,"Public NHL website unavailable: "+url+" HTTP "+r.status);
+  await r.body?.cancel();
+  console.warn("Dashboard transport retry "+(i+1)+": HTTP "+r.status+" "+new URL(url).pathname);
+  await wait(1000*2**i);
+ }
 }
 async function main(){
  const html=await (await get(ROOT+"?smoke="+Date.now())).text();
@@ -53,4 +60,5 @@ async function main(){
   featured:data.featuredIndividualProps.length,props:data.props.length,
   interactiveLineupBuilderPublished:true,privateMethodologyPublished:false}));
 }
-main().catch(e=>{console.error("NHL deployed site smoke failed:",e.message);process.exitCode=1});
+module.exports={get};
+if(require.main===module)main().catch(e=>{console.error("NHL deployed site smoke failed:",e.message);process.exitCode=1});

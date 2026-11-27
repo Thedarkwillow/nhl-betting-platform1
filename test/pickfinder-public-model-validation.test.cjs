@@ -97,6 +97,17 @@ t('official game page box score verifies both point totals and excludes DNPs',()
  assert.equal(parsePage(html()),null);
 });
 
+t('official minute correction requires the reviewed game, player, team, raw token and source bytes',()=>{
+ const {scorebookClock}=require('../scripts/nba-official-web-boxscore.cjs');
+ const digest='cfae25f8920a7a7e6d0df27927a875344cada0ebf24a24be622c67f2fe8d9bbd';
+ const args=['0022600041',203081,'POR','32:60',digest];
+ assert.equal(scorebookClock(...args).minutes,'33:00');
+ for(const [i,v] of [[0,'0022600042'],[1,1629057],[2,'SAC'],[3,'34:60'],[4,'a'.repeat(64)]]){
+  const x=[...args]; x[i]=v;
+  assert.equal(scorebookClock(...x),null);
+ }
+});
+
 t('matchup challenger freezes a conservative same-offer pair and grades it independently',()=>{
  const {matchupSample}=require('../scripts/pickfinder-public-evidence-audit.cjs');
  const {matchupPair,pairedStats}=require('../scripts/pickfinder-public-model-validation.cjs');

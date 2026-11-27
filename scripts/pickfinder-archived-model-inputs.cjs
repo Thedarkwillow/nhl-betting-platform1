@@ -7,6 +7,7 @@ const {walkBoards,quotes,features,scope,git}=require('./pickfinder-public-eviden
 const {candidate}=require('./pickfinder-public-history-cache.cjs');
 const nativeHistory=require('./pickfinder-native-history-reconciliation.cjs');
 const {reconcileSeries}=require('./pickfinder-esports-series-review.cjs');
+const {quoteSourceTime,sportsbookIds}=require('./pickfinder-quote-features.cjs');
 const dt=Date.parse, valid=x=>Number.isFinite(dt(x)), key=x=>JSON.stringify(x);
 function classify(f){
  if(f.origin==='prop_history')return 'historical_prop';
@@ -39,7 +40,7 @@ function auditProfiles(documents,clock,historyAudit=null){
 }
 // Exact archived quote shape counts; no guessing missing book thresholds from fantasy lines.
 function quoteInventory(rows){
- const out={observed:0,explicitThreshold:0,missingThreshold:0,missingBook:0,invalidSideOrPrice:0,exactPairs:0,conflictingPairs:0};
+ const out={observed:0,explicitThreshold:0,missingThreshold:0,missingBook:0,invalidSideOrPrice:0,exactPairs:0,conflictingPairs:0,sourceTimedPairs:0,missingSourceTimePairs:0,conflictingSourceTimePairs:0};
  const pairs=new Map();
  for(const q of rows){
   if(['prizepicks','underdog'].includes(q.book))continue;
@@ -48,11 +49,22 @@ function quoteInventory(rows){
   out.explicitThreshold++;
   if(!q.book){out.missingBook++;continue;}
   if(!['Higher','Lower'].includes(q.side)||typeof q.price!=='string'||!/^[+-]\d{2,4}$/.test(q.price)||Math.abs(Number(q.price))<100||!valid(q.observedAt)){out.invalidSideOrPrice++;continue;}
-  const k=key([scope(q),q.book,q.quoteLine,q.observedAt]),p=pairs.get(k)||{prices:{},conflict:false};
+  const k=key([scope(q),q.book,q.quoteLine,q.observedAt]),p=pairs.get(k)||{prices:{},source:{Higher:new Set(),Lower:new Set()},conflict:false};
   if(p.prices[q.side]&&p.prices[q.side]!==q.price)p.conflict=true;
-  p.prices[q.side]=q.price;pairs.set(k,p);
+  p.prices[q.side]=q.price;
+  const source=sportsbookIds.has(q.book)&&quoteSourceTime(q,q.observedAt);
+  if(source)p.source[q.side].add(dt(source.sourceQuoteDateTime));
+  pairs.set(k,p);
  }
- for(const p of pairs.values()){if(p.conflict)out.conflictingPairs++;else if(p.prices.Higher&&p.prices.Lower)out.exactPairs++;}
+ for(const p of pairs.values()){
+  if(p.conflict){out.conflictingPairs++;continue;}
+  if(!p.prices.Higher||!p.prices.Lower)continue;
+  out.exactPairs++;
+  const h=p.source.Higher,l=p.source.Lower;
+  if(h.size>1||l.size>1||h.size&&l.size&&[...h][0]!==[...l][0])out.conflictingSourceTimePairs++;
+  else if(h.size===1&&l.size===1)out.sourceTimedPairs++;
+  else out.missingSourceTimePairs++;
+ }
  return out;
 }
 // Parse explicitly displayed map ordinals only. A source scope is not a native map crosswalk.

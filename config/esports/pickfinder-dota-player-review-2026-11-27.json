@@ -1,0 +1,370 @@
+{
+  "kind": "pickfinder_reviewed_dota_player_finals_v1",
+  "reviewedAt": "2026-11-27T13:56:33.504Z",
+  "maps": [
+    {
+      "nativeMapId": "9106185090",
+      "sourceEventId": "20261126889AC86E",
+      "sourceUrl": "https://dotascore.org/matches/1w-team-vs-team-liquid-blast-slam-ix-2026-11-26-5004",
+      "sides": [
+        [
+          {
+            "profileUrl": "https://dotascore.org/players/33",
+            "kda": [
+              3,
+              2,
+              13
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/ari",
+            "kda": [
+              1,
+              9,
+              19
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/whitemon",
+            "kda": [
+              2,
+              5,
+              19
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/bzm",
+            "kda": [
+              4,
+              4,
+              17
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/pure",
+            "kda": [
+              14,
+              1,
+              7
+            ]
+          }
+        ],
+        [
+          {
+            "profileUrl": "https://dotascore.org/players/tofu",
+            "kda": [
+              2,
+              2,
+              11
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/malr1ne",
+            "kda": [
+              6,
+              5,
+              7
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/wisper",
+            "kda": [
+              2,
+              4,
+              16
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/boxi",
+            "kda": [
+              5,
+              8,
+              8
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/m1cke",
+            "kda": [
+              6,
+              5,
+              8
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "nativeMapId": "9106299101",
+      "sourceEventId": "20261126889AC86E",
+      "sourceUrl": "https://dotascore.org/matches/1w-team-vs-team-liquid-blast-slam-ix-2026-11-26-5004",
+      "sides": [
+        [
+          {
+            "profileUrl": "https://dotascore.org/players/33",
+            "kda": [
+              2,
+              6,
+              9
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/ari",
+            "kda": [
+              7,
+              6,
+              9
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/whitemon",
+            "kda": [
+              1,
+              9,
+              8
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/bzm",
+            "kda": [
+              3,
+              5,
+              9
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/pure",
+            "kda": [
+              6,
+              5,
+              5
+            ]
+          }
+        ],
+        [
+          {
+            "profileUrl": "https://dotascore.org/players/tofu",
+            "kda": [
+              6,
+              8,
+              13
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/malr1ne",
+            "kda": [
+              10,
+              3,
+              15
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/wisper",
+            "kda": [
+              8,
+              3,
+              13
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/boxi",
+            "kda": [
+              5,
+              2,
+              14
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/m1cke",
+            "kda": [
+              2,
+              3,
+              11
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "nativeMapId": "9106031971",
+      "sourceEventId": "20261126BEDF7B21",
+      "sourceUrl": "https://dotascore.org/matches/gamerlegion-vs-aurora-gaming-blast-slam-ix-2026-11-26-5003",
+      "sides": [
+        [
+          {
+            "profileUrl": "https://dotascore.org/players/yuma",
+            "kda": [
+              7,
+              2,
+              12
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/rcy",
+            "kda": [
+              4,
+              1,
+              13
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/bignum",
+            "kda": [
+              4,
+              5,
+              10
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/speeed",
+            "kda": [
+              2,
+              3,
+              11
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/fayde",
+            "kda": [
+              4,
+              3,
+              9
+            ]
+          }
+        ],
+        [
+          {
+            "profileUrl": "https://dotascore.org/players/skiter",
+            "kda": [
+              3,
+              4,
+              3
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/mikoto",
+            "kda": [
+              3,
+              2,
+              5
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/ws",
+            "kda": [
+              5,
+              5,
+              3
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/mira",
+            "kda": [
+              3,
+              6,
+              8
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/kaori",
+            "kda": [
+              0,
+              4,
+              9
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "nativeMapId": "9106095670",
+      "sourceEventId": "20261126BEDF7B21",
+      "sourceUrl": "https://dotascore.org/matches/gamerlegion-vs-aurora-gaming-blast-slam-ix-2026-11-26-5003",
+      "sides": [
+        [
+          {
+            "profileUrl": "https://dotascore.org/players/skiter",
+            "kda": [
+              2,
+              8,
+              6
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/mikoto",
+            "kda": [
+              4,
+              5,
+              6
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/ws",
+            "kda": [
+              6,
+              6,
+              5
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/mira",
+            "kda": [
+              3,
+              12,
+              7
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/kaori",
+            "kda": [
+              1,
+              13,
+              9
+            ]
+          }
+        ],
+        [
+          {
+            "profileUrl": "https://dotascore.org/players/yuma",
+            "kda": [
+              15,
+              6,
+              5
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/rcy",
+            "kda": [
+              7,
+              3,
+              22
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/bignum",
+            "kda": [
+              5,
+              3,
+              18
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/speeed",
+            "kda": [
+              10,
+              1,
+              22
+            ]
+          },
+          {
+            "profileUrl": "https://dotascore.org/players/fayde",
+            "kda": [
+              7,
+              3,
+              18
+            ]
+          }
+        ]
+      ]
+    }
+  ]
+}

@@ -1,14 +1,14 @@
 {
   "kind": "public_native_model_scope_validation_v1",
-  "generatedAt": "2026-11-27T11:28:46.477164+00:00",
+  "generatedAt": "2026-11-27T23:46:42.836080+00:00",
   "nfl": {
-    "inputPlayerGames": 48095,
+    "inputPlayerGames": 48234,
     "conflictingPlayerGames": 0,
     "markets": [
       {
         "market": "completions",
         "developmentN": 457,
-        "evaluationN": 295,
+        "evaluationN": 298,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "shrunk",
@@ -19,17 +19,17 @@
           "shrunk": 5.165988248328062
         },
         "evaluationMAE": {
-          "last5": 5.513220338983049,
-          "last10": 5.22589857411891,
-          "ewma": 5.4133656110312405,
-          "shrunk": 5.24236629791413
+          "last5": 5.532885906040266,
+          "last10": 5.248456642164692,
+          "ewma": 5.445423436210547,
+          "shrunk": 5.262493482834459
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "attempts",
         "developmentN": 457,
-        "evaluationN": 295,
+        "evaluationN": 298,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "shrunk",
@@ -40,17 +40,17 @@
           "shrunk": 7.316346327801994
         },
         "evaluationMAE": {
-          "last5": 8.2528813559322,
-          "last10": 7.871599408124831,
-          "ewma": 8.000989706470659,
-          "shrunk": 7.853754757265148
+          "last5": 8.255033557046978,
+          "last10": 7.8745698838819616,
+          "ewma": 8.018666145068735,
+          "shrunk": 7.855143132192008
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "passing_yards",
         "developmentN": 457,
-        "evaluationN": 295,
+        "evaluationN": 298,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "last10",
@@ -61,17 +61,17 @@
           "shrunk": 62.27623774741553
         },
         "evaluationMAE": {
-          "last5": 68.45491525423729,
-          "last10": 65.50541700295938,
-          "ewma": 67.31038716726404,
-          "shrunk": 65.8832613020474
+          "last5": 68.73758389261745,
+          "last10": 65.75938931501013,
+          "ewma": 67.70029909625457,
+          "shrunk": 66.15415128893953
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "passing_tds",
         "developmentN": 457,
-        "evaluationN": 295,
+        "evaluationN": 298,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "shrunk",
@@ -82,17 +82,17 @@
           "shrunk": 0.9845406168963946
         },
         "evaluationMAE": {
-          "last5": 0.9579661016949154,
-          "last10": 0.9307384987893458,
-          "ewma": 0.9677523278285257,
-          "shrunk": 0.9397642168807622
+          "last5": 0.9651006711409397,
+          "last10": 0.9344558964525402,
+          "ewma": 0.9761474609719051,
+          "shrunk": 0.9440618925497478
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "passing_interceptions",
         "developmentN": 457,
-        "evaluationN": 295,
+        "evaluationN": 298,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "last10",
@@ -103,17 +103,17 @@
           "shrunk": 0.641614539313644
         },
         "evaluationMAE": {
-          "last5": 0.675932203389831,
-          "last10": 0.6596004842615006,
-          "ewma": 0.6760786688264643,
-          "shrunk": 0.6681906505233234
+          "last5": 0.6758389261744971,
+          "last10": 0.6596716203259821,
+          "ewma": 0.6742141240349722,
+          "shrunk": 0.6688464493435583
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "carries",
         "developmentN": 1581,
-        "evaluationN": 927,
+        "evaluationN": 937,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "shrunk",
@@ -124,17 +124,17 @@
           "shrunk": 2.922112725269651
         },
         "evaluationMAE": {
-          "last5": 3.0983818770226508,
-          "last10": 3.1830893306621446,
-          "ewma": 3.040687035725782,
-          "shrunk": 3.046182323808768
+          "last5": 3.1062966915688337,
+          "last10": 3.199518473344513,
+          "ewma": 3.0524346522866694,
+          "shrunk": 3.060457325689144
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "rushing_yards",
         "developmentN": 1581,
-        "evaluationN": 927,
+        "evaluationN": 937,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "shrunk",
@@ -145,17 +145,17 @@
           "shrunk": 18.917811207231676
         },
         "evaluationMAE": {
-          "last5": 19.339805825242774,
-          "last10": 19.508041386277636,
-          "ewma": 19.05071881626268,
-          "shrunk": 18.900410918792467
+          "last5": 19.28729989327647,
+          "last10": 19.51870796700039,
+          "ewma": 19.027588639156733,
+          "shrunk": 18.896464430865127
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "rushing_tds",
         "developmentN": 1581,
-        "evaluationN": 927,
+        "evaluationN": 937,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "last10",
@@ -166,17 +166,17 @@
           "shrunk": 0.3787313929549242
         },
         "evaluationMAE": {
-          "last5": 0.3719525350593298,
-          "last10": 0.36490813513467263,
-          "ewma": 0.36511075232340107,
-          "shrunk": 0.3638492107936259
+          "last5": 0.373105656350052,
+          "last10": 0.36629652216631975,
+          "ewma": 0.3666052682854402,
+          "shrunk": 0.3651755265802469
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "receptions",
         "developmentN": 3356,
-        "evaluationN": 1930,
+        "evaluationN": 1956,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "shrunk",
@@ -187,17 +187,17 @@
           "shrunk": 1.4116011438632075
         },
         "evaluationMAE": {
-          "last5": 1.490880829015546,
-          "last10": 1.4545351180195734,
-          "ewma": 1.5090474698228986,
-          "shrunk": 1.4505998464598933
+          "last5": 1.4884458077709632,
+          "last10": 1.4541500308371464,
+          "ewma": 1.5080028880437524,
+          "shrunk": 1.4495126743196223
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "targets",
         "developmentN": 3356,
-        "evaluationN": 1930,
+        "evaluationN": 1956,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "shrunk",
@@ -208,17 +208,17 @@
           "shrunk": 1.7666140683214873
         },
         "evaluationMAE": {
-          "last5": 1.8924352331606213,
-          "last10": 1.8571977547495668,
-          "ewma": 1.8976034590202246,
-          "shrunk": 1.8481083115204135
+          "last5": 1.8862985685071574,
+          "last10": 1.8522616613107399,
+          "ewma": 1.891425958871086,
+          "shrunk": 1.8417115817028171
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "receiving_yards",
         "developmentN": 3356,
-        "evaluationN": 1930,
+        "evaluationN": 1956,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "shrunk",
@@ -229,17 +229,17 @@
           "shrunk": 19.44433972270143
         },
         "evaluationMAE": {
-          "last5": 21.14155440414509,
-          "last10": 20.42953635167369,
-          "ewma": 21.258345719622948,
-          "shrunk": 20.47465529419902
+          "last5": 21.153578732106347,
+          "last10": 20.457104310708637,
+          "ewma": 21.297260962233025,
+          "shrunk": 20.505833087623422
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "receiving_tds",
         "developmentN": 3356,
-        "evaluationN": 1930,
+        "evaluationN": 1956,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "last5",
@@ -250,17 +250,17 @@
           "shrunk": 0.3127972902848689
         },
         "evaluationMAE": {
-          "last5": 0.3234196891191714,
-          "last10": 0.32108952216465275,
-          "ewma": 0.3193108308531376,
-          "shrunk": 0.32467913528844444
+          "last5": 0.32392638036809873,
+          "last10": 0.32182275943779115,
+          "ewma": 0.3202532027556699,
+          "shrunk": 0.3252944003588005
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "fg_made",
         "developmentN": 421,
-        "evaluationN": 280,
+        "evaluationN": 284,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "shrunk",
@@ -271,17 +271,17 @@
           "shrunk": 1.0168386962837836
         },
         "evaluationMAE": {
-          "last5": 1.077142857142856,
-          "last10": 1.064339569160997,
-          "ewma": 1.0998799714000957,
-          "shrunk": 1.0567534442696842
+          "last5": 1.073239436619717,
+          "last10": 1.0588559132573208,
+          "ewma": 1.0905668077780186,
+          "shrunk": 1.0509364943503927
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "fg_att",
         "developmentN": 421,
-        "evaluationN": 280,
+        "evaluationN": 284,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "shrunk",
@@ -292,17 +292,17 @@
           "shrunk": 1.0895337557516385
         },
         "evaluationMAE": {
-          "last5": 1.1242857142857132,
-          "last10": 1.0929039115646253,
-          "ewma": 1.139060647712371,
-          "shrunk": 1.0933910722920002
+          "last5": 1.1183098591549288,
+          "last10": 1.0842010395707575,
+          "ewma": 1.1291923363517846,
+          "shrunk": 1.0842411980343665
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "pat_made",
         "developmentN": 421,
-        "evaluationN": 280,
+        "evaluationN": 284,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "shrunk",
@@ -313,17 +313,17 @@
           "shrunk": 1.1857775505962227
         },
         "evaluationMAE": {
-          "last5": 1.2321428571428572,
-          "last10": 1.1764753401360541,
-          "ewma": 1.2262856596705498,
-          "shrunk": 1.1790402969785008
+          "last5": 1.2408450704225353,
+          "last10": 1.185609490274983,
+          "ewma": 1.2360819706982298,
+          "shrunk": 1.1876981801196487
         },
         "minimumEvidenceMet": true
       },
       {
         "market": "pat_att",
         "developmentN": 421,
-        "evaluationN": 280,
+        "evaluationN": 284,
         "developmentWeeks": 18,
         "evaluationWeeks": 12,
         "selected": "shrunk",
@@ -334,10 +334,10 @@
           "shrunk": 1.1839700639370445
         },
         "evaluationMAE": {
-          "last5": 1.2528571428571431,
-          "last10": 1.1772193877551007,
-          "ewma": 1.2322603695382852,
-          "shrunk": 1.1894019189767056
+          "last5": 1.2605633802816902,
+          "last10": 1.1870472837022121,
+          "ewma": 1.2414902371365268,
+          "shrunk": 1.1979138637798508
         },
         "minimumEvidenceMet": true
       }
@@ -352,79 +352,79 @@
   "identity": {
     "nba": {
       "eventCandidates": 11,
-      "playerCandidates": 139,
+      "playerCandidates": 159,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 140,
+      "missingSourceEventClock": 160,
       "missingTeam": 0,
       "missingOpponent": 0,
       "ambiguousEvent": 0,
       "ambiguousPlayer": 1
     },
     "nfl": {
-      "eventCandidates": 11,
-      "playerCandidates": 302,
+      "eventCandidates": 10,
+      "playerCandidates": 328,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 354,
+      "missingSourceEventClock": 385,
       "missingTeam": 0,
       "missingOpponent": 0,
-      "ambiguousEvent": 37,
-      "ambiguousPlayer": 52
+      "ambiguousEvent": 40,
+      "ambiguousPlayer": 57
     },
     "nhl": {
-      "eventCandidates": 13,
-      "playerCandidates": 523,
+      "eventCandidates": 9,
+      "playerCandidates": 467,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 535,
+      "missingSourceEventClock": 477,
       "missingTeam": 0,
       "missingOpponent": 0,
-      "ambiguousEvent": 74,
-      "ambiguousPlayer": 12
+      "ambiguousEvent": 154,
+      "ambiguousPlayer": 10
     },
     "college-football": {
       "eventCandidates": 20,
-      "playerCandidates": 400,
+      "playerCandidates": 393,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 1328,
+      "missingSourceEventClock": 1370,
       "missingTeam": 26,
       "missingOpponent": 26,
-      "ambiguousEvent": 866,
-      "ambiguousPlayer": 928
+      "ambiguousEvent": 903,
+      "ambiguousPlayer": 977
     },
     "college-basketball": {
-      "eventCandidates": 0,
-      "playerCandidates": 19,
+      "eventCandidates": 3,
+      "playerCandidates": 34,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 29,
-      "missingTeam": 0,
-      "missingOpponent": 0,
-      "ambiguousEvent": 29,
-      "ambiguousPlayer": 10
+      "missingSourceEventClock": 116,
+      "missingTeam": 7,
+      "missingOpponent": 7,
+      "ambiguousEvent": 91,
+      "ambiguousPlayer": 82
     },
     "tennis": {
       "eventCandidates": 0,
       "playerCandidates": 0,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 46,
-      "missingTeam": 46,
+      "missingSourceEventClock": 22,
+      "missingTeam": 22,
       "missingOpponent": 0,
-      "ambiguousEvent": 46,
-      "ambiguousPlayer": 46
+      "ambiguousEvent": 22,
+      "ambiguousPlayer": 22
     },
     "soccer": {
       "eventCandidates": 0,
       "playerCandidates": 0,
       "sourceContextCorroborated": 0,
-      "missingSourceEventClock": 1069,
+      "missingSourceEventClock": 2492,
       "missingTeam": 0,
       "missingOpponent": 0,
-      "ambiguousEvent": 1069,
-      "ambiguousPlayer": 1069
+      "ambiguousEvent": 2492,
+      "ambiguousPlayer": 2492
     }
   },
   "dota": {
-    "deduplicatedNativeMapsWithTenPlayersAndSeriesId": 15,
+    "deduplicatedNativeMapsWithTenPlayersAndSeriesId": 23,
     "conflictingMaps": 0,
-    "chronologicalSeriesCandidates": 5,
+    "chronologicalSeriesCandidates": 8,
     "independentMapOrdinalVerified": 0,
     "originalOfferMatched": false
   },

@@ -1,9 +1,7 @@
 name: Private NHL component NFL kicker and tier matched evidence
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/private-advanced-component-evidence.yml']
+  # Code merges run the public ownership regression, not a private checkout.
   schedule:
     - cron: '42 7,12 * * *'
       timezone: America/Los_Angeles

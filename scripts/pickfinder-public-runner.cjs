@@ -256,20 +256,20 @@ async function main(root,env=process.env){
    }catch{errors++;console.log(JSON.stringify({state:'public_board_partition_pending',code,book}));if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
   }}
   if(p.clockAudit){
-   if(alive()){
+   if(alive()&&await premium(page).catch(()=>false)){
     const compact=await context.newPage();
     try{
      await compact.setViewportSize({width:412,height:915});
      await compact.goto(ORIGIN+'/props',{timeout:12000});
-     if(await waitPremium(compact)&&alive()){
+     if(alive()){
       await compact.getByRole('button',{name:'NBA',exact:true}).first().click({timeout:3500}).catch(()=>{});
       await compact.locator('a[href*="/players/nba/"][href*="prop="]:visible').first().waitFor({timeout:5000}).catch(()=>{});
-      const sample=await compact.evaluate(readCompactBoardClocks,{sport:'nba',observedAt:new Date().toISOString(),limit:20});
+      const sample=await compact.evaluate(readCompactBoardClocks,{sport:'nba',observedAt:new Date().toISOString(),limit:20,authenticatedContextVerified:true});
       if(sample.authenticated){
        const r=await write('directory',{schema:'pickfinder-compact-board-clock-sample-v1',...sample,
         captureOrigin:captureOrigin(env,p),viewportWidth:412,boardCompletenessVerified:false});
        console.log(JSON.stringify({state:'public_compact_board_clock_audit',archiveDigest:r.digest,visiblePropLinks:sample.visiblePropLinks,clocks:sample.records.length}));
-      }
+      }else console.log(JSON.stringify({state:'public_compact_board_clock_not_verified'}));
      }
     }catch(e){errors++;console.log(JSON.stringify({state:'public_compact_board_clock_audit_unavailable',reason:e.name}));}
     finally{await compact.close();}

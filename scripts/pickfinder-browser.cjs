@@ -141,10 +141,12 @@ function readBoard({book, code, sport, observedAt}) {
     empty:table?.innerText.includes('No props found')===true};
 }
 // Compact cards are sampled separately: no book, price, board coverage, or UTC start is inferred.
-function readCompactBoardClocks({sport,observedAt,limit=20}){
-  const authenticated=document.body.innerText.split('\n').some(x=>x.trim()==='Premium')&&
-    !!document.querySelector('button[aria-label="Open user menu"]');
+function readCompactBoardClocks({sport,observedAt,limit=20,authenticatedContextVerified=false}){
   const visible=e=>e.getClientRects().length>0;
+  const standalone=document.body.innerText.split('\n').some(x=>x.trim()==='Premium')&&
+    !!document.querySelector('button[aria-label="Open user menu"]');
+  const loginWall=[...document.querySelectorAll('input[type="password"]')].some(visible);
+  const authenticated=(standalone||authenticatedContextVerified===true)&&!loginWall;
   if(!authenticated||location.origin!=='https://www.pickfinder.app'||location.pathname!=='/props')return {authenticated:false,records:[]};
   const selector='a[href*="/players/"][href*="prop="]';
   const links=[...document.querySelectorAll(selector)].filter(visible), records=[], seen=new Set();

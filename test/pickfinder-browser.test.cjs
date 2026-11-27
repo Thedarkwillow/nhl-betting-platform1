@@ -149,8 +149,9 @@ test('compact prop card binds the line below the offer to one exact board link',
  a.parentElement=card;
  try{
   global.location={origin:'https://www.pickfinder.app',pathname:'/props'};
-  global.document={body:{innerText:'Premium'},querySelector:()=>({}),querySelectorAll:()=>[a]};
-  const read=()=>readCompactBoardClocks({sport,observedAt});
+  global.document={body:{innerText:'Premium'},querySelector:()=>null,querySelectorAll:s=>s.includes('password')?[]:[a]};
+  assert.equal(readCompactBoardClocks({sport,observedAt}).records.length,0);
+  const read=()=>readCompactBoardClocks({sport,observedAt,authenticatedContextVerified:true});
   const r=read().records[0];assert.equal(r.player,'VJ Edgecombe');assert.equal(r.market,'player_assists');assert.equal(r.threshold,4);
   assert.equal(r.eventId,'event');assert.equal(r.displayedMatchupLabel,'PHI @ IND • Fri @ 4:30PM');
   assert.equal(r.startAt,null);assert.equal(r.sourceBook,null);

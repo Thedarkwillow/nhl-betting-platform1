@@ -399,3 +399,20 @@ test('sportsbook time qualification requires both explicit source clocks at the 
  assert.equal(quoteInventory([q,{...l,sourceQuoteDateTime:'2026-11-27T12:05:00Z'}]).missingSourceTimePairs,1);
  assert.equal(quoteInventory([q,{...q,sourceQuoteDateTime:'2026-11-27T12:02:00Z'},l]).conflictingSourceTimePairs,1);
 });
+test('the exact Dota Underdog fantasy market can join roster/map scope without casting it as a supported model stat',()=>{
+ const {dotaUnderdogFantasyScope,esportsScope,esportsReviewQueue,auditBoards}=require('../scripts/pickfinder-archived-model-inputs.cjs');
+ const market='1st_2_maps_player_fantasy_score_underdog_';
+ const o={book:'underdog',sport:'dota2',market,eventId:'evt',player:'Fixture',line:22.5,
+  detailId:'/players/dota2/profile?prop='+encodeURIComponent('id:'+market+':evt:22.5'),observedAt:'2026-11-26T00:00:00Z'};
+ const f=dotaUnderdogFantasyScope(o);assert.deepEqual(f.maps,[1,2]);assert.equal(f.ruleScopeOnly,true);assert.equal(f.scoreVerified,false);
+ assert.equal(esportsScope(o),null);
+ for(const change of [{book:'prizepicks'},{eventId:'other'},{line:23},{period:'1H'},{mapRange:'3_maps'},
+  {market:market.replace('2_maps','3_maps')},{detailId:'https://example.com'+o.detailId},{detailId:o.detailId+'&prop=duplicate'}])
+  assert.equal(dotaUnderdogFantasyScope({...o,...change}),null);
+ const seen=auditBoards({manifests:[{first:o.observedAt,m:{sport:o.sport},digest:'x',offers:[o]}]},o.observedAt,{esportsHistoryOnly:true});
+ assert.equal(seen.summary.esportsEvidence.dota2.explicitSupportedScopes,0);
+ assert.equal(seen.summary.esportsEvidence.dota2.rulesScopedUnscoredObservations,1);
+ assert.equal(seen.summary.esportsEvidence.dota2.unresolvedScopes,0);
+ const queue=esportsReviewQueue(seen.history);assert.equal(queue.length,1);
+ assert.equal(queue[0].scoreVerified,false);assert.equal(queue[0].market,'underdogFantasyScore');
+});

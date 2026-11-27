@@ -4,6 +4,7 @@ const {execFileSync}=require('node:child_process'),{createHash,createHmac}=requi
 const {safeDiscordWebhook}=require('../src/private-follow-discord-alerts.cjs');
 const {build,message,sports,books,tiers,names}=require('./project-discord-line-alerts.cjs');
 const ref='refs/heads/project-discord-alert-ledger',file='receipts.json';
+const dtOrZero=x=>Date.parse(x)||0;
 const id=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 const snow=x=>typeof x==='string'&&/^\d{16,22}$/.test(x), M=60000;
 const hash=x=>createHash('sha256').update(x).digest('hex');
@@ -51,9 +52,10 @@ function filterConfig(raw){
  return e=>(!out.sports||out.sports.has(e.sport))&&(!out.kinds||out.kinds.has(e.kind))&&
   (!out.tiers||!e.tier||out.tiers.has(e.tier))&&(!out.books||!e.books?.length||e.books.every(b=>out.books.has(b)));
 }
+const claimed=(rows,e)=>Object.hasOwn(rows,e.id)||e.priorIds?.some(k=>id(k)&&Object.hasOwn(rows,k));
 function deliveryBatches(events,env){
- const base=allowDestination(env),r=jsonConfig(env.PROJECT_DISCORD_SPORT_ROUTES,6000),byChannel=new Map(),configured=new Map([[base.channel,base]]);
- if(Object.keys(r).length>4)throw Error('route capacity');
+ const base=allowDestination(env),r=jsonConfig(env.PROJECT_DISCORD_SPORT_ROUTES,9000),byChannel=new Map(),configured=new Map([[base.channel,base]]);
+ if(Object.keys(r).length>sports.size)throw Error('route capacity');
  for(const [sport,p] of Object.entries(r)){
   if(!sports.has(sport)||!p||Array.isArray(p)||typeof p!=='object'||Object.keys(p).sort().join(',')!=='channelId,webhookUrl'||
     !safeDiscordWebhook(p.webhookUrl)||!snow(p.channelId)||p.channelId===base.channel)throw Error('sport route');
@@ -67,6 +69,15 @@ function deliveryBatches(events,env){
  }
  return [...byChannel.values()];
 }
+const priority=e=>['new_prop','alternate_tier','reposted_prop'].includes(e.kind)?0:e.kind==='line_change'?1:2;
+function batchConfig(raw){
+ const x=jsonConfig(raw,1000), defaults={itemsPerMessage:6,messagesPerChannel:4,messagesPerRun:12,newPropLookbackMinutes:120};
+ const bounds={itemsPerMessage:[1,6],messagesPerChannel:[1,12],messagesPerRun:[1,36],newPropLookbackMinutes:[25,480]};
+ for(const [k,v] of Object.entries(x)){
+  if(!Object.hasOwn(bounds,k)||!Number.isInteger(v)||v<bounds[k][0]||v>bounds[k][1])throw Error('batch configuration');
+ }
+ return {...defaults,...x};
+}
 async function dispatch(events,{env,mode,runKey,now,ledger,client=fetch}){
  if(!['preview','test','deliver'].includes(mode))throw Error('mode');
  if(mode!=='test')events=events.filter(filterConfig(env.PROJECT_DISCORD_FILTERS));
@@ -78,18 +89,33 @@ async function dispatch(events,{env,mode,runKey,now,ledger,client=fetch}){
  const deliveredCategories={};
  if(!events.length)return {status:'no_eligible_changes',delivered:0,deliveredCategories};
  if(events.some(e=>!id(e.id)))throw Error('event identity');
- const first=ledger.read();
- if(events.every(e=>Object.hasOwn(first.rows,e.id)))return {status:'already_claimed',delivered:0,deliveredCategories};
- const batches=mode==='test'?[{destination:allowDestination(env),events}]:deliveryBatches(events,env);
- let delivered=0;
- for(const b of batches)for(const e of await deliverBatch(b,{now,ledger,client})){
-  delivered++;deliveredCategories[e.kind]=(deliveredCategories[e.kind]||0)+1;
+ const first=ledger.read(),config=batchConfig(env.PROJECT_DISCORD_BATCH_CONFIG);
+ const pending=[...new Map(events.map(e=>[e.id,e])).values()].filter(e=>!claimed(first.rows,e));
+ if(!pending.length)return {status:'already_claimed',delivered:0,deliveredCategories};
+ const batches=mode==='test'?[{destination:allowDestination(env),events:pending}]:deliveryBatches(pending,env);
+ let delivered=0,messages=0;
+ const perChannel=new Map();
+ // Across channels, exhaust higher priority before ordinary updates. Round
+ // robin inside each priority so one busy sport cannot take every batch.
+ for(const rank of [0,1,2]){
+  const groups=batches.map(b=>({...b,events:b.events.filter(e=>priority(e)===rank)
+   .sort((a,b)=>(dtOrZero(a.observedAt)-dtOrZero(b.observedAt))||a.id.localeCompare(b.id))}));
+  while(messages<config.messagesPerRun&&groups.some(b=>b.events.length&&(perChannel.get(b.destination.channel)||0)<config.messagesPerChannel)){
+   for(const b of groups){
+    const channel=b.destination.channel,count=perChannel.get(channel)||0;
+    if(messages>=config.messagesPerRun||count>=config.messagesPerChannel||!b.events.length)continue;
+    const sent=await deliverBatch({destination:b.destination,events:b.events.splice(0,config.itemsPerMessage)},{now,ledger,client});
+    if(sent.length){messages++;perChannel.set(channel,count+1);}
+    for(const e of sent){delivered++;deliveredCategories[e.kind]=(deliveredCategories[e.kind]||0)+1;}
+   }
+  }
  }
- return {status:delivered?'discord_confirmed':'already_claimed',delivered,deliveredCategories};
+ const remaining=pending.length-delivered;
+ return {status:delivered?'discord_confirmed':'already_claimed',delivered,deliveredCategories,...(remaining?{remaining}:{}),...(messages?{messages}:{})};
 }
 async function deliverBatch({events,destination:dest},{now,ledger,client}){
  const stored=ledger.read();
- const pending=[...new Map(events.map(x=>[x.id,x])).values()].filter(e=>!Object.hasOwn(stored.rows,e.id)).slice(0,6);
+ const pending=[...new Map(events.map(x=>[x.id,x])).values()].filter(e=>!claimed(stored.rows,e));
  if(!pending.length)return [];
  const opts={redirect:'error',signal:AbortSignal.timeout(12000)};
  const meta=await client(dest.url,opts);
@@ -100,14 +126,14 @@ async function deliverBatch({events,destination:dest},{now,ledger,client}){
  if(Object.keys(rows).length>4900)throw Error('ledger capacity');
  for(const e of pending)rows[e.id]={at:now,state:'reserved'};
  // Reserve before POST. Ambiguous network outcomes never resend automatically.
- const claimed=ledger.save(stored.head,rows);
+ const claim=ledger.save(stored.head,rows);
  const out=await client(dest.url+'?wait=true',{...opts,method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(message(pending))});
  if(!out.ok)throw Error('delivery unconfirmed');
  const receipt=await out.json();
  if(!snow(receipt.id)||receipt.channel_id!==dest.channel)throw Error('delivery unconfirmed');
  const proof=createHmac('sha256',dest.url).update(receipt.id).digest('hex');
  for(const e of pending)rows[e.id]={at:now,state:'confirmed',proof};
- ledger.save(claimed,rows);
+ ledger.save(claim,rows);
  return pending;
 }
 async function main(){
@@ -115,10 +141,11 @@ async function main(){
  const report=f=>JSON.parse(git(root,['show','HEAD:data/'+f]));
  const r=mode==='test'?{events:[],usablePartitions:0}:build(root,now,
   report('pickfinder-reviewed-history-performance.json'),report('pickfinder-public-research-health.json'),
-  require('./pickfinder-public-model-validation.cjs').history(root,'nba-official-availability'));
+  require('./pickfinder-public-model-validation.cjs').history(root,'nba-official-availability'),
+  {registry:report('pickfinder-current-identity-registry.json'),windowMs:batchConfig(process.env.PROJECT_DISCORD_BATCH_CONFIG).newPropLookbackMinutes*M});
  const categories={};for(const e of r.events)categories[e.kind]=(categories[e.kind]||0)+1;
  const outcome=await dispatch(r.events,{env:process.env,mode,runKey:process.env.GITHUB_RUN_ID,now,ledger:gitLedger(root)});
  console.log(JSON.stringify({...outcome,usablePartitions:r.usablePartitions,categories,paidRequests:0}));
 }
 if(require.main===module)main().catch(()=>{console.error('Project Discord alerts stopped without retrying an unconfirmed delivery. Check destination setup, archive contracts, and the delivery ledger.');process.exitCode=1;});
-module.exports={dispatch,gitLedger,filterConfig,deliveryBatches};
+module.exports={dispatch,gitLedger,filterConfig,deliveryBatches,batchConfig};

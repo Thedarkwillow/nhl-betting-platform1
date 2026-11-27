@@ -355,6 +355,23 @@ test('current NBA replay expands only explicitly aligned and independently match
  assert.equal(replay({...r,period:'first_half'},true).cache.size,0);
 });
 
+test('NBA current log minutes match the visible tenth-minute format and preserve precise official playing time',()=>{
+ const {nativeIndex,matchRow}=require('../scripts/pickfinder-native-history-reconciliation.cjs');
+ const {VERSION}=require('../scripts/pickfinder-research-coverage.cjs');
+ const startAt='2026-11-25T22:00:00Z',observedAt='2026-11-27T10:00:00Z',digest='a'.repeat(64);
+ const index=nativeIndex({facts:[],nhlFinals:[],nflSeasons:[],nbaFinalHistories:[{digest,first:observedAt,doc:{
+  kind:'nba_official_web_final_history_v1',source:'nba.com official game box score',officialFinalClockVerified:true,sourceResponseSha256:digest,
+  gameId:1,startAt,capturedAt:observedAt,rows:[{gameId:1,playerId:2,player:'Fixture',team:'BOS',opponent:'NYK',wl:'W',
+  gameDate:'2026-11-25',officialGameFinalVerified:true,identityVerified:true,appeared:true,minutes:28.766666666666666}]}}]},observedAt);
+ const f={origin:'profile',metric:'row 1',tab:'Game Log',scope:'Date | Opponent | Min | 2Q Min',observedAt};
+ const r={sport:'nba',player:'Fixture',market:'player_minutes_played',status:'sampled',truncated:false,coverageVersion:VERSION};
+ const run=(v,expanded=true)=>matchRow(r,{...f,value:JSON.stringify(['11/25','NYK',v,'28.8'].map(value=>({value})))},index,observedAt,{allowCurrentNbaHeaders:expanded});
+ assert.equal(run('28.80').candidate.value,28.766666666666666);
+ assert.equal(run('28.70').reason,'native_result_mismatch');
+ assert.equal(run('28.76').reason,'nba_minutes_precision');
+ assert.equal(run('28.80',false).reason,'unsupported_market');
+});
+
 test('current NFL replay uses the explicit rushing and receiving columns independently',()=>{
  const {nativeIndex,audit}=require('../scripts/pickfinder-native-history-reconciliation.cjs');
  const {VERSION}=require('../scripts/pickfinder-research-coverage.cjs');

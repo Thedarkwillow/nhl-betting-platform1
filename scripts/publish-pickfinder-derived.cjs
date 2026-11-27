@@ -34,12 +34,20 @@ function validate(raw,file,at){
   if(!Array.isArray(x.events)||!x.readiness||!x.delivery||x.delivery.nativePickFinder!=='unverified')throw Error('activity contract');
  }else if(file==='data/pickfinder-current-identity-registry.json'){
   const validDigest=d=>/^[a-f0-9]{64}$/.test(d||'');
+  const reviewedNba=new Set((x.statisticalCrosswalks||[]).filter(r=>
+   r.sport==='nba'&&r.namespace==='nba:official'&&r.evidenceKind==='independent_nba_schedule_and_roster_review'&&
+   validDigest(r.crosswalkReceiptDigest)&&r.crosswalkReceiptDigest===r.nativeReceiptDigest&&/^\d+$/.test(String(r.playerId))&&
+   Number.isFinite(Date.parse(r.proofAvailableAt))&&Date.parse(r.proofAvailableAt)<Date.parse(r.startAt)).
+   map(r=>JSON.stringify([String(r.playerId),r.crosswalkReceiptDigest])));
+  const identityEvidence=r=>Array.isArray(r.timezoneReceiptDigests)&&(
+   r.timezoneReceiptDigests.length===3&&new Set(r.timezoneReceiptDigests).size===3&&r.timezoneReceiptDigests.every(validDigest)||
+   r.sport==='nba'&&r.timezoneReceiptDigests.length===0&&r.crosswalkReceiptDigest===r.identityReceiptDigest&&
+   reviewedNba.has(JSON.stringify([String(r.playerId),r.crosswalkReceiptDigest])));
   if(x.qualifiedShadowStatistics!==undefined&&(!Array.isArray(x.qualifiedShadowStatistics)||x.qualifiedShadowStatistics.some(r=>
    r.evidenceKind!=='verified_current_identity_and_independent_final_stat'||r.productionModelEligible!==false||
    r.shadowResearchEligible!==true||r.operatorOfferVerified!==false||r.settlementVerified!==false||
    !validDigest(r.nativeDigest)||!validDigest(r.profileDigest)||!validDigest(r.identityReceiptDigest)||
-   !Array.isArray(r.timezoneReceiptDigests)||r.timezoneReceiptDigests.length!==3||new Set(r.timezoneReceiptDigests).size!==3||
-   !r.timezoneReceiptDigests.every(validDigest)||!Number.isFinite(r.value)||!Number.isFinite(Date.parse(r.availableAt))||Date.parse(r.availableAt)>t)))throw Error('shadow statistic evidence contract');
+   !identityEvidence(r)||!Number.isFinite(r.value)||!Number.isFinite(Date.parse(r.availableAt))||Date.parse(r.availableAt)>t)))throw Error('shadow statistic evidence contract');
   if(!Array.isArray(x.rows)||!Array.isArray(x.registry)||!sha(x.archiveRevision)||x.rows.some(r=>r.operatorOfferVerified!==false||r.settlementVerified!==false||r.statisticalModelEligible!==false))throw Error('identity registry contract');
  }else if(!Array.isArray(x.rows)||x.researchOnly!==true||x.privateRepoUsed!==false||x.calibrated!==false){
   throw Error('ranking contract');

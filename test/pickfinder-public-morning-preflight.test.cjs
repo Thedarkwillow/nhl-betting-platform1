@@ -50,3 +50,32 @@ test('scheduled watchdog cannot pass on an empty, unverified, manual-only or unf
  assert.equal(scheduledAuditExit({state:'slot_not_finished',scheduledCorePartitionsVerified:true}),1);
  assert.equal(scheduledAuditExit({state,scheduledCorePartitionsVerified:true}),0);
 });
+test('watchdog keeps its original GitHub creation day after Pacific midnight',async()=>{
+ const {auditContext}=require('../scripts/pickfinder-public-morning-audit.cjs');
+ const env={GITHUB_EVENT_NAME:'schedule',GITHUB_RUN_ID:'123456',AUDIT_CRON:'20 7 * * *'};
+ const run={id:123456,event:'schedule',path:'.github/workflows/morning-private-archive-health.yml',head_branch:'main',repository:{full_name:'Thedarkwillow/nhl-betting-platform1'},created_at:'2026-11-26T15:20:00Z'};
+ const now=new Date('2026-11-27T09:00:00Z');
+ const fake=(expected)=>async url=>{
+  assert.equal(url,'https://api.github.com/repos/Thedarkwillow/nhl-betting-platform1/actions/runs/123456');
+  return {ok:true,json:async()=>expected};
+ };
+ assert.deepEqual(await auditContext('06:00','',env,fake(run),now),{day:'2026-11-26',dayBasis:'github_run_created_at',auditRunId:'123456'});
+ await assert.rejects(auditContext('06:00','',env,fake({...run,created_at:'2026-11-27T08:11:00Z'}),now),/unverified_scheduler_day/);
+ await assert.rejects(auditContext('06:00','',env,fake({...run,event:'workflow_dispatch'}),now),/unverified_scheduler_run_metadata/);
+ await assert.rejects(auditContext('06:00','',env,async()=>({ok:false}),now),/unverified_scheduler_run_metadata/);
+ await assert.rejects(auditContext('09:00','',env,fake(run),now),/unverified_audit_trigger/);
+ await assert.rejects(auditContext('06:00','2026-11-26',env,fake(run),now),/unverified_audit_trigger/);
+});
+test('manual date audit is calendar validated and does not need scheduler API',async()=>{
+ const {auditContext}=require('../scripts/pickfinder-public-morning-audit.cjs');
+ const now=new Date('2026-11-27T03:00:00Z'),client=()=>assert.fail('manual context makes no API requests');
+ assert.deepEqual(await auditContext('09:00','',{},client,now),{day:'2026-11-26',dayBasis:'current_pacific_day'});
+ assert.deepEqual(await auditContext('09:00','2026-11-25',{},client,now),{day:'2026-11-25',dayBasis:'explicit_pacific_day'});
+ await assert.rejects(auditContext('09:00','2026-02-30',{},client,now),/invalid_requested_day/);
+});
+test('morning watchdog uploads the audit result even when source verification fails',()=>{
+ const workflow=fs.readFileSync(new URL('../.github/workflows/morning-private-archive-health.yml','file://'+__filename),'utf8');
+ assert.match(workflow,/AUDIT_OUTPUT: .*runner\.temp.*\/pickfinder-morning-audit\.json/);
+ assert.match(workflow,/Preserve read-only morning evidence[^\n]*\n\s*if: \$\{\{ always\(\) \}\}\n\s*uses: actions\/upload-artifact@v4/);
+ assert.deepEqual([...workflow.matchAll(/cron: '([^']+)'/g)].map(m=>m[1]),['20 7 * * *','20 10 * * *']);
+});

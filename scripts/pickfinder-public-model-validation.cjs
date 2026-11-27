@@ -256,6 +256,22 @@ function baselineScores(pairs){
  const n=pairs.length;
  return {decided:n,modelBrier:modelBrier/n,baselineBrier:baselineBrier/n,modelLogLoss:modelLogLoss/n,baselineLogLoss:baselineLogLoss/n};
 }
+function verifiedComparisonRows(frames,grades,clock){
+ const {decided}=require('./rolling-probability-performance.cjs').linkedGrades(frames,grades,clock);
+ const official=new Set(['cdn','stats_v3','nba.com official game box score']);
+ return decided.filter(r=>official.has(r.officialSource)).map(r=>{
+  const p=r.f.p;
+  // A grade can establish the outcome, never replace or add a frozen model input.
+  const native=p.nativeContextPair;
+  const nativeContextPair=native?.metric===p.market&&Number.isFinite(dt(native?.latestArchiveKnownAt))&&
+   dt(native.latestArchiveKnownAt)<=dt(r.f.generatedAt)&&Math.abs(native.incumbent-p.rawSelectedEstimate)<1e-12?native:null;
+  return {id:r.id,gameId:p.gameId,market:p.market,side:p.offeredSide,result:r.result,actual:r.actual,
+   modelEstimate:p.rawSelectedEstimate,baselineEstimate:p.baselineSelectedEstimate??null,
+   modelProjection:p.projection,pickfinderAverage:p.features?.['Avg L10'],quoteBenchmarks:p.quoteBenchmarks||[],
+   lowCountPair:p.lowCountPair,matchupPair:p.matchupPair,workloadPair:p.workloadPair,
+   reviewedHistoryPair:p.reviewedHistoryPair,nativeContextPair};
+ });
+}
 function pairedStats(rows){
  const by={},unique=new Map(),conflicts=new Set();for(const r of rows){if(!r.id)continue;const old=unique.get(r.id);if(old&&JSON.stringify(old)!==JSON.stringify(r))conflicts.add(r.id);else if(!old)unique.set(r.id,r);}for(const [id,r] of unique){if(conflicts.has(id)||!['correct','incorrect'].includes(r.result)||!Number.isFinite(r.actual)||!Number.isFinite(r.modelEstimate)||r.modelEstimate<0||r.modelEstimate>1)continue;const a=by[r.market]??={baselinePairs:[],lowCountPairs:[],matchupPairs:[],workloadPairs:[],reviewedHistoryPairs:[],nativeContextPairs:[],n:0,brier:0,logLoss:0,quoteN:0,quoteBrier:0,pairedModelBrier:0,avgN:0,avgMAE:0,pairedProjectionMAE:0};const pair=r.lowCountPair;
  if(pair?.revision===lowCountPairRevision&&[pair.featureOn,pair.featureOff].every(p=>Number.isFinite(p)&&p>=0&&p<=1))
@@ -303,14 +319,16 @@ async function main(root){
  a.summary.nbaWorkloadShadowRows=rows.filter(row=>row.workloadPair).length;
  a.summary.nbaMatchupShadowRows=rows.filter(row=>row.matchupPair).length;
  a.summary.nbaShadowRows=rows.length;a.summary.independentGrading=await grade(root,now());
- a.summary.prospectiveComparisons=pairedStats(history(root,'nba-grades').flatMap(x=>x.doc.rows||[]));
+ const committedFrames=history(root,'nba-forecasts'),committedGrades=history(root,'nba-grades'),gradedAt=now();
+ a.summary.prospectiveComparisonEvidence='first_git_forecast_and_official_grade_v1';
+ a.summary.prospectiveComparisons=pairedStats(verifiedComparisonRows(committedFrames,committedGrades,gradedAt));
  // Only committed original forecast and grade receipts; new grades enter on the next run.
- a.summary.rollingProbabilityPerformance=require('./rolling-probability-performance.cjs').audit(history(root,'nba-forecasts'),history(root,'nba-grades'),now());
+ a.summary.rollingProbabilityPerformance=require('./rolling-probability-performance.cjs').audit(committedFrames,committedGrades,gradedAt);
  a.summary.competitionDiscovery=await require('./season-aware-discovery.cjs').discover({env:{}});
  a.summary.lineupResearch={sizes:[2,3,4,5,6],qualifiedUnconditionalMarginals:0,automaticLineupsApproved:false,reason:'conditional estimates cannot be used as unconditional all-hit probabilities'};
  a.summary.sportModelStatus=Object.fromEntries(['nba','nhl','nfl','cs2','valorant','dota2','lol','cod'].map(s=>[s,{boardObserved:!!a.summary.bySport[s],independentModelJoin:s==='nba'?rows.length:0,productionApproved:false}]));
  fs.mkdirSync(path.join(root,'data'),{recursive:true});fs.writeFileSync(path.join(root,'data/pickfinder-public-research-health.json'),JSON.stringify(a.summary,null,2)+'\n');
  console.log(JSON.stringify({state:'public_research_validation',manifests:a.summary.archiveManifests,invalid:a.summary.invalidManifests,offerRefs:a.summary.offerRefs,exactComparisons:a.summary.exactComparisons,nbaShadowRows:rows.length,nbaSources:a.summary.nbaOfficialSources,independentGrading:a.summary.independentGrading,paidRequests:0,privateRepoUsed:false}));
 }
-module.exports={grade,reviewedHistoryPair,reviewedNbaHistory,withReviewedHistory,lowCountPair,matchupPair,workloadPair,newForecastRows,forecastOfferKey,candidates,modelRows,aliases,pairedStats,reviewed,history,save,gradingQueue,finalHistory,recoverFinalHistory,datedFinalGames,recentFinalSchedule};
+module.exports={grade,reviewedHistoryPair,reviewedNbaHistory,withReviewedHistory,lowCountPair,matchupPair,workloadPair,newForecastRows,forecastOfferKey,candidates,modelRows,aliases,pairedStats,verifiedComparisonRows,reviewed,history,save,gradingQueue,finalHistory,recoverFinalHistory,datedFinalGames,recentFinalSchedule};
 if(require.main===module)main(fs.realpathSync(process.argv[2]||'.')).catch(()=>{console.error('Public research validation failed closed');process.exitCode=1;});

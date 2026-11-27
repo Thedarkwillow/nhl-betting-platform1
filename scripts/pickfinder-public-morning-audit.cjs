@@ -1,5 +1,35 @@
 'use strict';
-const {execFileSync}=require('node:child_process'),path=require('node:path'),{ROOT,sha}=require('./pickfinder-public-archive.cjs'),{pacific}=require('./pacific-morning-capture-gate.cjs');
+const {execFileSync}=require('node:child_process'),fs=require('node:fs'),path=require('node:path'),{ROOT,sha}=require('./pickfinder-public-archive.cjs'),{pacific}=require('./pacific-morning-capture-gate.cjs');
+const REPOSITORY='Thedarkwillow/nhl-betting-platform1';
+const AUDIT_PATH='.github/workflows/morning-private-archive-health.yml';
+const AUDIT_CRONS={'20 7 * * *':{slot:'06:00',hour:7},'20 10 * * *':{slot:'09:00',hour:10}};
+const validDay=day=>/^\d{4}-\d{2}-\d{2}$/.test(day)&&Number.isFinite(Date.parse(day))&&new Date(day).toISOString().slice(0,10)===day;
+const validRunId=id=>/^[1-9][0-9]{0,19}$/.test(id);
+function requestOptions(env){
+ return {redirect:'error',signal:AbortSignal.timeout(10000),headers:{Accept:'application/vnd.github+json',...(env.GH_TOKEN?{Authorization:'Bearer '+env.GH_TOKEN}:{})}};
+}
+async function auditContext(slot,requestedDay,env=process.env,client=fetch,now=new Date()){
+ if(!['06:00','09:00'].includes(slot))throw Error('unsupported_slot');
+ if(env.GITHUB_EVENT_NAME!=='schedule'){
+  if(requestedDay&&!validDay(requestedDay))throw Error('invalid_requested_day');
+  return {day:requestedDay||pacific(now).day,dayBasis:requestedDay?'explicit_pacific_day':'current_pacific_day'};
+ }
+ const cron=AUDIT_CRONS[env.AUDIT_CRON],id=String(env.GITHUB_RUN_ID||'');
+ if(requestedDay||!cron||cron.slot!==slot||!validRunId(id))throw Error('unverified_audit_trigger');
+ let run;
+ try{
+  const response=await client('https://api.github.com/repos/'+REPOSITORY+'/actions/runs/'+id,requestOptions(env));
+  if(response.ok)run=await response.json();
+ }catch{}
+ if(!run||String(run.id)!==id||run.event!=='schedule'||run.repository?.full_name!==REPOSITORY||
+  run.head_branch!=='main'||run.path!==AUDIT_PATH||!Number.isFinite(Date.parse(run.created_at))||
+  Date.parse(run.created_at)>Number(now))throw Error('unverified_scheduler_run_metadata');
+ const time=pacific(run.created_at);
+ if(time.hour<cron.hour||time.hour===cron.hour&&time.minute<20)throw Error('unverified_scheduler_day');
+ // A runner may start after Pacific midnight. Never roll to the execution day.
+ // This binds to GitHub's run creation clock, not a fabricated nominal cron date.
+ return {day:time.day,dayBasis:'github_run_created_at',auditRunId:id};
+}
 const git=(root,args)=>execFileSync('git',['-C',root,...args],{stdio:['ignore','pipe','pipe'],maxBuffer:32e6,timeout:30000});
 const inHour=(at,day,h)=>{try{const x=pacific(at);return x.day===day&&x.hour===h;}catch{return false;}};
 function assess({manifest,first,parts,day,slot}){
@@ -48,7 +78,7 @@ async function verifyScheduled(root,report,env=process.env,client=fetch){
   if(o?.event!=='schedule'||!/^[1-9][0-9]{0,19}$/.test(o.runId)||!/^[1-9][0-9]{0,5}$/.test(o.attempt)){r.originUnknown++;continue;}
   const k=o.runId+'/'+o.attempt;
   if(!cache.has(k)){let data=null;try{
-    const res=await client('https://api.github.com/repos/Thedarkwillow/nhl-betting-platform1/actions/runs/'+o.runId+'/attempts/'+o.attempt,{redirect:'error',signal:AbortSignal.timeout(10000),headers:{Accept:'application/vnd.github+json',...(env.GH_TOKEN?{Authorization:'Bearer '+env.GH_TOKEN}:{})}});
+    const res=await client('https://api.github.com/repos/'+REPOSITORY+'/actions/runs/'+o.runId+'/attempts/'+o.attempt,requestOptions(env));
     if(res.ok)data=await res.json();
    }catch{}cache.set(k,data);}
   if(scheduledRunMatches(o,cache.get(k),report.day,report.slot,first))r.scheduledVerified++;else r.scheduledUnverified++;
@@ -58,13 +88,23 @@ async function verifyScheduled(root,report,env=process.env,client=fetch){
 function scheduledAuditExit(report){
  return report.state==='public_pickfinder_morning_audit'&&report.scheduledCorePartitionsVerified===true?0:1;
 }
-module.exports={assess,run,scheduledRunMatches,verifyScheduled,scheduledAuditExit,hasVerifiedSlotPartition};
+module.exports={assess,run,scheduledRunMatches,verifyScheduled,scheduledAuditExit,hasVerifiedSlotPartition,auditContext};
 if(require.main===module){(async()=>{
- const day=pacific(new Date()).day,root=process.argv[2];
- const report=await verifyScheduled(root,run(root,day,process.argv[3]));
- console.log(JSON.stringify(report));
+ const root=process.argv[2],slot=process.argv[3],now=new Date();
+ const context=await auditContext(slot,process.env.AUDIT_DAY,process.env,fetch,now);
+ const report={...await verifyScheduled(root,run(root,context.day,slot,now)),...context,generatedAt:now.toISOString()};
+ const evidence=JSON.stringify(report);
+ if(process.env.AUDIT_OUTPUT)fs.writeFileSync(process.env.AUDIT_OUTPUT,evidence+'\n');
+ console.log(evidence);
  if(process.argv.includes('--require-scheduled-core')&&scheduledAuditExit(report)!==0){
-  console.error('::error::No independently verified complete scheduled core partitions for '+day+' '+report.slot+' Pacific. Audit only, no collection or retry.');
+  console.error('::error::No independently verified complete scheduled core partitions for '+context.day+' '+report.slot+' Pacific. Audit only, no collection or retry.');
   process.exitCode=1;
  }
-})().catch(()=>{console.error('Public archive audit failed closed');process.exitCode=1;});}
+})().catch(error=>{
+ const allowed=['unsupported_slot','invalid_requested_day','unverified_audit_trigger','unverified_scheduler_run_metadata','unverified_scheduler_day'];
+ const report={state:'public_pickfinder_morning_audit_blocked',reason:allowed.includes(error.message)?error.message:'audit_failed_closed',generatedAt:new Date().toISOString(),scheduledCorePartitionsVerified:false,privateRepoUsed:false};
+ const evidence=JSON.stringify(report);
+ if(process.env.AUDIT_OUTPUT)try{fs.writeFileSync(process.env.AUDIT_OUTPUT,evidence+'\n',{flag:'wx'});}catch{}
+ console.log(evidence);
+ console.error('Public archive audit failed closed');process.exitCode=1;
+});}

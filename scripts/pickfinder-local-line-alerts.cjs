@@ -33,7 +33,7 @@ function observationsFromBatches(batches){
   if(o.book===b.book&&o.sport===b.sport&&validScope(o)&&o.explicitPrice)rows.push(o);
  }return rows;
 }
-module.exports={evaluateRules,observationsFromBatches};
+module.exports={evaluateRules,observationsFromBatches,stableDetail};
 if(require.main===module){
  try{const fs=require('node:fs');const [root,rulesFile]=process.argv.slice(2);const rules=JSON.parse(fs.readFileSync(rulesFile,'utf8'));const results=evaluateRules(rules,rules.some(r=>r.enabled===true)?observationsFromBatches(require('./pickfinder-deep-research.cjs').allBatches(root)):[]);const states={};for(const r of results)states[r.state]=(states[r.state]||0)+1;console.log(JSON.stringify({state:'local_line_alert_dry_run',rules:results.length,states,notificationsSent:0,rawRowsPublished:0}));}
  catch{console.error(JSON.stringify({state:'local_line_alert_dry_run_failed',rawRowsPublished:0}));process.exitCode=1;}

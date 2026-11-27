@@ -11,6 +11,10 @@ on:
         type: choice
         options: ['06:00','09:00']
         default: '06:00'
+      day:
+        description: 'Pacific date to audit (YYYY-MM-DD). Blank uses the current Pacific date.'
+        type: string
+        required: false
   schedule:
     - cron: '20 7 * * *'
       timezone: America/Los_Angeles
@@ -40,7 +44,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SLOT: ${{ github.event.schedule == '20 10 * * *' && '09:00' || inputs.slot || '06:00' }}
+          AUDIT_DAY: ${{ inputs.day }}
+          AUDIT_CRON: ${{ github.event.schedule }}
+          AUDIT_OUTPUT: ${{ runner.temp }}/pickfinder-morning-audit.json
         run: |
           flags=()
           if [[ "$GITHUB_EVENT_NAME" == schedule ]]; then flags+=(--require-scheduled-core); fi
           node scripts/pickfinder-public-morning-audit.cjs . "$SLOT" "${flags[@]}"
+      - name: Preserve read-only morning evidence even when core verification fails
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-pickfinder-morning-audit-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pickfinder-morning-audit.json
+          if-no-files-found: warn
+          retention-days: 30

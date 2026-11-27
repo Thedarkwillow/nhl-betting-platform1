@@ -100,7 +100,8 @@
  const grading=d.independentGrading||{},coverage=d.researchCoverage||{};
  add(mount,'p','New NBA research forecasts: '+n(d.nbaShadowRows)+' · Archived pregame forecasts: '+n(grading.archivedPregameRows)+' · Not yet due: '+n(grading.pendingNotDue)+' · Due and awaiting results: '+n(grading.pendingDueAfterRun)+' · New independent grades: '+n(grading.newGrades)+' · No production approval.');
  add(mount,'h3','NBA prospective model comparison');
- const gradedMarkets=Object.entries(d.prospectiveComparisons||{}).filter(([,row])=>row?.approved===false);
+ const gradedMarkets=d.prospectiveComparisonEvidence==='first_git_forecast_and_official_grade_v1'?
+  Object.entries(d.prospectiveComparisons||{}).filter(([,row])=>row?.approved===false):[];
  const scoreColumns=['Brier score','Log loss'];
  for(const comparison of [
   {key:'frozenBaselineComparison',title:'Model and pregame baseline',arms:['Model','Pregame baseline']},

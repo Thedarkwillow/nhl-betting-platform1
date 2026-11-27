@@ -1,6 +1,7 @@
 'use strict';
 // Manual research comparison of selected frozen candidates; never submit or optimize a wager.
 const {summarize}=require('../src/lineup-dependence-bounds-research.cjs');
+const {currentFormatReference}=require('../src/pickfinder-operator-rules.cjs');
 function inspect(legs,now){
  const t=Date.parse(now);
  if(!Number.isFinite(t)||!Array.isArray(legs)||legs.length<2||legs.length>6)throw Error('invalid research selection');
@@ -13,7 +14,7 @@ function inspect(legs,now){
  // Do not pretend conditional estimates are unconditional marginal probabilities.
  const comparable=legs.every(l=>l.probabilityConditionalOnDecided===false);
  const result=comparable?summarize(legs):null;
- return {kind:'local_pick_builder_research_v1',platform,size:legs.length,selection:legs.map(l=>l.id),dependenceSensitivity:result,conditionalMarginalsOnly:!comparable,entryTermsVerified:false,correlationVerified:false,platformEligibilityVerified:false,payout:null,expectedValue:null,researchOnly:true,bettingEligible:false,wagersPlaced:0};
+ return {kind:'local_pick_builder_research_v1',platform,size:legs.length,selection:legs.map(l=>l.id),dependenceSensitivity:result,operatorFormatReference:currentFormatReference(platform,legs.length),conditionalMarginalsOnly:!comparable,entryTermsVerified:false,correlationVerified:false,platformEligibilityVerified:false,payout:null,expectedValue:null,researchOnly:true,bettingEligible:false,wagersPlaced:0};
 }
 module.exports={inspect};
 if(require.main===module){try{const fs=require('node:fs');const input=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));const r=inspect(input.legs,new Date().toISOString());if(!process.argv[3])throw Error('private output required');fs.writeFileSync(process.argv[3],JSON.stringify(r)+'\n',{flag:'wx',mode:0o600});console.log(JSON.stringify({state:'research_builder_saved',size:r.size,conditionalMarginalsOnly:r.conditionalMarginalsOnly,wagersPlaced:0,rawRowsPublished:0}));}catch{console.error('Research builder rejected selection');process.exitCode=1;}}

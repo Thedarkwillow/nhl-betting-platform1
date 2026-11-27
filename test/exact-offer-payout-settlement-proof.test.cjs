@@ -102,8 +102,7 @@ test("NFL exact game and GSIS operator-offer proof is possible, but source-only 
   originalSourceOfferId:o.originalSourceOfferId,
   includesOriginalSelectionIds:[o.originalModelSelectionId]};
  assert.equal(p.payout(o,app,q).entrySpecificPayoutVerified,true);
- assert.equal(p.payout(o,app,{...q,entryType:"flex",pickCount:2}).verified,false,
-  "Two-pick PrizePicks entry can only be Power, never Flex");
+ assert.equal(p.payout(o,app,{...q,entryType:"flex",pickCount:2}).verified,true);
  const ud={...o,platform:"Underdog"},udApp={...app,platform:"Underdog"};
  assert.equal(p.payout(ud,udApp,{...q,platform:"Underdog",entryType:"flex",pickCount:2}).verified,false);
  // NBA official game and player identity also require exact IDs; unverified
@@ -215,4 +214,14 @@ test("cash net uses exact cent units and refuses unsupported or fractional-minor
   assert.equal(p.exactLineupReceipt(legs,{...receipt,grossPayoutCash:invalid}).platformSettlementVerified,false);
  for(const l of legs)l.quote.currency="XXX";
  assert.equal(p.exactLineupReceipt(legs,{...receipt,currency:"XXX"}).entrySpecificPayoutVerified,false);
+});
+
+test("Dated PrizePicks two-pick Flex reference does not replace a quote or extend to older receipts or other formats",()=>{
+ const two={...quote,entryType:"flex",pickCount:2,maximumMultiplier:2};
+ assert.equal(p.payout(original,witness,two).entrySpecificPayoutVerified,true);
+ assert.equal(p.payout(original,witness,{...two,signedOrAuthenticatedReceiptVerified:false}).verified,false);
+ const early="2026-10-18T10:01:00Z";
+ const o={...original,capturedAt:"2026-10-18T10:00:00Z",firstGitCommittedAt:early,gameStartAt:"2026-10-18T18:00:00Z"};
+ assert.equal(p.exactOffer(o,{...witness,observedAt:early}).verified,true);
+ assert.equal(p.payout(o,{...witness,observedAt:early},{...two,observedAt:early}).verified,false);
 });

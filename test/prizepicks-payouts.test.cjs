@@ -9,3 +9,14 @@ test("official standard Power and Flex payout tables",()=>{
 test("Demon and Goblin have no invented fixed multiplier",()=>{
  for(const tier of ["Goblin","Demon"]){const p=getPayout({pickCount:3,tiers:[tier]});assert.equal(p.verified,false);assert.equal(p.multiplier,null);}
 });
+
+test("a public reference or caller-supplied number is not an authenticated payout",()=>{
+ const standard=getPayout({pickCount:2,playType:"flex"});
+ assert.equal(standard.multiplier,2);
+ assert.equal(standard.referenceOnly,true);
+ assert.equal(standard.entrySpecificPayoutVerified,false);
+ assert.equal(standard.verified,false);
+ const alternate=getPayout({pickCount:2,tiers:["Demon"],quotedMultiplier:12});
+ assert.equal(alternate.multiplier,null);
+ assert.equal(alternate.verified,false);
+});

@@ -8,8 +8,7 @@
  */
 const KIND="private_exact_offer_payout_settlement_proof_v1";
 const PLATFORMS=new Set(["PrizePicks","Underdog"]);
-const entryType=Object.freeze({PrizePicks:new Set(["power","flex"]),
- Underdog:new Set(["standard","flex"])});
+const {supportsExactReceiptFormat}=require("./pickfinder-operator-rules.cjs");
 const at=x=>typeof x==="string"?Date.parse(x):NaN;
 const n=x=>typeof x==="number"&&Number.isFinite(x);
 const same=(a,b)=>String(a||"").trim().toLowerCase()===String(b||"").trim().toLowerCase();
@@ -85,9 +84,7 @@ function payout(original,app,quote){
   !sameOriginalReceiptFields(original,quote)||
   !Array.isArray(quote.availableSides)||
   !quote.availableSides.includes(original.originalSide)||
-  !entryType[quote.platform]?.has(quote.entryType)||
-  !Number.isInteger(quote.pickCount)||quote.pickCount<2||quote.pickCount>6||
-  quote.entryType==="flex"&&quote.pickCount<3||
+  !supportsExactReceiptFormat(quote.platform,quote.entryType,quote.pickCount,quote.observedAt)||
   !n(quote.entryFee)||quote.entryFee<=0||!n(quote.maximumMultiplier)||
   quote.maximumMultiplier<=0||!quote.entryId||!quote.payoutTableId||
   !Array.isArray(quote.includesOriginalSelectionIds)||

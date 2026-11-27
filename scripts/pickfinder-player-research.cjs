@@ -61,8 +61,20 @@ function readSections({tab,origin,observedAt,context,fullSportingHeaders=false})
     let i=0;
     for(const tr of table.querySelectorAll('tbody tr')){
       const movementTimeIndex=origin==='line_movement'&&header==='Line | App | Time'?headers.indexOf('Time'):-1;
+      const normalizedMovementLine=movementTimeIndex>=0?headers.indexOf('Line'):-1;
       const cells=[...tr.cells].map((c,column)=>{
         const result={value:c.innerText.trim()||null,labels:[...c.querySelectorAll('img[alt]')].map(e=>e.alt)};
+        if(column===normalizedMovementLine&&result.labels.length===0&&c.children?.length===1){
+          // The movement badge is a second visible span, not another threshold.
+          const span=c.children[0]?.children;
+          if(span?.length===2&&[...span].every(n=>n.tagName==='SPAN'&&n.getClientRects().length)&&
+             span[0].classList.contains('text-base')&&span[1].classList.contains('rounded-full')&&span[1].classList.contains('text-xs')){
+            const threshold=span[0].innerText.trim(),badge=span[1].innerText.trim();
+            if(/^\d+(?:\.\d+)?$/.test(threshold)&&/^[+-]?\d+(?:\.\d+)?$/.test(badge)&&result.value===threshold+'\n'+badge){
+              result.value=threshold;result.displayedMovementBadge=badge;
+            }
+          }
+        }
         if(column===movementTimeIndex){
           // Record the browser's rendering context, never infer a source offset or year from it.
           const zone=Intl.DateTimeFormat().resolvedOptions().timeZone;

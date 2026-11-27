@@ -8,12 +8,14 @@ const depthHeader = ' | Starter | 2nd | 3rd | 4th | 5th';
 const depthBadges = new Set(['OUT','Q','DOUBT','PROB']);
 const decimal = /^\d+(?:\.\d+)?$/;
 const {noVigHigher}=require('./pickfinder-quote-features.cjs');
+const isDepth=f=>['Player overview','Injuries','Depth Chart'].includes(f.tab)&&f.scope===depthHeader;
+const defenseHeader=f=>f.tab==='Defense'&&f.scope?.toUpperCase()==='STAT | SZN | L10 | L5 | STRENGTH';
 function rowCells(field) {
   if (!/^row [1-9]\d*$/.test(field.metric) || typeof field.value !== 'string') return null;
   let cells;
   try { cells = JSON.parse(field.value); } catch { return null; }
-  const headers = (field.scope || '').split(' | ');
-  if (field.tab === 'Injuries' && field.scope === depthHeader) headers[0] = 'Position';
+  const headers = (defenseHeader(field)?field.scope.toUpperCase():field.scope || '').split(' | ');
+  if (isDepth(field)) headers[0] = 'Position';
   if (!Array.isArray(cells) || cells.length !== headers.length || headers.some(h => !h) ||
       new Set(headers).size !== headers.length || cells.some(c => !c || !Array.isArray(c.labels))) return null;
   return Object.fromEntries(headers.map((h,i) => [h,cells[i]]));
@@ -79,8 +81,8 @@ function parseCurrentPickEmMovement(f,cells){
   originalPlatformVerified:false,openingOrClosingVerified:false};
 }
 function profileMarketEvidence(record, field, digest, archiveAt, clock) {
-  const depth = field.tab === 'Injuries' && field.scope === depthHeader;
-  const defense = field.tab === 'Defense' && field.scope === 'STAT | SZN | L10 | L5 | STRENGTH';
+  const depth = isDepth(field);
+  const defense = defenseHeader(field);
   if (field.origin !== 'line_movement' && !(record.sport === 'nba' && field.origin === 'profile' &&
       (depth || defense || ['Player overview','Injuries'].includes(field.tab) && field.scope?.startsWith('Player | ')))) return [];
   const observed = Date.parse(field.observedAt), archived = Date.parse(archiveAt), cutoff = Date.parse(clock);
@@ -113,15 +115,19 @@ function profileMarketEvidence(record, field, digest, archiveAt, clock) {
     if (cell.labels.length !== 1 || typeof cell.value !== 'string') return [];
     const [display,badge,...extra] = cell.value.split('\n');
     const abbreviated = record.player.replace(/^(\S)\S* /u,'$1. ');
-    if (extra.length || ![record.player,abbreviated].includes(display) || !depthBadges.has(badge)) return [];
-    return [{...context,kind:'availability',metric:'depth_chart_badge',value:badge,normalizedStatus:badge==='OUT'?'out':null,
-      depthPosition:cells.Position.value,depthSlot:slot,independentInjuryVerified:false}];
+    if(extra.length||![record.player,abbreviated].includes(display)||badge&&!depthBadges.has(badge))return [];
+    const layout={...context,depthPosition:cells.Position.value,depthSlot:slot,independentInjuryVerified:false,teamVerified:false,confirmedLineup:false};
+    if(field.tab!=='Injuries')return [{...layout,kind:'depth_chart_observation',metric:'displayed_depth_slot',value:slot,displayedBadge:badge??null}];
+    if(!badge)return [];
+    return [{...layout,kind:'availability',metric:'depth_chart_badge',value:badge,normalizedStatus:badge==='OUT'?'out':null}];
   }
   if (defense && field.origin === 'profile') {
     const stat = /^(Pts|Asts|Rebs|RA|PR|PA|PRA|Blks|Stls|3PM|PF|TO)\n(\d+(?:\.\d+)?) allowed\/g$/.exec(cells.STAT.value);
-    if (!stat || !['TOUGH','SOLID','WEAK','AVERAGE','NEUTRAL'].includes(cells.STRENGTH.value)) return [];
+    const strength=typeof cells.STRENGTH.value==='string'?cells.STRENGTH.value.toUpperCase():null;
+    if (!stat || !['TOUGH','SOLID','SOFT','WEAK','AVERAGE','NEUTRAL'].includes(strength)) return [];
     const ranks = {};
     for (const period of ['SZN','L10','L5']) {
+      if(period!=='SZN'&&/^[—–-]$/.test(cells[period].value)){ranks[period]=null;continue;}
       const rank = /^(\d{1,2})(st|nd|rd|th)$/.exec(cells[period].value);
       if (!rank) return [];
       const n = Number(rank[1]);
@@ -130,7 +136,7 @@ function profileMarketEvidence(record, field, digest, archiveAt, clock) {
       ranks[period] = n;
     }
     return [{...context,kind:'defense_splits',metric:stat[1],displayedAllowedPerGame:Number(stat[2]),
-      displayedRanks:ranks,displayedStrength:cells.STRENGTH.value,defendingTeamVerified:false,positionFilterVerified:false}];
+      displayedRanks:ranks,displayedStrength:strength,defendingTeamVerified:false,positionFilterVerified:false}];
   }
   if (field.origin !== 'profile' || !cells.Player || cells.Player.labels.length !== 1 ||
       cells.Player.labels[0] !== record.player) return [];
@@ -143,11 +149,12 @@ function profileMarketEvidence(record, field, digest, archiveAt, clock) {
 }
 
 function summarize(receipts) {
-  const counts = {historicalRows:0,explicitMovementUtcRows:0,browserTimezoneRows:0,pairedRows:0,workloadObservations:0,availabilityObservations:0,defenseSplitObservations:0,byBook:{},currentPickEmMovement:{rows:0,exactDisplayedTierRows:0,unpricedRows:0,sourceClockRows:0,byBook:{}}};
+  const counts = {historicalRows:0,explicitMovementUtcRows:0,browserTimezoneRows:0,pairedRows:0,workloadObservations:0,availabilityObservations:0,defenseSplitObservations:0,depthChartObservations:0,byBook:{},currentPickEmMovement:{rows:0,exactDisplayedTierRows:0,unpricedRows:0,sourceClockRows:0,byBook:{}}};
   const groups = new Map();
   for (const row of receipts) {
     if (row.kind === 'workload') counts.workloadObservations++;
     else if (row.kind === 'availability') counts.availabilityObservations++;
+    else if (row.kind === 'depth_chart_observation') counts.depthChartObservations++;
     else if (row.kind === 'defense_splits') counts.defenseSplitObservations++;
     else if(row.kind==='current_displayed_pickem_movement'){
       const c=counts.currentPickEmMovement;c.rows++;if(row.displayedTier)c.exactDisplayedTierRows++;

@@ -211,3 +211,16 @@ test('delivery window retains recent release with older independent baseline but
  const {batchConfig}=require('../scripts/send-project-discord-alerts.cjs');
  a.deepEqual(batchConfig(),{itemsPerMessage:6,messagesPerChannel:8,messagesPerRun:12,newPropLookbackMinutes:240});
 });
+
+test('release diagnostics distinguish unresolved prior evidence from an eligible unchanged board',()=>{
+ const fresh=board('prizepicks',3,[['A',14.5]]);
+ const blocked=board('prizepicks',120,[['A',14.5]],{health:{wrongSport:0,priceConflictKeys:0,unresolvedRows:7935}});
+ const r=compare([fresh,blocked],time);
+ a.equal(r.events.length,0);
+ a.deepEqual(r.releaseBaselines['nba/prizepicks'],{latest:'prior_unresolved_rows',counts:{prior_unresolved_rows:1,missing_prior_board:1},releaseCandidates:0});
+ const prior=board('prizepicks',120,[['A',14.5]]);
+ const noChange=compare([fresh,prior],time);
+ a.equal(noChange.releaseBaselines['nba/prizepicks'].latest,'eligible');
+ a.equal(noChange.releaseBaselines['nba/prizepicks'].releaseCandidates,0);
+ a.equal(noChange.events.length,0);
+});

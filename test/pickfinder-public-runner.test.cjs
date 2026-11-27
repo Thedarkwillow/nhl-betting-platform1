@@ -172,7 +172,8 @@ test('header repair cannot clear a different malformed row or an incomplete repl
  const record=(fields,truncated=false)=>publicProfile({...x,research:fields,profileCollection:{truncated}});
  const old=record([row('row 1','Date | Opp',stamp),row('row 2','Date | Opp',stamp)]);
  const fixed1=row('row 1','Date | Opp | PTS',later,'span-grid-v1'),fixed2={...fixed1,metric:'row 2'};
- assert.equal(queue([b],[{records:[old,record([fixed1])]}]).repairPending.length,1);
+ const partial=queue([b],[{records:[old,record([fixed1])]}]);
+ assert.equal(partial.malformedHistoryPending,1);assert.equal(partial.unresolvedHistoryRows,1);assert.equal(partial.deferredHistoryScopes,1);
  assert.equal(queue([b],[{records:[old,record([fixed1,fixed2],true)]}]).repairPending.length,1);
  assert.equal(queue([b],[{records:[old,record([fixed1,fixed2])]}]).repairPending.length,0);
 });
@@ -188,7 +189,7 @@ test('notification menu follows only explicit same-origin allowlisted link',asyn
 test('named navigation can reference its visible control label by ID',async()=>{
  const {navigationButton}=require('../scripts/pickfinder-tool-schema.cjs');
  const attributes={'aria-labelledby':'tool title'};
- const element={getAttribute:k=>attributes[k],ownerDocument:{getElementById:id=>({textContent:id==='tool'?'Pick':'Builder'})},querySelector:()=>null,closest:()=>null,getClientRects:()=>[{}]};
+ const element={matches:()=>true,getAttribute:k=>attributes[k],ownerDocument:{getElementById:id=>({textContent:id==='tool'?'Pick':'Builder'})},querySelector:()=>null,closest:()=>null,getClientRects:()=>[{}]};
  const button={isEnabled:async()=>true,isVisible:async()=>true};
  const page={locator:()=>({evaluateAll:async(fn,names)=>fn([element],names),nth:()=>button})};
  assert.equal(await navigationButton(page,['Pick Builder']),button);
@@ -227,5 +228,43 @@ test('reads an already visible Pick Builder sidebar without opening or saving a 
   const result=await inspectTool(page,'builder',async()=>true);
   assert.equal(result.state,controls.length===1?'panel_only_observed':'read_only_schema_observed');
   assert.equal(result.method,'visible_panel');assert.equal(result.mutations,0);assert.equal(result.submissionVerified,false);
+ }
+});
+
+
+test('floating popup launcher requires unique explicit opening intent and excludes mutable controls',async()=>{
+ const {navigationButton}=require('../scripts/pickfinder-tool-schema.cjs');
+ const allowed=['Alerts','Open Notifications'];
+ const button={isVisible:async()=>true,isEnabled:async()=>true};
+ const candidate=(label,popup,extra={})=>{
+  const attributes={'aria-label':label,'aria-haspopup':popup,...extra};
+  return {matches:()=>false,getAttribute:k=>attributes[k],hasAttribute:k=>Object.hasOwn(attributes,k),
+   getClientRects:()=>[{}],querySelector:()=>null,closest:()=>null};
+ };
+ const find=async elements=>navigationButton({locator:()=>({evaluateAll:(fn,args)=>fn(elements,args),nth:()=>button})},allowed);
+ assert.equal(await find([candidate('Open Notifications','dialog')]),button);
+ for(const rejected of [candidate('Enable notifications','dialog'),candidate('Alerts','true'),
+   candidate('Open Notifications','false'),candidate('Open Notifications','menu',{'aria-pressed':'false'}),
+   candidate('Open Notifications','dialog',{type:'submit'})])assert.equal(await find([rejected]),null);
+ assert.equal(await find([candidate('Open Notifications','dialog'),candidate('Open Notifications','menu')]),null);
+});
+
+test('rolling NBA log requires matching cells, context and header before clearing an old row',()=>{
+ const board={sport:'nba',book:'prizepicks',offers:[{player:'Fixture',market:'rebounds',eventId:'e',detailId:'/players/nba/f?prop=rebounds'}]};
+ const item=queue([board],[]).pending[0];
+ const first='2026-11-25T20:00:00Z',later='2026-11-26T22:00:00Z';
+ const row=(day,metric,when,aligned)=>({origin:'profile',tab:'Matchup',scope:aligned?'Date | Opp | REB':'Date | Opp',metric,
+  observedAt:when,headerLayout:aligned?'span-grid-v1':undefined,value:JSON.stringify([day,'TOR','8'].map(value=>({value})))});
+ const record=(...fields)=>publicProfile({...item,research:fields,profileCollection:{truncated:false}});
+ const old=row('11/23','row 1',first,false),differentGame=row('11/25','row 1',later,true),sameGame=row('11/23','row 2',later,true);
+ const check=(fields)=>queue([board],[{records:[record(old),record(...fields)]}]);
+ const gap=check([differentGame]);
+ assert.equal(gap.unresolvedHistoryRows,1);assert.equal(gap.done,0);assert.equal(gap.deferredHistoryScopes,1);
+ assert.equal(gap.repairPending.length,0);
+ const refreshed=check([differentGame,{...old,observedAt:'2026-11-27T22:00:00Z'}]);
+ assert.equal(refreshed.deferredHistoryScopes,0);assert.equal(refreshed.repairPending.length,1);
+ assert.equal(check([differentGame,sameGame]).done,1);
+ for(const change of [{tab:'Defense'},{filterSelection:[]},{scope:'Date | Team | REB'},{window:'Last 5 Games'}]){
+  assert.equal(check([differentGame,{...sameGame,...change}]).unresolvedHistoryRows,1);
  }
 });

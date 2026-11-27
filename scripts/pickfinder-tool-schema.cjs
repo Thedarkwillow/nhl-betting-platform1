@@ -8,15 +8,24 @@ const labels={builder:/^(?:pick builder|add pick|remove pick|payout|potential pa
 // a player star, create alert, export, connect Discord, or any form control.
 async function navigationButton(page,names){
  if(typeof page.locator!=='function')return null; // missing browser capability: fail closed
- const selector='header button,nav button,aside button,header [role=button],nav [role=button],aside [role=button],main button[aria-haspopup],main [role=button][aria-haspopup],nav [role=tab][aria-controls],aside [role=tab][aria-controls],main [role=tablist] [role=tab][aria-controls],[role=menu] [role=menuitem][aria-haspopup],[role=menu] button[aria-haspopup]';
- const buttons=page.locator(selector);
- const indices=await buttons.evaluateAll((els,names)=>els.flatMap((e,i)=>{
+ const landmarkSelector='header button,nav button,aside button,header [role=button],nav [role=button],aside [role=button],main button[aria-haspopup],main [role=button][aria-haspopup],nav [role=tab][aria-controls],aside [role=tab][aria-controls],main [role=tablist] [role=tab][aria-controls],[role=menu] [role=menuitem][aria-haspopup],[role=menu] button[aria-haspopup]';
+ // Floating launchers can be mounted outside the navigation landmarks.
+ // Outside those landmarks accept only an explicitly named Open action with popup semantics.
+ const floatingSelector='button[aria-haspopup], [role=button][aria-haspopup]';
+ const buttons=page.locator(landmarkSelector+','+floatingSelector);
+ const indices=await buttons.evaluateAll((els,{names,landmarkSelector})=>els.flatMap((e,i)=>{
   const norm=x=>String(x||'').trim().replace(/\s+/g,' ').toLowerCase();
   const allowed=names.map(norm);
   const labelledBy=(e.getAttribute('aria-labelledby')||'').split(/\s+/).filter(Boolean).map(id=>e.ownerDocument.getElementById(id)?.textContent||'').join(' ');
   const candidates=[e.getAttribute('aria-label'),labelledBy,e.innerText,e.getAttribute('title'),e.querySelector('svg title')?.textContent].map(norm).filter(Boolean);
+  if(!e.matches(landmarkSelector)){
+   const intent=norm(e.getAttribute('aria-label'));
+   const popup=norm(e.getAttribute('aria-haspopup'));
+   if(!allowed.includes(intent)||!intent.startsWith('open ')||!['dialog','menu','true'].includes(popup)
+     ||e.hasAttribute('aria-pressed')||e.hasAttribute('aria-checked'))return [];
+  }
   return e.getClientRects().length&&!e.disabled&&e.getAttribute('aria-disabled')!=='true'&&!e.closest('form')&&e.getAttribute('type')!=='submit'&&candidates.some(x=>allowed.includes(x))?[i]:[];
- }),names);
+ }),{names,landmarkSelector});
  if(indices.length!==1)return null;
  const b=buttons.nth(indices[0]);
  if(!await b.isVisible()||!await b.isEnabled())return null;
@@ -27,12 +36,16 @@ async function navigationButton(page,names){
 async function featureNavigationHints(page,kind){
  try{return await page.evaluate(({kind})=>{
   const pattern=kind==='builder'?/\b(?:pick builder|build picks|lineup builder)\b/i:/\b(?:line alerts?|notifications?|board drops?)\b/i;
-  const counts={visibleNamedLinks:0,visibleNamedButtons:0,hiddenNamedControls:0,visibleNamedOther:0};
+  const counts={visibleNamedLinks:0,visibleNamedButtons:0,hiddenNamedControls:0,visibleNamedOther:0,visiblePopupButtons:0,visibleOpenLabelButtons:0};
   for(const e of document.querySelectorAll('a,button,[role=button],[role=tab],[title],[aria-label]')){
    if(![e.getAttribute('aria-label'),e.getAttribute('title'),e.innerText].some(t=>typeof t==='string'&&t.length<=80&&pattern.test(t)))continue;
    if(!e.getClientRects().length){counts.hiddenNamedControls++;continue;}
    if(e.tagName==='A')counts.visibleNamedLinks++;
-   else if(e.tagName==='BUTTON'||e.getAttribute('role')==='button')counts.visibleNamedButtons++;
+   else if(e.tagName==='BUTTON'||e.getAttribute('role')==='button'){
+    counts.visibleNamedButtons++;
+    if(['true','dialog','menu'].includes(e.getAttribute('aria-haspopup')))counts.visiblePopupButtons++;
+    if(/^open /i.test(e.getAttribute('aria-label')||''))counts.visibleOpenLabelButtons++;
+   }
    else counts.visibleNamedOther++;
   }return counts;
  },{kind});}catch{return null;}

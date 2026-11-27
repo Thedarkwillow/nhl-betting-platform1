@@ -43,3 +43,15 @@ test('matchup table keeps its named season, L10 and L5 ranks with unresolved tea
  assert.deepEqual(extract(f,[cells[0],cell('31st'),...cells.slice(2)]),[]);
  assert.deepEqual(extract({...f,tab:'Injuries'},cells),[]);
 });
+test('depth chart status requires an explicit suffix on exactly one selected-player cell',()=>{
+ const f={origin:'profile',scope:' | Starter | 2nd | 3rd | 4th | 5th',metric:'row 1',tab:'Injuries',observedAt:time};
+ const cells=[cell('PG'),cell('Other\nOUT',['Other']),cell('E. Player\nQ',['Example Player']),cell(null),cell(null),cell(null)];
+ const [r]=extract(f,cells);
+ assert.equal(r.value,'Q');assert.equal(r.normalizedStatus,null);assert.equal(r.depthSlot,'2nd');
+ assert.equal(r.independentInjuryVerified,false);
+ assert.equal(extract(f,cells.map((c,i)=>i===2?cell('E. Player\nOUT',['Example Player']):c))[0].normalizedStatus,'out');
+ for(const c of [cell('E. Player',['Example Player']),cell('E. Player\nQ',['Other']),cell('E. Player\nQ',['Example Player','Other']),cell('Wrong Name\nQ',['Example Player'])]){
+   assert.deepEqual(extract(f,cells.map((x,i)=>i===2?c:x)),[]);
+ }
+ assert.deepEqual(extract(f,cells.map((x,i)=>i===1?cells[2]:x)),[]);
+});

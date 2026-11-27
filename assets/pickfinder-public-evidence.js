@@ -96,6 +96,8 @@
    add(mount,'h3','Historical quotes and NBA player context');
    add(mount,'p',n(profile.historicalRows)+' archived book and threshold rows · '+n(profile.distinctUnconflictedPairedGroups)+' distinct two-sided prices · '+n(profile.unzonedPairedGroups)+' unzoned pairs withheld from timestamp-based comparisons · '+n(profile.offsetBoundNoVigPairedGroups)+' offset-backed paired no-vig candidates.');
    add(mount,'p','Browser timezone metadata is not a historical source offset. A paired candidate does not verify an opening or closing price, first-party quote or model edge.');
+   const pickem=profile.currentPickEmMovement;
+   if(pickem)add(mount,'p',n(pickem.rows)+' displayed PrizePicks/Underdog movement rows · '+n(pickem.exactDisplayedTierRows)+' explicit tier labels · '+n(pickem.unpricedRows)+' unpriced · '+n(pickem.sourceClockRows)+' with a source clock. Pick’em rows are excluded from sportsbook probability estimates.');
    add(mount,'p',n(profile.workloadObservations)+' workload observations · '+n(profile.defenseSplitObservations)+' defensive splits · '+n(profile.availabilityObservations)+' coded availability observations.');
   }
   const fresh=Object.values(activity.readiness||{}).filter(x=>x.freshCompleteBoard&&Number.isFinite(Date.parse(x.observedAt))&&Date.parse(x.observedAt)<=Date.now()&&Date.now()-Date.parse(x.observedAt)<=900000);

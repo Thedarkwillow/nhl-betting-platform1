@@ -66,3 +66,19 @@ test('directory and research discovery emits candidates only, never roster or ev
  a.equal(d.directory.ambiguousNameCandidates,1);a.equal(d.reference.oneNameCandidate,1);a.equal(d.reference.playerColumnRows,2);
  a.equal(d.referenceStatus,'no_event_bound_native_identity');
 });
+
+test('exact profile retains displayed game clock and separate browser timezone without qualifying the game',()=>{
+ const row={...r,sport:'nba',player:'VJ Edgecombe',market:'player_assists',
+  detailId:'/players/nba/edgecombe?prop=fixture:player_assists:pf1:4'};
+ const label='PHI @ IND • Fri @ 4:30PM';
+ const entries=[{label:'Team',value:'PHI'},{label:'Opponent',value:'IND'},{label:'Matchup',value:label}];
+ const snap={routeVerified:true,playerLabelVerified:true,entries,browserClock:{zone:'America/Los_Angeles',offsetMinutes:-480}};
+ const context=captureProfileContext(row,snap,at);
+ a.equal(context.displayedMatchupLabel,label);
+ a.deepEqual(context.displayedLocalMatchup,{team:'PHI',opponent:'IND',homeAway:'away',weekday:'Fri',hour:4,minute:30,dayPeriod:'PM'});
+ a.equal(context.browserClock.zone,'America/Los_Angeles');a.equal(context.providerDisplayZoneVerified,false);
+ a.equal(context.startAt,null);a.equal(context.gameDateUtc,null);
+ a.equal(result({...row,independentReconciliationContext:context}).rows[0].match,null);
+ a.equal(captureProfileContext(row,{...snap,playerLabelVerified:false},at),null);
+ a.equal(captureProfileContext(row,{...snap,entries:[...entries,{label:'Matchup',value:'PHI @ IND • Sat @ 4:30PM'}]},at).displayedMatchupLabel,undefined);
+});

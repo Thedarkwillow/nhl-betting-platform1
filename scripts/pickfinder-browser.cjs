@@ -101,10 +101,21 @@ function readBoard({book, code, sport, observedAt}) {
         value:!value || value==='-'?null:value,scope:'displayed prop',observedAt,
         window:/^(L5|L10|L15|Avg L10|H2H|SZN)$/.test(metric)?metric:null});
     }
-    // Team order is from this player's own visible matchup line.
+    // Keep the provider's displayed clock on this exact player/market link.
+    // The visible weekday and time do not, by themselves, establish a date or zone.
+    const localMatchups=new Map();
+    const playerCell=a.closest?.('td');
+    const textSources=[a.innerText,playerCell&&playerCell!==cell?playerCell.innerText:null];
+    for(const text of textSources)for(const raw of (text||'').split('\n')){
+      const label=raw.trim();
+      const m=label.match(/^([A-Z]{2,4})\s+(@|vs\.?)\s+([A-Z]{2,4})\s*[•·]\s*(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*@\s*(?:1[0-2]|[1-9]):[0-5]\d\s*[AP]M$/i);
+      if(m&&m[1].toUpperCase()!==m[3].toUpperCase())localMatchups.set(label,m);
+    }
+    const local=localMatchups.size===1?[...localMatchups.entries()][0]:null;
     const matchups=(a.innerText||'').split('\n').map(line=>line.trim().match(/^([A-Za-z0-9][A-Za-z0-9 ._-]{0,39}?)\s+(@|vs\.?)\s+([A-Za-z0-9][A-Za-z0-9 ._-]{0,39})$/i)).filter(Boolean);
-    if(matchups.length===1&&matchups[0][1]!==matchups[0][3]){
-      for(const [metric,value] of [['Team',matchups[0][1]],['Opponent',matchups[0][3]]])
+    const pair=local?.[1]??(localMatchups.size===0&&matchups.length===1?matchups[0]:null);
+    if(pair&&pair[1]!==pair[3]){
+      for(const [metric,value] of [['Team',pair[1]],['Opponent',pair[3]],...(local?[['Displayed Matchup and Time',local[0]]]:[])])
         research.push({origin:'board',tab:'Props',metric,value,scope:'displayed prop',observedAt});
     }
     // Sportsbook clocks live in the Apps cell and cannot establish or block the game clock.

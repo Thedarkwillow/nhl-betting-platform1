@@ -115,3 +115,27 @@ test('quote threshold requires an isolated sportsbook and its own visible descri
   assert.deepEqual(read(),[]);
  }finally{if(prior===undefined)delete global.document;else global.document=prior;}
 });
+
+test('archive retains the visible prop matchup and local clock without inventing an event timestamp',()=>{
+ const {readBoard}=require('../scripts/pickfinder-browser.cjs');
+ const {cleanBoard,splitBoard}=require('../scripts/pickfinder-public-runner.cjs');
+ const old=global.document,observedAt='2026-11-27T06:50:00Z',label='PHI @ IND • Fri @ 4:30PM';
+ const a={href:'https://www.pickfinder.app/players/nba/edgecombe?prop=fixture:player_assists:event:4',
+   innerText:'VJ Edgecombe\n'+label,querySelector:()=>({innerText:'VJ Edgecombe'})};
+ const tr={querySelector:()=>a,querySelectorAll:()=>[],cells:[]};
+ const table={innerText:'',querySelectorAll:s=>s==='tbody tr'?[tr]:[]};
+ try{
+  global.document={body:{innerText:'Premium'},querySelector:s=>s==='table'?table:null};
+  const read=()=>readBoard({book:'prizepicks',code:'NBA',sport:'nba',observedAt}).rows[0];
+  const row=read();
+  const {parts}=splitBoard(cleanBoard({schema:'pickfinder-premium-export-v1',boardState:'partial',
+    localDay:'2026-11-26',slot:'manual',book:'prizepicks',sport:'nba',startedAt:observedAt,endedAt:observedAt,pages:[{number:1,rows:[row]}]}));
+  const fields=parts.find(p=>p.field==='researchObservations').rows;
+  const saved=fields.find(f=>f.metric==='Displayed Matchup and Time');
+  assert.equal(saved.value,label);assert.equal(saved.startAt,null);assert.equal(saved.eventId,'event');
+  assert.match(saved.detailId,/player_assists:event:4/);
+  assert.equal(fields.find(f=>f.metric==='Opponent').value,'IND');
+  a.innerText+='\nPHI @ IND • Sat @ 4:30PM';
+  assert.ok(read().research.every(f=>f.metric!=='Displayed Matchup and Time'));
+ }finally{if(old===undefined)delete global.document;else global.document=old;}
+});

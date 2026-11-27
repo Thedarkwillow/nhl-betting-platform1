@@ -331,9 +331,9 @@ async function main(root,env=process.env){
     const results=await Promise.allSettled(items.map(async(item,n)=>{
      const detail=pages[n],row={...item,research:[]},t=Date.now();attemptedProfiles++;
      try{await enrich(detail,row,{expanded:true,fullSportingHeaders:true,maxFields:Infinity,includePropHistory:!p.currentProfiles,shouldContinue:profileAlive,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(!await premium(detail))throw Error('session');
-       if(p.currentProfiles){const snap=await detail.evaluate(currentIdentity.readVisible,{player:row.player,detailId:row.detailId}).catch(()=>null);row.independentReconciliationContext=currentIdentity.captureProfileContext(row,snap,new Date().toISOString());}}});}catch{row.profileCollection={truncated:true};}
-     const record=publicProfile(row);
-     return {record:p.currentProfiles?compactCurrentProfile({...record,currentProfileAttemptedAt:new Date().toISOString(),independentReconciliationContext:row.independentReconciliationContext??null}):record,elapsed:Date.now()-t,authenticated:await premium(detail).catch(()=>false)};
+       const snap=await detail.evaluate(currentIdentity.readVisible,{player:row.player,detailId:row.detailId}).catch(()=>null);row.independentReconciliationContext=currentIdentity.captureProfileContext(row,snap,new Date().toISOString());}});}catch{row.profileCollection={truncated:true};}
+     const record={...publicProfile(row),independentReconciliationContext:row.independentReconciliationContext??null};
+     return {record:p.currentProfiles?compactCurrentProfile({...record,currentProfileAttemptedAt:new Date().toISOString()}):record,elapsed:Date.now()-t,authenticated:await premium(detail).catch(()=>false)};
     }));
     let failed=false;for(const x of results){if(x.status!=='fulfilled'){failed=true;continue;}const {record,elapsed,authenticated}=x.value;profileMs+=elapsed;await buffer.add(record);if(record.status==='sampled'&&record.truncated===false)nontruncated++;if(!authenticated)failed=true;}
     if(failed)throw Error('session unavailable');

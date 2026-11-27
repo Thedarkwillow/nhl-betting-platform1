@@ -1,13 +1,13 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { capture, approvedOneTimeContext } = require('../scripts/prizepicks-full-board.cjs');
+const { capture, approvedOneTimeContext, approvedUncappedContext } = require('../scripts/prizepicks-full-board.cjs');
 const AT = '2026-12-02T14:00:00.000Z', SOURCE = '2026-12-02T13:59:00.000Z';
 const makeRow = (league, id, tier) => ({ league, id, tier, status: 'active', source: 'prizepicks', private: 'never_public' });
-function fixture({ change, counts = [2, 1, 0], balance = 180, unit = 'requests', locked = false, approve = true, once = false, at = AT, source = SOURCE } = {}) {
+function fixture({ change, counts = [2, 1, 0], balance = 180, unit = 'requests', locked = false, approve = true, once = false, allowanceOnly = false, at = AT, source = SOURCE } = {}) {
   const calls = [];
   return { calls, async run() { return capture({
-    key: 'test-secret', approveRequests: approve, oneTimeApproved: once, clock: () => at, unlocked: () => !locked, pause: async () => {},
+    key: 'test-secret', approveRequests: approve, oneTimeApproved: once, providerAllowanceOnly: allowanceOnly, clock: () => at, unlocked: () => !locked, pause: async () => {},
     coverage: async () => ({ status: 'authenticated_independent_metadata', chargedCredits: null,
       quota: { remainingRequests: balance, usageUnit: unit, resetAt: '2027-01-01T00:00:00Z' },
       traditionalSportRows: ['NBA','NHL','NFL'].map((code, i) =>
@@ -108,4 +108,47 @@ test('one-time request accounting never proceeds past 20 requests or below its 8
   assert.equal(f.calls.length, 20);
   assert.equal(receipt.remainingRequestsAfter, 80);
   assert.deepEqual(boards, {});
+});
+test('the dated allowance-only mode has no project cap, reserve or league page ceiling', async () => {
+  const env = { PRIZEPICKS_ONCE: '2026-11-27-provider-quota', GITHUB_EVENT_NAME: 'push',
+    GITHUB_REF: 'refs/heads/main', GITHUB_RUN_ATTEMPT: '1',
+    GITHUB_WORKFLOW_REF: 'Thedarkwillow/nhl-betting-platform1/.github/workflows/prizepicks-full-board-provider-quota-20261127.yml@refs/heads/main' };
+  assert.equal(approvedUncappedContext(env, nov.at), true);
+  assert.equal(approvedUncappedContext({ ...env, GITHUB_RUN_ATTEMPT: '2' }, nov.at), false);
+  assert.equal(approvedUncappedContext({ ...env, GITHUB_WORKFLOW_REF: env.GITHUB_WORKFLOW_REF.replace('provider-quota', 'once') }, nov.at), false);
+  assert.equal(approvedUncappedContext(env, '2026-11-28T08:00:00Z'), false);
+  let n = 0;
+  const f = fixture({ ...nov, once:false, allowanceOnly:true, balance:23, counts:[23,0,0], change:({doc,league}) => {
+    if (league === 'NBA') {
+      doc.meta.next_cursor = ++n < 21 ? 'p' + n : null;
+      doc.data[0].id = 'row' + n;
+    } else if (league === 'NHL') doc.data = [];
+  }});
+  const result = await f.run();
+  assert.equal(result.receipt.maxProjectionRequests, null);
+  assert.equal(result.receipt.protectedRequestReserve, 0);
+  assert.equal(result.receipt.projectionAttempts, 23);
+  assert.equal(result.receipt.remainingRequestsAfter, 0);
+  // The matched coverage count guard still prevents claiming the NBA board.
+  assert.equal(result.receipt.boards[0].status, 'same_snapshot_coverage_count_mismatch');
+  assert.deepEqual(Object.keys(result.boards), ['NHL', 'NFL']);
+});
+test('a source refresh discards the earlier pages and retries that league after the others', async () => {
+  let n = 0;
+  const f = fixture({ ...nov, once:false, allowanceOnly:true, change:({doc,league}) => {
+    if (league === 'NBA' && ++n >= 2) doc.meta.observed_at = nov.at;
+  }});
+  const {boards,receipt} = await f.run();
+  assert.equal(receipt.status, 'complete_provider_boards');
+  assert.equal(receipt.boards[0].restarts, 1);
+  assert.equal(f.calls.map(x => x.url.searchParams.get('league')).join(','), 'NBA,NBA,NHL,NFL,NBA,NBA');
+  assert.equal(boards.NBA.length, 2);
+});
+test('allowance-only mode does not call projections on a credit plan or at zero balance', async () => {
+  for (const change of [{unit:'credits'}, {balance:0}]) {
+    const f = fixture({ ...nov, once:false, allowanceOnly:true, ...change });
+    const { receipt } = await f.run();
+    assert.equal(receipt.projectionAttempts, 0);
+    assert.equal(f.calls.length, 0);
+  }
 });

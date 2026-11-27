@@ -99,9 +99,11 @@ The research builder surfaces dated operator format references without changing 
 
 ## Remaining acceptance by task
 
+Owner scope update, November 27 Pacific. Native PickFinder iPhone push verification is excluded. The owner confirmed receiving project Discord only, which is not evidence of provider-member Discord or other channels. Do not request a device notification or treat one as a dependency.
+
 | Task IDs | Verified scope | Evidence still needed |
 | --- | --- | --- |
-| PF-01, PF-02, PF-03, PF-04, PF-19 | Native settings schema and two books; existing project-owned Discord is separate | Actual authorized iPhone delivery; native individual offer and source timestamps; inspect member-channel coverage only with an authorized access/collection method; no inferred Android push or native Discord routing |
+| PF-01, PF-02, PF-03, PF-04, PF-19 | Native settings schema and two books; existing project-owned Discord is separate | Remaining alert controls, source timestamps and exact offer reconciliation; inspect member-channel coverage only with an authorized access/collection method. No native iPhone push, device receipt, or screenshot required. |
 | PF-05, PF-06 | Timestamped observations, alternate tiles, and bounded board traversal | Lifecycle labels with exact prior and current membership, all-sport pagination/sort completeness, source clocks, and original-app scope; do not infer absence from partial traversal |
 | PF-07, PF-11, PF-18, PF-26 | Player history/cache, NBA shooting and play types, and reviewed shadow statistics | PF-26’s exact original 462-key cohort is verified. Remaining parent work includes additional season/sport scopes, native sport-specific reproduction, and separately approved point-in-time model inputs. |
 | PF-08, PF-27 | PF-27's scoped profile threshold recovery is verified; zero source-clock qualified pairs | PF-08 needs exact book/market/side and source time on the broader board/movement inventory; do not inherit prop thresholds or invent dates/offsets |

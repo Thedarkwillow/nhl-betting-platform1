@@ -45,10 +45,24 @@ function validate(raw,file,at){
   ).map(r=>[JSON.stringify([r.sport,String(r.playerId),r.nativeReceiptDigest,r.identityEvidenceSha256]),Date.parse(r.proofAvailableAt)]));
   const archiveIdentity=r=>r.timezoneReceiptDigests.length===0&&validDigest(r.archivedIdentityEvidenceSha256)&&
    (reviewedPaths.get(JSON.stringify([r.sport,String(r.playerId),r.identityReceiptDigest,r.archivedIdentityEvidenceSha256]))??Infinity)<=Date.parse(r.availableAt);
+  const nflProofKey=r=>JSON.stringify([r.sourcePlayerPath??r.nflStatIdentityPath,r.playerId,r.profileDigest,r.nativeReceiptDigest??r.identityReceiptDigest]);
+  const nflStats=new Map((x.nflStatProfileIdentities||[]).filter(r=>r.sport==='nfl'&&r.namespace==='nfl:gsis'&&
+   r.evidenceKind==='nfl_weekly_roster_and_exact_completed_logs'&&/^00-\d{7}$/.test(r.playerId)&&
+   /^\/players\/nfl\/[A-Za-z0-9_-]+$/.test(r.sourcePlayerPath)&&validDigest(r.profileDigest)&&validDigest(r.nativeReceiptDigest)&&
+   r.activeStatusVerified===false&&r.eventTimeVerified===false&&Array.isArray(r.matchedCompletedGames)&&
+   new Set(r.matchedCompletedGames).size===r.matchedCompletedGames.length&&r.matchedCompletedGames.length>=2&&
+   r.matchedCompletedGames.every(g=>/^\d{4}_\d{1,2}_[A-Z]{2,3}_[A-Z]{2,3}$/.test(g))&&Date.parse(r.proofAvailableAt)<=t
+  ).map(r=>[nflProofKey(r),r]));
+  const nflLogProof=r=>{
+   if(r.sport!=='nfl'||r.timezoneReceiptDigests.length!==0)return false;
+   const p=nflStats.get(nflProofKey(r));
+   return p?.matchedCompletedGames.includes(r.eventId)&&Date.parse(p.proofAvailableAt)<=Date.parse(r.availableAt)&&
+    Date.parse(r.officialStartAt)<Date.parse(r.availableAt);
+  };
   const identityEvidence=r=>Array.isArray(r.timezoneReceiptDigests)&&(
    r.timezoneReceiptDigests.length===3&&new Set(r.timezoneReceiptDigests).size===3&&r.timezoneReceiptDigests.every(validDigest)||
    r.sport==='nba'&&r.timezoneReceiptDigests.length===0&&r.crosswalkReceiptDigest===r.identityReceiptDigest&&
-   reviewedNba.has(JSON.stringify([String(r.playerId),r.crosswalkReceiptDigest]))||archiveIdentity(r));
+   reviewedNba.has(JSON.stringify([String(r.playerId),r.crosswalkReceiptDigest]))||archiveIdentity(r)||nflLogProof(r));
   const goalieGroup=r=>JSON.stringify([String(r.playerId),r.profileDigest,r.identityReceiptDigest]);
   const goalieEvent=r=>JSON.stringify([String(r.eventId),r.officialStartAt,r.availableAt,r.nativeDigest]);
   const goalieKind='authenticated_goalie_overview_and_official_final',goalie=new Map();

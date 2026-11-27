@@ -14,7 +14,7 @@ const toiSeconds=x=>{const m=typeof x==='string'&&/^(\d{1,3}):([0-5]\d)$/.exec(x
 // similarly named first-period columns or a projection/summary table.
 const currentNhlHeaders={assists:['asts'],blockedShots:['bs'],hits:['hit']};
 const currentNbaHeaders={rebounds:['rebs'],assists:['asts'],steals:['stls'],blocks:['blks'],turnovers:['to']};
-const currentNflHeaders={receptions:['recs'],targets:['tgts'],passing_tds:['pass td'],rushing_tds:['rush td'],receiving_tds:['rec td'],completions:['pass comp'],passing_interceptions:['int'],fg_made:['fgs'],pat_made:['xp'],kicking_points:['kpts']};
+const currentNflHeaders={receptions:['recs'],targets:['tgts'],passing_tds:['pass td'],rushing_tds:['rush td'],receiving_tds:['rec td'],completions:['pass comp'],passing_interceptions:['int'],fg_made:['fgs'],pat_made:['xp'],kicking_points:['kpts'],carries:['rush att']};
 const nhlMetrics={'time on ice':'iceTimeSeconds',goals:'goals',assists:'assists',points:'points','shots on goal':'sog','sog':'sog',hits:'hits','blocked shots':'blockedShots','saves':'saves'};
 const nflMetrics={'passing yards':'passing_yards','rushing yards':'rushing_yards','receiving yards':'receiving_yards','receptions':'receptions','passing touchdowns':'passing_tds','rushing touchdowns':'rushing_tds','receiving touchdowns':'receiving_tds','passing attempts':'attempts','passing completions':'completions','receiving targets':'targets','rushing attempts':'carries','interceptions thrown':'passing_interceptions','field goals made':'fg_made','extra points made':'pat_made','kicking points':'kicking_points'};
 // Explicit source slugs from the existing PickFinder model adapter; native stat keys
@@ -47,7 +47,10 @@ function nativeIndex({facts,nhlFinals,nflSeasons,nbaHistories=[],nbaFinalHistori
  for(const h of nflSeasons){
   for(const p of h.doc.rosters||[])addName('nfl',p.name,p.gsisId);
   const final=new Map((h.doc.games||[]).filter(g=>g.completedScoreObserved===true&&dt(g.startAt)<dt(h.doc.observedAt)).map(g=>[g.gameId,g]));
-  for(const p of h.doc.playerRows||[]){const g=final.get(p.gameId);if(!g||p.week!==g.week||dt(p.gameStartAt)!==dt(g.startAt)||[p.team,p.opponent].sort().join('|')!==[g.home,g.away].sort().join('|')||!p.stats)continue;add('nfl',p.playerId,g.gameId,g.startAt,p.team,p.opponent,p.stats,h);}
+  for(const p of h.doc.playerRows||[]){const g=final.get(p.gameId);if(!g||p.week!==g.week||dt(p.gameStartAt)!==dt(g.startAt)||[p.team,p.opponent].sort().join('|')!==[g.home,g.away].sort().join('|')||!p.stats)continue;const s=p.stats,kicks=[s.fg_made,s.pat_made],attempted=Number(s.fg_att)>0||Number(s.pat_att)>0;
+   const points=kicks.every(x=>Number.isSafeInteger(x)&&x>=0)&&(attempted||kicks.some(x=>x>0))?3*s.fg_made+s.pat_made:null;
+   const stats=points!==null&&!Number.isFinite(s.kicking_points)?{...s,kicking_points:points}:s;
+   add('nfl',p.playerId,g.gameId,g.startAt,p.team,p.opponent,stats,h);}
  }
  // Official NBA logs establish a game date, not a final or tip-off timestamp.
  for(const h of nbaHistories){

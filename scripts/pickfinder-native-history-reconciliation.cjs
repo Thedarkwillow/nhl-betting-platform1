@@ -25,8 +25,8 @@ const sourceMarkets={
 };
 const columnAliases={iceTimeSeconds:['toi','ice time'],goals:['g'],assists:['a'],points:['pts'],sog:['shots on goal'],blockedShots:['blk','blocks','blocked shots'],saves:['sv'],hits:['hits'],passing_yards:['pass yards','pass yds'],rushing_yards:['rush yards','rush yds'],receiving_yards:['rec yards','rec yds'],receptions:['rec'],passing_tds:['pass tds'],rushing_tds:['rush tds'],receiving_tds:['rec tds'],attempts:['pass attempts','pass att'],completions:['pass completions','pass cmp'],targets:['rec targets','tgt'],carries:['rush attempts','carries'],passing_interceptions:['pass int','interceptions thrown']};
 // Exact official NBA log market mappings; no synthesized tip-off time.
-const nbaMetrics={player_points:'points',player_rebounds:'rebounds',player_assists:'assists',player_made_threes:'threePointersMade',player_steals:'steals',player_blocks:'blocks',player_turnovers:'turnovers','player_points_+_rebounds_+_assists':'pointsReboundsAssists','player_points_+_rebounds':'pointsRebounds','player_points_+_assists':'pointsAssists','player_rebounds_+_assists':'reboundsAssists',points:'points',rebounds:'rebounds',assists:'assists'};
-Object.assign(columnAliases,{rebounds:['reb'],threePointersMade:['3pm','fg3m'],steals:['stl'],blocks:['blk'],turnovers:['tov'],pointsReboundsAssists:['pra','pts+reb+ast','pts + reb + ast'],pointsRebounds:['pr','pts+reb'],pointsAssists:['pa','pts+ast'],reboundsAssists:['ra','reb+ast']});
+const nbaMetrics={player_minutes_played:'minutesPlayed',player_points:'points',player_rebounds:'rebounds',player_assists:'assists',player_made_threes:'threePointersMade',player_steals:'steals',player_blocks:'blocks',player_turnovers:'turnovers','player_points_+_rebounds_+_assists':'pointsReboundsAssists','player_points_+_rebounds':'pointsRebounds','player_points_+_assists':'pointsAssists','player_rebounds_+_assists':'reboundsAssists',points:'points',rebounds:'rebounds',assists:'assists'};
+Object.assign(columnAliases,{minutesPlayed:['min','minutes'],rebounds:['reb'],threePointersMade:['3pm','fg3m'],steals:['stl'],blocks:['blk'],turnovers:['tov'],pointsReboundsAssists:['pra','pts+reb+ast','pts + reb + ast'],pointsRebounds:['pr','pts+reb'],pointsAssists:['pa','pts+ast'],reboundsAssists:['ra','reb+ast']});
 const dateFormats=['UTC','America/New_York','America/Los_Angeles'].map(timeZone=>new Intl.DateTimeFormat('sv-SE',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}));
 function dates(t){const d=new Date(t);if(!Number.isFinite(+d))return [];return [...new Set(dateFormats.map(f=>f.format(d)))];}
 function nativeIndex({facts,nhlFinals,nflSeasons,nbaHistories=[],nbaFinalHistories=[],nbaFinalStatDetails=[]},clock){
@@ -66,6 +66,7 @@ function nativeIndex({facts,nhlFinals,nflSeasons,nbaHistories=[],nbaFinalHistori
   for(const p of d.rows||[]){if(p.officialGameFinalVerified!==true||p.identityVerified!==true||p.appeared!==true||p.gameId!==d.gameId||!day(p.gameDate)||!p.player||!Number.isSafeInteger(p.playerId)||!['W','L'].includes(p.wl))continue;
    addName('nba',p.player,p.playerId);
    const stats=Object.fromEntries([...new Set([...Object.values(nbaMetrics),'prizePicksFantasyScore'])].filter(m=>Number.isFinite(p[m])).map(m=>[m,p[m]]));
+   if(Number.isFinite(p.minutes)&&p.minutes>0&&p.minutes<=73)stats.minutesPlayed=p.minutes;
    const k=key(['nba',String(p.playerId),String(p.gameId)]);
    // Do not overwrite an independent league-log receipt; exclude disagreements.
    const old=games.get(k);
@@ -132,7 +133,7 @@ function matchRow(r,f,index,clock,{allowNbaExtendedFinals=false,logMarket,allowO
  // unbound generic fantasy field is accepted as an original settled outcome.
  const ppFantasy=r.sport==='nba'&&allowNbaExtendedFinals&&market==='player_fantasy_score_all_'&&
   r.book==='prizepicks'&&Array.isArray(r.books)&&r.books.length===1&&r.books[0]==='prizepicks';
- const m=r.sport==='nba'?nbaMetrics[market]??extra?.[0]??(ppFantasy?'prizePicksFantasyScore':null):metrics[market];if(!m||r.sport==='nfl'&&!allowCurrentNflHeaders&&['fg_made','pat_made','kicking_points'].includes(m))return reject('unsupported_market');
+ const m=r.sport==='nba'?nbaMetrics[market]??extra?.[0]??(ppFantasy?'prizePicksFantasyScore':null):metrics[market];if(!m||m==='minutesPlayed'&&!allowCurrentNbaHeaders||r.sport==='nfl'&&!allowCurrentNflHeaders&&['fg_made','pat_made','kicking_points'].includes(m))return reject('unsupported_market');
  if(String(f.scope||'').endsWith(' | [header truncated]'))return reject('header_truncated');
  const headers=String(f.scope||'').split(' | ').map(norm),dateColumns=headers.map((x,i)=>['date','game date'].includes(x)?i:-1).filter(i=>i>=0),i=dateColumns.length===1?dateColumns[0]:-1,opponents=headers.map((x,i)=>['opponent','opp'].includes(x)?i:-1).filter(i=>i>=0),j=opponents.length===1?opponents[0]:-1;
  if(headers.some(x=>/\b(?:line|odds|projection|average|hit rate|payout)\b/.test(x)))return reject('not_final_stat_table');
@@ -157,6 +158,7 @@ function matchRow(r,f,index,clock,{allowNbaExtendedFinals=false,logMarket,allowO
  if(badges.length>1||badges.length===1&&shown&&shown!==badges[0])return reject('opponent_evidence_conflict');
  const v=cells[indices[0]].value.trim();
  const decimalMinutes=m==='iceTimeSeconds'&&allowObservedNhlHeaders&&/^\d{1,3}\.\d{2}$/.test(v);
+ if(m==='minutesPlayed'&&!/^\d{1,2}(?:\.\d0?)?$/.test(v))return reject('nba_minutes_precision');
  const value=m==='iceTimeSeconds'&&!decimalMinutes?toiSeconds(v):/^-?\d+(?:\.\d+)?$/.test(v)?Number(v):null;
  if(!/^[A-Z]{2,4}$/.test(opp)||!Number.isFinite(value))return reject('stat_or_opponent_shape');
  // In the retrospective layout-only matcher a final dot on Jr./Sr. is formatting,
@@ -169,7 +171,7 @@ function matchRow(r,f,index,clock,{allowNbaExtendedFinals=false,logMarket,allowO
  const g=matches[0],data=extra?index.extendedNba?.get(key([id,g.event])):g,evidence=extra?data?.metricEvidence[m]:g;
  if(!evidence)return reject('missing_native_stat_details');
  const nativeValue=data.stats[m];
- if(!Number.isFinite(nativeValue)||(decimalMinutes?Number((nativeValue/60).toFixed(2)):nativeValue)!==value)return reject('native_result_mismatch');return {candidate:{sport:r.sport,playerId:id,eventId:g.event,officialStartAt:g.start,officialGameDate:g.gameDate??null,market:m,value:nativeValue,nativeDigest:evidence.digest,nativeAvailableAt:evidence.first,profileObservedAt:f.observedAt,sourceDate:raw,sourceDateYearRecovered:!date,providerIdentityReviewed:false,modelApproved:false}};
+ if(!Number.isFinite(nativeValue)||(decimalMinutes?Number((nativeValue/60).toFixed(2)):m==='minutesPlayed'?Math.round(nativeValue*10)/10:nativeValue)!==value)return reject('native_result_mismatch');return {candidate:{sport:r.sport,playerId:id,eventId:g.event,officialStartAt:g.start,officialGameDate:g.gameDate??null,market:m,value:nativeValue,nativeDigest:evidence.digest,nativeAvailableAt:evidence.first,profileObservedAt:f.observedAt,sourceDate:raw,sourceDateYearRecovered:!date,providerIdentityReviewed:false,modelApproved:false}};
 }
 // Reuse exact independently matched statistical facts only as research candidates.
 // A match to native history does not constitute a reviewed PickFinder identity.

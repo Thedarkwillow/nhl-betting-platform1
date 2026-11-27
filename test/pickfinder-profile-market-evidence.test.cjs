@@ -155,3 +155,22 @@ test('movement follow-up rotates sampled profiles and never double-counts an arc
  const prior={...old,records:[record(new URL(detailId).pathname+new URL(detailId).search)]};
  assert.deepEqual(select(docs,b,[prior]).map(x=>x.player),['Two']);
 });
+test('current exact pick’em movements preserve explicit unpriced tiers without benchmark promotion',()=>{
+ const {summarize}=require('../scripts/pickfinder-profile-market-evidence.cjs');
+ const current={currentProfileAttemptedAt:time};
+ const result=extract(movement,[cell('20.5'),cell(null,['prizepicks','demon']),cell('11/25 4:06PM')],current);
+ assert.equal(result[0].displayedTier,'demon');
+ assert.equal(result[0].higher,null);
+ assert.equal(result[0].originalPlatformVerified,false);
+ assert.equal(result[0].openingOrClosingVerified,false);
+ assert.equal(summarize(result).currentPickEmMovement.unpricedRows,1);
+ assert.equal(summarize(result).offsetBoundNoVigPairedGroups,0);
+ const [q]=extract(movement,[cell('20.5'),cell('O-119\nU-119',['underdog']),cell('11/25 4:06PM')],current);
+ assert.equal(q.displayedTier,null);
+ assert.equal(q.lower,'-119');
+ assert.equal(summarize([q]).pairedRows,0);
+ const v={...current,sport:'valorant',detailId:record.detailId.replace('/nba/','/val/')};
+ assert.equal(extract(movement,[cell('20.5'),cell('O-119\nU',['underdog']),cell('11/25 4:06PM')],v)[0].lower,null);
+ assert.deepEqual(extract(movement,[cell('20.5'),cell('O-119\nO-118',['underdog']),cell('11/25 4:06PM')],v),[]);
+ assert.deepEqual(extract(movement,[cell('20.5'),cell('O-119',['underdog']),cell('11/25 4:06PM')],{...v,sport:'cs2'}),[]);
+});

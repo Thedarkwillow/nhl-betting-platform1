@@ -54,6 +54,30 @@ function parseMovement(f, cells) {
     displayedMovementClock:Time.value,movementAtUtc:null,...(zone?{browserTimeZone:zone}:{}),...at};
 }
 
+const currentRouteAliases=Object.freeze({val:'valorant',cbb:'college-basketball',cfb:'college-football'});
+const pickemTiers=new Set(['standard','goblin','demon','alternate']);
+function parseCurrentPickEmMovement(f,cells){
+ if(f.origin!=='line_movement'||f.tab!=='Line Movement'||f.scope!=='Line | App | Time')return null;
+ const {Line,App,Time}=cells;
+ const [book,badge]=App.labels;
+ if(!['prizepicks','underdog'].includes(book)||App.labels.length>2||
+    (badge&&!pickemTiers.has(badge))||Line.labels.length||Time.labels.length||
+    typeof Line.value!=='string'||!decimal.test(Line.value)||!Number.isFinite(Number(Line.value))||
+    typeof Time.value!=='string'||!/^(?:0?[1-9]|1[012])\/(?:0?[1-9]|[12]\d|3[01]) (?:0?[1-9]|1[012]):[0-5]\d ?[AP]M$/.test(Time.value))return null;
+ const prices=new Map();
+ if(App.value!==null){
+  if(typeof App.value!=='string')return null;
+  for(const token of App.value.split('\n')){
+   const match=/^([OU])(?:([+-]\d{3,4}))?$/.exec(token);
+   if(!match||match[2]&&Math.abs(Number(match[2]))<100||prices.has(match[1]))return null;
+   prices.set(match[1],match[2]||null);
+  }
+ }else if(!badge)return null;
+ const zone=observedBrowserZone(Time.browserTimeZone),clock=explicitMovementClock(Time.sourceMovementDateTime,Date.parse(f.observedAt));
+ return {book,displayedTier:badge||null,quoteLine:Number(Line.value),higher:prices.get('O')??null,lower:prices.get('U')??null,
+  displayedMovementClock:Time.value,movementAtUtc:null,...(zone?{browserTimeZone:zone}:{}),...clock,
+  originalPlatformVerified:false,openingOrClosingVerified:false};
+}
 function profileMarketEvidence(record, field, digest, archiveAt, clock) {
   const depth = field.tab === 'Injuries' && field.scope === depthHeader;
   const defense = field.tab === 'Defense' && field.scope === 'STAT | SZN | L10 | L5 | STRENGTH';
@@ -64,10 +88,11 @@ function profileMarketEvidence(record, field, digest, archiveAt, clock) {
       observed > archived + 999 || !/^[0-9a-f]{64}$/.test(digest) || record.status !== 'sampled') return [];
   let detail;
   try { detail = new URL(record.detailId,'https://www.pickfinder.app'); } catch { return []; }
-  const prop = detail.searchParams.getAll('prop');
+  const prop = detail.searchParams.getAll('prop'),route=detail.pathname.split('/')[2];
+  const current=Number.isFinite(Date.parse(record.currentProfileAttemptedAt))&&Date.parse(record.currentProfileAttemptedAt)<=archived+999;
   if (detail.origin !== 'https://www.pickfinder.app' || !record.sport || !record.market || !record.eventId ||
       !record.player || !/^\/players\/[\w-]+\/[\w-]+$/.test(detail.pathname) ||
-      detail.pathname.split('/')[2] !== record.sport || prop.length !== 1 || prop[0].split(':').length !== 4 || prop[0].split(':')[1] !== record.market ||
+      (route!==record.sport&&(!current||currentRouteAliases[route]!==record.sport)) || prop.length !== 1 || prop[0].split(':').length !== 4 || prop[0].split(':')[1] !== record.market ||
       prop[0].split(':')[2] !== record.eventId) return [];
   const cells = rowCells(field);
   if (!cells) return [];
@@ -76,6 +101,8 @@ function profileMarketEvidence(record, field, digest, archiveAt, clock) {
     observedAt:field.observedAt,archiveAt,profileDigest:digest,originalPlatformVerified:false,modelApproved:false};
   const movement = parseMovement(field,cells);
   if (movement) return [{...base,kind:'historical_sportsbook_quote',...movement}];
+  const pickem=current?parseCurrentPickEmMovement(field,cells):null;
+  if(pickem)return [{...base,kind:'current_displayed_pickem_movement',...pickem}];
   const context = {...base,tab:field.tab,window:field.window??null,filterSelection:field.filterSelection??null,
     fieldPeriod:field.period??null,fieldMapRange:field.mapRange??null,fieldGameMode:field.gameMode??null};
   if (depth && field.origin === 'profile') {
@@ -116,13 +143,17 @@ function profileMarketEvidence(record, field, digest, archiveAt, clock) {
 }
 
 function summarize(receipts) {
-  const counts = {historicalRows:0,explicitMovementUtcRows:0,browserTimezoneRows:0,pairedRows:0,workloadObservations:0,availabilityObservations:0,defenseSplitObservations:0,byBook:{}};
+  const counts = {historicalRows:0,explicitMovementUtcRows:0,browserTimezoneRows:0,pairedRows:0,workloadObservations:0,availabilityObservations:0,defenseSplitObservations:0,byBook:{},currentPickEmMovement:{rows:0,exactDisplayedTierRows:0,unpricedRows:0,sourceClockRows:0,byBook:{}}};
   const groups = new Map();
   for (const row of receipts) {
     if (row.kind === 'workload') counts.workloadObservations++;
     else if (row.kind === 'availability') counts.availabilityObservations++;
     else if (row.kind === 'defense_splits') counts.defenseSplitObservations++;
-    else {
+    else if(row.kind==='current_displayed_pickem_movement'){
+      const c=counts.currentPickEmMovement;c.rows++;if(row.displayedTier)c.exactDisplayedTierRows++;
+      if(!row.higher&&!row.lower)c.unpricedRows++;if(row.movementTimeBasis==='provider_time_element')c.sourceClockRows++;
+      c.byBook[row.book]=(c.byBook[row.book]||0)+1;
+    }else {
       counts.historicalRows++;
       const utc=explicitMovementClock(row.sourceMovementDateTime,Date.parse(row.observedAt));
       const zoned=row.movementTimeBasis==='provider_time_element' && utc && utc.movementAtUtc===row.movementAtUtc;

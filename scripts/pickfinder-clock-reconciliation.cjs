@@ -3,9 +3,10 @@
 const {key,target,localMatchup}=require('./pickfinder-public-nba-context.cjs');
 const {classify,clockAt,ZONES}=require('./pickfinder-controlled-clock.cjs');
 const dt=Date.parse, norm=x=>String(x??'').trim().toLowerCase();
+const team=(sport,x)=>{const k=norm(x);return ({nba:{utah:'uta'},nfl:{was:'wsh',jac:'jax',az:'ari'}}[sport]?.[k]||k);};
 const same=(a,b)=>!!a&&!!b&&['weekday','hour','minute','dayPeriod'].every(k=>a[k]===b[k]);
 function nativeMatches(r,scopes,at){
- return scopes.filter(s=>s.sport===r.sport.toUpperCase()&&norm(s.name)===norm(r.player)&&norm(s.team)===norm(r.team)&&norm(s.opponent)===norm(r.opponent)&&s.homeAway===r.localMatchup?.homeAway&&s.identityReviewed===true&&s.eventReviewed===true&&s.rosterReviewed===true&&s.evidenceKind==='automated_native_schedule_roster_only'&&/^[a-f0-9]{64}$/.test(s.receiptDigest||'')&&Number.isFinite(dt(s.firstGitAt))&&dt(s.firstGitAt)<=at&&Number.isFinite(dt(s.startAt))&&dt(s.startAt)>dt(r.observedAt)&&dt(s.startAt)<=dt(r.observedAt)+7*86400000);
+ return scopes.filter(s=>s.sport===r.sport.toUpperCase()&&norm(s.name)===norm(r.player)&&team(r.sport,s.team)===team(r.sport,r.team)&&team(r.sport,s.opponent)===team(r.sport,r.opponent)&&s.homeAway===r.localMatchup?.homeAway&&s.identityReviewed===true&&s.eventReviewed===true&&s.rosterReviewed===true&&s.evidenceKind==='automated_native_schedule_roster_only'&&/^[a-f0-9]{64}$/.test(s.receiptDigest||'')&&Number.isFinite(dt(s.firstGitAt))&&dt(s.firstGitAt)<=at&&Number.isFinite(dt(s.startAt))&&dt(s.startAt)>dt(r.observedAt)&&dt(s.startAt)<=dt(r.observedAt)+7*86400000);
 }
 // Adapt the bounded profile checkpoint and the normal current profile header.
  // Neither a browser zone nor a local label establishes source UTC. The existing

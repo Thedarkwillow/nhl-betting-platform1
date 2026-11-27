@@ -1,13 +1,13 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { capture, approvedOneTimeContext, approvedUncappedContext } = require('../scripts/prizepicks-full-board.cjs');
+const { capture, approvedOneTimeContext, approvedUncappedContext, approvedPinContext, planPinned } = require('../scripts/prizepicks-full-board.cjs');
 const AT = '2026-12-02T14:00:00.000Z', SOURCE = '2026-12-02T13:59:00.000Z';
 const makeRow = (league, id, tier) => ({ league, id, tier, status: 'active', source: 'prizepicks', private: 'never_public' });
-function fixture({ change, counts = [2, 1, 0], balance = 180, unit = 'requests', locked = false, approve = true, once = false, allowanceOnly = false, at = AT, source = SOURCE } = {}) {
+function fixture({ change, counts = [2, 1, 0], balance = 180, unit = 'requests', locked = false, approve = true, once = false, allowanceOnly = false, pinned = false, at = AT, source = SOURCE } = {}) {
   const calls = [];
   return { calls, async run() { return capture({
-    key: 'test-secret', approveRequests: approve, oneTimeApproved: once, providerAllowanceOnly: allowanceOnly, clock: () => at, unlocked: () => !locked, pause: async () => {},
+    key: 'test-secret', approveRequests: approve, oneTimeApproved: once, providerAllowanceOnly: allowanceOnly, pinnedReplay: pinned, clock: () => at, unlocked: () => !locked, pause: async () => {},
     coverage: async () => ({ status: 'authenticated_independent_metadata', chargedCredits: null,
       quota: { remainingRequests: balance, usageUnit: unit, resetAt: '2027-01-01T00:00:00Z' },
       traditionalSportRows: ['NBA','NHL','NFL'].map((code, i) =>
@@ -20,6 +20,7 @@ function fixture({ change, counts = [2, 1, 0], balance = 180, unit = 'requests',
       if (league === 'NHL') doc.data[0].tier = 'goblin';
       if (league === 'NBA' && cursor === null) doc.meta.next_cursor = 'next';
       const headers = { 'X-Usage-Unit': 'requests', 'X-Requests-Remaining': String(balance - calls.length), 'X-Credits-Cost': '0' };
+      if (pinned) { doc.meta.as_of = url.searchParams.get('as_of'); for (const row of doc.data) row.observed_at = source; }
       change?.({ doc, league, cursor, headers });
       return new Response(JSON.stringify(doc), { headers });
     }
@@ -151,4 +152,38 @@ test('allowance-only mode does not call projections on a credit plan or at zero 
     assert.equal(receipt.projectionAttempts, 0);
     assert.equal(f.calls.length, 0);
   }
+});
+test('pinned recovery holds one cutoff for all pages even as the live timestamp advances', async () => {
+  const env = { PRIZEPICKS_ONCE: '2026-11-27-pinned-quota', GITHUB_EVENT_NAME: 'push', GITHUB_REF: 'refs/heads/main',
+    GITHUB_RUN_ATTEMPT: '1',
+    GITHUB_WORKFLOW_REF: 'Thedarkwillow/nhl-betting-platform1/.github/workflows/prizepicks-full-board-pinned-20261127.yml@refs/heads/main' };
+  assert.equal(approvedPinContext(env,nov.at),true);
+  assert.equal(approvedPinContext({...env,GITHUB_RUN_ATTEMPT:'2'},nov.at),false);
+  const f=fixture({...nov, once:false, allowanceOnly:true, pinned:true, change:({doc,cursor})=>{
+    if(cursor) doc.meta.observed_at=nov.at;
+    for(const row of doc.data) row.selections=[{available:true,tier:row.tier}];
+  }});
+  const {receipt,boards}=await f.run();
+  assert.equal(receipt.status,'complete_provider_boards');
+  assert.equal(receipt.captureMode,'fixed_time_provider_board');
+  assert.equal(receipt.boards[0].tierCounts.demon,1);
+  for(const {url} of f.calls){
+    assert.equal(url.pathname,'/api/v1/board');
+    assert.equal(url.searchParams.get('as_of'),receipt.boardAsOf);
+    assert.equal(url.searchParams.get('limit'),'200');
+    assert.equal(url.searchParams.has('status'),false);
+    assert.equal(url.searchParams.has('view'),false);
+  }
+  assert.equal(boards.NBA.length,2);
+});
+test('pinned mode favors complete league coverage within provider quota and rejects bad pins',async()=>{
+  const [a,b,c]=[{estimatedPages:47,coverageCount:9200},{estimatedPages:20,coverageCount:3900},{estimatedPages:30,coverageCount:5800}];
+  assert.deepEqual(planPinned([a,b,c],81),[a,c,b]);
+  assert.deepEqual(planPinned([a,b,c],97),[a,b,c]);
+  const f=fixture({...nov, once:false, allowanceOnly:true, pinned:true, change:({doc,league,cursor})=>{
+    if(league==='NBA'&&cursor) doc.meta.as_of=nov.at;
+  }});
+  const {receipt,boards}=await f.run();
+  assert.equal(receipt.boards[0].status,'source_not_fresh_or_invalid');
+  assert.equal(boards.NBA,undefined);
 });

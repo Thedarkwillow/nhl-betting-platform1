@@ -85,8 +85,26 @@ function verifiedStats(m,finals,clock){
  return {stats:matches[0].values,finalReceiptDigests:[...new Set(matches.map(x=>x.digest))].sort(),
   officialStatEvidenceVerified:true,prospectiveUseApproved:false};
 }
-function build(profiles,facts,reviews,directory,tables,{clock,revision,finals=[]}){
- const reviewed=indexReviews(reviews.map(x=>x.doc),clock),rows=[],players=new Map(),bySport={};
+function knownIdentityIndex(receipts,clock){
+ const out=new Map();
+ for(const f of receipts)for(const r of f.doc.rows||[]){
+  const namespace={nba:'nba:official',nhl:'nhl:official',nfl:'nfl:gsis'}[r.sport];
+  if(!namespace||!hash(f.digest)||!hash(r.identityEvidenceSha256)||r.independentReviewVerified!==true||
+     !time(r.verifiedAt)||date(r.verifiedAt)>date(f.first)+999||date(f.first)>date(clock)||
+     !new RegExp('^/players/'+r.sport+'/[A-Za-z0-9_-]+$').test(r.profilePath)||
+     !norm(r.sourcePlayer)||!(r.sport==='nfl'?/^00-\d{7}$/:/^\d+$/).test(String(r.nativePlayerId)))continue;
+  const k=key(r.sport,r.profilePath),bag=out.get(k)||new Map();
+  const id=String(r.nativePlayerId);
+  const previous=bag.get(id);
+  if(!previous)bag.set(id,{sport:r.sport,sourcePlayerPath:r.profilePath,namespace,playerId:id,
+    sourceNames:[norm(r.sourcePlayer)],receiptDigest:f.digest});
+  else if(!previous.sourceNames.includes(norm(r.sourcePlayer)))previous.sourceNames.push(norm(r.sourcePlayer));
+  out.set(k,bag);
+ }
+ return out;
+}
+function build(profiles,facts,reviews,directory,tables,{clock,revision,finals=[],known=[]}){
+ const cached=knownIdentityIndex(known,clock),reviewed=indexReviews(reviews.map(x=>x.doc),clock),rows=[],players=new Map(),bySport={};
  for(const {record,digest} of profiles){
   const o=sourceScope(record),sport=record.sport;
   const s=bySport[sport]??={scopes:0,confirmed:0,needsReview:0,missingEvidence:0,fields:0};
@@ -107,10 +125,17 @@ function build(profiles,facts,reviews,directory,tables,{clock,revision,finals=[]
   }
   const picks=new Map(options.map(x=>[key(x.namespace,x.playerId,x.eventId,x.team,x.opponent,date(x.startAt)),x]));
   const match=picks.size===1?[...picks.values()][0]:null;
-  const status=ctx?.conflictingClock||picks.size>1?'needs_review':match?'confirmed':ctx?.startAt||ctx?.gameDateUtc?'native_event_or_roster_missing':'source_matchup_or_clock_missing';
+  const identities=o&&cached.get(key(sport,o.playerPath)),knownPlayer=identities?.size===1?[...identities.values()][0]:null;
+  const cachedIdentity=knownPlayer?.sourceNames.includes(norm(o?.player))?knownPlayer:null;
+  const idConflict=identities?.size>1||cachedIdentity&&match?.namespace===cachedIdentity.namespace&&String(match.playerId)!==cachedIdentity.playerId;
+  const status=idConflict||ctx?.conflictingClock||picks.size>1?'needs_review':match?'confirmed':ctx?.startAt||ctx?.gameDateUtc?'native_event_or_roster_missing':'source_matchup_or_clock_missing';
   const row={sport,scopeKey:record.key,sourcePlayer:record.player,sourcePlayerPath:o?.playerPath??null,
-    sourceEventId:record.eventId,profileDigest:digest,status,match:status==='confirmed'?match:null,...flags};
+    sourceEventId:record.eventId,profileDigest:digest,status,cachedIdentity:idConflict?null:cachedIdentity,match:status==='confirmed'?match:null,...flags};
   rows.push(row);
+  if(row.cachedIdentity){
+   const m=row.cachedIdentity,k=key(sport,row.sourcePlayerPath,m.namespace),bag=players.get(k)||new Map();
+   bag.set(m.playerId,m);players.set(k,bag);
+  }
   if(row.match){
    const k=key(sport,row.sourcePlayerPath,row.match.namespace),ids=players.get(k)||new Map();
    ids.set(String(row.match.playerId),row.match);players.set(k,ids);
@@ -127,7 +152,7 @@ function build(profiles,facts,reviews,directory,tables,{clock,revision,finals=[]
  const directoryLinks=directory.directories.reduce((n,d)=>n+(d.playerSlugs||[]).length,0);
  const referenceRows=tables.sources.reduce((n,s)=>n+s.tables.reduce((a,t)=>a+t.rows.length,0),0);
  return {kind:'pickfinder_current_identity_registry_v1',generatedAt:clock,archiveRevision:revision,
-  profiles:rows.length,players:new Set(rows.map(r=>key(r.sport,r.sourcePlayerPath||r.sourcePlayer))).size,
+  profiles:rows.length,scopesWithReusedPlayerId:rows.filter(r=>r.cachedIdentity).length,players:new Set(rows.map(r=>key(r.sport,r.sourcePlayerPath||r.sourcePlayer))).size,
   fields:Object.values(bySport).reduce((n,s)=>n+s.fields,0),bySport,rows,registry,
   discovery:{directoryLinks,referenceRows,directoryStatus:'names_and_links_only',referenceStatus:'no_event_bound_native_identity'},
   originalPlatformVerified:false,modelApproved:false,paidRequests:0};
@@ -152,7 +177,8 @@ function run(root,clock=new Date().toISOString()){
  const read=n=>JSON.parse(fs.readFileSync(path.join(root,'data',n),'utf8'));
  const finals=[...require('./pickfinder-public-model-validation.cjs').history(root,'nba-final-history'),
   ...receipts(root,dir+'nhl-final-stat-facts','nhl_official_recent_final_stats_v1',clock)];
- const result=build(profiles,facts,reviews,read('pickfinder-public-research-directory.json'),read('pickfinder-public-research-tables.json'),{clock,revision,finals});
+ const known=receipts(root,dir+'historical-reviewed-identities','pickfinder_historical_reviewed_identity_v1',clock);
+ const result=build(profiles,facts,reviews,read('pickfinder-public-research-directory.json'),read('pickfinder-public-research-tables.json'),{clock,revision,finals,known});
  fs.writeFileSync(path.join(root,'data/pickfinder-current-identity-registry.json'),JSON.stringify(result,null,2)+'\n');
  console.log(JSON.stringify({scopes:result.profiles,players:result.players,fields:result.fields,registry:result.registry.length,discovery:result.discovery,bySport:result.bySport}));
  return result;

@@ -49,3 +49,12 @@ test('verified official game stats need native appearance and result, not a book
  const other=structuredClone(f);other.doc.rows[0].points=22;
  a.equal(verifiedStats(match,[f,other],after),null);
 });
+test('an archived reviewed player ID survives absent current-event evidence but cannot qualify the event or stats',()=>{
+ const o={...r,independentReconciliationContext:null};
+ const known=[{digest:dig,first:nativeAt,doc:{rows:[{sport:'nhl',profilePath:'/players/nhl/p',nativePlayerId:'123',
+  identityEvidenceSha256:rosterProof,independentReviewVerified:true,verifiedAt:nativeAt,sourcePlayer:'A. Example'}]}}];
+ const x=build([{record:o,digest:dig}],[],[],{directories:[]},{sources:[]},{clock:at,revision:'f'.repeat(40),known});
+ a.equal(x.scopesWithReusedPlayerId,1);a.equal(x.registry[0].playerId,'123');
+ a.equal(x.rows[0].status,'source_matchup_or_clock_missing');
+ a.equal(x.rows[0].match,null);a.equal(x.rows[0].officialStatistics,null);
+});

@@ -235,13 +235,15 @@ function run(root,clock=new Date().toISOString()){
   ...receipts(root,dir+'nhl-final-stat-facts','nhl_official_recent_final_stats_v1',clock)];
  const known=receipts(root,dir+'historical-reviewed-identities','pickfinder_historical_reviewed_identity_v1',clock);
  const durable=require('./pickfinder-durable-identities.cjs').replay({facts,controls,profiles:profileDocuments,clock,revision});
- durable.statisticalCrosswalks=require('./pickfinder-stat-identity-crosswalk.cjs').crosswalk(durable,reviews,
-  receipts(root,'research/pickfinder-public-nfl-v1/season','nflverse_public_native_history_v1',clock),clock);
+ const nflSeasons=receipts(root,'research/pickfinder-public-nfl-v1/season','nflverse_public_native_history_v1',clock);
+ durable.statisticalCrosswalks=require('./pickfinder-stat-identity-crosswalk.cjs').crosswalk(durable,reviews,nflSeasons,clock);
  durable.reviewedStatIdentities=require('./pickfinder-stat-identity-crosswalk.cjs').reviewedStatIdentities(known,durable,clock);
  durable.players.push(...durable.statisticalCrosswalks.map(x=>({...x,receiptDigest:x.crosswalkReceiptDigest})));
  const result=build(profiles,facts,reviews,read('pickfinder-public-research-directory.json'),read('pickfinder-public-research-tables.json'),{clock,revision,finals,known,durable});
  const native=require('./pickfinder-native-history-reconciliation.cjs'),index=native.indexFromArchive(root,clock);
  const audit=native.fromArchive(root,profileDocuments,clock,index,{expandCurrentNhlLogs:true,expandCurrentNbaLogs:true,expandCurrentNflLogs:true});
+ durable.nflStatProfileIdentities=require('./pickfinder-nfl-stat-profile-identity.cjs').verify({documents:profileDocuments,audit,seasons:nflSeasons,durable,clock});
+ result.nflStatProfileIdentities=durable.nflStatProfileIdentities;
  result.qualifiedShadowStatistics=require('./pickfinder-durable-identities.cjs').qualifyResearch(audit.cache,durable,clock);
  const goalkeeper=require('./pickfinder-goalie-overview.cjs'),goalieDocs=[];
  for(const {doc,digest} of iterate(root,'capabilities',revision,{includeDigest:true})){

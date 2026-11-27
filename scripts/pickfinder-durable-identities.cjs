@@ -85,13 +85,14 @@ function replay({facts,controls,profiles,clock,revision}){
 function qualifyResearch(independentFacts,durable,clock){
  const at=dt(clock),ns={nba:'nba:official',nhl:'nhl:official',nfl:'nfl:gsis'},identities=new Map(),out=[];
  const norm=x=>String(x||'').normalize('NFKC').trim().toLowerCase();
- for(const r of [...durable.rows,...(durable.statisticalCrosswalks||[]),...(durable.reviewedStatIdentities||[])]){
+ for(const r of [...durable.rows,...(durable.statisticalCrosswalks||[]),...(durable.reviewedStatIdentities||[]),...(durable.nflStatProfileIdentities||[])]){
   const k=key(r.sport,r.sourcePlayerPath,r.playerId),prev=identities.get(k);
   const controlled=r.timezoneReceiptDigests?.length===3&&new Set(r.timezoneReceiptDigests).size===3&&r.timezoneReceiptDigests.every(hash);
   const bridge=hash(r.crosswalkReceiptDigest)&&(r.sport==='nba'&&r.evidenceKind==='independent_nba_schedule_and_roster_review'||
    r.sport==='nfl'&&controlled&&r.evidenceKind==='independent_nflverse_schedule_and_weekly_roster');
   const reviewed=r.evidenceKind==='archived_independently_reviewed_player_identity'&&hash(r.identityEvidenceSha256);
-  if(r.namespace!==ns[r.sport]||!hash(r.nativeReceiptDigest)||!controlled&&!bridge&&!reviewed||
+  const nflStat=r.sport==='nfl'&&r.evidenceKind==='nfl_weekly_roster_and_exact_completed_logs'&&hash(r.profileDigest)&&r.matchedCompletedGames?.length>=2;
+  if(r.namespace!==ns[r.sport]||!hash(r.nativeReceiptDigest)||!controlled&&!bridge&&!reviewed&&!nflStat||
      !Number.isFinite(dt(r.proofAvailableAt))||dt(r.proofAvailableAt)>at)continue;
   if(!prev||dt(r.proofAvailableAt)<dt(prev.proofAvailableAt))identities.set(k,r);
  }
@@ -99,13 +100,13 @@ function qualifyResearch(independentFacts,durable,clock){
   const path=require('./pickfinder-native-history-reconciliation.cjs').profilePath(x.sport,x.sourceDetailId);
   const id=identities.get(key(x.sport,path,x.playerId));
   const start=dt(x.officialStartAt),profile=dt(x.profileAvailableAt),native=dt(x.nativeAvailableAt),observed=dt(x.profileObservedAt);
-  if(!id||norm(id.sourcePlayer)!==norm(x.sourcePlayer)||!hash(x.nativeDigest)||!hash(x.profileDigest)||
+  if(!id||id.evidenceKind==='nfl_weekly_roster_and_exact_completed_logs'&&(id.profileDigest!==x.profileDigest||!id.matchedCompletedGames.includes(x.eventId))||norm(id.sourcePlayer)!==norm(x.sourcePlayer)||!hash(x.nativeDigest)||!hash(x.profileDigest)||
      ![start,profile,native,observed].every(Number.isFinite)||start>=native||start>=observed||observed>profile+999||
      Math.max(profile,native)>at||!Number.isFinite(x.value))continue;
   out.push({sport:x.sport,playerId:x.playerId,eventId:x.eventId,market:x.market,value:x.value,officialStartAt:x.officialStartAt,
    availableAt:new Date(Math.max(profile,native,dt(id.proofAvailableAt))).toISOString(),
    profileDigest:x.profileDigest,nativeDigest:x.nativeDigest,identityReceiptDigest:id.nativeReceiptDigest,
-   timezoneReceiptDigests:id.timezoneReceiptDigests??[],...(id.identityEvidenceSha256?{archivedIdentityEvidenceSha256:id.identityEvidenceSha256}:{}),...(id.crosswalkReceiptDigest?{crosswalkReceiptDigest:id.crosswalkReceiptDigest}:{}),evidenceKind:'verified_current_identity_and_independent_final_stat',
+   timezoneReceiptDigests:id.timezoneReceiptDigests??[],...(id.evidenceKind==='nfl_weekly_roster_and_exact_completed_logs'?{nflStatIdentityPath:id.sourcePlayerPath}:{}),...(id.identityEvidenceSha256?{archivedIdentityEvidenceSha256:id.identityEvidenceSha256}:{}),...(id.crosswalkReceiptDigest?{crosswalkReceiptDigest:id.crosswalkReceiptDigest}:{}),evidenceKind:'verified_current_identity_and_independent_final_stat',
    shadowResearchEligible:true,productionModelEligible:false,operatorOfferVerified:false,settlementVerified:false});
  }
  return out;

@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.event_name == 'pull_request' && format('prizepicks-full-once-ci-{0}', github.event.pull_request.number) || 'prizepicks-full-board' }}
+  group: ${{ github.event_name == 'pull_request' && format('prizepicks-full-pinned-ci-{0}', github.event.pull_request.number) || 'prizepicks-full-board' }}
   cancel-in-progress: false
 jobs:
   test:

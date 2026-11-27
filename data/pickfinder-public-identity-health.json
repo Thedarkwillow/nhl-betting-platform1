@@ -1,8 +1,8 @@
 {
   "kind": "public_pickfinder_identity_health_v1",
-  "generatedAt": "2026-11-27T08:30:19.848Z",
-  "archiveRevision": "5611bd60306b7f2a4e194104ee1f2fb9e9a8e2c6",
-  "sourceEvents": 198,
+  "generatedAt": "2026-11-27T13:53:45.881Z",
+  "archiveRevision": "95308a2391421f7c2429fb7761747a22d2b74145",
+  "sourceEvents": 190,
   "sources": {
     "nba": {
       "state": "observed",
@@ -13,7 +13,7 @@
       "failedTeams": 0,
       "sourceEvents": 11,
       "uniqueEventCandidates": 11,
-      "uniquePlayerCandidates": 139,
+      "uniquePlayerCandidates": 152,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -24,9 +24,9 @@
       "upcoming": 12,
       "rosterPlayers": 1773,
       "failedTeams": 0,
-      "sourceEvents": 13,
+      "sourceEvents": 12,
       "uniqueEventCandidates": 11,
-      "uniquePlayerCandidates": 302,
+      "uniquePlayerCandidates": 304,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -39,7 +39,7 @@
       "failedTeams": 0,
       "sourceEvents": 15,
       "uniqueEventCandidates": 13,
-      "uniquePlayerCandidates": 523,
+      "uniquePlayerCandidates": 551,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -58,7 +58,7 @@
       "failedTeams": 0,
       "sourceEvents": 64,
       "uniqueEventCandidates": 20,
-      "uniquePlayerCandidates": 400,
+      "uniquePlayerCandidates": 401,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -69,9 +69,9 @@
       "upcoming": 93,
       "rosterPlayers": 615,
       "failedTeams": 0,
-      "sourceEvents": 6,
+      "sourceEvents": 8,
       "uniqueEventCandidates": 0,
-      "uniquePlayerCandidates": 19,
+      "uniquePlayerCandidates": 24,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -82,7 +82,7 @@
       "upcoming": 0,
       "rosterPlayers": 0,
       "failedTeams": 0,
-      "sourceEvents": 23,
+      "sourceEvents": 19,
       "uniqueEventCandidates": 0,
       "uniquePlayerCandidates": 0,
       "sourceContextCorroborated": 0,
@@ -95,7 +95,7 @@
       "upcoming": 10,
       "rosterPlayers": 0,
       "failedTeams": 0,
-      "sourceEvents": 54,
+      "sourceEvents": 53,
       "uniqueEventCandidates": 0,
       "uniquePlayerCandidates": 0,
       "sourceContextCorroborated": 0,
@@ -103,17 +103,17 @@
     },
     "cs2": {
       "state": "fixture_source_pending",
-      "sourceEvents": 6,
+      "sourceEvents": 4,
       "independentReviewVerified": 0
     },
     "valorant": {
       "state": "fixture_source_pending",
-      "sourceEvents": 4,
+      "sourceEvents": 3,
       "independentReviewVerified": 0
     },
     "dota2": {
       "state": "fixture_source_pending",
-      "sourceEvents": 2,
+      "sourceEvents": 1,
       "independentReviewVerified": 0
     },
     "lol": {
@@ -129,8 +129,8 @@
   },
   "nativeHistory": {
     "nhl": {
-      "finalGames": 36,
-      "playerAppearances": 938,
+      "finalGames": 35,
+      "playerAppearances": 904,
       "completeHistoricalSeasons": false
     },
     "dota2": {
@@ -141,7 +141,7 @@
   },
   "independentlyReviewedCrosswalks": 0,
   "paidRequests": 0,
-  "publicRequests": 240,
+  "publicRequests": 239,
   "privateRepoUsed": false,
   "modelApproved": false
 }

@@ -1,0 +1,46 @@
+name: Verify original PickFinder PF-26 cohort
+on:
+  pull_request:
+    paths: ['.github/workflows/pickfinder-pf26-cohort-audit.yml', 'scripts/pickfinder-pf26-cohort-audit.cjs', 'test/pickfinder-pf26-cohort-audit.test.cjs']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          sparse-checkout: |
+            scripts
+            test
+      - run: node --test test/pickfinder-pf26-cohort-audit.test.cjs
+      - name: Match original candidate keys to current reviewed evidence
+        run: |
+          set -euo pipefail
+          orig='09380e73204ac1eda0423f690928db121b694f04'
+          proof='43df7cc9efbabd9b76c6f5ec0f6eb502476d122a'
+          for ref in "$orig" "$proof"; do
+            git cat-file -e "$ref^{commit}" 2>/dev/null || git fetch --no-tags origin "$ref"
+            out="$RUNNER_TEMP/pf26-$ref"
+            git worktree add --detach --no-checkout "$out" "$ref"
+            git -C "$out" sparse-checkout set --cone scripts src config \
+              research/pickfinder-public-v1/profiles \
+              research/pickfinder-public-identity-v1/native-facts \
+              research/pickfinder-public-identity-v1/nhl-final-stat-facts \
+              research/pickfinder-public-identity-v1/historical-reviewed-identities \
+              research/pickfinder-public-nfl-v1/season \
+              research/pickfinder-public-validation-v1/nba-history \
+              research/pickfinder-public-validation-v1/nba-final-history \
+              research/pickfinder-public-validation-v1/nba-final-stat-details
+            git -C "$out" checkout --detach
+          done
+          node --max-old-space-size=2600 scripts/pickfinder-pf26-cohort-audit.cjs "$RUNNER_TEMP/pf26-$orig" "$RUNNER_TEMP/pf26-$proof" | tee "$RUNNER_TEMP/pf26-counts.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pickfinder-pf26-cohort-counts
+          path: ${{ runner.temp }}/pf26-counts.json
+          if-no-files-found: error

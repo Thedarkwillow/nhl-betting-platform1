@@ -1,6 +1,6 @@
 {
   "kind": "public_model_accuracy_challenger_research_v1",
-  "generatedAt": "2026-11-26T23:41:28.239Z",
+  "generatedAt": "2026-11-27T00:49:47.523Z",
   "nhl": {
     "kind": "nhl_fixed_half_shrink_all_tier_research_v1",
     "policyFirstGitAt": "2026-11-26T15:39:41-08:00",
@@ -9,11 +9,11 @@
     "historicalDescriptive": {
       "Standard": {
         "overall": {
-          "registered": 1535,
+          "registered": 1562,
           "resolved": 1514,
           "decided": 1511,
           "pushes": 3,
-          "pending": 21,
+          "pending": 48,
           "distinctGames": 122,
           "distinctSlates": 19,
           "meanOriginal": 0.6130900660501981,
@@ -33,11 +33,11 @@
         },
         "byMarket": {
           "assists": {
-            "registered": 216,
+            "registered": 221,
             "resolved": 216,
             "decided": 216,
             "pushes": 0,
-            "pending": 0,
+            "pending": 5,
             "distinctGames": 103,
             "distinctSlates": 18,
             "meanOriginal": 0.617913055555555,
@@ -79,11 +79,11 @@
             "alwaysLower": 0.5445544554455446
           },
           "goals": {
-            "registered": 12,
+            "registered": 13,
             "resolved": 12,
             "decided": 12,
             "pushes": 0,
-            "pending": 0,
+            "pending": 1,
             "distinctGames": 11,
             "distinctSlates": 9,
             "meanOriginal": 0.6584991666666666,
@@ -102,11 +102,11 @@
             "alwaysLower": 0.4166666666666667
           },
           "points": {
-            "registered": 420,
+            "registered": 425,
             "resolved": 410,
             "decided": 410,
             "pushes": 0,
-            "pending": 10,
+            "pending": 15,
             "distinctGames": 111,
             "distinctSlates": 18,
             "meanOriginal": 0.6153407560975608,
@@ -125,11 +125,11 @@
             "alwaysLower": 0.5341463414634147
           },
           "shotsOnGoal": {
-            "registered": 683,
+            "registered": 699,
             "resolved": 674,
             "decided": 671,
             "pushes": 3,
-            "pending": 9,
+            "pending": 25,
             "distinctGames": 122,
             "distinctSlates": 19,
             "meanOriginal": 0.6093064243323432,
@@ -151,11 +151,11 @@
       },
       "Goblin": {
         "overall": {
-          "registered": 2763,
+          "registered": 2894,
           "resolved": 2727,
           "decided": 2727,
           "pushes": 0,
-          "pending": 36,
+          "pending": 167,
           "distinctGames": 123,
           "distinctSlates": 19,
           "meanOriginal": 0.7138467876787692,
@@ -175,11 +175,11 @@
         },
         "byMarket": {
           "assists": {
-            "registered": 104,
+            "registered": 107,
             "resolved": 102,
             "decided": 102,
             "pushes": 0,
-            "pending": 2,
+            "pending": 5,
             "distinctGames": 63,
             "distinctSlates": 19,
             "meanOriginal": 0.6508067647058821,
@@ -221,11 +221,11 @@
             "alwaysLower": 0.2980392156862745
           },
           "points": {
-            "registered": 546,
+            "registered": 564,
             "resolved": 535,
             "decided": 535,
             "pushes": 0,
-            "pending": 11,
+            "pending": 29,
             "distinctGames": 119,
             "distinctSlates": 19,
             "meanOriginal": 0.6721874205607483,
@@ -244,11 +244,11 @@
             "alwaysLower": 0.3644859813084112
           },
           "shotsOnGoal": {
-            "registered": 1856,
+            "registered": 1966,
             "resolved": 1835,
             "decided": 1835,
             "pushes": 0,
-            "pending": 21,
+            "pending": 131,
             "distinctGames": 123,
             "distinctSlates": 19,
             "meanOriginal": 0.7268227302452334,
@@ -270,11 +270,11 @@
       },
       "Demon": {
         "overall": {
-          "registered": 831,
+          "registered": 862,
           "resolved": 821,
           "decided": 821,
           "pushes": 0,
-          "pending": 10,
+          "pending": 41,
           "distinctGames": 120,
           "distinctSlates": 19,
           "meanOriginal": 0.5734514616321551,
@@ -294,11 +294,11 @@
         },
         "byMarket": {
           "assists": {
-            "registered": 208,
+            "registered": 216,
             "resolved": 204,
             "decided": 204,
             "pushes": 0,
-            "pending": 4,
+            "pending": 12,
             "distinctGames": 94,
             "distinctSlates": 19,
             "meanOriginal": 0.5763563235294119,
@@ -340,11 +340,11 @@
             "alwaysLower": 0.8
           },
           "goals": {
-            "registered": 77,
+            "registered": 85,
             "resolved": 74,
             "decided": 74,
             "pushes": 0,
-            "pending": 3,
+            "pending": 11,
             "distinctGames": 55,
             "distinctSlates": 17,
             "meanOriginal": 0.5816929729729731,
@@ -363,11 +363,11 @@
             "alwaysLower": 0.6081081081081081
           },
           "points": {
-            "registered": 230,
+            "registered": 234,
             "resolved": 228,
             "decided": 228,
             "pushes": 0,
-            "pending": 2,
+            "pending": 6,
             "distinctGames": 97,
             "distinctSlates": 18,
             "meanOriginal": 0.5713769298245616,
@@ -386,11 +386,11 @@
             "alwaysLower": 0.5701754385964912
           },
           "shotsOnGoal": {
-            "registered": 296,
+            "registered": 307,
             "resolved": 295,
             "decided": 295,
             "pushes": 0,
-            "pending": 1,
+            "pending": 12,
             "distinctGames": 109,
             "distinctSlates": 19,
             "meanOriginal": 0.5722121016949153,

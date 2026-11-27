@@ -203,7 +203,7 @@ async function main(root,env=process.env){
    try{
     await page.goto(ORIGIN+'/props',{timeout:15000});
     if(!await waitPremium(page))throw Error('session unavailable');
-    const result=await inspectTool(page,kind,waitPremium);
+    const result=await inspectTool(page,kind,premium);
     const receipt=await write('capabilities',{schema:'pickfinder-public-tool-schema-v1',kind,observedAt:new Date().toISOString(),captureOrigin:captureOrigin(env,p),...result});
     if(result.state!=='read_only_schema_observed')errors++;
     console.log(JSON.stringify({state:result.state==='read_only_schema_observed'?'public_tool_schema_pass':'public_tool_schema_pending',kind,result:result.state,archiveDigest:receipt.digest,mutations:0}));

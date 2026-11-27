@@ -12,8 +12,17 @@ async function captureDashboard(page,name){
   const tables=[...document.querySelectorAll('main table')].filter(visible).map(t=>({headers:[...t.querySelectorAll('thead th')].map(cell),rows:[...t.querySelectorAll('tbody tr')].filter(visible).map(tr=>[...tr.cells].map(cell))}));
   const cards=[...document.querySelectorAll('a[href*="/players/"],main a[href*="/games/"]')].filter(visible).flatMap(a=>{
    const u=new URL(a.href);
-   if(u.origin!==location.origin||!a.closest('main')&&(!['Popular','Discrepancies'].includes(name)||u.searchParams.get('from')!==name.toLowerCase()||!u.searchParams.get('prop')||!/^View .+ details$/i.test(a.getAttribute('aria-label')||'')))return [];
-   return [{path:u.pathname,prop:u.searchParams.get('prop'),text:a.innerText.trim().slice(0,1000),displayedTimes:[...a.querySelectorAll('time[datetime]')].filter(visible).map(t=>({datetime:t.getAttribute('datetime'),label:t.innerText.trim().slice(0,100)}))}];
+   if(u.origin!==location.origin)return [];
+   const scopedCard=['Popular','Discrepancies'].includes(name)&&u.searchParams.get('from')===name.toLowerCase()&&
+    u.searchParams.get('prop')&&/^View .+ details$/i.test(a.getAttribute('aria-label')||'');
+   if(!a.closest('main')&&!scopedCard)return [];
+   // Popular and Discrepancies use a textless overlay link inside the sporting card.
+   const parent=a.parentElement;
+   const body=scopedCard&&parent?.querySelectorAll('a[href*="/players/"]').length===1&&
+    parent.querySelectorAll('h1').length===1&&parent.querySelectorAll('h2').length===1?parent:a;
+   const text=body.innerText.trim().slice(0,1000);
+   if(scopedCard&&!text)return [];
+   return [{path:u.pathname,prop:u.searchParams.get('prop'),text,displayedTimes:[...body.querySelectorAll('time[datetime]')].filter(visible).map(t=>({datetime:t.getAttribute('datetime'),label:t.innerText.trim().slice(0,100)}))}];
   });
   const clocks=[...document.querySelectorAll('main time[datetime]')].filter(visible).map(t=>({datetime:t.getAttribute('datetime'),label:t.innerText.trim().slice(0,100)}));
   const controls=[...document.querySelectorAll('main button,main [role=tab],main select')].filter(visible).map(e=>({label:(e.getAttribute('aria-label')||e.innerText||'').trim().slice(0,160),disabled:e.disabled===true||e.getAttribute('aria-disabled')==='true',selected:e.getAttribute('aria-selected')==='true'})).filter(x=>x.label);

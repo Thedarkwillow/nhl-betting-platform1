@@ -338,3 +338,15 @@ test('current profile mode only dispatches outside protected morning hours',()=>
  assert.equal(invocation(e,new Date('2026-11-27T13:00:00Z')).allowed,false);
  assert.throws(()=>invocation({...e,GITHUB_EVENT_NAME:'pull_request'},new Date('2026-11-27T07:00:00Z')));
 });
+
+test('current profile suppresses only exact shared dated game logs repeated across tabs',()=>{
+ const {compactCurrentProfile}=require('../scripts/pickfinder-public-runner.cjs');
+ const f={origin:'profile',tab:'Player overview',scope:'Date | Opponent | Pts',metric:'row 1',window:'Last 5 Games',
+  headerLayout:'span-grid-v1',value:JSON.stringify([{value:'10/26'},{value:'@BOS'},{value:'6'}])};
+ const changed={...f,tab:'Matchup',value:f.value.replace('"6"','"7"')};
+ const filtered={...f,tab:'Defense',filterSelection:['Away']};
+ const movement={...f,tab:'Line Movement',origin:'line_movement'};
+ const result=compactCurrentProfile({research:[f,{...f,tab:'Defense'},changed,filtered,movement]});
+ assert.equal(result.identicalSharedLogCopiesNotRearchived,1);
+ assert.deepEqual(result.research,[f,changed,filtered,movement]);
+});

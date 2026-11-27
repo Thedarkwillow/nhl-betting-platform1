@@ -12,6 +12,21 @@ const regular = Object.freeze({ reserve: 100, maxPages: 36 });
 const oneTime = Object.freeze({ reserve: 80, maxPages: 20 });
 const workflowRoot = 'Thedarkwillow/nhl-betting-platform1/.github/workflows/';
 const uncappedWorkflow = workflowRoot + 'prizepicks-full-board-provider-quota-20261127.yml@refs/heads/main';
+const pinWorkflow = workflowRoot + 'prizepicks-full-board-pinned-20261127.yml@refs/heads/main';
+function approvedPinContext(env, now) {
+  return env.PRIZEPICKS_ONCE === '2026-11-27-pinned-quota' && env.GITHUB_WORKFLOW_REF === pinWorkflow &&
+    env.GITHUB_EVENT_NAME === 'push' && env.GITHUB_REF === 'refs/heads/main' &&
+    env.GITHUB_RUN_ATTEMPT === '1' && pacific(now).day === NOV_27;
+}
+function planPinned(ready, balance) {
+  const subsets = [[]];
+  for (const b of ready) subsets.push(...subsets.map(s => [...s,b]));
+  const pages = s => s.reduce((a,b) => a + b.estimatedPages,0);
+  const rows = s => s.reduce((a,b) => a + b.coverageCount,0);
+  const best = subsets.filter(s => pages(s) <= balance)
+    .sort((a,b) => b.length - a.length || rows(b) - rows(a) || pages(a) - pages(b))[0];
+  return [...best, ...ready.filter(b => !best.includes(b))];
+}
 function approvedUncappedContext(env, now) {
   return env.PRIZEPICKS_ONCE === '2026-11-27-provider-quota' && env.GITHUB_WORKFLOW_REF === uncappedWorkflow &&
     env.GITHUB_EVENT_NAME === 'push' && env.GITHUB_REF === 'refs/heads/main' &&
@@ -46,15 +61,18 @@ async function readPage(response) {
   return JSON.parse(Buffer.concat(parts).toString('utf8'));
 }
 async function capture({ key, approveRequests = false, clock = date, client = fetch,
-  coverage = check, unlocked = defaultLock, pause = sleep, oneTimeApproved = false, providerAllowanceOnly = false } = {}) {
+  coverage = check, unlocked = defaultLock, pause = sleep, oneTimeApproved = false, providerAllowanceOnly = false, pinnedReplay = false } = {}) {
   const now = clock();
   const exception = (oneTimeApproved || providerAllowanceOnly) && pacific(now).day === NOV_27;
   const uncapped = providerAllowanceOnly && exception;
   const { reserve, maxPages } = uncapped ? { reserve: 0, maxPages: Infinity } : exception ? oneTime : regular;
+  const pinned = uncapped && pinnedReplay;
+  const pageLimit = pinned ? 200 : LIMIT;
   const leagueLimit = uncapped ? Infinity : PER_LEAGUE;
   const receipt = { source: 'PrizePicksAPI', startedAt: now, coverageAttempts: 0,
     projectionAttempts: 0, protectedRequestReserve: reserve, maxProjectionRequests: uncapped ? null : maxPages, providerAllowanceOnly: uncapped, oneTimeNovemberException: exception,
-    originalAppVerified: false, rawRowsPublished: 0,
+    captureMode: pinned ? 'fixed_time_provider_board' : 'live_provider_board',
+    originalAppVerified: false, rawRowsPublished: 0, rawRowsPersisted: 0,
     boards: leagues.map(league => ({ league, status: 'not_attempted', attempts: 0, rowsReceived: 0 })) };
   const boards = {};
   const finish = status => ({ receipt: { ...receipt, status, finishedAt: clock() }, boards });
@@ -71,7 +89,7 @@ async function capture({ key, approveRequests = false, clock = date, client = fe
     board.coverageCount = countable(r?.offers) ? r.offers : null;
     board.coverageFresh = r?.freshnessVerified === true && !['partial', 'stale', 'aging', 'unavailable'].includes(r.sourceStatus);
     board.estimatedPages = board.coverageFresh && board.coverageCount !== null ?
-      Math.max(1, Math.ceil(board.coverageCount / LIMIT)) : null;
+      Math.max(1, Math.ceil(board.coverageCount / pageLimit)) : null;
   }
   const ready = receipt.boards.filter(b => b.estimatedPages !== null && b.estimatedPages <= leagueLimit);
   receipt.estimatedProjectionRequests = ready.reduce((sum, b) => sum + b.estimatedPages, 0);
@@ -89,10 +107,15 @@ async function capture({ key, approveRequests = false, clock = date, client = fe
   // the affected league from page one if enough of that allowance remains.
   const budget = uncapped ? balance : maxPages;
   let halt = false;
-  const queue = [...receipt.boards];
+  const pin = pinned ? new Date(time(clock()) - 2000).toISOString() : null;
+  if (pinned) receipt.boardAsOf = pin;
+  const queue = pinned ? [...planPinned(ready,balance), ...receipt.boards.filter(b => !ready.includes(b))] : [...receipt.boards];
   for (const b of queue) {
     if (halt) { b.status = 'stopped_after_provider_error'; continue; }
     if (!ready.includes(b)) { b.status = 'coverage_unverified_or_above_cap'; continue; }
+    if (pinned && b.estimatedPages > Math.min(balance, budget - receipt.projectionAttempts)) {
+      b.status = 'estimated_board_exceeds_remaining_provider_allowance'; continue;
+    }
     if (b.restarts && (balance < b.estimatedPages || budget - receipt.projectionAttempts < b.estimatedPages)) continue;
     const rows = [], ids = new Set(), cursors = new Set();
     let cursor = null, sourceAt = null;
@@ -103,8 +126,13 @@ async function capture({ key, approveRequests = false, clock = date, client = fe
       if (receipt.projectionAttempts > 0) await pause(1100);
       if (exception && pacific(clock()).day !== NOV_27) { status = 'one_time_authorization_expired'; halt = true; break; }
       if (!(reset > time(clock()))) { status = 'protected_reserve_or_reset'; halt = true; break; }
-      const url = new URL('https://prizepicksapi.com/api/v1/projections');
-      url.search = new URLSearchParams({ league: b.league, view: 'compact', limit: String(LIMIT), status: 'active' });
+      const url = new URL(pinned ? 'https://prizepicksapi.com/api/v1/board' : 'https://prizepicksapi.com/api/v1/projections');
+      url.search = new URLSearchParams({ league: b.league, limit: String(pageLimit) });
+      if (pinned) url.searchParams.set('as_of', pin);
+      else {
+        // Preserve the existing compact parameter order as well as the scope.
+        url.search = new URLSearchParams({ league: b.league, view: 'compact', limit: String(pageLimit), status: 'active' });
+      }
       if (cursor !== null) url.searchParams.set('cursor', cursor);
       b.attempts++; receipt.projectionAttempts++;
       try {
@@ -122,9 +150,14 @@ async function capture({ key, approveRequests = false, clock = date, client = fe
         }
         balance = usage.remainingRequests;
         receipt.remainingRequestsAfter = balance;
-        const doc = await readPage(response), m = doc?.meta, snapshot = time(m?.observed_at);
-        if (m?.mode !== 'live' || m.is_demo === true || m.source_status !== 'fresh' ||
-            !validClock(snapshot, time(clock())) || !Array.isArray(doc.data) || doc.data.length > LIMIT) {
+        const doc = await readPage(response), m = doc?.meta;
+        const source = time(m?.observed_at), snapshot = pinned ? time(m?.as_of) : source;
+        const fresh = pinned ? snapshot === time(pin) && m.plan_limit == null &&
+          (m.source_status == null || m.source_status === 'fresh') &&
+          (m.observed_at == null || validClock(source,time(clock()))) :
+          m?.source_status === 'fresh' && validClock(source,time(clock()));
+        if (m?.mode !== 'live' || m.is_demo === true || !fresh ||
+            !Array.isArray(doc.data) || doc.data.length > pageLimit) {
           status = 'source_not_fresh_or_invalid'; break;
         }
         if (sourceAt !== null && sourceAt !== snapshot) { status = 'provider_refresh_during_pagination'; break; }
@@ -137,6 +170,7 @@ async function capture({ key, approveRequests = false, clock = date, client = fe
         for (const row of doc.data) {
           if (!row || (row.league ?? row.sport) !== b.league || row.status !== 'active' ||
               row.is_demo === true || (row.source != null && row.source !== 'prizepicks') ||
+              (pinned && (!Number.isFinite(time(row.observed_at)) || time(row.observed_at) > snapshot)) ||
               typeof row.id !== 'string' || !row.id.trim() || ids.has(row.id)) { bad = true; break; }
           ids.add(row.id);
         }
@@ -150,12 +184,16 @@ async function capture({ key, approveRequests = false, clock = date, client = fe
             status = 'same_snapshot_coverage_count_mismatch'; break;
           }
           status = rows.length ? 'complete_provider_board' : 'verified_empty_provider_board';
-          b.providerObservedAt = new Date(snapshot).toISOString();
+          if (pinned) b.boardAsOf = pin;
+          else b.providerObservedAt = new Date(snapshot).toISOString();
           b.sourceDigest = createHash('sha256').update(JSON.stringify(rows)).digest('hex');
           b.tierCounts = { standard: 0, goblin: 0, demon: 0, otherOrUnspecified: 0 };
           for (const row of rows) {
-            const tier = ['standard', 'goblin', 'demon'].includes(row.tier) ? row.tier : 'otherOrUnspecified';
-            b.tierCounts[tier]++;
+            const tiers = pinned && Array.isArray(row.selections) ?
+              new Set(row.selections.filter(s => s?.available === true).map(s => s.tier)) : new Set([row.tier]);
+            const known = [...tiers].filter(t => ['standard','goblin','demon'].includes(t));
+            if (known.length) for (const tier of known) b.tierCounts[tier]++;
+            else b.tierCounts.otherOrUnspecified++;
           }
           boards[b.league] = rows;
           break;
@@ -173,18 +211,19 @@ async function capture({ key, approveRequests = false, clock = date, client = fe
   }
   return finish(Object.keys(boards).length === leagues.length ? 'complete_provider_boards' : 'incomplete_provider_boards');
 }
-module.exports = { capture, approvedOneTimeContext, approvedUncappedContext };
+module.exports = { capture, approvedOneTimeContext, approvedUncappedContext, approvedPinContext, planPinned };
 if (require.main === module) {
   const fs = require('node:fs');
   const once = approvedOneTimeContext(process.env, date());
-  const uncapped = approvedUncappedContext(process.env, date());
+  const pin = approvedPinContext(process.env, date());
+  const uncapped = pin || approvedUncappedContext(process.env, date());
   const approved = once || uncapped || process.env.APPROVE_PRIZEPICKS_REQUESTS === 'true';
   if (process.env.PRIZEPICKS_ONCE && !once && !uncapped) {
     console.error('One-time authorization is unavailable or expired'); process.exitCode = 1;
   } else if (approved && !once && !uncapped && (process.env.GITHUB_EVENT_NAME !== 'workflow_dispatch' ||
       process.env.GITHUB_REF !== 'refs/heads/main' || process.env.GITHUB_RUN_ATTEMPT !== '1')) {
     console.error('Live capture unavailable outside a first-attempt main dispatch'); process.exitCode = 1;
-  } else capture({ key: process.env.PRIZEPICKSAPI_KEY, approveRequests: approved, oneTimeApproved: once, providerAllowanceOnly: uncapped }).then(({ receipt }) => {
+  } else capture({ key: process.env.PRIZEPICKSAPI_KEY, approveRequests: approved, oneTimeApproved: once, providerAllowanceOnly: uncapped, pinnedReplay: pin }).then(({ receipt }) => {
     fs.writeFileSync(process.argv[2], JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
     console.log(JSON.stringify(receipt));
     if (receipt.status !== (approved ? 'complete_provider_boards' : 'coverage_only')) process.exitCode = 1;

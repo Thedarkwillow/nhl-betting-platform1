@@ -1,0 +1,51 @@
+name: One-time PrizePicksAPI full boards at one fixed time (Nov 27)
+on:
+  pull_request:
+    paths: ['.github/workflows/prizepicks-full-board-pinned-20261127.yml', 'scripts/prizepicks-full-board.cjs', 'test/prizepicks-full-board.test.cjs']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/prizepicks-full-board-pinned-20261127.yml']
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('prizepicks-full-once-ci-{0}', github.event.pull_request.number) || 'prizepicks-full-board' }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/prizepicks-full-board.test.cjs test/prizepicksapi-asof-board.test.cjs test/prizepicksapi-november-quota-lock.test.cjs test/esports-zero-credit-coverage.test.cjs
+  capture:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require first introduction on main and the authorized Pacific date
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          test "$(TZ=America/Los_Angeles date +%F)" = '2026-11-27'
+          git cat-file -e "$BEFORE^{commit}"
+          test -z "$(git log -1 --format=%H "$BEFORE" -- .github/workflows/prizepicks-full-board-pinned-20261127.yml)"
+      - name: Recover full boards at one fixed time within provider allowance
+        id: collect
+        env:
+          PRIZEPICKS_ONCE: '2026-11-27-pinned-quota'
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+        run: node scripts/prizepicks-full-board.cjs "$RUNNER_TEMP/prizepicks-full-board-pinned-receipt.json"
+      - name: Upload counts-only receipt
+        if: always() && steps.collect.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: prizepicks-full-board-pinned-counts
+          path: ${{ runner.temp }}/prizepicks-full-board-pinned-receipt.json
+          if-no-files-found: error

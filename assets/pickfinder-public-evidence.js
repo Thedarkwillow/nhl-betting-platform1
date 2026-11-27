@@ -30,7 +30,13 @@
   add(mount,'h3','NHL shots on goal research pilot');
   add(mount,'p',n(pilot.committedForecasts)+' pregame forecasts frozen · '+n(grade.decisions)+' independently graded across '+n(grade.distinctGames)+' games. Research only. No qualified picks from this pilot.');
   if(grade.decisions>0)add(mount,'p','Same thresholds · model '+n(grade.modelWins)+' wins · always Higher '+n(grade.alwaysHigherWins)+' · always Lower '+n(grade.alwaysLowerWins)+'.');
-  if(capture)add(mount,'p','Last capture · '+n(capture.candidateOffers)+' fresh PickFinder sides eligible for modeling · '+n(capture.matchedDecisions)+' matched model decisions.');
+  if(capture){
+   add(mount,'p','Last capture · '+n(capture.candidateOffers)+' fresh PickFinder sides eligible for modeling · '+n(capture.matchedDecisions)+' matched model decisions.');
+   const reasons=capture.excluded||{};
+   if(reasons.stale_or_uncommitted_board)add(mount,'p','Waiting for a fresh archived PickFinder NHL PrizePicks board.');
+   if(reasons.missing_exact_pickfinder_start)add(mount,'p',n(reasons.missing_exact_pickfinder_start)+' candidate sides lacked an explicit PickFinder start time.');
+   if(reasons.partner_snapshot_unavailable_or_incomplete)add(mount,'p','The exact PrizePicks partner snapshot could not be corroborated.');
+  }
  }catch{}
 
  try{

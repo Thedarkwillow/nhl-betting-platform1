@@ -1,7 +1,7 @@
 {
   "kind": "native_workload_matchup_research_v1",
   "revision": "native-workload-matchup-shadow-v1",
-  "sourceCommit": "3926d7b4bf92a33808047eb8589b98aa802bba5e",
+  "sourceCommit": "f61100560e805a0f6934afafef152e7e76c66e29",
   "retrospective": true,
   "thresholds": "synthetic_incumbent_projection_floor_plus_half",
   "scoredFrom": "2026-07-01",

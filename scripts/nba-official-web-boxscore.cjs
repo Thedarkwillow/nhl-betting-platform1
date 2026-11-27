@@ -3,7 +3,7 @@
 function parsePage(html) {
  const matches = [...html.matchAll(/<script\b[^>]*\bid=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/gi)];
  if (matches.length !== 1) return null;
- const game = JSON.parse(matches[0][1])?.props?.pageProps?.game;
+ const {game,playByPlay}=JSON.parse(matches[0][1])?.props?.pageProps||{};
  if (!game || game.gameStatus !== 3 || !/^final(?:\b|$)/i.test(game.gameStatusText)) return null;
  const seen = new Set();
  for (const team of [game.homeTeam, game.awayTeam]) {
@@ -24,7 +24,7 @@ function parsePage(html) {
   }
   if (points !== team.score) return null;
  }
- return {game};
+ return {game,playByPlay};
 }
 function url(game) {
  if (!Number.isSafeInteger(game.gameId) || ![game.home,game.away].every(t=>/^[A-Z]{3}$/.test(t)) || game.home===game.away) throw Error('invalid game scope');

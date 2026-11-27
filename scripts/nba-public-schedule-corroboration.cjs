@@ -7,9 +7,14 @@ const core=require("../src/nba-research-pipeline-v1.cjs");
 const dt=Date.parse,et=t=>new Intl.DateTimeFormat("sv-SE",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date(t));
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const official="https://www.nba.com";
-function links(html){
+function links(html,{includeHistoricalSeasonTypes=false}={}){
  const out=new Map();
- for(const m of html.matchAll(/(?:https:\/\/www\.nba\.com)?\/game\/([a-z]{3})-vs-([a-z]{3})-(002\d{7})(?!\d)/gi)){
+ // Pregame production callers retain their regular-season-only contract.
+ // Bounded independent historical validation may also inspect preseason and playoff finals.
+ const pattern=includeHistoricalSeasonTypes
+  ? /(?:https:\/\/www\.nba\.com)?\/game\/([a-z]{3})-vs-([a-z]{3})-(00[124]\d{7})(?!\d)/gi
+  : /(?:https:\/\/www\.nba\.com)?\/game\/([a-z]{3})-vs-([a-z]{3})-(002\d{7})(?!\d)/gi;
+ for(const m of html.matchAll(pattern)){
   const away=m[1].toUpperCase(),home=m[2].toUpperCase(),id=m[3],k=away+"@"+home;
   const set=out.get(k)||new Set();set.add(id);out.set(k,set);
  }

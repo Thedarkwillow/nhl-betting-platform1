@@ -26,8 +26,11 @@ function select(receipts,at,prior=[]){
    groups.set(detailId,g);
   }
  }
- return [...groups.values()].sort((a,b)=>b.pairs.size-a.pairs.size||b.latest-a.latest||
-  a.target.detailId.localeCompare(b.target.detailId)).slice(0,2).map(g=>g.target);
+ const ranked=[...groups.values()].sort((a,b)=>b.pairs.size-a.pairs.size||b.latest-a.latest||
+  a.target.detailId.localeCompare(b.target.detailId)).map(g=>g.target);
+ if(ranked.length<2)return ranked;
+ // Do not spend both bounded attempts on one sport's potentially unavailable UI layout.
+ return [ranked[0],ranked.find(x=>x.sport!==ranked[0].sport)||ranked[1]];
 }
 
 function utcCandidates(value,at){
@@ -117,15 +120,21 @@ async function observe({targets,open,alive,write,premium,origin,prior=[]}){
     if(!alive())break;
     if(zone===ZONES[1]&&!byTarget[i][0]?.rows.some(r=>r.higher&&r.lower))continue;
     const observedAt=new Date().toISOString(),detailId=target.detailId;
-    let rows=[],sampled=false,browserZone=null;
+    let rows=[],sampled=false,browserZone=null,phase='navigation_unavailable';
     try{
      const exact=origin+detailId;
      await page.goto(exact,{timeout:10000});
      await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});
-     if(page.url()!==exact||!await premium(page))continue;
+     if(page.url()!==exact||!await premium(page)){
+      byTarget[i].push({detailId,zone,browserZone,observedAt,sampled,rows,phase:'exact_premium_profile_unavailable'});
+      continue;
+     }
+     phase='player_not_visible';
      if(await page.getByText(target.player,{exact:true}).first().waitFor({state:'visible',timeout:5000}).then(()=>true,()=>false)){
       const button=page.getByRole('button',{name:'Line Movement',exact:true});
+      phase='movement_button_unavailable';
       if(await button.count()===1){
+       phase='movement_table_unavailable';
        await button.click({timeout:5000});
        await page.getByRole('columnheader',{name:'Time',exact:true}).first().waitFor({state:'visible',timeout:4000});
        browserZone=await page.evaluate(()=>Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -133,10 +142,11 @@ async function observe({targets,open,alive,write,premium,origin,prior=[]}){
        rows=fields.flatMap(f=>profileMarketEvidence({...target,status:'sampled'},f,'0'.repeat(64),observedAt,observedAt))
         .slice(0,100).map(({book,quoteLine,higher,lower,displayedMovementClock})=>({book,quoteLine,higher,lower,displayedMovementClock}));
        sampled=true;
+       phase=rows.length?'movement_table_sampled':'movement_table_no_exact_pairs';
       }
      }
     }catch{if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
-    byTarget[i].push({detailId,zone,browserZone,observedAt,sampled,rows});
+    byTarget[i].push({detailId,zone,browserZone,observedAt,sampled,rows,phase});
    }
   }finally{await context.close();}
  }

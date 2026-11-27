@@ -14,6 +14,12 @@ on:
       timezone: America/Los_Angeles
     - cron: '7 9 * * *'
       timezone: America/Los_Angeles
+    # In-window fallback for delayed primary dispatch. Same serialized run group.
+    # Reuse verified archive evidence before any provider/browser access.
+    - cron: '29 6 * * *'
+      timezone: America/Los_Angeles
+    - cron: '29 9 * * *'
+      timezone: America/Los_Angeles
     - cron: '7 12 * * *'
       timezone: America/Los_Angeles
     - cron: '7 16 * * *'
@@ -56,18 +62,25 @@ jobs:
           path: public-archive
           ref: main
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - name: Refuse redundant morning fallback against the immutable archive
+        id: backup_archive
         if: steps.opening_clock.outputs.proceed == 'true'
+        env:
+          GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
+          REQUESTED_MODE: ${{ inputs.mode }}
+        run: node public-source/scripts/pickfinder-public-morning-preflight.cjs --backup-archive public-archive
+      - uses: actions/setup-node@v4
+        if: steps.backup_archive.outputs.proceed == 'true'
         with:
           node-version: '22'
       - name: Install pinned browser
-        if: steps.opening_clock.outputs.proceed == 'true'
+        if: steps.backup_archive.outputs.proceed == 'true'
         run: |
           npm install --prefix "$RUNNER_TEMP/pickfinder-deps" --ignore-scripts --no-audit --no-fund playwright@1.58.2
           "$RUNNER_TEMP/pickfinder-deps/node_modules/.bin/playwright" install --with-deps chromium
       - name: Recheck the intended morning hour before exposing collection credentials
         id: closing_clock
-        if: steps.opening_clock.outputs.proceed == 'true'
+        if: steps.backup_archive.outputs.proceed == 'true'
         env:
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
           REQUESTED_MODE: ${{ inputs.mode }}

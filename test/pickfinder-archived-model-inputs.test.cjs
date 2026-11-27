@@ -327,12 +327,13 @@ test('expanded current NHL replay corroborates full-game stat columns independen
  const idx=nativeIndex({facts,nhlFinals,nflSeasons:[]},clock);
  const run=(toi,expand,extra={})=>audit([{digest,first:clock,doc:{records:[{sport:'nhl',player:'Fixture',market:'player_goals',
   status:'sampled',truncated:false,coverageVersion:VERSION,detailId:'/players/nhl/a',research:[{origin:'profile',metric:'row 1',
-   tab:'Game Log',scope:'Date | Opponent | SOG | G | A | PTS | BLK | TOI | SV',
+   tab:'Game Log',scope:'Date | Opponent | SOG | G | ASTS | PTS | BS | TOI | SV',
    value:JSON.stringify(['11/20','BOS','4','1','0','1','2',toi,'11'].map(value=>({value}))),observedAt}],...extra}]}}],
   idx,clock,[],{expandCurrentNhlLogs:expand});
  assert.deepEqual([...run('23:45',false).cache.values()].map(x=>x.market),['goals']);
  assert.deepEqual(Object.fromEntries([...run('23:45',true).cache.values()].map(x=>[x.market,x.value])),
   {goals:1,iceTimeSeconds:1425,assists:0,points:1,sog:4,blockedShots:2});
+ assert.equal([...run('23.75',true).cache.values()].find(x=>x.market==='iceTimeSeconds').value,1425);
  assert.ok(![...run('23.45',true).cache.values()].some(x=>x.market==='iceTimeSeconds'));
  assert.equal(run('23:45',true,{period:'first'}).cache.size,0);
 });

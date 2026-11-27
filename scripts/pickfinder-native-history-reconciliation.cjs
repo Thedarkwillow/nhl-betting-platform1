@@ -10,6 +10,9 @@ const dt=Date.parse, norm=x=>String(x??'').trim().toLowerCase(), key=x=>JSON.str
 const hash=x=>/^[a-f0-9]{64}$/.test(x||'');
 const nativeRoot='research/pickfinder-public-identity-v1/';
 const toiSeconds=x=>{const m=typeof x==='string'&&/^(\d{1,3}):([0-5]\d)$/.exec(x.trim());return m?Number(m[1])*60+Number(m[2]):null;};
+// Exact labels from the committed full-game NHL profile layout, not the
+// similarly named first-period columns or a projection/summary table.
+const currentNhlHeaders={assists:['asts'],blockedShots:['bs'],hits:['hit']};
 const nhlMetrics={'time on ice':'iceTimeSeconds',goals:'goals',assists:'assists',points:'points','shots on goal':'sog','sog':'sog',hits:'hits','blocked shots':'blockedShots','saves':'saves'};
 const nflMetrics={'passing yards':'passing_yards','rushing yards':'rushing_yards','receiving yards':'receiving_yards','receptions':'receptions','passing touchdowns':'passing_tds','rushing touchdowns':'rushing_tds','receiving touchdowns':'receiving_tds','passing attempts':'attempts','passing completions':'completions','receiving targets':'targets','rushing attempts':'carries','interceptions thrown':'passing_interceptions'};
 // Explicit source slugs from the existing PickFinder model adapter; native stat keys
@@ -106,7 +109,7 @@ function reviewedLayoutAlias(r,index){
  const games=(index.byPlayer.get(key(['nba',id]))||[]).filter(g=>g.team==='POR'&&Number.isFinite(dt(g.start)));
  return new Set(games.map(g=>g.event)).size>=2?{id,team:'POR'}:null;
 }
-function matchRow(r,f,index,clock,{allowNbaExtendedFinals=false,logMarket}={}){
+function matchRow(r,f,index,clock,{allowNbaExtendedFinals=false,logMarket,allowObservedNhlHeaders=false}={}){
  const reject=reason=>({reason});
  if(!['nhl','nfl','nba'].includes(r.sport))return reject('native_adapter_unavailable');
  if(r.status!=='sampled'||r.truncated!==false||r.coverageVersion!==VERSION||f.origin!=='profile'||!/^row \d+$/.test(f.metric||'')||r.period||r.mapRange||r.gameMode||f.period||f.mapRange||f.gameMode)return reject('unsupported_scope');
@@ -128,7 +131,7 @@ function matchRow(r,f,index,clock,{allowNbaExtendedFinals=false,logMarket}={}){
  if(String(f.scope||'').endsWith(' | [header truncated]'))return reject('header_truncated');
  const headers=String(f.scope||'').split(' | ').map(norm),dateColumns=headers.map((x,i)=>['date','game date'].includes(x)?i:-1).filter(i=>i>=0),i=dateColumns.length===1?dateColumns[0]:-1,opponents=headers.map((x,i)=>['opponent','opp'].includes(x)?i:-1).filter(i=>i>=0),j=opponents.length===1?opponents[0]:-1;
  if(headers.some(x=>/\b(?:line|odds|projection|average|hit rate|payout)\b/.test(x)))return reject('not_final_stat_table');
- const aliases=new Set(extra?[extra[1]]:ppFantasy?['fp']:[market,norm(m),...(columnAliases[m]||[])]);
+ const aliases=new Set(extra?[extra[1]]:ppFantasy?['fp']:[market,norm(m),...(columnAliases[m]||[]),...(r.sport==='nhl'&&allowObservedNhlHeaders?currentNhlHeaders[m]||[]:[])]);
  const indices=headers.map((x,i)=>aliases.has(x)?i:-1).filter(i=>i>=0);
  // Repeated unrelated headings are allowed only when the date, opponent and
  // requested stat are each unique and the full row still aligns positionally.
@@ -147,7 +150,9 @@ function matchRow(r,f,index,clock,{allowNbaExtendedFinals=false,logMarket}={}){
  const badges=[...new Set((Array.isArray(cells[j].labels)?cells[j].labels:[]).filter(x=>typeof x==='string'&&/^[A-Z]{2,4}$/.test(x)))];
  const opp=shown|| (badges.length===1?badges[0]:'');
  if(badges.length>1||badges.length===1&&shown&&shown!==badges[0])return reject('opponent_evidence_conflict');
- const v=cells[indices[0]].value.trim(),value=m==='iceTimeSeconds'?toiSeconds(v):/^-?\d+(?:\.\d+)?$/.test(v)?Number(v):null;
+ const v=cells[indices[0]].value.trim();
+ const decimalMinutes=m==='iceTimeSeconds'&&allowObservedNhlHeaders&&/^\d{1,3}\.\d{2}$/.test(v);
+ const value=m==='iceTimeSeconds'&&!decimalMinutes?toiSeconds(v):/^-?\d+(?:\.\d+)?$/.test(v)?Number(v):null;
  if(!/^[A-Z]{2,4}$/.test(opp)||!Number.isFinite(value))return reject('stat_or_opponent_shape');
  // In the retrospective layout-only matcher a final dot on Jr./Sr. is formatting,
  // never a license to remove the suffix. Preserve ambiguity across both variants.
@@ -158,7 +163,8 @@ function matchRow(r,f,index,clock,{allowNbaExtendedFinals=false,logMarket}={}){
  if(matches.length!==1)return reject(matches.length?'ambiguous_native_game':'no_matching_native_game');
  const g=matches[0],data=extra?index.extendedNba?.get(key([id,g.event])):g,evidence=extra?data?.metricEvidence[m]:g;
  if(!evidence)return reject('missing_native_stat_details');
- if(!Number.isFinite(data.stats[m])||data.stats[m]!==value)return reject('native_result_mismatch');return {candidate:{sport:r.sport,playerId:id,eventId:g.event,officialStartAt:g.start,officialGameDate:g.gameDate??null,market:m,value,nativeDigest:evidence.digest,nativeAvailableAt:evidence.first,profileObservedAt:f.observedAt,sourceDate:raw,sourceDateYearRecovered:!date,providerIdentityReviewed:false,modelApproved:false}};
+ const nativeValue=data.stats[m];
+ if(!Number.isFinite(nativeValue)||(decimalMinutes?Number((nativeValue/60).toFixed(2)):nativeValue)!==value)return reject('native_result_mismatch');return {candidate:{sport:r.sport,playerId:id,eventId:g.event,officialStartAt:g.start,officialGameDate:g.gameDate??null,market:m,value:nativeValue,nativeDigest:evidence.digest,nativeAvailableAt:evidence.first,profileObservedAt:f.observedAt,sourceDate:raw,sourceDateYearRecovered:!date,providerIdentityReviewed:false,modelApproved:false}};
 }
 // Reuse exact independently matched statistical facts only as research candidates.
 // A match to native history does not constitute a reviewed PickFinder identity.
@@ -246,8 +252,8 @@ function audit(documents,index,clock,reviews=[],{expandCurrentNhlLogs=false}={})
  for(const {doc,digest,first} of documents)for(const r of doc.records||[]){if(!['nhl','nfl','nba','cs2','valorant','dota2','lol','cod'].includes(r.sport))continue;
   const s=bySport[r.sport]??={attempts:0,candidates:0,reasons:{}};
   for(const f of structuredFields(r.research||[])){if(f.origin!=='profile'||!/^row \d+$/.test(f.metric||''))continue;s.attempts++;if(f.reassembled)reassembledRows++;const primary=sourceMarkets.nhl[norm(r.market)]??norm(r.market);
-  const markets=expandCurrentNhlLogs&&r.sport==='nhl'?[undefined,...Object.keys(nhlMetrics).filter(m=>m!==primary&&nhlMetrics[m]!==nhlMetrics[primary])]:[undefined];
-  for(const logMarket of markets){const x=matchRow(r,f,index,clock,{logMarket});if(!x.candidate){if(logMarket)continue;s.reasons[x.reason]=(s.reasons[x.reason]||0)+1;if(x.reason==='row_column_count_mismatch'){const h=s.rowColumnCounts??={};const k=Object.hasOwn(h,x.shape)||Object.keys(h).length<40?x.shape:'other';h[k]=(h[k]||0)+1;}if(x.reason==='missing_exact_columns'){const shape=columnShape(f);const h=s.columnShapes??={};const k=Object.hasOwn(h,shape)||Object.keys(h).length<40?shape:'other_shapes';h[k]=(h[k]||0)+1;}continue;}s.candidates++;candidates++;
+  const markets=expandCurrentNhlLogs&&r.sport==='nhl'?[undefined,...Object.keys(nhlMetrics).filter(m=>m!=='sog'&&nhlMetrics[m]!==nhlMetrics[primary])]:[undefined];
+  for(const logMarket of markets){const x=matchRow(r,f,index,clock,{logMarket,allowObservedNhlHeaders:expandCurrentNhlLogs});if(!x.candidate){if(logMarket)continue;s.reasons[x.reason]=(s.reasons[x.reason]||0)+1;if(x.reason==='row_column_count_mismatch'){const h=s.rowColumnCounts??={};const k=Object.hasOwn(h,x.shape)||Object.keys(h).length<40?x.shape:'other';h[k]=(h[k]||0)+1;}if(x.reason==='missing_exact_columns'){const shape=columnShape(f);const h=s.columnShapes??={};const k=Object.hasOwn(h,shape)||Object.keys(h).length<40?shape:'other_shapes';h[k]=(h[k]||0)+1;}continue;}s.candidates++;candidates++;
    const c=x.candidate,k=sha(key([r.sport,r.detailId,r.market,c.playerId,c.eventId,c.market,c.value,f.filterSelection??null,f.tab,f.scope]));
    const next={...c,profileDigest:digest,profileAvailableAt:first??null,sourceDetailId:r.detailId,sourcePlayer:r.player,cacheKey:k},old=rows.get(k);
    // Archive filenames are content hashes, not chronology. For an identical

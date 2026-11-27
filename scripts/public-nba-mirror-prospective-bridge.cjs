@@ -53,14 +53,14 @@ function reviewedScopes({archive,schedule,clock,receipts,explicit=[]}){
  return [...result.values()];
 }
 
-function choose({archive,historyRows,reviewRows,schedule,clock,revision,prior=[],digests}){
+function choose({archive,historyRows,reviewRows,schedule,clock,revision,prior=[],digests,injuryReceipts=[]}){
  if(!Array.isArray(historyRows)||!historyRows.length||!Array.isArray(digests)||digests.length!==4||!digests.every(isHash))throw Error('four-season input provenance');
  if(archive.invalid.length)throw Error('invalid source manifests');
  if(!schedule||schedule.kind!=='nba_official_schedule_v1'||!Number.isFinite(dt(schedule.capturedAt))||dt(schedule.capturedAt)>dt(clock)||dt(clock)-dt(schedule.capturedAt)>3600000)return {rows:[],reason:'no_fresh_committed_official_schedule'};
  if(!reviewRows.length)return {rows:[],reason:'no_independently_reviewed_crosswalk'};
  const h=nba.indexHistory([{rows:historyRows}]),features=analyze(archive,clock).featureRows.filter(x=>Number.isFinite(dt(x.offer.startAt))&&dt(x.offer.startAt)>dt(clock)+900000&&dt(x.offer.observedAt)<dt(x.offer.startAt));
  const seen=new Set(prior.map(forecastOfferKey));
- const rows=modelRows({features,h,schedule,reviewed:reviewRows,clock,revision}).filter(r=>{
+ const rows=modelRows({features,h,schedule,reviewed:reviewRows,clock,revision,injuryReceipts}).filter(r=>{
   const source=features.find(x=>x.manifestDigest===r.sourceManifestDigest&&x.offer.detailId===r.sourceDetailId&&x.offer.book===r.book&&x.offer.side===r.offeredSide&&x.offer.line===r.line);
   if(!source||Math.abs(dt(source.offer.startAt)-dt(r.gameStartAt))>300000||seen.has(forecastOfferKey(r)))return false;
   seen.add(forecastOfferKey(r));return true;
@@ -73,7 +73,7 @@ function run(root,payload,clock=now()){
  const schedules=history(root,'nba-schedule').filter(x=>dt(x.first)<=dt(clock)&&dt(x.doc.capturedAt)<=dt(x.first)+999).sort((a,b)=>dt(b.doc.capturedAt)-dt(a.doc.capturedAt));
  const latest=schedules[0],prior=history(root,'nba-forecasts').flatMap(x=>x.doc.rows||[]);
  const receipts=gameReviewReceipts(root,clock),derived=reviewedScopes({archive,schedule:latest?.doc,clock,receipts,explicit}),reviews=[...explicit,...derived];
- const selected=choose({archive,historyRows:payload.rows,reviewRows:reviews,schedule:latest?.doc,clock,revision,prior,digests:payload.digests});
+ const selected=choose({archive,historyRows:payload.rows,reviewRows:reviews,schedule:latest?.doc,clock,revision,prior,digests:payload.digests,injuryReceipts:history(root,'nba-official-availability')});
  let receipt=null;
  if(selected.rows.length)receipt=save(root,'nba-forecasts',{kind:'pickfinder_public_nba_shadow_forecasts_v1',generatedAt:clock,rows:selected.rows,modelRevision:revision,historySourceDigests:payload.digests,scheduleDigest:latest.digest,researchOnly:true,originalPlatformVerified:false});
  return {kind:'nba_mirror_prospective_bridge_v1',generatedAt:clock,reviewedCrosswalkRows:reviews.length,explicitCrosswalkRows:explicit.length,reviewedReceiptScopes:derived.length,immutableGameReviewReceipts:receipts.length,newForecastRows:selected.rows.length,reason:selected.reason,forecastDigest:receipt?.digest??null,earliestGameStartAt:selected.rows.map(x=>x.gameStartAt).sort()[0]??null,rawHistoryRowsPublished:0,modelApproved:false,originalPlatformVerified:false};

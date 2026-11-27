@@ -1,5 +1,6 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),{sha}=require('./pickfinder-public-archive.cjs'),{load,analyze,coverage,git,scope}=require('./pickfinder-public-evidence-audit.cjs');
+const availability=require('./pickfinder-nba-official-availability.cjs');
 const nba=require('../src/nba-research-pipeline-v1.cjs'),{official}=require('./grade-nba-frozen-research-v1.cjs'),{summarize}=require('../src/lineup-dependence-bounds-research.cjs');
 const dt=Date.parse,et=t=>new Intl.DateTimeFormat('sv-SE',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(t));
 const now=()=>new Date().toISOString();
@@ -139,18 +140,20 @@ function workloadPair(h, player, cutoff) {
      featureOff:selected(nativeHigher),historyGames:result.history};
 }
 
-function modelRows({features,h,schedule,reviewed:crosswalk,clock,revision}){
+function modelRows({features,h,schedule,reviewed:crosswalk,clock,revision,injuryReceipts=[]}){
  const by=new Map();for(const x of crosswalk){const k=scope(x),a=by.get(k)||[];a.push(x);by.set(k,a);}
  const rows=[];for(const x of features){const o=x.offer,m=aliases[o.market];if(!Number.isFinite(dt(x.manifestFirst))||dt(x.manifestFirst)>dt(clock)||o.sport!=='nba'||!m||o.period||o.mapRange||o.gameMode||!Number.isFinite(dt(o.observedAt))||dt(o.observedAt)>dt(clock)||dt(clock)-dt(o.observedAt)>30*60000)continue;
   const ids=by.get(scope(o))||[];if(ids.length!==1)continue;const id=ids[0],g=schedule.games.find(g=>g.gameId===id.nativeEventId);
   if(!g||g.status!==1||dt(g.startAt)<=dt(clock)+900000||!Number.isInteger(id.nativePlayerId)||!h.players.has(id.nativePlayerId)||!['Higher','Lower'].includes(o.side)||![g.home,g.away].includes(id.team)||id.nativeMarket!==m||id.sourcePlayer!==o.player||id.verifiedStartAt!==g.startAt)continue;
   if(!h.players.get(id.nativePlayerId).some(p=>nba.norm(p.player)===nba.norm(o.player)))continue;
   const p={playerId:id.nativePlayerId,gameId:g.gameId,gameStartAt:g.startAt,team:id.team,opponent:id.team===g.home?g.away:g.home,market:m,line:o.line,offeredSide:o.side};
+  const status=injuryReceipts.length?availability.statusFor(injuryReceipts,{team:p.team,name:id.sourcePlayer},g,clock):null;
+  if(status?.status==='out')continue;
   const pred=nba.project(h,p,et(clock));if(!pred)continue;
   const pair=lowCountPair(m,o.line,o.side,pred.projection,x.features?.['Avg L10']);
   const matchup=dt(o.observedAt)<=dt(x.manifestFirst)+999?matchupPair(o,g,pred.higher,x.matchup):null;
   const workload=workloadPair(h,p,et(clock));
-  rows.push({...p,...(workload?{workloadPair:workload}:{}),...(matchup?{matchupPair:matchup}:{}),...(pair?{lowCountPair:pair}:{}),sourceManifestDigest:x.manifestDigest,sourceEventId:o.eventId,sourceDetailId:o.detailId,book:o.book,tier:o.tier,sourceObservedAt:o.observedAt,reviewCommit:id.reviewCommit,rawSelectedEstimate:o.side==='Higher'?pred.higher:1-pred.higher,baselineSelectedEstimate:o.side==='Higher'?pred.baselineHigher:1-pred.baselineHigher,projection:pred.projection,probabilityConditionalOnDecided:true,features:x.features,quoteBenchmarks:x.quotes.filter(q=>dt(q.observedAt)<=dt(clock)&&dt(clock)-dt(q.observedAt)<=300000),modelRevision:revision,researchOnly:true,originalPlatformVerified:false,modelApproved:false});
+  rows.push({...p,...(status?{officialAvailability:status}:{}),...(workload?{workloadPair:workload}:{}),...(matchup?{matchupPair:matchup}:{}),...(pair?{lowCountPair:pair}:{}),sourceManifestDigest:x.manifestDigest,sourceEventId:o.eventId,sourceDetailId:o.detailId,book:o.book,tier:o.tier,sourceObservedAt:o.observedAt,reviewCommit:id.reviewCommit,rawSelectedEstimate:o.side==='Higher'?pred.higher:1-pred.higher,baselineSelectedEstimate:o.side==='Higher'?pred.baselineHigher:1-pred.baselineHigher,projection:pred.projection,probabilityConditionalOnDecided:true,features:x.features,quoteBenchmarks:x.quotes.filter(q=>dt(q.observedAt)<=dt(clock)&&dt(clock)-dt(q.observedAt)<=300000),modelRevision:revision,researchOnly:true,originalPlatformVerified:false,modelApproved:false});
  }return rows;
 }
 // Share the immutable offer scope across prediction entry points. A new repository
@@ -234,13 +237,20 @@ async function main(root){
   const fallback=hasFinals?null:await recentFinalSchedule(at);
   a.summary.nbaFinalHistoryRecovery={...await recoverFinalHistory(root,fallback||src.schedule,at),scheduleFallbackCalls:fallback?.calls||0,scheduleFallbackCandidates:fallback?.games.length||0,scheduleFailedDates:fallback?.failedDates||[]};
  }else a.summary.nbaFinalHistoryRecovery={state:'current_league_log_available'};
+ const injuryReceipts=history(root,'nba-official-availability');
+ const injury=await availability.collect(src.schedule,injuryReceipts,now());
+ if(injury.receipt)save(root,'nba-official-availability',injury.receipt);
+ a.summary.nbaOfficialAvailability={state:injury.state,requests:injury.calls,
+   newlyObservedStatuses:injury.receipt?.rows.length||0,existingCommittedReceipts:injuryReceipts.length,
+   nominationsUseOnlyPreexistingReceipts:true,modelApproved:false};
  let rows=[];if(src.histories.length&&src.schedule){const h=nba.indexHistory(src.histories),at=now(),c=candidates(a.events,h,src.schedule,at);save(root,'nba-identity-candidates',{kind:'public_nba_identity_candidates_v1',generatedAt:at,rows:c});a.summary.nbaIdentityCandidates={events:c.length,exactNameCandidates:c.reduce((s,x)=>s+x.exactNameCandidates,0),uniqueScheduleCandidates:c.filter(x=>x.possibleGames.length===1).length,reviewed:false};
  // Historical walk-forward evaluation of existing model only; not a new feature qualification.
  a.summary.nbaRetrospective=nba.backtest(h);
  const existing=history(root,'nba-forecasts').flatMap(frame=>frame.doc.rows||[]);
- rows=newForecastRows(modelRows({features:a.featureRows,h,schedule:src.schedule,reviewed:reviewed(root,at),clock:at,revision}),existing);
+ rows=newForecastRows(modelRows({features:a.featureRows,h,schedule:src.schedule,reviewed:reviewed(root,at),clock:at,revision,injuryReceipts}),existing);
  if(rows.length)save(root,'nba-forecasts',{kind:'pickfinder_public_nba_shadow_forecasts_v1',generatedAt:at,rows,modelRevision:revision,researchOnly:true,originalPlatformVerified:false});
  }
+ a.summary.nbaOfficialAvailability.forecastsWithStatus=rows.filter(row=>row.officialAvailability).length;
  a.summary.nbaWorkloadShadowRows=rows.filter(row=>row.workloadPair).length;
  a.summary.nbaMatchupShadowRows=rows.filter(row=>row.matchupPair).length;
  a.summary.nbaShadowRows=rows.length;a.summary.independentGrading=await grade(root,now());

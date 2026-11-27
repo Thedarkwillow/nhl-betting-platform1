@@ -1,0 +1,92 @@
+{
+  "kind": "pickfinder_esports_series_review_updates_v1",
+  "reviewedAt": "2026-11-27T01:08:17.579Z",
+  "researchOnly": true,
+  "series": [
+    {
+      "sport": "valorant",
+      "sourceEventId": "20261126889E98FA",
+      "firstTwoMapNames": [
+        "Lotus",
+        "Corrode"
+      ],
+      "firstTwoResultSiteMapIds": [
+        "297131",
+        "297132"
+      ],
+      "resultSourceSha256": "f24d02b91b26b00f9daaca8d6bb74782a39b439a1bf2fb42a466fb1386ac5f3a"
+    },
+    {
+      "sport": "dota2",
+      "sourceEventId": "2026112556AC1CE4",
+      "additionalRoster": [
+        {
+          "label": "Kiseki",
+          "resultSiteLabel": "Kiseki`",
+          "pickfinderProfilePath": "/players/dota2/ja2585opkba24sp",
+          "profileUrl": "https://dotascore.org/players/kiseki",
+          "aliasSource": "https://egamersworld.com/dota2/team/team-spirit-academy-g0FkWUGnw",
+          "rosterSource": "https://liquipedia.net/dota2/Team_Spirit_Academy"
+        },
+        {
+          "label": "sailyn",
+          "resultSiteLabel": "inori",
+          "pickfinderProfilePath": "/players/dota2/0o1dtky16ckvf5v",
+          "profileUrl": "https://www.dotabuff.com/esports/players/480210721-inori",
+          "aliasSource": "https://uk.dotabuff.com/players/480210721",
+          "rosterSource": "https://egamersworld.com/dota2/match/VYNZO5Im1W/team-spirit-academy-vs-angry-birds-fMTp3OZGO"
+        }
+      ]
+    },
+    {
+      "sport": "dota2",
+      "sourceEventId": "20261126F3FBDB15",
+      "additionalRoster": [
+        {
+          "label": "Kiseki",
+          "resultSiteLabel": "Kiseki`",
+          "pickfinderProfilePath": "/players/dota2/ja2585opkba24sp",
+          "profileUrl": "https://dotascore.org/players/kiseki",
+          "aliasSource": "https://egamersworld.com/dota2/team/team-spirit-academy-g0FkWUGnw",
+          "rosterSource": "https://liquipedia.net/dota2/Team_Spirit_Academy"
+        },
+        {
+          "label": "sailyn",
+          "resultSiteLabel": "inori",
+          "pickfinderProfilePath": "/players/dota2/0o1dtky16ckvf5v",
+          "profileUrl": "https://www.dotabuff.com/esports/players/480210721-inori",
+          "aliasSource": "https://uk.dotabuff.com/players/480210721",
+          "rosterSource": "https://es.egamersworld.com/dota2/match/VYNZO5Im1W/team-spirit-academy-vs-inner-circle-rzqYwjVjG"
+        }
+      ]
+    },
+    {
+      "sport": "cs2",
+      "sourceEventId": "2026112650362690",
+      "rosterConflicts": [
+        {
+          "label": "bl1x1",
+          "pickfinderProfilePath": "/players/cs2/u2qbkafgxd78s8o",
+          "profileUrl": "https://www.hltv.org/player/22803/bl1x1",
+          "pregameRosterSource": "https://cselo.net/matches/2400657",
+          "resultSiteLabel": "interz",
+          "reason": "pregame_listed_player_absent_from_match_map_box_scores"
+        }
+      ]
+    },
+    {
+      "sport": "valorant",
+      "sourceEventId": "20261126EDB4C149",
+      "additionalRoster": [
+        {
+          "label": "arct0",
+          "resultSiteLabel": "arcto",
+          "pickfinderProfilePath": "/players/val/x3g65fwdygqfeli",
+          "profileUrl": "https://www.vlr.gg/player/56457/arcto",
+          "aliasSource": "https://www.thespike.gg/match/troopers-finishers/154643",
+          "rosterSource": "https://www.valoranttracker.net/esports/players/56457/arcto"
+        }
+      ]
+    }
+  ]
+}

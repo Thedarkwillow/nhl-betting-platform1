@@ -16,6 +16,14 @@ test('profile line history preserves the book-specific line, both displayed side
  assert.deepEqual(extract(movement,row,{eventId:'other'}),[]);
  assert.deepEqual(extract({...movement,observedAt:'2026-12-01T00:00:00Z'},row),[]);
 });
+test('movement UTC requires an explicit offset and a valid nonfuture calendar timestamp',()=>{
+ const values=[cell('20.5'),cell('O-130\nU-125',['fanduel']),cell('11/25 4:06PM')];
+ const accept=stamp=>extract(movement,[...values.slice(0,2),{...values[2],sourceMovementDateTime:stamp}])[0];
+ assert.equal(accept('2026-11-25T16:06:00-08:00').movementAtUtc,'2026-11-26T00:06:00.000Z');
+ for(const stamp of ['2026-11-25T16:06:00','2026-11-25T16:06:00-00:00','2026-11-31T12:00:00Z','2026-11-27T00:00:01Z','2026-11-25T15:00:00+14:01']){
+  assert.equal(accept(stamp).movementAtUtc,null);
+ }
+});
 test('research workload and injury status require exact player and typed columns',()=>{
  const f={origin:'profile',scope:'Player | Passes | Potential Asts',metric:'row 1',tab:'Player overview',observedAt:time};
  const row=[cell('Example P.',['Example Player']),cell('40.5'),cell('6.3')];
@@ -54,4 +62,50 @@ test('depth chart status requires an explicit suffix on exactly one selected-pla
    assert.deepEqual(extract(f,cells.map((x,i)=>i===2?c:x)),[]);
  }
  assert.deepEqual(extract(f,cells.map((x,i)=>i===1?cells[2]:x)),[]);
+});
+
+test('collector captures only the exact visible semantic time cell of a movement table',()=>{
+ const {readSections}=require('../scripts/pickfinder-player-research.cjs');
+ const stamp='2026-11-25T16:06:00-08:00';
+ const headers=['Line','App','Time'].map(innerText=>({innerText,tagName:'TH',rowSpan:1,colSpan:1}));
+ const timeNode={innerText:'11/25 4:06PM',getClientRects:()=>[{}],getAttribute:()=>stamp};
+ const t=(nodes)=>({getClientRects:()=>[{}],querySelectorAll:s=>s==='thead tr'?[{cells:headers}]:
+  s==='thead th'?headers:s==='tbody tr'?[{cells:[
+   {innerText:'20.5',querySelectorAll:()=>[]},
+   {innerText:'O-130',querySelectorAll:sel=>sel==='img[alt]'?[{alt:'fanduel'}]:[]},
+   {innerText:'11/25 4:06PM',querySelectorAll:sel=>sel==='time[datetime]'?nodes:[]}
+  ]}]:[]});
+ const prior=global.document;
+ try {
+  for(const [nodes,expected] of [[[timeNode],stamp],[[{...timeNode,innerText:'different'}],undefined],[[timeNode,timeNode],undefined]]){
+   global.document={querySelectorAll:s=>s==='table'?[t(nodes)]:[]};
+   const fields=readSections({tab:'Line Movement',origin:'line_movement',observedAt:time,context:{}});
+   const row=JSON.parse(fields.find(f=>f.metric==='row 1').value);
+   assert.equal(row[2].sourceMovementDateTime,expected);
+  }
+ }finally{global.document=prior;}
+});
+
+test('movement probe uses unique exact pairs and tests timezone shift across midnight',()=>{
+ const {compare}=require('../scripts/pickfinder-movement-clock-probe.cjs');
+ const row=(quoteLine,displayedMovementClock)=>({book:'fanduel',quoteLine,higher:'-110',lower:'-120',displayedMovementClock});
+ const from=[row(20.5,'11/27 12:04AM'),row(21.5,'11/26 11:50PM')];
+ const to=[row(20.5,'11/26 4:04PM'),row(21.5,'11/26 3:50PM')];
+ const doc=(zone,rows)=>({zone,browserZone:zone,detailId:'/players/nba/id?prop=id:points:event:18',observedAt:'2026-11-27T00:05:00Z',sampled:true,rows});
+ const first=doc('UTC',from), second=doc('America/Los_Angeles',to);
+ assert.deepEqual(compare([first,second]),{state:'browser_local_candidate',matched:2,shifted:2,unchanged:0});
+ assert.equal(compare([first,{...second,rows:from}]).state,'fixed_zone_candidate');
+ assert.equal(compare([first,{...second,rows:[...to,to[0]]}]).state,'inconclusive');
+ assert.equal(compare([first,{...second,browserZone:'UTC'}]).state,'incomplete');
+});
+
+test('movement probe selects one archived market per supported sport without a fresh board',()=>{
+ const {select}=require('../scripts/pickfinder-movement-clock-probe.cjs');
+ const offer=(sport,player,eventId,market)=>({sport,player,eventId,market,
+  detailId:'/players/'+sport+'/profile?'+new URLSearchParams({prop:'id:'+market+':'+eventId+':1.5'})});
+ const targets=select({latest:[{offers:[
+  offer('nba','First','n1','points'),offer('nba','Second','n2','rebounds'),
+  offer('nhl','Third','h1','shots'),offer('nfl','Fourth','f1','yards')
+ ]}]},time);
+ assert.deepEqual(targets.map(({sport,market,eventId})=>[sport,market,eventId]),[['nba','points','n1'],['nfl','yards','f1']]);
 });

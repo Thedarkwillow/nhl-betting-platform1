@@ -18,6 +18,18 @@ function rowCells(field) {
   return Object.fromEntries(headers.map((h,i) => [h,cells[i]]));
 }
 
+function explicitMovementClock(stamp, observed) {
+  const match=typeof stamp==='string'&&/^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,3})?)?(Z|[+-](?:0\d|1[0-4]):[0-5]\d)$/.exec(stamp);
+  if(!match||match[4]==='-00:00')return null;
+  const [,year,month,day,offset]=match;
+  const calendar=new Date(year+'-'+month+'-'+day+'T00:00:00Z');
+  if(!Number.isFinite(calendar.getTime())||calendar.toISOString().slice(0,10)!==year+'-'+month+'-'+day)return null;
+  if(/^[+-]14:(?!00)/.test(offset))return null;
+  const at=Date.parse(stamp);
+  if(!Number.isFinite(at)||at>observed)return null;
+  return {movementAtUtc:new Date(at).toISOString(),sourceMovementDateTime:stamp,movementTimeBasis:'provider_time_element'};
+}
+
 function parseMovement(f, cells) {
   if (f.origin !== 'line_movement' || f.tab !== 'Line Movement' || f.scope !== 'Line | App | Time') return null;
   const {Line,App,Time} = cells;
@@ -31,7 +43,7 @@ function parseMovement(f, cells) {
     prices[match[1]] = match[2];
   }
   return {book:App.labels[0],quoteLine:Number(Line.value),higher:prices.O || null,lower:prices.U || null,
-    displayedMovementClock:Time.value,movementAtUtc:null};
+    displayedMovementClock:Time.value,movementAtUtc:null,...explicitMovementClock(Time.sourceMovementDateTime,Date.parse(f.observedAt))};
 }
 
 function profileMarketEvidence(record, field, digest, archiveAt, clock) {
@@ -96,7 +108,7 @@ function profileMarketEvidence(record, field, digest, archiveAt, clock) {
 }
 
 function summarize(receipts) {
-  const counts = {historicalRows:0,pairedRows:0,workloadObservations:0,availabilityObservations:0,defenseSplitObservations:0,byBook:{}};
+  const counts = {historicalRows:0,explicitMovementUtcRows:0,pairedRows:0,workloadObservations:0,availabilityObservations:0,defenseSplitObservations:0,byBook:{}};
   const groups = new Map();
   for (const row of receipts) {
     if (row.kind === 'workload') counts.workloadObservations++;
@@ -104,6 +116,7 @@ function summarize(receipts) {
     else if (row.kind === 'defense_splits') counts.defenseSplitObservations++;
     else {
       counts.historicalRows++;
+      if (row.movementTimeBasis==='provider_time_element' && row.movementAtUtc) counts.explicitMovementUtcRows++;
       const key = JSON.stringify([row.sport,row.eventId,row.detailId.split('?')[0],row.market,row.period,row.mapRange,
         row.gameMode,row.book,row.quoteLine,row.displayedMovementClock]);
       const group = groups.get(key) || {higher:new Set(),lower:new Set(),paired:false};

@@ -226,3 +226,31 @@ test('series review cross-checks exact event, profile, roster label and ordinal 
  assert.equal(review({...scope,sport:'cs2'}).independentSeriesEvidence.status,'series_unreviewed');
  assert.equal(reconcileSeries([scope],'2026-11-26T00:00:00Z').rows[0].independentSeriesEvidence.status,'series_unreviewed');
 });
+
+test('dated result evidence resolves exact map scope while preserving pregame roster conflicts', () => {
+ const {reconcileSeries} = require('../scripts/pickfinder-esports-series-review.cjs');
+ const base = require('../config/esports/pickfinder-series-review-2026-11-27.json');
+ const followup = require('../config/esports/pickfinder-series-review-remainder-2026-11-27.json');
+ const rows = [
+  {sport:'valorant',sourceEventId:'20261126889E98FA',sourcePlayer:'Zap',profilePath:'/players/val/2y5lrc9frzttg3v',maps:[1,2]},
+  {sport:'cs2',sourceEventId:'2026112650362690',sourcePlayer:'bl1x1',profilePath:'/players/cs2/u2qbkafgxd78s8o',maps:[1,2]},
+  {sport:'dota2',sourceEventId:'2026112556AC1CE4',sourcePlayer:'sailyn',profilePath:'/players/dota2/0o1dtky16ckvf5v',maps:[1,2]}
+ ];
+ const before = reconcileSeries(rows, base.reviewedAt);
+ assert.equal(before.rows[0].independentSeriesEvidence.status,'map_scope_unresolved');
+ assert.equal(before.rows[1].independentSeriesEvidence.status,'player_unresolved');
+ assert.equal(before.rows[2].independentSeriesEvidence.status,'player_unresolved');
+ const after = reconcileSeries(rows, followup.reviewedAt);
+ const [map,conflict,alias] = after.rows.map(x=>x.independentSeriesEvidence);
+ assert.deepEqual(map.firstTwoMapNames,['Lotus','Corrode']);
+ assert.deepEqual(map.firstTwoResultSiteMapIds,['297131','297132']);
+ assert.equal(map.reviewedAt,followup.reviewedAt);
+ assert.equal(map.status,'roster_and_map_corroborated');
+ assert.equal(conflict.status,'roster_conflict');
+ assert.equal(conflict.rosterConflict.resultSiteLabel,'interz');
+ assert.equal(alias.status,'roster_and_map_corroborated');
+ assert.equal(alias.resultSiteLabel,'inori');
+ assert.equal(after.summary.officialSettlementVerified,0);
+ assert.equal(after.summary.qualifiedModelInputs,0);
+ assert.ok(after.rows.every(x=>x.modelApproved===false));
+});

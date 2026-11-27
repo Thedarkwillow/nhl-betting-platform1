@@ -87,3 +87,79 @@ t('official game page box score verifies both point totals and excludes DNPs',()
  game.awayTeam.players[0].personId=10;
  assert.equal(parsePage(html()),null);
 });
+
+t('matchup challenger freezes a conservative same-offer pair and grades it independently',()=>{
+ const {matchupSample}=require('../scripts/pickfinder-public-evidence-audit.cjs');
+ const {matchupPair,pairedStats}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const offer={...o,detailId:'/players/nba/a?prop=id%3Aplayer_points%3Ae%3A5.5',player:'Fixture',
+  book:'prizepicks',side:'Lower',startAt:'2026-11-25T20:00:00Z'};
+ const obs={...offer,origin:'board',boardBook:offer.book,metric:'H2H',value:'75%\n3/4'};
+ const sample=matchupSample(offer,[obs,obs]);
+ assert.deepEqual(sample,{higher:3,games:4});
+ assert.equal(matchupSample({...offer,line:7.5},[obs]),null);
+ assert.equal(matchupSample(offer,[obs,{...obs,value:'50%\n2/4'}]),null);
+ assert.equal(matchupSample(offer,[{...obs,value:'75%'}]),null);
+ assert.equal(matchupSample(offer,[{...obs,value:'100%\n3/3'}]),null);
+ assert.equal(matchupSample(offer,[{...obs,boardBook:'underdog'}]),null);
+ const game={startAt:offer.startAt};
+ assert.equal(matchupPair({...offer,startAt:null},game,.55,sample),null);
+ assert.equal(matchupPair(offer,{startAt:'2026-11-25T20:06:00Z'},.55,sample),null);
+ const pair=matchupPair(offer,game,.55,sample);
+ assert.equal(pair.featureOff,1-.55);
+ assert.equal(pair.featureOn,1-14/24);
+ const grade={id:'verified',market:'points',actual:5,result:'correct',modelEstimate:.45,matchupPair:pair};
+ const scores=pairedStats([grade,grade,{...grade,id:'push',result:'push'}]).points.matchupFeatureComparison;
+ assert.equal(scores.decided,1);
+ assert.equal(scores.modelBrier,(1-pair.featureOn)**2);
+ assert.equal(scores.baselineBrier,(1-pair.featureOff)**2);
+});
+
+t('native workload challenger uses only previous games for the verified player team',()=>{
+ const {workloadPair,pairedStats}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const previous=Array.from({length:16},(_,i)=>({gameDate:'2026-11-'+String(i+1).padStart(2,'0'),team:'PHI',
+  threePointersMade:2,minutes:i<6?10:30}));
+ const player={playerId:1,team:'PHI',market:'threePointersMade',line:1.5,offeredSide:'Higher'};
+ const index=rows=>({players:new Map([[1,rows]])});
+ const extra=[{team:'PHI',gameDate:'2026-11-25',threePointersMade:50,minutes:10},
+  {team:'NYK',gameDate:'2026-11-24',threePointersMade:42,minutes:10}];
+ const pair=workloadPair(index(previous),player,'2026-11-25');
+ assert.equal(pair.historyGames,16);
+ assert.ok(pair.featureOn>pair.featureOff);
+ assert.deepEqual(workloadPair(index([...previous,...extra]),player,'2026-11-25'),pair);
+ assert.equal(workloadPair(index(previous.slice(0,11)),player,'2026-11-25'),null);
+ const grade={id:'workload',market:player.market,result:'incorrect',actual:1,modelEstimate:.6,workloadPair:pair};
+ const scores=pairedStats([grade]).threePointersMade.workloadFeatureComparison;
+ assert.equal(scores.decided,1);
+ assert.equal(scores.modelBrier,pair.featureOn**2);
+});
+
+t('same scoped forecast cannot be frozen again under a new model revision',()=>{
+ const {newForecastRows}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const row={book:'prizepicks',gameId:2,playerId:1,market:'points',line:5.5,tier:'standard',offeredSide:'Higher'};
+ const other={...row,line:6.5};
+ assert.deepEqual(newForecastRows([{...row,modelRevision:'new'},other,other],[{...row,modelRevision:'old'}]),[other]);
+});
+
+t('NBA availability distinguishes a committed official status from late, conflicting or missing evidence',async()=>{
+ const {statusFor,collect}=require('../scripts/pickfinder-nba-official-availability.cjs');
+ const startAt='2026-11-27T01:00:00Z',clock='2026-11-27T00:00:00Z',game={startAt,home:'PHI',away:'MIA',status:1};
+ const date='2026-11-26',match='MIA@PHI',row={date,match,team:'PHI',player:'Example Player',status:'questionable'};
+ const doc={kind:'nba_public_official_pregame_availability_v1',capturedAt:'2026-11-26T23:35:00Z',
+  reportPublishedAt:'2026-11-26T23:30:00Z',
+  sourceDocumentUrl:'https://ak-static.cms.nba.com/referee/injury/Injury-Report_2026-11-26_06_30PM.pdf',
+  sourceResponseSha256:'a'.repeat(64),scopes:[JSON.stringify([date,match])],rows:[row],notSubmitted:[]};
+ const f={doc,digest:'b'.repeat(64),first:'2026-11-26T23:36:00Z'},player={name:row.player,team:row.team};
+ const status=statusFor([f],player,game,clock);
+ assert.equal(status.status,'questionable');
+ assert.equal(status.positiveParticipationVerified,false);
+ assert.equal(statusFor([{...f,first:'2026-11-27T00:05:00Z'}],player,game,clock),null);
+ assert.equal(statusFor([{...f,doc:{...doc,kind:'nba_historical_pickfinder_injury_report_comparison_v1'}}],player,game,clock),null);
+ assert.equal(statusFor([f],{name:row.player,team:'MIA'},game,clock),null);
+ assert.equal(statusFor([f,{...f,doc:{...doc,sourceResponseSha256:'c'.repeat(64)}}],player,game,clock),null);
+ assert.equal(statusFor([{...f,doc:{...doc,rows:[],notSubmitted:[row]}}],player,game,clock),null);
+ assert.deepEqual(await collect(null,[],clock,async()=>assert.fail('no requests on an empty slate')),
+  {state:'no_verified_game_within_six_hours',calls:0});
+ const html='<a href="'+doc.sourceDocumentUrl+'">Report</a>';
+ assert.deepEqual(await collect({games:[game]},[f],clock,async()=>new Response(html)),
+  {state:'committed_report_reused',calls:1});
+});

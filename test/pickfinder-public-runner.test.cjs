@@ -268,3 +268,35 @@ test('rolling NBA log requires matching cells, context and header before clearin
   assert.equal(check([differentGame,{...sameGame,...change}]).unresolvedHistoryRows,1);
  }
 });
+
+test('opens exact Notifications menu item in the authenticated account modal',async()=>{
+ const {inspectTool}=require('../scripts/pickfinder-tool-schema.cjs');
+ const visited=[];
+ const visible=action=>({count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true,click:async()=>visited.push(action)});
+ const page={
+  url:()=> 'https://www.pickfinder.app/props',
+  locator:()=>({evaluateAll:async()=>[]}),
+  getByRole:(role,o)=>visible(role+':'+o.name),
+  evaluate:async(fn,args)=>args.allowed?[]:{verified:true,controls:[{label:'Board drops',kind:'h2'}]},
+  waitForFunction:async()=>{}
+ };
+ const result=await inspectTool(page,'alerts',async()=>true);
+ assert.equal(result.state,'read_only_schema_observed');
+ assert.deepEqual(visited,['button:Open user menu','menuitem:Notifications']);
+ assert.equal(result.mutations,0);
+});
+
+test('observes only the Builder side choices and dismisses the observed popover',async()=>{
+ const {openBoardBuilder}=require('../scripts/pickfinder-tool-schema.cjs'),calls=[];
+ const control={count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true};
+ const page={
+  getByText:()=>control,locator:()=>({...control,first:()=>({...control,click:async()=>calls.push('open')})}),
+  getByRole:role=>{assert.equal(role,'dialog');return {filter:()=>({
+   waitFor:async()=>{},getByRole:(kind,{name})=>({...control,count:async()=>Number(name==='Over')})
+  })};},keyboard:{press:async key=>calls.push(key)}
+ };
+ const receipt=await openBoardBuilder(page);
+ assert.deepEqual(receipt.controls.map(x=>x.label),['Over']);
+ assert.deepEqual(calls,['open','Escape']);
+ assert.equal(receipt.mutations,0);
+});

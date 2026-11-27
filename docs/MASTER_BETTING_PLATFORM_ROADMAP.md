@@ -1,5 +1,9 @@
 # Master Roadmap — Multi-Sport Player Prop Research Platform
 
+## 2026-11-27 — PickFinder builder and operator-rule reconciliation
+
+- **PF-10/PF-14 remain open.** Published two-pick Flex differs between PrizePicks Player Picks and Underdog Fantasy Pick’em. Preserve separate dated public references and exact offer, payout and settlement receipts. Keep first-party quote eligibility and historical rule vintage unverified by public docs alone; no production model or qualified suggestions changed. [Acceptance and sources](PICKFINDER_PF01_PF47_ACCEPTANCE.md#pf-10pf-14-operator-reference-follow-up).
+
 ## 2026-11-27 — PickFinder directory coverage and alert gate
 
 - **PF-05/06/13/16/32 post-merge evidence (2026-11-27 UTC).** [PR #458](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/458) merged at [`46caa9cf`](https://github.com/Thedarkwillow/nhl-betting-platform1/commit/46caa9cf61c1b293b824c3abdc625e5f6eb97277) after seven successful hosted checks and one expected skip. The [main directory run](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46076037051) appended 80 first-time pages and made zero paid requests. Independently rehashed all 640 receipts at [`40bff3f8`](https://github.com/Thedarkwillow/nhl-betting-platform1/commit/40bff3f867938ce3b09bc90c3353a667d541b55e): 594 unique paths, 74/74 direct index routes, 4,034 linked paths awaiting capture, none invalid. The alert guard passed [hosted regression](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46075939790); no new live delivery is credited and broader tasks remain open.

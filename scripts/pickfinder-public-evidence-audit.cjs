@@ -16,8 +16,8 @@ function list(root,kind){
  const d=path.join(root,ROOT,kind);if(!fs.existsSync(d))return [];
  return fs.readdirSync(d).filter(n=>/^[a-f0-9]{64}\.json$/.test(n)).map(n=>n.slice(0,-5));
 }
-function* walkBoards(root,sport=null){
- for(const digest of list(root,'boards'))try{
+function* walkBoards(root,sport=null,digests=list(root,'boards')){
+ for(const digest of digests)try{
   const m=read(root,'boards',digest);
   if(sport&&m.sport!==sport)continue;
   if(m.schema!=='pickfinder-public-normalized-v1'||!['prizepicks','underdog'].includes(m.book)||!valid(m.firstObservedAt)||!valid(m.lastObservedAt)||dt(m.firstObservedAt)>dt(m.lastObservedAt)||m.authenticated!==true||!Array.isArray(m.partDigests)||new Set(m.partDigests).size!==m.partDigests.length)throw Error('manifest');
@@ -29,9 +29,9 @@ function* walkBoards(root,sport=null){
   yield {entry:{digest,m,first,...rows}};
  }catch{yield {invalidDigest:digest};}
 }
-function load(root,sport=null,{latestOnly=false}={}){
+function load(root,sport=null,{latestOnly=false,digests}={}){
  const manifests=[],invalid=[],latest=new Map();
- for(const {entry,invalidDigest} of walkBoards(root,sport)){
+ for(const {entry,invalidDigest} of walkBoards(root,sport,digests)){
   if(!entry){invalid.push(invalidDigest);continue;}
   if(entry.m.samplingPurpose==='displayed_game_clock')continue;
   if(!latestOnly)manifests.push(entry);

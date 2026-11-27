@@ -21,6 +21,18 @@
  function render(){holder.textContent='';const table=add(holder,'table','');const head=add(table,'thead',''),hr=add(head,'tr','');for(const x of ['Sport','Platform','Pages','Priced offers','Unresolved','State','Capture slot','Observed'])add(hr,'th',x);const body=add(table,'tbody','');
  for(const [s,x] of Object.entries(d.bySport||{})){if(filter.value!=='all'&&filter.value!==s)continue;for(const [book,b] of Object.entries(x.boards||{})){const tr=add(body,'tr','');for(const v of [s,book,n(b.pages)+' / '+n(b.displayedPages),n(b.offers),n(b.unresolved),b.state,b.slot||'Unverified',new Date(b.observedAt).toLocaleString()])add(tr,'td',v);}add(holder,'p',s.toUpperCase()+': '+n(x.unpricedGoblin)+' unpriced Goblin, '+n(x.unpricedDemon)+' unpriced Demon; '+n(x.matchedTwoSidedQuotes)+' exact two-sided quote observations; '+n(x.missingStartAt)+' offers missing a source start clock.');}}
  filter.addEventListener('change',render);render();
+ try {
+  const response=await fetch('./data/nhl-public-sog-shadow.json',{cache:'no-store'});
+  if(!response.ok)throw Error();
+  const pilot=await response.json();
+  if(pilot.kind!=='nhl_public_sog_shadow_status_v1'||pilot.researchOnly!==true||pilot.modelApproved!==false||pilot.productionChanged!==false)throw Error();
+  const grade=pilot.performance||{},capture=pilot.lastCapture;
+  add(mount,'h3','NHL shots on goal research pilot');
+  add(mount,'p',n(pilot.committedForecasts)+' pregame forecasts frozen · '+n(grade.decisions)+' independently graded across '+n(grade.distinctGames)+' games. Research only. No qualified picks from this pilot.');
+  if(grade.decisions>0)add(mount,'p','Same thresholds · model '+n(grade.modelWins)+' wins · always Higher '+n(grade.alwaysHigherWins)+' · always Lower '+n(grade.alwaysLowerWins)+'.');
+  if(capture)add(mount,'p','Last capture · '+n(capture.candidateOffers)+' fresh PickFinder sides eligible for modeling · '+n(capture.matchedDecisions)+' matched model decisions.');
+ }catch{}
+
  try{
   const response=await fetch('./data/pickfinder-public-activity.json',{cache:'no-store'});if(!response.ok)throw Error();
   const activity=await response.json();if(activity.kind!=='public_pickfinder_activity_readiness_v1'||activity.modelApproved!==false)throw Error();

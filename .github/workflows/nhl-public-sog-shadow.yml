@@ -1,0 +1,115 @@
+name: NHL public shots-on-goal shadow pilot
+on:
+  pull_request:
+    paths: ['scripts/nhl-public-sog-shadow.cjs','scripts/pickfinder-public-evidence-audit.cjs','test/nhl-public-sog-shadow.test.cjs','.github/workflows/nhl-public-sog-shadow.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/nhl-public-sog-shadow.cjs','.github/workflows/nhl-public-sog-shadow.yml']
+  repository_dispatch:
+    types: [pickfinder_nhl_sog_board_archived]
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Public independent sports identity and final evidence']
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  test:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/nhl-public-sog-shadow.test.cjs
+  shadow:
+    if: >-
+      github.ref == 'refs/heads/main' && (
+        github.event_name == 'push' || github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'repository_dispatch' && github.actor == 'github-actions[bot]') ||
+        (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        (github.event.workflow_run.event == 'schedule' || github.event.workflow_run.event == 'workflow_dispatch')))
+    permissions:
+      contents: write
+    concurrency:
+      group: nhl-public-sog-shadow-main
+      cancel-in-progress: false
+    timeout-minutes: 9
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Refresh only necessary missing official NHL schedule and roster facts
+        if: github.event_name != 'workflow_run'
+        env:
+          DIGEST: ${{ github.event.client_payload.digest }}
+        run: |
+          set -euo pipefail
+          node scripts/nhl-public-sog-shadow.cjs prepare "$DIGEST"
+          dir=research/pickfinder-public-identity-v1/nhl-sog-native-facts
+          if ! test -d "$dir"; then exit 0; fi
+          git add -f "$dir"
+          git diff --cached --quiet && exit 0
+          test -z "$(git diff --cached --name-only --diff-filter=CDMRTUXB -- "$dir")"
+          git -c user.name='NHL public SOG shadow research' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -qm 'Archive targeted official NHL schedule and roster facts'
+          for i in 1 2 3; do
+            git fetch --quiet origin main
+            git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
+            if git push --quiet origin HEAD:main; then
+              git fetch --quiet origin main
+              git merge-base --is-ancestor HEAD FETCH_HEAD
+              exit 0
+            fi
+            sleep "$i"
+          done
+          exit 1
+      - name: Freeze fresh shadow decisions or grade from committed NHL boxscores
+        env:
+          EVENT: ${{ github.event_name }}
+          DIGEST: ${{ github.event.client_payload.digest }}
+        run: |
+          set -euo pipefail
+          case "$EVENT" in
+            repository_dispatch)
+              [[ "$DIGEST" =~ ^[0-9a-f]{64}$ ]]
+              node scripts/nhl-public-sog-shadow.cjs capture "$DIGEST"
+              ;;
+            workflow_dispatch|push) node scripts/nhl-public-sog-shadow.cjs capture ;;
+            workflow_run) node scripts/nhl-public-sog-shadow.cjs grade ;;
+          esac
+      - name: Append forecasts and official grades, publish aggregate status
+        run: |
+          set -euo pipefail
+          git add -f data/nhl-public-sog-shadow.json
+          forecasts=research/pickfinder-public-validation-v1/nhl-public-sog-forecasts
+          grades=research/pickfinder-public-validation-v1/nhl-public-sog-grades
+          for dir in "$forecasts" "$grades"; do
+            if test -d "$dir"; then
+              git add -f "$dir"
+              test -z "$(git diff --cached --name-only --diff-filter=CDMRTUXB -- "$dir")"
+            fi
+          done
+          git config user.name 'NHL public SOG shadow research'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Publish NHL public SOG shadow evidence'
+          for i in 1 2 3; do
+            git fetch --quiet origin main
+            git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
+            while IFS= read -r file; do
+              node scripts/nhl-public-sog-shadow.cjs verify "$file"
+            done < <(git diff --name-only --diff-filter=A FETCH_HEAD HEAD -- "$forecasts")
+            if git push --quiet origin HEAD:main; then
+              git fetch --quiet origin main
+              git merge-base --is-ancestor HEAD FETCH_HEAD
+              exit 0
+            fi
+            sleep "$i"
+          done
+          exit 1

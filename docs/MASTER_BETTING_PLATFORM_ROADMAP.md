@@ -1,5 +1,9 @@
 # Master Roadmap — Multi-Sport Player Prop Research Platform
 
+## 2026-11-27 — NHL public-only qualification pilot
+
+- [ ] **[PF-48]** Verify the public-only PrizePicks NHL Standard full-game shots-on-goal pilot end to end. Use the authorized immutable PickFinder capture, confirm an exact two-sided match against the unmetered PrizePicks partner endpoint, and independently validate official NHL schedule, roster, prior history and final boxscore. Preserve the five-minute source clock and a fifteen-minute pregame lock. Freeze one threshold per player/game, then compare with always Higher and always Lower on identical offers, report calibration and game-weighted results, and require explicit qualification before any production or Discord suggestion use. No private checkout, raw partner payload publication, paid requests, native push requirement, or allowlist change. Shadow infrastructure does not count as live model acceptance.
+
 ## 2026-11-27 — PickFinder coverage rotation and worker measurement
 
 - **PF-13/PF-16 partial.** [Directory rotation PR #464](https://github.com/Thedarkwillow/nhl-betting-platform1/pull/464) merged at `bb007855`. The [live main run](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46079788234) used the same 80-page budget: 60 first observations, 20 refreshes, all ten reserved first visits verified (five each for soccer and tennis), zero request failures, zero paid API requests. An independent Git readback at [`7edab5d`](https://github.com/Thedarkwillow/nhl-betting-platform1/commit/7edab5d627b6338238674443b6ba9fa524382504) verified 80 append-only files, 720 valid receipts, 654 distinct archived paths, 74/74 direct index routes, and 3,974 linked paths still unarchived. Source directory coverage is not canonical player identity or model approval.

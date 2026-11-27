@@ -256,6 +256,20 @@ function clockAuditTargets(observations,max=4){
  }
  return [...targets.values()];
 }
+// Dispatch the research sidecar after remote board verification. Ignore failures:
+ // the existing collector must retain its independent morning capture deadline.
+async function dispatchNhlSogShadow(digest,env,client=fetch){
+ if(env.GITHUB_REPOSITORY!=='Thedarkwillow/nhl-betting-platform1'||!env.PICKFINDER_NHL_SHADOW_DISPATCH||
+  !/^[a-f0-9]{64}$/.test(digest))return 'disabled';
+ try{
+  const r=await client('https://api.github.com/repos/Thedarkwillow/nhl-betting-platform1/dispatches',{
+   method:'POST',redirect:'error',signal:AbortSignal.timeout(1200),
+   headers:{authorization:'Bearer '+env.PICKFINDER_NHL_SHADOW_DISPATCH,'content-type':'application/json',accept:'application/vnd.github+json'},
+   body:JSON.stringify({event_type:'pickfinder_nhl_sog_board_archived',client_payload:{digest}})
+  });
+  return r.status===204?'queued':'not_queued';
+ }catch{return 'not_queued';}
+}
 async function main(root,env=process.env){
  assertDestination(root);const p=invocation(env);if(!p.allowed){console.log(JSON.stringify(p));return;}
  const fallback=isBackup(env)?backupPreflight(root,env):null;
@@ -286,6 +300,10 @@ async function main(root,env=process.env){
     const n={...cleanBoard(batch),...(p.clockAudit?{samplingPurpose:'displayed_game_clock'}:{})},{meta,parts}=splitBoard(n),partDigests=[];for(const part of parts)partDigests.push((await write('board-parts',part)).digest);const receipt=await write('boards',{...meta,partDigests,captureOrigin:captureOrigin(env,p)});boards++;
     if(p.clockAudit&&!batch.failure)for(const row of batch.pages.flatMap(x=>x.rows))auditRows.push({...row,book,boardArchiveDigest:receipt.digest,hasClock:row.research.some(f=>f.metric==='Displayed Matchup and Time')});
     console.log(JSON.stringify({state:'public_board_checkpoint_verified',code,book,slot:n.slot,withinSlot:n.withinSlot,boardState:n.boardState,pages:n.health.pages,offers:n.health.distinctOfferKeys,unresolved:n.health.unresolvedRows,sourceDigest:n.sourceDigest,archiveDigest:receipt.digest,remoteDigestVerified:true,originalOffersVerified:false}));
+    if(code==='NHL'&&book==='prizepicks'&&!p.clockAudit&&!batch.failure&&n.pageTraversalComplete===true&&n.health.distinctOfferKeys>0){
+     const state=await dispatchNhlSogShadow(receipt.digest,env);
+     console.log(JSON.stringify({state:'public_nhl_sog_pilot_dispatch',status:state}));
+    }
     if(batch.failure==='session_expired')throw Error('session expired');if(batch.failure||batch.boardState==='partial'&&!p.clockAudit)errors++;
    }catch{errors++;console.log(JSON.stringify({state:'public_board_partition_pending',code,book}));if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
   }}

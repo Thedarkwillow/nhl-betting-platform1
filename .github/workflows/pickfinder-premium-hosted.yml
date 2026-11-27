@@ -1,14 +1,14 @@
 name: PickFinder Premium public orchestration
 on:
   pull_request:
-    paths: ['scripts/pickfinder-public-*.cjs','scripts/pickfinder-unattended-runner.cjs','scripts/pickfinder-browser.cjs','scripts/pickfinder-tool-schema.cjs','scripts/pickfinder-dashboard-research.cjs','test/pickfinder-browser.test.cjs','test/pickfinder-unattended-runner.test.cjs','test/pickfinder-public-runner.test.cjs','.github/workflows/pickfinder-premium-hosted.yml']
+    paths: ['scripts/pickfinder-public-*.cjs','scripts/pickfinder-unattended-runner.cjs','scripts/pickfinder-browser.cjs','scripts/pickfinder-movement-clock-probe.cjs','scripts/pickfinder-tool-schema.cjs','scripts/pickfinder-dashboard-research.cjs','test/pickfinder-browser.test.cjs','test/pickfinder-unattended-runner.test.cjs','test/pickfinder-public-runner.test.cjs','.github/workflows/pickfinder-premium-hosted.yml']
   workflow_dispatch:
     inputs:
       mode:
         type: choice
         required: true
         default: boards_only
-        options: [boards_only, nba_history_repair, nba_context_only, features_only, board_and_deep, deep_research_now, probe_now, capture_0600, capture_0900]
+        options: [boards_only, nba_history_repair, nba_context_only, features_only, timezone_validation, board_and_deep, deep_research_now, probe_now, capture_0600, capture_0900]
   schedule:
     - cron: '7 6 * * *'
       timezone: America/Los_Angeles
@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - run: node --test test/pickfinder-public-runner.test.cjs test/pickfinder-checkpoint-buffer.test.cjs test/pickfinder-combinations.test.cjs test/pickfinder-browser.test.cjs test/pickfinder-premium-archive.test.cjs test/pickfinder-unattended-runner.test.cjs
+      - run: node --test test/pickfinder-public-runner.test.cjs test/pickfinder-checkpoint-buffer.test.cjs test/pickfinder-combinations.test.cjs test/pickfinder-browser.test.cjs test/pickfinder-premium-archive.test.cjs test/pickfinder-profile-market-evidence.test.cjs test/pickfinder-unattended-runner.test.cjs
   run:
     needs: test
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1'

@@ -85,3 +85,27 @@ test('collector captures only the exact visible semantic time cell of a movement
   }
  }finally{global.document=prior;}
 });
+
+test('movement probe uses unique exact pairs and tests timezone shift across midnight',()=>{
+ const {compare}=require('../scripts/pickfinder-movement-clock-probe.cjs');
+ const row=(quoteLine,displayedMovementClock)=>({book:'fanduel',quoteLine,higher:'-110',lower:'-120',displayedMovementClock});
+ const from=[row(20.5,'11/27 12:04AM'),row(21.5,'11/26 11:50PM')];
+ const to=[row(20.5,'11/26 4:04PM'),row(21.5,'11/26 3:50PM')];
+ const doc=(zone,rows)=>({zone,browserZone:zone,detailId:'/players/nba/id?prop=id:points:event:18',observedAt:'2026-11-27T00:05:00Z',sampled:true,rows});
+ const first=doc('UTC',from), second=doc('America/Los_Angeles',to);
+ assert.deepEqual(compare([first,second]),{state:'browser_local_candidate',matched:2,shifted:2,unchanged:0});
+ assert.equal(compare([first,{...second,rows:from}]).state,'fixed_zone_candidate');
+ assert.equal(compare([first,{...second,rows:[...to,to[0]]}]).state,'inconclusive');
+ assert.equal(compare([first,{...second,browserZone:'UTC'}]).state,'incomplete');
+});
+
+test('movement probe selects one archived market per supported sport without a fresh board',()=>{
+ const {select}=require('../scripts/pickfinder-movement-clock-probe.cjs');
+ const offer=(sport,player,eventId,market)=>({sport,player,eventId,market,
+  detailId:'/players/'+sport+'/profile?'+new URLSearchParams({prop:'id:'+market+':'+eventId+':1.5'})});
+ const targets=select({latest:[{offers:[
+  offer('nba','First','n1','points'),offer('nba','Second','n2','rebounds'),
+  offer('nhl','Third','h1','shots'),offer('nfl','Fourth','f1','yards')
+ ]}]},time);
+ assert.deepEqual(targets.map(({sport,market,eventId})=>[sport,market,eventId]),[['nba','points','n1'],['nfl','yards','f1']]);
+});

@@ -1,10 +1,10 @@
 name: Public independent sports identity and final evidence
 on:
   pull_request:
-    paths: ['scripts/pickfinder-public-identity.cjs','test/pickfinder-public-identity.test.cjs','scripts/pickfinder-current-identity.cjs','scripts/pickfinder-durable-identities.cjs','scripts/pickfinder-clock-reconciliation.cjs','test/pickfinder-current-identity.test.cjs','.github/workflows/pickfinder-public-identity.yml']
+    paths: ['scripts/pickfinder-public-identity.cjs','test/pickfinder-public-identity.test.cjs','scripts/pickfinder-current-identity.cjs','scripts/pickfinder-native-history-reconciliation.cjs','scripts/pickfinder-durable-identities.cjs','scripts/pickfinder-clock-reconciliation.cjs','test/pickfinder-current-identity.test.cjs','.github/workflows/pickfinder-public-identity.yml']
   push:
     branches: [main]
-    paths: ['scripts/pickfinder-public-identity.cjs','scripts/pickfinder-current-identity.cjs','scripts/pickfinder-durable-identities.cjs','scripts/pickfinder-clock-reconciliation.cjs','.github/workflows/pickfinder-public-identity.yml']
+    paths: ['scripts/pickfinder-public-identity.cjs','scripts/pickfinder-current-identity.cjs','scripts/pickfinder-native-history-reconciliation.cjs','scripts/pickfinder-durable-identities.cjs','scripts/pickfinder-clock-reconciliation.cjs','.github/workflows/pickfinder-public-identity.yml']
   schedule:
     - cron: '18 5,7,10,14,20 * * *'
       timezone: America/Los_Angeles
@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - run: node --test test/pickfinder-public-identity.test.cjs test/pickfinder-current-identity.test.cjs test/pickfinder-clock-reconciliation.test.cjs
+      - run: node --test test/pickfinder-public-identity.test.cjs test/pickfinder-current-identity.test.cjs test/pickfinder-clock-reconciliation.test.cjs test/pickfinder-archived-model-inputs.test.cjs
   reconcile:
     needs: test
     if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'

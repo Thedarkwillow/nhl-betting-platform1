@@ -13,13 +13,15 @@ const toiSeconds=x=>{const m=typeof x==='string'&&/^(\d{1,3}):([0-5]\d)$/.exec(x
 // Exact labels from the committed full-game NHL profile layout, not the
 // similarly named first-period columns or a projection/summary table.
 const currentNhlHeaders={assists:['asts'],blockedShots:['bs'],hits:['hit']};
+const currentNbaHeaders={rebounds:['rebs'],assists:['asts'],steals:['stls'],blocks:['blks'],turnovers:['to']};
+const currentNflHeaders={receptions:['recs'],targets:['tgts'],passing_tds:['pass td'],rushing_tds:['rush td'],receiving_tds:['rec td'],completions:['pass comp'],passing_interceptions:['int']};
 const nhlMetrics={'time on ice':'iceTimeSeconds',goals:'goals',assists:'assists',points:'points','shots on goal':'sog','sog':'sog',hits:'hits','blocked shots':'blockedShots','saves':'saves'};
-const nflMetrics={'passing yards':'passing_yards','rushing yards':'rushing_yards','receiving yards':'receiving_yards','receptions':'receptions','passing touchdowns':'passing_tds','rushing touchdowns':'rushing_tds','receiving touchdowns':'receiving_tds','passing attempts':'attempts','passing completions':'completions','receiving targets':'targets','rushing attempts':'carries','interceptions thrown':'passing_interceptions'};
+const nflMetrics={'passing yards':'passing_yards','rushing yards':'rushing_yards','receiving yards':'receiving_yards','receptions':'receptions','passing touchdowns':'passing_tds','rushing touchdowns':'rushing_tds','receiving touchdowns':'receiving_tds','passing attempts':'attempts','passing completions':'completions','receiving targets':'targets','rushing attempts':'carries','interceptions thrown':'passing_interceptions','field goals made':'fg_made','extra points made':'pat_made','kicking points':'kicking_points'};
 // Explicit source slugs from the existing PickFinder model adapter; native stat keys
 // are intentionally separate from projection-engine metric names.
 const sourceMarkets={
  nhl:{player_time_on_ice:'time on ice',player_goals:'goals',player_assists:'assists',player_points:'points',player_shots_on_goal:'shots on goal',player_blocked_shots:'blocked shots',player_saves:'saves',player_hits:'hits'},
- nfl:{player_receiving_yards:'receiving yards',player_passing_yards:'passing yards',player_rushing_yards:'rushing yards',player_rushing_attempts:'rushing attempts',player_passing_attempts:'passing attempts',player_passing_completions:'passing completions',player_passing_touchdowns:'passing touchdowns',player_pass_yds:'passing yards',player_pass_attempts:'passing attempts',player_pass_completions:'passing completions',player_pass_tds:'passing touchdowns',player_pass_interceptions:'interceptions thrown',player_rush_yds:'rushing yards',player_rush_attempts:'rushing attempts',player_reception_yds:'receiving yards',player_receptions:'receptions',player_receiving_targets:'receiving targets'}
+ nfl:{player_receiving_yards:'receiving yards',player_passing_yards:'passing yards',player_rushing_yards:'rushing yards',player_rushing_attempts:'rushing attempts',player_passing_attempts:'passing attempts',player_passing_completions:'passing completions',player_passing_touchdowns:'passing touchdowns',player_pass_yds:'passing yards',player_pass_attempts:'passing attempts',player_pass_completions:'passing completions',player_pass_tds:'passing touchdowns',player_pass_interceptions:'interceptions thrown',player_rush_yds:'rushing yards',player_rush_attempts:'rushing attempts',player_reception_yds:'receiving yards',player_receptions:'receptions',player_receiving_targets:'receiving targets',player_field_goals:'field goals made',player_field_goals_made:'field goals made',player_extra_points_made:'extra points made',player_kicking_points:'kicking points'}
 };
 const columnAliases={iceTimeSeconds:['toi','ice time'],goals:['g'],assists:['a'],points:['pts'],sog:['shots on goal'],blockedShots:['blk','blocks','blocked shots'],saves:['sv'],hits:['hits'],passing_yards:['pass yards','pass yds'],rushing_yards:['rush yards','rush yds'],receiving_yards:['rec yards','rec yds'],receptions:['rec'],passing_tds:['pass tds'],rushing_tds:['rush tds'],receiving_tds:['rec tds'],attempts:['pass attempts','pass att'],completions:['pass completions','pass cmp'],targets:['rec targets','tgt'],carries:['rush attempts','carries'],passing_interceptions:['pass int','interceptions thrown']};
 // Exact official NBA log market mappings; no synthesized tip-off time.
@@ -109,7 +111,7 @@ function reviewedLayoutAlias(r,index){
  const games=(index.byPlayer.get(key(['nba',id]))||[]).filter(g=>g.team==='POR'&&Number.isFinite(dt(g.start)));
  return new Set(games.map(g=>g.event)).size>=2?{id,team:'POR'}:null;
 }
-function matchRow(r,f,index,clock,{allowNbaExtendedFinals=false,logMarket,allowObservedNhlHeaders=false}={}){
+function matchRow(r,f,index,clock,{allowNbaExtendedFinals=false,logMarket,allowObservedNhlHeaders=false,allowCurrentNbaHeaders=false,allowCurrentNflHeaders=false}={}){
  const reject=reason=>({reason});
  if(!['nhl','nfl','nba'].includes(r.sport))return reject('native_adapter_unavailable');
  if(r.status!=='sampled'||r.truncated!==false||r.coverageVersion!==VERSION||f.origin!=='profile'||!/^row \d+$/.test(f.metric||'')||r.period||r.mapRange||r.gameMode||f.period||f.mapRange||f.gameMode)return reject('unsupported_scope');
@@ -121,17 +123,17 @@ function matchRow(r,f,index,clock,{allowNbaExtendedFinals=false,logMarket,allowO
  if(!namedLog&&!windowLog&&!overview)return reject('not_game_log');
  if(!Number.isFinite(dt(f.observedAt))||dt(f.observedAt)>dt(clock))return reject('observation_clock');
  const metrics=r.sport==='nhl'?nhlMetrics:nflMetrics,market=logMarket??sourceMarkets[r.sport]?.[norm(r.market)]??norm(r.market);
- const extra=r.sport==='nba'&&allowNbaExtendedFinals?extraMetrics[market]:null;
+ const extra=r.sport==='nba'&&(allowNbaExtendedFinals||allowCurrentNbaHeaders)?extraMetrics[market]:null;
  // Published rule: prizepicks.com/playbook-article/how-to-play-prizepicks-nba-fantasy-scoring-system
  // This formula is PrizePicks-specific. Neither a shared-book profile nor an
  // unbound generic fantasy field is accepted as an original settled outcome.
  const ppFantasy=r.sport==='nba'&&allowNbaExtendedFinals&&market==='player_fantasy_score_all_'&&
   r.book==='prizepicks'&&Array.isArray(r.books)&&r.books.length===1&&r.books[0]==='prizepicks';
- const m=r.sport==='nba'?nbaMetrics[market]??extra?.[0]??(ppFantasy?'prizePicksFantasyScore':null):metrics[market];if(!m)return reject('unsupported_market');
+ const m=r.sport==='nba'?nbaMetrics[market]??extra?.[0]??(ppFantasy?'prizePicksFantasyScore':null):metrics[market];if(!m||r.sport==='nfl'&&!allowCurrentNflHeaders&&['fg_made','pat_made','kicking_points'].includes(m))return reject('unsupported_market');
  if(String(f.scope||'').endsWith(' | [header truncated]'))return reject('header_truncated');
  const headers=String(f.scope||'').split(' | ').map(norm),dateColumns=headers.map((x,i)=>['date','game date'].includes(x)?i:-1).filter(i=>i>=0),i=dateColumns.length===1?dateColumns[0]:-1,opponents=headers.map((x,i)=>['opponent','opp'].includes(x)?i:-1).filter(i=>i>=0),j=opponents.length===1?opponents[0]:-1;
  if(headers.some(x=>/\b(?:line|odds|projection|average|hit rate|payout)\b/.test(x)))return reject('not_final_stat_table');
- const aliases=new Set(extra?[extra[1]]:ppFantasy?['fp']:[market,norm(m),...(columnAliases[m]||[]),...(r.sport==='nhl'&&allowObservedNhlHeaders?currentNhlHeaders[m]||[]:[])]);
+ const aliases=new Set(extra?[extra[1]]:ppFantasy?['fp']:[market,norm(m),...(columnAliases[m]||[]),...(r.sport==='nhl'&&allowObservedNhlHeaders?currentNhlHeaders[m]||[]:[]),...(r.sport==='nba'&&allowCurrentNbaHeaders?currentNbaHeaders[m]||[]:[]),...(r.sport==='nfl'&&allowCurrentNflHeaders?currentNflHeaders[m]||[]:[])]);
  const indices=headers.map((x,i)=>aliases.has(x)?i:-1).filter(i=>i>=0);
  // Repeated unrelated headings are allowed only when the date, opponent and
  // requested stat are each unique and the full row still aligns positionally.
@@ -261,15 +263,16 @@ function audit(documents,index,clock,reviews=[],{expandCurrentNhlLogs=false,expa
    const header=new Set(String(f.scope||'').split(' | ').map(norm)),base=nbaMetrics[norm(r.market)];
    if((header.has('date')||header.has('game date'))&&(header.has('opp')||header.has('opponent')))
     markets.push(...nbaLogMarkets.filter(([metric,m])=>metric!==base&&
-     [m,norm(metric),...(columnAliases[metric]||[])].some(x=>header.has(x))).map(([,m])=>m));
+     [m,norm(metric),...(columnAliases[metric]||[]),...(currentNbaHeaders[metric]||[])].some(x=>header.has(x))).map(([,m])=>m),
+      ...Object.entries(extraMetrics).filter(([market,[,label]])=>market!==norm(r.market)&&header.has(label)).map(([market])=>market));
   }
   if(expandCurrentNflLogs&&r.sport==='nfl'){
    const header=new Set(String(f.scope||'').split(' | ').map(norm)),base=nflMetrics[sourceMarkets.nfl[norm(r.market)]??norm(r.market)];
    if((header.has('date')||header.has('game date'))&&(header.has('opp')||header.has('opponent')))
     markets.push(...Object.entries(nflMetrics).filter(([m,metric])=>metric!==base&&
-     [m,norm(metric),...(columnAliases[metric]||[])].some(x=>header.has(x))).map(([m])=>m));
+     [m,norm(metric),...(columnAliases[metric]||[]),...(currentNflHeaders[metric]||[])].some(x=>header.has(x))).map(([m])=>m));
   }
-  for(const logMarket of markets){const x=matchRow(r,f,index,clock,{logMarket,allowObservedNhlHeaders:expandCurrentNhlLogs});if(!x.candidate){if(logMarket)continue;s.reasons[x.reason]=(s.reasons[x.reason]||0)+1;if(x.reason==='row_column_count_mismatch'){const h=s.rowColumnCounts??={};const k=Object.hasOwn(h,x.shape)||Object.keys(h).length<40?x.shape:'other';h[k]=(h[k]||0)+1;}if(x.reason==='missing_exact_columns'){const shape=columnShape(f);const h=s.columnShapes??={};const k=Object.hasOwn(h,shape)||Object.keys(h).length<40?shape:'other_shapes';h[k]=(h[k]||0)+1;}continue;}s.candidates++;candidates++;
+  for(const logMarket of markets){const x=matchRow(r,f,index,clock,{logMarket,allowObservedNhlHeaders:expandCurrentNhlLogs,allowCurrentNbaHeaders:expandCurrentNbaLogs,allowCurrentNflHeaders:expandCurrentNflLogs});if(!x.candidate){if(logMarket)continue;s.reasons[x.reason]=(s.reasons[x.reason]||0)+1;if(x.reason==='row_column_count_mismatch'){const h=s.rowColumnCounts??={};const k=Object.hasOwn(h,x.shape)||Object.keys(h).length<40?x.shape:'other';h[k]=(h[k]||0)+1;}if(x.reason==='missing_exact_columns'){const shape=columnShape(f);const h=s.columnShapes??={};const k=Object.hasOwn(h,shape)||Object.keys(h).length<40?shape:'other_shapes';h[k]=(h[k]||0)+1;}continue;}s.candidates++;candidates++;
    const c=x.candidate,k=sha(key([r.sport,r.detailId,r.market,c.playerId,c.eventId,c.market,c.value,f.filterSelection??null,f.tab,f.scope]));
    const next={...c,profileDigest:digest,profileAvailableAt:first??null,sourceDetailId:r.detailId,sourcePlayer:r.player,cacheKey:k},old=rows.get(k);
    // Archive filenames are content hashes, not chronology. For an identical

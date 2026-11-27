@@ -1,13 +1,16 @@
 name: Public independent sports identity and final evidence
 on:
   pull_request:
-    paths: ['scripts/pickfinder-public-identity.cjs','test/pickfinder-public-identity.test.cjs','.github/workflows/pickfinder-public-identity.yml']
+    paths: ['scripts/pickfinder-public-identity.cjs','test/pickfinder-public-identity.test.cjs','scripts/pickfinder-current-identity.cjs','test/pickfinder-current-identity.test.cjs','.github/workflows/pickfinder-public-identity.yml']
   push:
     branches: [main]
-    paths: ['scripts/pickfinder-public-identity.cjs','.github/workflows/pickfinder-public-identity.yml']
+    paths: ['scripts/pickfinder-public-identity.cjs','scripts/pickfinder-current-identity.cjs','.github/workflows/pickfinder-public-identity.yml']
   schedule:
     - cron: '18 5,7,10,14,20 * * *'
       timezone: America/Los_Angeles
+  workflow_run:
+    workflows: ['PickFinder Premium public orchestration']
+    types: [completed]
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,10 +24,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - run: node --test test/pickfinder-public-identity.test.cjs
+      - run: node --test test/pickfinder-public-identity.test.cjs test/pickfinder-current-identity.test.cjs
   reconcile:
     needs: test
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     permissions:
@@ -85,3 +88,18 @@ jobs:
           test "$remote_sha" = "$original_commit"
           echo "Public evidence preserved at $recovery_ref ($original_commit); main reconciliation still required" >> "$GITHUB_STEP_SUMMARY"
           exit 1
+
+  current-registry:
+    needs: test
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_run' || (github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'workflow_dispatch'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+      - run: node scripts/pickfinder-current-identity.cjs
+      - run: node scripts/publish-pickfinder-derived.cjs data/pickfinder-current-identity-registry.json

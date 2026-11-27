@@ -74,25 +74,36 @@ async function readyDashboard(page,name,shouldContinue,{attempts=6,pause=ms=>new
  return null;
 }
 async function traverseDashboard(page,name,{shouldContinue=()=>true,onSnapshot=async()=>{},filterSelection=null}={}){
- const seen=new Set();let pages=0,state='unverified_pagination';
+ const seen=new Set(),seenContent=new Set();let pages=0,state='unverified_pagination',expectedPage=1,totalPages=null;
  while(shouldContinue()){
   const x=await readyDashboard(page,name,shouldContinue);if(!x){state='dashboard_data_unverified';break;}
   const scopes=[...new Map(x.pagination.map(p=>[p.page+':'+p.total,p])).values()];
   const p=scopes.length===1?scopes[0]:null;
-  const fingerprint=JSON.stringify([p,x.tables,x.cards,x.gameCards,x.clocks]);
+  const content=JSON.stringify([x.tables,x.cards,x.gameCards,x.clocks]);
+  const fingerprint=JSON.stringify([p,content]);
   if(seen.has(fingerprint)){state='repeated_page';break;}
-  seen.add(fingerprint);await onSnapshot({...x,filterSelection});pages++;
-  if(x.dataState==='explicit_empty'){state='explicit_empty_observed';break;}
+  // A click or an updated page marker may arrive before its content. Require
+  // distinct content on a continuous first-to-last sequence with a stable total.
+  if(expectedPage>1&&(!p||p.page!==expectedPage||p.total!==totalPages)){
+   state='pagination_changed_during_traversal';break;
+  }
+  if(expectedPage>1&&seenContent.has(content)){state='unchanged_page_content';break;}
+  seen.add(fingerprint);seenContent.add(content);await onSnapshot({...x,filterSelection});pages++;
+  if(x.dataState==='explicit_empty'){state=expectedPage===1&&(!scopes.length||p?.page===1&&p.total===1)?'explicit_empty_observed':'pagination_changed_during_traversal';break;}
   if(!p||!Number.isSafeInteger(p.page)||!Number.isSafeInteger(p.total)||p.page<1||p.total<p.page){state='pagination_not_explicit';break;}
+  if(p.page!==expectedPage){state='first_page_not_observed';break;}
+  totalPages=p.total;
   if(p.page===p.total){state='explicit_last_page_observed';break;}
   const next=page.getByRole('button',{name:'Next page',exact:true});
   if(await next.count()!==1||!await next.isVisible()||!await next.isEnabled()){state='next_control_unverified';break;}
   if(!shouldContinue()){state='deadline';break;}
   await next.click();
   // Do not certify a next page based on a click; the next iteration observes it.
-  await page.waitForFunction(previous=>[...document.querySelectorAll('main nav,main [aria-label="Pagination"],main [role=status]')].some(e=>{const m=e.innerText.match(/\b(?:Page\s+)?(\d+)\s+(?:of|\/)\s+(\d+)\b/i);return m&&Number(m[1])===previous+1;}),p.page,{timeout:8000});
+  try{await page.waitForFunction(previous=>[...document.querySelectorAll('main nav,main [aria-label="Pagination"],main [role=status]')].some(e=>{const m=e.innerText.match(/\b(?:Page\s+)?(\d+)\s+(?:of|\/)\s+(\d+)\b/i);return m&&Number(m[1])===previous+1;}),p.page,{timeout:8000});}
+  catch{state=shouldContinue()?'next_page_unconfirmed':'deadline';break;}
+  expectedPage++;
  }
- return {pages,state,filtersExhausted:false,allDashboardDataVerified:false};
+ return {pages,state,completePageSequenceVerified:state==='explicit_last_page_observed',filtersExhausted:false,allDashboardDataVerified:false};
 }
 // Read only capability labels; never capture account-specific form values or click submit.
 async function inspectCapabilities(page){

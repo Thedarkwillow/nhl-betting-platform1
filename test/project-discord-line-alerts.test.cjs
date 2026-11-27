@@ -81,3 +81,44 @@ test('Git receipt ledger uses exact lease and never writes source branch',()=>{
   a.equal(git('-C',local,'ls-remote','--heads','origin','refs/heads/main').toString(),'');
  }finally{fs.rmSync(tmp,{recursive:true,force:true});}
 });
+
+test('price-only changes preserve the prior deduplication key and retain the observation timestamp',()=>{
+ const old=board('prizepicks',80,[['Alice',2.5]]),current=board('prizepicks',2,[['Alice',2.5]]);
+ current.entry.offers[0].displayedPrice='-130';
+ const x=compare([old,current],time).events[0];
+ a.equal(x.kind,'price_change');a.equal(x.observedAt,current.entry.m.lastObservedAt);
+ a.match(message([x]).content,/price -110 → -130.*UTC/);
+ const absent=board('prizepicks',1,[],{boardState:'empty',explicitEmpty:true,health:{pages:0,wrongSport:0,priceConflictKeys:0,unresolvedRows:0}});
+ a.equal(compare([old,absent],time).events[0].observedAt,absent.entry.m.lastObservedAt);
+});
+
+test('official availability keeps exact fresh reports, reconciles duplicates, and never assumes participation',()=>{
+ const {availability}=require('../scripts/project-discord-line-alerts.cjs');
+ const d={kind:'nba_public_official_pregame_availability_v1',modelApproved:false,positiveParticipationVerified:false,
+  sourceResponseSha256:'b'.repeat(64),sourceDocumentUrl:'https://ak-static.cms.nba.com/referee/injury/Injury-Report_2026-11-27_12_00PM.pdf',
+  reportPublishedAt:'2026-11-27T17:00:00Z',capturedAt:'2026-11-27T17:02:00Z',
+  scopes:[JSON.stringify(['2026-11-27','NYK@BOS'])],rows:[{date:'2026-11-27',match:'NYK@BOS',team:'BOS',player:'Example',status:'out'}]};
+ const r={digest:'a'.repeat(64),first:'2026-11-27T17:03:00Z',doc:d};
+ const events=availability([r,r],time);a.equal(events.length,1);a.match(events[0].text,/1 out/);a.doesNotMatch(events[0].text,/Example/);
+ a.deepEqual(availability([r],time+4*3600000),[]);
+ a.deepEqual(availability([r,{...r,doc:{...d,sourceResponseSha256:'c'.repeat(64)}}],time),[]);
+ a.deepEqual(availability([{...r,doc:{...d,reportPublishedAt:'2026-11-27T16:00:00Z'}}],time),[]);
+});
+
+test('notification filters and routes are exact and replay remains deduplicated when a route changes',async()=>{
+ const {filterConfig,deliveryBatches}=require('../scripts/send-project-discord-alerts.cjs');
+ const n={...event,sport:'nba',books:['prizepicks','underdog'],tier:'standard',kind:'discrepancy'},h={...event,id:'c'.repeat(64),sport:'nhl'};
+ a.equal(filterConfig('{"books":["prizepicks"]}')(n),false);
+ a.equal(filterConfig('{"sports":["nba"],"kinds":["discrepancy"]}')(n),true);
+ a.throws(()=>filterConfig('{"sports":["made-up"]}'));
+ const alt='123456789012345689',w=webhook.replace('123456789012345678',alt);
+ const routing={...env,PROJECT_DISCORD_SPORT_ROUTES:JSON.stringify({nba:{channelId:alt,webhookUrl:w}})};
+ a.deepEqual(deliveryBatches([n,h],routing).map(b=>[b.destination.guild,b.destination.channel]),[[guild,alt],[guild,channel]]);
+ a.throws(()=>deliveryBatches([n],{...env,PROJECT_DISCORD_SPORT_ROUTES:JSON.stringify({nba:{channelId:channel,webhookUrl:w}})}));
+ let state={},posts=0;
+ const ledger={read:()=>({head:null,rows:state}),save:(_h,v)=>{state=structuredClone(v);return 'commit';}};
+ const client=async(u,o)=>{const c=u.startsWith(w)?alt:channel;if(o.method)posts++;
+  return {ok:true,json:async()=>o.method?{id:'123456789012345680',channel_id:c}:{guild_id:guild,channel_id:c}};};
+ a.equal((await dispatch([n,h],{env:routing,mode:'deliver',now:time,ledger,client})).delivered,2);
+ a.equal((await dispatch([n,h],{env,mode:'deliver',now:time,ledger,client})).status,'already_claimed');a.equal(posts,2);
+});

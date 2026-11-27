@@ -33,4 +33,6 @@ test('independent grading matches final native identity and exact start time',()
  assert.equal(score.graded,1);assert.equal(score.distinctGames,1);
  assert.equal(score.scores.existing.brier,.5625);assert.equal(score.scores.reviewed.brier,.0625);
  assert.equal(score.scores.challenger.brier,.25);assert.equal(score.scores.neutral.brier,.25);
+ assert.equal(score.gameEqualChallengerComparison.delta.brier,-.3125);
+ assert.equal(score.gameEqualChallengerComparison.uncertainty.brier,null);
 });

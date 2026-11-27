@@ -2,6 +2,13 @@
 const test=require('node:test'),assert=require('node:assert/strict'),{safe}=require('../scripts/pickfinder-public-archive.cjs'),{invocation,queue,publicProfile}=require('../scripts/pickfinder-public-runner.cjs');
 test('publication excludes credentials and account state',()=>{assert.deepEqual(safe({player:'Fixture Player',price:'-110'}),{player:'Fixture Player',price:'-110'});for(const x of [{password:'secret'},{value:'user@example.com'},{cookie:'abc'},{value:'Bearer abc'}])assert.throws(()=>safe(x));});
 test('morning is actual-hour only, no private token',()=>{const e={PICKFINDER_AUTOMATION_AUTHORIZED:'1',PICKFINDER_PUBLIC_DATA_AUTHORIZED:'1',GITHUB_EVENT_NAME:'schedule',GITHUB_EVENT_SCHEDULE:'7 6 * * *'};assert.equal(invocation(e,new Date('2026-11-25T14:07:00Z')).allowed,true);assert.equal(invocation(e,new Date('2026-11-25T17:07:00Z')).allowed,false);});
+test('fallback plans only missing core partitions while ordinary collection keeps broader traversal',()=>{
+ const {boardTargets}=require('../scripts/pickfinder-public-runner.cjs');
+ assert.deepEqual(boardTargets(null,['nfl/underdog']),[{code:'NFL',book:'underdog'}]);
+ assert.deepEqual(boardTargets(null,[]),[]);
+ assert.deepEqual(boardTargets(null).slice(0,2),[{code:'NBA',book:'prizepicks'},{code:'NBA',book:'underdog'}]);
+ assert.ok(boardTargets(null).some(x=>x.code==='CS2'));
+});
 test('queue resumes only current completed profile scopes',()=>{const b={book:'prizepicks',sport:'nba',offers:[{player:'Fixture',detailId:'/players/nba/a?prop=x%3Apoints%3Ae%3A5',market:'points',eventId:'e'}]};const q=queue([b],[]);assert.equal(q.total,1);const x=q.pending[0];const p=publicProfile({...x,research:[{origin:'profile',metric:'displayed panel',value:'not published'},{origin:'profile',metric:'row 1',value:'5',scope:'Stats'}],profileCollection:{truncated:false}});assert.equal(p.research.length,1);assert.equal(queue([b],[{records:[p]}]).pending.length,0);});
 
 test('board chunks retain individual records and manifest separates them',()=>{const {splitBoard}=require('../scripts/pickfinder-public-runner.cjs');const x=splitBoard({book:'prizepicks',sport:'nba',sourceDigest:'a',offers:[{line:1}],researchObservations:[],unpricedTierObservations:[],sportsbookQuotes:[]});assert.equal(x.parts.length,1);assert.equal(x.parts[0].rows.length,1);assert.equal(x.meta.offers,undefined);});
@@ -137,7 +144,7 @@ test('NBA history repair is manual and protects both morning capture windows',()
 
 test('NBA history-only runner excludes unrelated context and discovery prepasses',()=>{
  const fs=require('node:fs'),src=fs.readFileSync(require.resolve('../scripts/pickfinder-public-runner.cjs'),'utf8');
- assert.ok(src.includes('const evidence=p.historyRepair?null:await discover({env});'));
+ assert.ok(src.includes('const evidence=p.historyRepair||fallback?null:await discover({env});'));
  assert.ok(src.includes('if(!p.historyRepair&&alive()){\n   const until=Date.now()+90000,gameAlive='));
  assert.ok(src.includes('if(!p.historyRepair&&alive()&&!p.featuresOnly){'));
 });

@@ -1,6 +1,7 @@
 'use strict';
 // Shadow-only decoration of new pregame forecasts. Existing revisions and scores
 // are never rewritten. No native outcome source is contacted by this module.
+const {compareByGame}=require('./prospective-game-comparison.cjs');
 const {statRows,archive}=require('./report-native-workload-matchup.cjs');
 const {forecast,settings,revision}=require('../src/native-workload-matchup-challenger.cjs');
 const dt=Date.parse,finite=Number.isFinite;
@@ -63,7 +64,9 @@ function scores(rows){
    for(const x of pairs){const p=k==='neutral'?.5:x.nativeContextPair[k],y=Number(x.result==='correct');brier+=(p-y)**2;logLoss+=loss(p,y);}
    s[k===arm?'candidate':k]=n?{brier:brier/n,logLoss:logLoss/n}:null;
   }
-  result[arm]={decisions:n,distinctGames:new Set(pairs.map(x=>String(x.gameId))).size,scores:s};
+  const gameEqualComparison=compareByGame(pairs.map(x=>({gameId:x.gameId,candidate:x.nativeContextPair[arm],
+   benchmark:x.nativeContextPair.incumbent,outcome:Number(x.result==='correct')})));
+  result[arm]={decisions:n,distinctGames:new Set(pairs.map(x=>String(x.gameId))).size,scores:s,gameEqualComparison};
  }
  return result;
 }

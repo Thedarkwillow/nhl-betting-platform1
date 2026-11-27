@@ -21,6 +21,16 @@
    });
   }));
  }
+ function gameEqualText(v){
+  const x=v?.gameEqualComparison;
+  if(x?.method!=='equal_game_paired_v1'||x.researchOnly!==true||x.productionApproved!==false||
+   x.distinctGames!==v.distinctGames||x.decisionCount!==v.decisions||!finite(x.delta?.brier)||
+   Math.abs(x.delta.brier)>1||!finite(x.delta?.logLoss))return 'Unavailable';
+  const d=n=>(Object.is(n,-0)||Math.abs(n)<.00005?0:n).toFixed(4);
+  const ci=x.uncertainty?.brier;
+  const fits=x.distinctGames>=30&&Array.isArray(ci)&&ci.length===2&&ci.every(finite)&&ci[0]<=x.delta.brier&&x.delta.brier<=ci[1];
+  return d(x.delta.brier)+' / '+d(x.delta.logLoss)+(fits?' · Brier interval '+ci.map(d).join(' to '):' · Brier interval withheld');
+ }
  function prospectiveRows(sport,doc,now=Date.now()){
   if(!sports.includes(sport)||doc?.modelApproved!==false||doc.paidRequests!==0||
    !(Date.parse(doc.generatedAt)<=now))return null;
@@ -33,7 +43,7 @@
     const v=item?.nativeContextFeatureComparison?.[arm];
     if(!Number.isSafeInteger(v?.decisions)||v.decisions<=0||!Number.isSafeInteger(v.distinctGames)||
      v.distinctGames<=0||v.distinctGames>v.decisions||!metrics.every(k=>validScore(v.scores?.[k])))return [];
-    return [{sport,market:markets[market],arm:label,decisions:v.decisions,events:v.distinctGames,scores:v.scores}];
+    return [{sport,market:markets[market],arm:label,decisions:v.decisions,events:v.distinctGames,scores:v.scores,gameEqual:gameEqualText(v)}];
    });
   });
  }
@@ -45,7 +55,9 @@
   for(const row of results){
    const t=document.createElement('tr');
    const pair=q=>q.brier.toFixed(4)+' / '+q.logLoss.toFixed(4);
-   for(const value of [row.sport,row.market,row.arm,row.decisions,row.events,...metrics.map(k=>pair(row.scores[k]))]){
+   const values=[row.sport,row.market,row.arm,row.decisions,row.events,...metrics.map(k=>pair(row.scores[k]))];
+   if(panel.id==='nativeContextProspective')values.push(row.gameEqual);
+   for(const value of values){
     const td=document.createElement('td');td.textContent=value;t.append(td);
    }
    tr.append(t);

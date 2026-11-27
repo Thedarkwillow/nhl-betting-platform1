@@ -1,10 +1,10 @@
 name: Public-only PickFinder research validation
 on:
   pull_request:
-    paths: ['src/native-workload-matchup-challenger.cjs','scripts/native-context-prospective-pairs.cjs','scripts/report-native-workload-matchup.cjs','test/native-workload-matchup-challenger.test.cjs','assets/native-context-performance.js','scripts/pickfinder-forecast-archive-gate.cjs','test/pickfinder-forecast-archive-gate.test.cjs','scripts/nba-official-web-boxscore.cjs','scripts/pickfinder-nba-official-availability.cjs','scripts/nba-bounded-official-final.cjs','test/nba-bounded-official-final.test.cjs','scripts/pickfinder-public-evidence-audit.cjs','scripts/pickfinder-public-model-validation.cjs','scripts/rolling-probability-performance.cjs','test/rolling-probability-performance.test.cjs','test/pickfinder-public-model-validation.test.cjs','.github/workflows/pickfinder-public-model-validation.yml']
+    paths: ['src/native-workload-matchup-challenger.cjs','scripts/native-context-prospective-pairs.cjs','scripts/prospective-game-comparison.cjs','scripts/publish-pickfinder-derived.cjs','test/publish-pickfinder-derived.test.cjs','scripts/report-native-workload-matchup.cjs','test/native-workload-matchup-challenger.test.cjs','assets/native-context-performance.js','scripts/pickfinder-forecast-archive-gate.cjs','test/pickfinder-forecast-archive-gate.test.cjs','scripts/nba-official-web-boxscore.cjs','scripts/pickfinder-nba-official-availability.cjs','scripts/nba-bounded-official-final.cjs','test/nba-bounded-official-final.test.cjs','scripts/pickfinder-public-evidence-audit.cjs','scripts/pickfinder-public-model-validation.cjs','scripts/rolling-probability-performance.cjs','test/rolling-probability-performance.test.cjs','test/pickfinder-public-model-validation.test.cjs','.github/workflows/pickfinder-public-model-validation.yml']
   push:
     branches: [main]
-    paths: ['src/native-workload-matchup-challenger.cjs','scripts/native-context-prospective-pairs.cjs','scripts/report-native-workload-matchup.cjs','test/native-workload-matchup-challenger.test.cjs','assets/native-context-performance.js','scripts/pickfinder-forecast-archive-gate.cjs','test/pickfinder-forecast-archive-gate.test.cjs','scripts/nba-official-web-boxscore.cjs','scripts/pickfinder-nba-official-availability.cjs','scripts/nba-bounded-official-final.cjs','test/nba-bounded-official-final.test.cjs','scripts/pickfinder-public-evidence-audit.cjs','scripts/pickfinder-public-model-validation.cjs','scripts/rolling-probability-performance.cjs','test/rolling-probability-performance.test.cjs','.github/workflows/pickfinder-public-model-validation.yml']
+    paths: ['src/native-workload-matchup-challenger.cjs','scripts/native-context-prospective-pairs.cjs','scripts/prospective-game-comparison.cjs','scripts/publish-pickfinder-derived.cjs','test/publish-pickfinder-derived.test.cjs','scripts/report-native-workload-matchup.cjs','test/native-workload-matchup-challenger.test.cjs','assets/native-context-performance.js','scripts/pickfinder-forecast-archive-gate.cjs','test/pickfinder-forecast-archive-gate.test.cjs','scripts/nba-official-web-boxscore.cjs','scripts/pickfinder-nba-official-availability.cjs','scripts/nba-bounded-official-final.cjs','test/nba-bounded-official-final.test.cjs','scripts/pickfinder-public-evidence-audit.cjs','scripts/pickfinder-public-model-validation.cjs','scripts/rolling-probability-performance.cjs','test/rolling-probability-performance.test.cjs','.github/workflows/pickfinder-public-model-validation.yml']
   schedule:
     - cron: '35 5,7,10,13,17,23 * * *'
       timezone: America/Los_Angeles
@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - run: node --test test/native-workload-matchup-challenger.test.cjs test/pickfinder-forecast-archive-gate.test.cjs test/nba-bounded-official-final.test.cjs test/rolling-probability-performance.test.cjs test/pickfinder-public-model-validation.test.cjs test/nba-research-pipeline-v1.test.cjs test/pickfinder-quote-features.test.cjs
+      - run: node --test test/publish-pickfinder-derived.test.cjs test/native-workload-matchup-challenger.test.cjs test/pickfinder-forecast-archive-gate.test.cjs test/nba-bounded-official-final.test.cjs test/rolling-probability-performance.test.cjs test/pickfinder-public-model-validation.test.cjs test/nba-research-pipeline-v1.test.cjs test/pickfinder-quote-features.test.cjs
   validate:
     needs: test
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -32,6 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -40,26 +41,5 @@ jobs:
       - name: Archive public research report and verified source evidence
         run: |
           set -euo pipefail
-          git add -f data/pickfinder-public-research-health.json
           if test -d research/pickfinder-public-validation-v1; then git add -f research/pickfinder-public-validation-v1; fi
-          git diff --cached --quiet && exit 0
-          test -z "$(git diff --cached --name-only --diff-filter=CDRTUXB)"
-          test -z "$(git diff --cached --name-only --diff-filter=M -- research/pickfinder-public-validation-v1/nba-forecasts/)"
-          git config user.name 'Public research validation'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -qm 'Publish public PickFinder evidence validation'
-          for i in 1 2 3 4 5 6; do
-            git fetch --quiet origin main
-            git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
-            while IFS= read -r forecast; do
-              node scripts/pickfinder-forecast-archive-gate.cjs "$forecast"
-            done < <(git diff --name-only --diff-filter=A FETCH_HEAD HEAD -- research/pickfinder-public-validation-v1/nba-forecasts/)
-            if git push --quiet origin HEAD:main; then
-              git fetch --quiet origin main
-              git merge-base --is-ancestor HEAD FETCH_HEAD
-              echo 'Public validation archived.'
-              exit 0
-            fi
-            sleep "$((2*i))"
-          done
-          exit 1
+          node scripts/publish-pickfinder-derived.cjs data/pickfinder-public-research-health.json

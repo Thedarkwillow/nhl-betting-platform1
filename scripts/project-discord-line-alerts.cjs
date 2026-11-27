@@ -8,7 +8,7 @@ const dt=Date.parse, M=60000, fresh=25*M, previous=12*60*M;
 const sports=new Set(['nba','nhl','nfl','cs2','valorant','dota2','lol','cod','mlb','wnba','college-basketball','college-football','tennis','soccer']);
 const books=new Set(['prizepicks','underdog']);
 const tiers=new Set(['standard','goblin','demon','alternate']);
-const names={line_change:'Line change',new_prop:'Newly observed prop',removed_prop:'Not seen on latest board',alternate_tier:'Alternate tier',discrepancy:'Cross-platform discrepancy',research_update:'Research update'};
+const names={line_change:'Line change',price_change:'Price change',new_prop:'Newly observed prop',removed_prop:'Not seen on latest board',alternate_tier:'Alternate tier',discrepancy:'Cross-platform discrepancy',research_update:'Research update',availability_update:'Official availability update'};
 const plain=s=>String(s).replace(/[^\p{L}\p{M}\p{N} .,'()+/&-]/gu,' ').replace(/\s+/g,' ').trim().slice(0,70);
 function acceptable(b,now){
  const t=dt(b.m.lastObservedAt), git=dt(b.first);
@@ -39,7 +39,8 @@ function slot(b,now){
 }
 function event(kind,scope,a,b,line){
  const o=b||a;
- return {id:hash([kind,scope,a?.book,a?.line,b?.book,b?.line,line]),kind,
+ const observedAt=b&&a&&dt(a.observedAt)>dt(b.observedAt)?a.observedAt:o.observedAt;
+ return {id:hash([kind==='price_change'?'line_change':kind,scope,a?.book,a?.line,b?.book,b?.line,line]),kind,sport:o.sport,tier:o.tier,books:[...new Set([a?.book,b?.book].filter(Boolean))],observedAt,
   text:[o.sport.toUpperCase(),plain(o.player),plain(o.market),[o.period,o.mapRange,o.gameMode].filter(Boolean).map(plain).join(' / '),plain(o.tier),o.side].filter(Boolean).join(' · ')+' — '+line};
 }
 function compare(chunks,now){
@@ -64,7 +65,7 @@ function compare(chunks,now){
    if(range.size===1&&p?.size===1){
     const a=[...p.values()][0],b=[...range.values()][0];
     if(a.line!==b.line)events.push(event('line_change',keyDate(k),a,b,b.book+' '+a.line+' → '+b.line));
-    else if(a.displayedPrice!==b.displayedPrice)events.push(event('line_change',keyDate(k),a,b,b.book+' '+b.line+' (price '+a.displayedPrice+' → '+b.displayedPrice+')'));
+    else if(a.displayedPrice!==b.displayedPrice)events.push(event('price_change',keyDate(k),a,b,b.book+' '+b.line+' (price '+a.displayedPrice+' → '+b.displayedPrice+')'));
     continue;
    }
    for(const [v,b] of range)if(!p?.has(v))events.push(event(b.tier==='standard'?'new_prop':'alternate_tier',keyDate(k),null,b,b.book+' '+v));
@@ -73,7 +74,7 @@ function compare(chunks,now){
   if(current.m.health.unresolvedRows===0)for(const [k,range] of prior){
    const n=rows.get(k);
    if(range.size===1&&n?.size===1)continue;
-   for(const [v,a] of range)if(!n?.has(v)&&dt(a.startAt)>now)events.push(event('removed_prop',keyDate(k),a,null,a.book+' '+v));
+   for(const [v,a] of range)if(!n?.has(v)&&dt(a.startAt)>now)events.push({...event('removed_prop',keyDate(k),a,null,a.book+' '+v),observedAt:current.m.lastObservedAt});
   }
  }
  function uniqueMatch(sets,k){const x=sets?.get(k);return x?.size===1?[...x.values()][0]:null;}
@@ -105,17 +106,39 @@ function nbaResearch(doc,now){
   x?.kind!=='rolling_original_probability_performance_v1'||x.researchOnly!==true||x.modelPromoted!==false||
   !Number.isSafeInteger(x.decided)||!Number.isSafeInteger(x.pushes)||!Number.isSafeInteger(x.registered)||
   x.decided<0||x.pushes<0||x.decided+x.pushes>x.registered||!x.registered)return [];
- return [{id:hash(['nba_research_update',x.registered,x.decided,x.pushes]),kind:'research_update',
+ return [{id:hash(['nba_research_update',x.registered,x.decided,x.pushes]),kind:'research_update',sport:'nba',
   text:'NBA original archive · '+x.registered+' pregame forecasts · '+x.decided+' independently graded decisions · '+x.pushes+' pushes'}];
 }
-function build(root,now,doc,nbaDoc){
+function availability(receipts,now){
+ const statusSet=new Set(['out','doubtful','questionable','probable','available','game-time decision']);
+ const {reportClock}=require('./run-nba-private-research-v1.cjs');
+ const recent=receipts.filter(({doc:d,first,digest})=>d?.kind==='nba_public_official_pregame_availability_v1'&&d.modelApproved===false&&d.positiveParticipationVerified===false&&
+  /^[a-f0-9]{64}$/.test(digest||'')&&/^[a-f0-9]{64}$/.test(d.sourceResponseSha256||'')&&
+  /^https:\/\/(?:ak-static\.cms\.nba\.com|official\.nba\.com)\/referee\/injury\/Injury-Report_[0-9_AMPM-]+\.pdf$/.test(d.sourceDocumentUrl||'')&&
+  dt(reportClock(d.sourceDocumentUrl))===dt(d.reportPublishedAt)&&dt(d.reportPublishedAt)<=dt(d.capturedAt)&&dt(d.capturedAt)<=now&&dt(d.capturedAt)<=dt(first)+999&&dt(first)<=now&&now-dt(d.reportPublishedAt)<=180*M&&Array.isArray(d.rows)&&Array.isArray(d.scopes));
+ if(!recent.length)return [];
+ const latest=Math.max(...recent.map(x=>dt(x.doc.reportPublishedAt))),same=recent.filter(x=>dt(x.doc.reportPublishedAt)===latest);
+ if(new Set(same.map(x=>x.doc.sourceResponseSha256)).size!==1)return [];
+ const counts={},rows=new Map(),conflicts=new Set(),notSubmitted=new Set(same.flatMap(({doc})=>(doc.notSubmitted||[]).map(r=>JSON.stringify([r.date,r.match,r.team]))));
+ for(const {doc} of same)for(const r of doc.rows){
+  if(!r?.player||!r.team||!statusSet.has(r.status)||!doc.scopes.includes(JSON.stringify([r.date,r.match]))||notSubmitted.has(JSON.stringify([r.date,r.match,r.team])))continue;
+  const k=JSON.stringify([r.date,r.match,r.team,r.player]);if(rows.has(k)&&rows.get(k)!==r.status)conflicts.add(k);rows.set(k,r.status);
+ }
+ for(const [k,s] of rows)if(!conflicts.has(k))counts[s]=(counts[s]||0)+1;
+ const summary=[...statusSet].filter(s=>counts[s]).map(s=>counts[s]+' '+s).join(', ');
+ if(!summary)return [];
+ const observedAt=new Date(latest).toISOString();
+ return [{id:hash(['nba_official_availability',same[0].doc.sourceResponseSha256]),kind:'availability_update',sport:'nba',observedAt,
+  text:'NBA official injury report · '+summary+' · statuses are not confirmed participation'}];
+}
+function build(root,now,doc,nbaDoc,receipts=[]){
  const r=compare(walkBoards(root),now);
- return {...r,events:[...new Map([...research(doc,now),...nbaResearch(nbaDoc,now),...r.events].map(e=>[e.id,e])).values()]};
+ return {...r,events:[...new Map([...availability(receipts,now),...research(doc,now),...nbaResearch(nbaDoc,now),...r.events].map(e=>[e.id,e])).values()]};
 }
 function message(events){
  if(events.length<1||events.length>6||events.some(e=>!Object.hasOwn(names,e.kind)))throw Error('alert batch');
- return {content:['**Platform research alerts**',...events.map(e=>'• '+names[e.kind]+' — '+e.text),
+ return {content:['**Platform research alerts**',...events.map(e=>'• '+names[e.kind]+' — '+e.text+(Number.isFinite(dt(e.observedAt))?' · '+new Date(dt(e.observedAt)).toISOString().slice(0,16).replace('T',' ')+' UTC':'')),
   'Observed research only. Check the original app. No wagers or recommendations.'].join('\n').slice(0,1950),
   flags:4,allowed_mentions:{parse:[]}};
 }
-module.exports={compare,research,nbaResearch,build,message};
+module.exports={compare,research,nbaResearch,availability,build,message,sports,books,tiers,names};

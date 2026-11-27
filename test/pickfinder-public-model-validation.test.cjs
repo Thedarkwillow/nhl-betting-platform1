@@ -40,11 +40,14 @@ t('dated final fallback requires explicit ESPN final and unique official NBA gam
 
 t('frozen pregame baseline uses identical independently decided rows for both scores',()=>{
  const {pairedStats}=require('../scripts/pickfinder-public-model-validation.cjs');
- const hit={id:'one',market:'points',actual:8,result:'correct',modelEstimate:.75,baselineEstimate:.5};
+ const hit={id:'one',gameId:1,market:'points',actual:8,result:'correct',modelEstimate:.75,baselineEstimate:.5};
  const stats=pairedStats([hit,hit,{...hit,id:'two',baselineEstimate:null},{...hit,id:'three',result:'push'}]).points;
  assert.equal(stats.decided,2);
  assert.deepEqual(stats.frozenBaselineComparison,{decided:1,modelBrier:.0625,baselineBrier:.25,modelLogLoss:-Math.log(.75),baselineLogLoss:-Math.log(.5)});
  assert.equal(pairedStats([{...hit,baselineEstimate:2}]).points.frozenBaselineComparison.modelBrier,null);
+ assert.equal(stats.gameEqualFrozenBaselineComparison.distinctGames,1);
+ assert.equal(stats.gameEqualFrozenBaselineComparison.delta.brier,-.1875);
+ assert.equal(stats.gameEqualFrozenBaselineComparison.uncertainty.brier,null);
 });
 
 t('matchup features require matching archived period, map range and game mode',()=>{

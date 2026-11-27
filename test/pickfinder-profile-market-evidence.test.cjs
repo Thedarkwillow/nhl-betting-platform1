@@ -24,6 +24,13 @@ test('movement UTC requires an explicit offset and a valid nonfuture calendar ti
   assert.equal(accept(stamp).movementAtUtc,null);
  }
 });
+test('browser clock context is recorded separately and cannot convert an offsetless quote',()=>{
+ const values=[cell('20.5'),cell('O-130\nU-125',['fanduel']),{...cell('11/25 4:06 PM'),browserTimeZone:'America/Los_Angeles'}];
+ const [r]=extract(movement,values);
+ assert.equal(r.browserTimeZone,'America/Los_Angeles');
+ assert.equal(r.movementAtUtc,null);
+ assert.equal(extract(movement,[...values.slice(0,2),{...values[2],browserTimeZone:'Unknown/Zone'}])[0].browserTimeZone,undefined);
+});
 test('research workload and injury status require exact player and typed columns',()=>{
  const f={origin:'profile',scope:'Player | Passes | Potential Asts',metric:'row 1',tab:'Player overview',observedAt:time};
  const row=[cell('Example P.',['Example Player']),cell('40.5'),cell('6.3')];
@@ -41,6 +48,13 @@ test('conflicting observations cannot certify a pair or combine isolated sides',
  assert.equal(summarize([r,{...r,higher:'-145'}]).conflictingMovementGroups,1);
  assert.equal(summarize([r,{...r,higher:'-145'}]).distinctUnconflictedPairedGroups,0);
  assert.equal(summarize([{...r,higher:null},{...r,lower:null}]).distinctUnconflictedPairedGroups,0);
+ const [z]=extract(movement,[...values.slice(0,2),{...values[2],sourceMovementDateTime:'2026-11-25T16:06:00-08:00',browserTimeZone:'America/Los_Angeles'}]);
+ const s=summarize([r,r,z,z]);
+ assert.equal(s.unzonedPairedGroups,1);assert.equal(s.offsetBoundNoVigPairedGroups,1);
+ assert.equal(s.browserTimezoneRows,2);assert.equal(s.byBook.fanduel.offsetBoundNoVigPairs,1);
+ assert.equal(summarize([z,{...z,higher:'-145'}]).offsetBoundNoVigPairedGroups,0);
+ assert.equal(summarize([{...z,higher:null},{...z,lower:null}]).offsetBoundNoVigPairedGroups,0);
+ assert.equal(summarize([{...z,sourceMovementDateTime:null}]).offsetBoundNoVigPairedGroups,0);
 });
 test('matchup table keeps its named season, L10 and L5 ranks with unresolved team and positional filter',()=>{
  const f={origin:'profile',scope:'STAT | SZN | L10 | L5 | STRENGTH',metric:'row 1',tab:'Defense',observedAt:time};
@@ -82,6 +96,8 @@ test('collector captures only the exact visible semantic time cell of a movement
    const fields=readSections({tab:'Line Movement',origin:'line_movement',observedAt:time,context:{}});
    const row=JSON.parse(fields.find(f=>f.metric==='row 1').value);
    assert.equal(row[2].sourceMovementDateTime,expected);
+   assert.equal(row[2].browserTimeZone,Intl.DateTimeFormat().resolvedOptions().timeZone);
+   assert.equal(row[0].browserTimeZone,undefined);
   }
  }finally{global.document=prior;}
 });
@@ -94,6 +110,8 @@ test('movement probe uses unique exact pairs and tests timezone shift across mid
  const doc=(zone,rows)=>({zone,browserZone:zone,detailId:'/players/nba/id?prop=id:points:event:18',observedAt:'2026-11-27T00:05:00Z',sampled:true,rows});
  const first=doc('UTC',from), second=doc('America/Los_Angeles',to);
  assert.deepEqual(compare([first,second]),{state:'browser_local_candidate',matched:2,shifted:2,unchanged:0});
+ assert.deepEqual(compare([first,{...second,rows:to.map(x=>({...x,displayedMovementClock:x.displayedMovementClock.replace(/([AP]M)$/, ' $1')}))}]),
+  {state:'browser_local_candidate',matched:2,shifted:2,unchanged:0});
  assert.equal(compare([first,{...second,rows:from}]).state,'fixed_zone_candidate');
  assert.equal(compare([first,{...second,rows:[...to,to[0]]}]).state,'inconclusive');
  assert.equal(compare([first,{...second,browserZone:'UTC'}]).state,'incomplete');

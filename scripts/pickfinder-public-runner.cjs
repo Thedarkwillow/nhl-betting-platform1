@@ -3,6 +3,7 @@ const fs=require('node:fs'),path=require('node:path'),{normalize}=require('./pic
 const {dashboardRoutes,captureGameDialogs,verifiedNavigation,traverseDashboardFilters,inspectCapabilities}=require('./pickfinder-dashboard-research.cjs');
 const {inspectTool}=require('./pickfinder-tool-schema.cjs');
 const gameContext=require('./pickfinder-public-nba-context.cjs'),{load}=require('./pickfinder-public-evidence-audit.cjs');
+const {backupPreflight,isBackup}=require('./pickfinder-public-morning-preflight.cjs');
 const CORE=['NBA','NHL','NFL','CS2','DOTA2','VAL','LOL','COD','MLB','WNBA','CFB','CBB','TENNIS','SOCCER'],BOOKS=['prizepicks','underdog'];
 function invocation(env,now=new Date()){
  if(env.PICKFINDER_AUTOMATION_AUTHORIZED!=='1'||env.PICKFINDER_PUBLIC_DATA_AUTHORIZED!=='1')throw Error('authorization required');
@@ -116,6 +117,11 @@ function publicProfile(row){
  return {key:row.key,book:row.book,books:row.books||[row.book],bookCoverageVerified:false,sport:row.sport,player:row.player,market:row.market,eventId:row.eventId,detailId:row.detailId,period:row.period,mapRange:row.mapRange,gameMode:row.gameMode,status:fields.length?'sampled':'empty',coverageVersion:VERSION,truncated:row.profileCollection?.truncated!==false,research:fields,excludedFields:(row.research||[]).length-fields.length,modelInputsApproved:false,originalOffersVerified:false};
 }
 const premium=page=>page.evaluate(()=>document.body.innerText.split('\n').some(x=>x.trim()==='Premium')&&!!document.querySelector('button[aria-label="Open user menu"]'));
+function boardTargets(evidence,missingPartitions=null){
+ const missing=missingPartitions===null?null:new Set(missingPartitions);
+ return prioritySports(CORE,evidence??{}).flatMap(code=>BOOKS.map(book=>({code,book})))
+  .filter(({code,book})=>!missing||missing.has(code.toLowerCase()+'/'+book));
+}
 async function waitPremium(page,check=premium){
  try{await page.getByRole('button',{name:'Open user menu',exact:true}).waitFor({state:'visible',timeout:10000});
  await page.waitForFunction(()=>document.body.innerText.split('\n').some(x=>x.trim()==='Premium'),null,{timeout:10000});
@@ -123,6 +129,8 @@ async function waitPremium(page,check=premium){
 }
 async function main(root,env=process.env){
  assertDestination(root);const p=invocation(env);if(!p.allowed){console.log(JSON.stringify(p));return;}
+ const fallback=isBackup(env)?backupPreflight(root,env):null;
+ if(fallback){console.log(JSON.stringify(fallback));if(!fallback.proceed)return;}
  const {chromium}=require('playwright');
  if(p.timezoneOnly){const probe=require('./pickfinder-movement-clock-probe.cjs'),until=Date.now()+8*60000;const alive=()=>Date.now()<until&&pacific(new Date()).day===p.clock.day&&![5,6,8,9].includes(pacific(new Date()).hour);const prior=read(root,'directory');const targets=probe.select(require('./pickfinder-public-model-validation.cjs').history(root,'profile-market-evidence'),new Date().toISOString(),prior);const result=await probe.observe({targets,prior,open:zone=>openHostedBoard(chromium,env,zone),alive,write:data=>persist(root,'directory',data),premium,origin:ORIGIN});console.log(JSON.stringify({state:'movement_clock_experiment',...result}));return;}
  const {page,context}=await openHostedBoard(chromium,env);
@@ -130,8 +138,8 @@ async function main(root,env=process.env){
  let boards=0,profiles=0,archiveMs=0,transactions=0,profileMs=0,errors=0;const write=async(kind,data)=>{const t=Date.now();const receipt=await persist(root,kind,data);archiveMs+=Date.now()-t;transactions++;return receipt;};
  try{
   if(p.probe){console.log(JSON.stringify({state:'public_hosted_auth_verified',accountDataPublished:false}));return;}
-  const evidence=p.historyRepair?null:await discover({env});
-  if(!p.deep){for(const code of prioritySports(CORE,evidence))for(const book of BOOKS){
+  const evidence=p.historyRepair||fallback?null:await discover({env});
+  if(!p.deep){for(const {code,book} of boardTargets(evidence,fallback?.missingPartitions??null)){
    if(!alive())break;
    try{await page.goto(ORIGIN+'/props',{timeout:20000});const names=code==='DOTA2'?['DOTA2','Dota 2']:[code];let visible=false;for(const name of names){const b=page.getByRole('button',{name,exact:true});if(await b.count()===1&&await b.isVisible())visible=true;}if(!visible){console.log(JSON.stringify({state:'public_board_not_exposed',code,book,competition:'unknown'}));continue;}
     const batch=await collect(page,{book,code,slot:p.expected,shouldContinue:alive,onPage:async x=>{if(x.page.number===1||x.page.number%10===0)console.log(JSON.stringify({state:'public_board_progress',code,book,pages:x.page.number,displayedPages:x.displayedPageCount}));}});
@@ -250,5 +258,5 @@ async function main(root,env=process.env){
   await context.close();console.log(JSON.stringify({state:'public_pickfinder_throughput',boards,profiles,profileMs,archiveMs,transactions,errors,elapsedMs:Date.now()-started,privateRepoUsed:false,modelInputsApproved:false}));
  }
 }
-module.exports={invocation,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers,waitPremium};
+module.exports={invocation,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers,waitPremium,boardTargets};
 if(require.main===module)main(fs.realpathSync(process.argv[2])).catch(()=>{console.error(JSON.stringify({state:'public_pickfinder_failed_closed',privateRepoUsed:false,accountDataLogged:false}));process.exitCode=1;});

@@ -3,6 +3,7 @@ const {execFileSync}=require('node:child_process'),fs=require('node:fs'),path=re
 const REPOSITORY='Thedarkwillow/nhl-betting-platform1';
 const AUDIT_PATH='.github/workflows/morning-private-archive-health.yml';
 const AUDIT_CRONS={'20 7 * * *':{slot:'06:00',hour:7},'20 10 * * *':{slot:'09:00',hour:10}};
+const CORE_PARTITIONS=['nba','nhl','nfl'].flatMap(s=>['prizepicks','underdog'].map(b=>s+'/'+b));
 const validDay=day=>/^\d{4}-\d{2}-\d{2}$/.test(day)&&Number.isFinite(Date.parse(day))&&new Date(day).toISOString().slice(0,10)===day;
 const validRunId=id=>/^[1-9][0-9]{0,19}$/.test(id);
 function requestOptions(env){
@@ -51,17 +52,21 @@ function slotEvidence(root,day,slot){
  const needed=new Set(boards.flatMap(({doc})=>Array.isArray(doc.partDigests)?doc.partDigests:[]));
  return {boards,parts:needed.size?load(root,'board-parts',needed):new Map()};
 }
-function hasVerifiedSlotPartition(root,day,slot){
- if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!['06:00','09:00'].includes(slot))throw Error('slot');
- const {boards,parts}=slotEvidence(root,day,slot);
- return boards.some(({doc,first})=>assess({manifest:doc,first,parts,day,slot})!=='pending');
+function missingCoreSlotPartitions(root,day,slot,evidence=slotEvidence){
+ if(!validDay(day)||!['06:00','09:00'].includes(slot))throw Error('slot');
+ const {boards,parts}=evidence(root,day,slot),verified=new Set();
+ for(const {doc,first} of boards){
+  const key=doc.sport+'/'+doc.book;
+  if(CORE_PARTITIONS.includes(key)&&assess({manifest:doc,first,parts,day,slot})!=='pending')verified.add(key);
+ }
+ return CORE_PARTITIONS.filter(key=>!verified.has(key));
 }
 function run(root,day,slot,now=new Date()){
  const h=Number(slot.slice(0,2));if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!['06:00','09:00'].includes(slot))throw Error('slot');
  const t=pacific(now);if(t.day<day||t.day===day&&t.hour<=h)return {state:'slot_not_finished',day,slot};
  const {boards,parts}=slotEvidence(root,day,slot),results={};
  for(const {doc,first} of boards){if(doc.localDay!==day||doc.slot!==slot)continue;const k=doc.sport+'/'+doc.book,r=results[k]??={verified:0,pending:0,offers:0};const state=assess({manifest:doc,first,parts,day,slot});if(state==='pending')r.pending++;else{r.verified++;r.offers+=doc.health.distinctOfferKeys;}}
- return {state:'public_pickfinder_morning_audit',day,slot,partitions:results,corePartitionsVerified:['nba','nhl','nfl'].every(s=>['prizepicks','underdog'].every(b=>results[s+'/'+b]?.verified>0)),originalPlatformAvailabilityVerified:false,modelApproved:false,privateRepoUsed:false};
+ return {state:'public_pickfinder_morning_audit',day,slot,partitions:results,corePartitionsVerified:CORE_PARTITIONS.every(key=>results[key]?.verified>0),originalPlatformAvailabilityVerified:false,modelApproved:false,privateRepoUsed:false};
 }
 function scheduledRunMatches(origin,run,day,slot,first){
  const hour=Number(slot.slice(0,2)),cronMinute=[7,29].find(m=>origin?.cron===m+' '+hour+' * * *');
@@ -83,12 +88,12 @@ async function verifyScheduled(root,report,env=process.env,client=fetch){
    }catch{}cache.set(k,data);}
   if(scheduledRunMatches(o,cache.get(k),report.day,report.slot,first))r.scheduledVerified++;else r.scheduledUnverified++;
  }
- return {...report,scheduledPartitions:results,scheduledCorePartitionsVerified:['nba','nhl','nfl'].every(s=>['prizepicks','underdog'].every(b=>results[s+'/'+b]?.scheduledVerified>0)),scheduledFullCoverageCertified:false};
+ return {...report,scheduledPartitions:results,scheduledCorePartitionsVerified:CORE_PARTITIONS.every(key=>results[key]?.scheduledVerified>0),scheduledFullCoverageCertified:false};
 }
 function scheduledAuditExit(report){
  return report.state==='public_pickfinder_morning_audit'&&report.scheduledCorePartitionsVerified===true?0:1;
 }
-module.exports={assess,run,scheduledRunMatches,verifyScheduled,scheduledAuditExit,hasVerifiedSlotPartition,auditContext};
+module.exports={assess,run,scheduledRunMatches,verifyScheduled,scheduledAuditExit,missingCoreSlotPartitions,auditContext};
 if(require.main===module){(async()=>{
  const root=process.argv[2],slot=process.argv[3],now=new Date();
  const context=await auditContext(slot,process.env.AUDIT_DAY,process.env,fetch,now);

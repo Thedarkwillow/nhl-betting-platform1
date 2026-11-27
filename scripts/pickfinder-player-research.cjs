@@ -64,6 +64,9 @@ function readSections({tab,origin,observedAt,context,fullSportingHeaders=false})
       const cells=[...tr.cells].map((c,column)=>{
         const result={value:c.innerText.trim()||null,labels:[...c.querySelectorAll('img[alt]')].map(e=>e.alt)};
         if(column===movementTimeIndex){
+          // Record the browser's rendering context, never infer a source offset or year from it.
+          const zone=Intl.DateTimeFormat().resolvedOptions().timeZone;
+          if(typeof zone==='string'&&/^[A-Za-z][A-Za-z0-9_+\/-]{0,63}$/.test(zone))result.browserTimeZone=zone;
           const clocks=[...c.querySelectorAll('time[datetime]')].filter(el=>el.getClientRects().length&&el.innerText.trim()===result.value);
           if(clocks.length===1){
             const stamp=clocks[0].getAttribute('datetime');

@@ -2,6 +2,17 @@
 (async()=>{const mount=document.getElementById('pickfinderPublicEvidence');if(!mount)return;
  const add=(parent,tag,value)=>{const e=document.createElement(tag);e.textContent=String(value);parent.append(e);return e;};
  const n=x=>Number.isSafeInteger(x)?x.toLocaleString():'Pending';
+ const gameEqualNote=(title,g,expected)=>{
+  if(g?.method!=='equal_game_paired_v1'||g.researchOnly!==true||g.productionApproved!==false||
+   g.decisionCount!==expected||!Number.isSafeInteger(g.distinctGames)||g.distinctGames<1||g.distinctGames>expected||
+   !Number.isFinite(g.delta?.brier)||Math.abs(g.delta.brier)>1||!Number.isFinite(g.delta?.logLoss))return;
+  const txt=title+': '+n(g.distinctGames)+' verified '+(g.distinctGames===1?'game':'games')+
+   ' weighted equally · Brier difference '+g.delta.brier.toFixed(4)+' · log-loss difference '+g.delta.logLoss.toFixed(4);
+  const ci=g.uncertainty?.brier;
+  const valid=g.distinctGames>=30&&Array.isArray(ci)&&ci.length===2&&ci.every(Number.isFinite)&&ci[0]<=g.delta.brier&&g.delta.brier<=ci[1];
+  add(mount,'p',txt+(valid?' · descriptive Brier interval '+ci.map(x=>x.toFixed(4)).join(' to '):
+   ' · uncertainty interval unavailable')+'. Negative differences favor the challenger.');
+ };
  try{const r=await fetch('./data/pickfinder-public-research-health.json',{cache:'no-store'});if(!r.ok)throw Error();const d=await r.json();if(d.schema!=='pickfinder_public_research_health_v1')throw Error();
  mount.textContent='';add(mount,'p','Observed '+new Date(d.generatedAt).toLocaleString()+' · Aggregator evidence, not verified first-party app availability or calibrated predictions.');
  const sc=add(mount,'p','Verified archive manifests: '+n(d.archiveManifests)+' · Exact cross-book observations: '+n(d.exactComparisons)+' · Invalid manifests: '+n(d.invalidManifests));
@@ -95,6 +106,9 @@
     const row=add(body,'tr','');
     for(const value of data)add(row,'td',value);
    }
+   for(const [sport,markets] of Object.entries(ledger.bySport||{}))
+    for(const [market,m] of Object.entries(markets))
+     gameEqualNote(sport+' '+market+' combined model vs existing',m.gameEqualChallengerComparison,m.graded);
   }
  }catch{add(mount,'p','NHL and NFL prospective reviewed-history performance report is pending.');}
  const grading=d.independentGrading||{},coverage=d.researchCoverage||{};
@@ -127,6 +141,13 @@
    }
   }
  }
+ for(const [market,row] of gradedMarkets)
+  for(const [key,label] of [['gameEqualFrozenBaselineComparison','Model vs pregame baseline'],
+    ['lowCountFeatureComparison','Last-ten average'],['matchupFeatureComparison','Head-to-head'],
+    ['reviewedHistoryFeatureComparison','Reviewed history'],['workloadFeatureComparison','Native minutes']]){
+   const c=row[key],direct=key==='gameEqualFrozenBaselineComparison';
+   gameEqualNote(market+' · '+label,direct?c:c?.gameEqualComparison,direct?row.frozenBaselineComparison?.decided:c?.decided);
+  }
  add(mount,'p','Profile attempts: '+n(coverage.profileAttempts)+' · Named dashboard snapshots: '+n(coverage.namedDashboardSnapshots)+' · Game-dialog observations: '+n(coverage.gameDialogObservations)+' · Full filter coverage remains pending.');
  const slots=Object.values(d.bySport||{}).flatMap(x=>Object.values(x.boards||{}));
  add(mount,'p','Latest manual board partitions: '+n(slots.filter(b=>b.slot==='manual').length)+' / '+n(slots.length)+'. A capture-slot label alone does not certify scheduled morning execution.');

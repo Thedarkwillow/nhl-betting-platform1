@@ -39,17 +39,26 @@ def priority(p):
 def league(p):
     return p.split("/")[2] if p.startswith("/leagues/") else "directory"
 
+CORE_LEAGUES={"nba","nhl","nfl"}
+PRIORITY_ESPORTS={"cs2","dota-2","valorant","league-of-legends","lol","call-of-duty","cod"}
+def first_visit_rotation(pending,existing,attempt):
+    # Keep every fourth request available for due refreshes. Use a distinct
+    # one-in-eight slot for other linked leagues when they still have first visits.
+    if (attempt+1)%8==6:
+        return [p for p in pending if p not in existing and league(p) not in CORE_LEAGUES|PRIORITY_ESPORTS|{"directory"}]
+    return []
 def next_path(pending,existing,visited,attempt):
     if "/free-research" in pending:return "/free-research"
     # Reserve every fourth slot for due refreshes. If either lane is empty,
     # lend that slot to the other without increasing the request budget.
     refresh_turn=(attempt+1)%4==0
     lane=[p for p in pending if (p in existing)==refresh_turn] or pending
-    core={"nba","nhl","nfl"}; observed_active={"cs2","dota-2","valorant"}
+    rotation=first_visit_rotation(pending,existing,attempt)
+    if rotation:return min(rotation,key=lambda p:(priority(p),visited.get(league(p),0),p))
     def rank(p):
         s=league(p)
         # Core and recently observed active boards first; round-robin within group.
-        tier=0 if s=="directory" else 1 if s in core else 2 if s in observed_active else 3
+        tier=0 if s=="directory" else 1 if s in CORE_LEAGUES else 2 if s in {"cs2","dota-2","valorant"} else 3
         return (priority(p),tier,visited.get(s,0),p)
     return min(lane,key=rank)
 def extract(html,rel):
@@ -87,13 +96,18 @@ def main(root,budget=80):
     known=linked_routes(existing)
     first_observations=0
     refreshes=0
+    rotation_attempts=0
+    rotation_archived=0
     attempted=set();counts=defaultdict(lambda:{"pages":0,"tables":0,"rows":0,"playerLinks":0});failed=0;stopped=False;visited=defaultdict(int)
     def due(p):
         return due_route(p,existing,now)
     while len(attempted)<budget:
         pending=[p for p in known if p not in attempted and due(p)]
         if not pending:break
+        rotation=first_visit_rotation(pending,existing,len(attempted))
         rel=next_path(pending,existing,visited,len(attempted))
+        rotated=rel in rotation
+        if rotated:rotation_attempts+=1
         visited[league(rel)]+=1
         attempted.add(rel)
         try:
@@ -104,6 +118,7 @@ def main(root,budget=80):
             with (dest/(hashlib.sha256(payload).hexdigest()+".json")).open("xb") as f:f.write(payload);f.flush();os.fsync(f.fileno())
             if rel in existing:refreshes+=1
             else:first_observations+=1
+            if rotated:rotation_archived+=1
             known.update(d["links"]);existing[rel]=(datetime.fromisoformat(d["observedAt"]),d)
             sport=league(rel)
             a=counts[sport];a["pages"]+=1
@@ -114,7 +129,8 @@ def main(root,budget=80):
         except Exception:failed+=1
         time.sleep(1)
     print(json.dumps({"state":"public_directory_progress",**coverage(existing,receipts+first_observations+refreshes,invalid,now),
-        "newlyArchivedPaths":first_observations,"refreshedPaths":refreshes,"attempted":len(attempted),
+        "newlyArchivedPaths":first_observations,"refreshedPaths":refreshes,
+        "rotationAttempts":rotation_attempts,"rotationArchived":rotation_archived,"attempted":len(attempted),
         "failures":failed,"stoppedOnRefusal":stopped,"bySport":dict(counts),"publicSportingPagesArchived":public}))
 
 def load_archive(dest):
@@ -190,6 +206,15 @@ def test():
     assert next_path([new],existing,{},3)==new
     assert next_path([refresh],existing,{},0)==refresh
     assert next_path(["/free-research",new],existing,{},0)=="/free-research"
+    cs="/leagues/cs2/players/a"; soccer="/leagues/soccer/players/a"
+    both=[cs,soccer,new,refresh]
+    assert next_path(both,existing,{},4)==cs
+    assert next_path(both,existing,{"soccer":1},5)==new
+    assert next_path(both,existing,{"tennis":1},5)==soccer
+    assert next_path(both,existing,{},7)==refresh
+    assert next_path([cs,refresh],existing,{},5)==cs
+    assert next_path(["/free-research",*both],existing,{},5)=="/free-research"
+    assert not first_visit_rotation(both,{**existing,new:(now,{}),soccer:(now,{})},5)
     report=coverage(existing,1,0,now)
     assert report["unseenLinkedPaths"]==2 and report["archivedDistinctPaths"]==1
     assert report["coverageByLeague"]["tennis"]["notYetArchived"]==1

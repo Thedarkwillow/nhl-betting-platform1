@@ -50,13 +50,13 @@ function event(kind,scope,a,b,line){
 }
 // Group only the exact same book, player path, event, market, tier, threshold
 // and split. Explicit unpriced rows prove a line was shown, never a direction.
-function observedLines(b,now){
+function observedLines(b,now,{retainStarted=false}={}){
  const out=new Map();
  for(const o of [...b.offers,...(b.unpricedTierObservations||[])]){
   const at=dt(o.observedAt),tier=o.tier||'standard',id=stableDetail(o.detailId);
   if(o.book!==b.m.book||o.sport!==b.m.sport||!o.eventId||!o.player||!o.market||!id||
    !tiers.has(tier)||!Number.isFinite(o.line)||!Number.isFinite(at)||at<dt(b.m.firstObservedAt)||at>dt(b.m.lastObservedAt)||
-   o.startAt&&(!Number.isFinite(dt(o.startAt))||dt(o.startAt)<=now))continue;
+   o.startAt&&(!Number.isFinite(dt(o.startAt))||!retainStarted&&dt(o.startAt)<=now))continue;
   const [path]=JSON.parse(id),scope=JSON.stringify([o.book,o.sport,o.eventId,path,o.player,o.market,o.period??null,o.mapRange??null,o.gameMode??null,tier]);
   const key=JSON.stringify([scope,o.line]),g=out.get(key)||{scope,key,path,row:{...o,tier},sides:new Set(),observedAt:o.observedAt};
   if(['Higher','Lower'].includes(o.side))g.sides.add(o.side);
@@ -77,29 +77,71 @@ function contextIndex(doc,now){
   set(pairs,key(r.sport,r.sourceEventId,r.sourcePlayerPath),[r.match.team,r.match.opponent]);
  return {events,pairs};
 }
-function releaseBaseline(b,old,now,windowMs){
+// A price-free alternate tile can prove that exact line was on the
+// PickFinder board. It cannot prove a direction, price, or original-app
+// offer. Only admit this alternate baseline when every distinct rendered
+// card is accounted for and the page traversal had no repeated cards.
+const unresolvedKeys=['legacyNoEvidence','bookBadgeMissing','tierWithoutExplicitPrice',
+ 'bookBadgeWithoutExplicitPrice','ambiguousBookGroup','lineMissing'];
+function exactMembership(b){
+ if(!complete(b)||b.m.boardState!=='populated')return false;
+ const h=b.m.health,e=h.unresolvedEvidence,unpriced=b.unpricedTierObservations;
+ if(!e||Object.keys(e).length!==unresolvedKeys.length||
+    !unresolvedKeys.every(k=>Object.hasOwn(e,k)&&e[k]===(k==='tierWithoutExplicitPrice'?h.unresolvedRows:0))||
+    !Number.isSafeInteger(h.unresolvedRows)||h.unresolvedRows<0||
+    h.repeatOrUnresolvedLinks!==0||!Number.isSafeInteger(h.appearances)||h.appearances<=0||
+    h.appearances!==h.distinctDetailLinks||
+    !Array.isArray(h.reasons)||h.reasons.includes('possible_display_cap_requires_partition_reconciliation')||
+    !Array.isArray(unpriced)||h.unpricedTierObservations!==unpriced.length||unpriced.length!==h.unresolvedRows||
+    b.offers.length!==h.distinctOfferKeys)return false;
+ const links=new Map(),tileKeys=new Set();
+ for(const [rows,kind] of [[b.offers,'priced'],[unpriced,'unpriced']])for(const o of rows){
+  const t=dt(o.observedAt),tier=o.tier||'standard';
+  if(o.book!==b.m.book||o.sport!==b.m.sport||!tiers.has(tier)||
+     typeof o.player!=='string'||!o.player.trim()||typeof o.eventId!=='string'||!o.eventId||
+     typeof o.market!=='string'||!o.market||!Number.isFinite(o.line)||!Number.isFinite(t)||
+     t<dt(b.m.firstObservedAt)||t>dt(b.m.lastObservedAt)||
+     o.startAt&&!Number.isFinite(dt(o.startAt)))return false;
+  if(kind==='unpriced'&&(!['goblin','demon'].includes(tier)||o.side!==null||o.displayedPrice!==null||
+     o.originalPlatformVerified!==false||o.eligibleForLockedModel!==false))return false;
+  if(kind==='priced'&&(!['Higher','Lower'].includes(o.side)||!/^[-+]\d{2,4}$/.test(o.displayedPrice||'')))return false;
+  let u;try{u=new URL(o.detailId,'https://www.pickfinder.app');}catch{return false;}
+  const p=u.searchParams.getAll('prop'),parts=p.length===1?p[0].split(':'):[];
+  if(u.origin!=='https://www.pickfinder.app'||!new RegExp('^/players/'+b.m.sport+'/[\\w-]+$').test(u.pathname)||
+     parts.length!==4||!parts[0]||parts[1]!==o.market||parts[2]!==o.eventId||
+     !/^-?\d+(?:\.\d+)?$/.test(parts[3])||Number(parts[3])!==o.line)return false;
+  const tile=JSON.stringify([u.pathname,p[0]]);
+  const witness=JSON.stringify([kind,o.player,o.period??null,o.mapRange??null,o.gameMode??null,tier]);
+  if(links.has(o.detailId)&&links.get(o.detailId)!==witness)return false;
+  if(kind==='unpriced'&&tileKeys.has(tile))return false;
+  links.set(o.detailId,witness);
+  tileKeys.add(tile);
+ }
+ return links.size===h.distinctDetailLinks&&tileKeys.size===links.size;
+}
+function releaseBaseline(b,old,now,windowMs,membership){
  if(!old)return 'missing_prior_board';
  if(!complete(b)||!complete(old))return 'incomplete_board';
- if(old.m.health.unresolvedRows!==0)return 'prior_unresolved_rows';
+ if(old.m.health.unresolvedRows!==0&&!(membership(old)&&membership(b)))return 'prior_unresolved_rows';
  if(dt(old.m.lastObservedAt)>=dt(b.m.firstObservedAt))return 'overlapping_observations';
  if(now-dt(b.m.lastObservedAt)>windowMs)return 'outside_release_window';
  if(dt(b.m.lastObservedAt)-dt(old.m.lastObservedAt)>previous)return 'prior_board_too_old';
  return 'eligible';
 }
-function additions(history,now,context,windowMs){
+function additions(history,now,context,windowMs,membership){
  const result=[],seen=new Set();
  for(let i=0;i<history.length-1;i++){
   const b=history[i],old=history[i+1];
-  if(releaseBaseline(b,old,now,windowMs)!=='eligible')continue;
+  if(releaseBaseline(b,old,now,windowMs,membership)!=='eligible')continue;
   // No inference of absence across a partial partition or a missing baseline.
-  const current=observedLines(b,now),prior=observedLines(old,now);
+  const current=observedLines(b,now),prior=observedLines(old,now,{retainStarted:true});
   const replacement=new Map(),sizes=new Map();
   for(const g of current.values())sizes.set(g.scope,(sizes.get(g.scope)||0)+1);
   for(const g of prior.values())if(!current.has(g.key))replacement.set(g.scope,(replacement.get(g.scope)||0)+1);
   const previousSc=new Set([...prior.values()].map(g=>g.scope));
   const oldEvents=new Set([...prior.values()].map(g=>g.row.eventId));
   const oldPlayers=new Set([...prior.values()].map(g=>JSON.stringify([g.row.eventId,g.path])));
-  const earlier=history[i+2],reposts=earlier&&complete(earlier)&&dt(earlier.m.lastObservedAt)<dt(old.m.firstObservedAt)?observedLines(earlier,now):new Map();
+  const earlier=history[i+2],reposts=earlier&&complete(earlier)&&dt(earlier.m.lastObservedAt)<dt(old.m.firstObservedAt)?observedLines(earlier,now,{retainStarted:true}):new Map();
   const newer=i>0&&complete(history[0])&&history[0].m.health.unresolvedRows===0?observedLines(history[0],now):null;
   for(const g of current.values()){
    if(prior.has(g.key)||seen.has(g.key)||newer&&!newer.has(g.key))continue;
@@ -134,15 +176,17 @@ function compare(chunks,now,{registry,windowMs=240*M}={}){
   a.push(b);a.sort((x,y)=>dt(y.m.lastObservedAt)-dt(x.m.lastObservedAt)||x.digest.localeCompare(y.digest));partitions.set(k,a);
  }
  if(invalid.count)throw Error('archive integrity');
+ const witnesses=new WeakMap();
+ const membership=b=>{if(!witnesses.has(b))witnesses.set(b,exactMembership(b));return witnesses.get(b);};
  const events=[],usable=new Map(),context=contextIndex(registry,now),releaseBaselines={};
  for(const [partition,history] of partitions){
   const counts={};
   for(let i=0;i<history.length;i++){
-   const state=releaseBaseline(history[i],history[i+1],now,windowMs);
+   const state=releaseBaseline(history[i],history[i+1],now,windowMs,membership);
    counts[state]=(counts[state]||0)+1;
   }
-  const newEvents=additions(history,now,context,windowMs);
-  releaseBaselines[partition]={latest:releaseBaseline(history[0],history[1],now,windowMs),counts,releaseCandidates:newEvents.length};
+  const newEvents=additions(history,now,context,windowMs,membership);
+  releaseBaselines[partition]={latest:releaseBaseline(history[0],history[1],now,windowMs,membership),counts,releaseCandidates:newEvents.length};
   events.push(...newEvents);
  }
  for(const [key,[current,old]] of partitions){

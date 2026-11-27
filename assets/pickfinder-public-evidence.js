@@ -116,8 +116,33 @@
    if(pickem)add(mount,'p',n(pickem.rows)+' displayed PrizePicks/Underdog movement rows · '+n(pickem.exactDisplayedTierRows)+' explicit tier labels · '+n(pickem.unpricedRows)+' unpriced · '+n(pickem.sourceClockRows)+' with a source clock. Pick’em rows are excluded from sportsbook probability estimates.');
    add(mount,'p',n(profile.workloadObservations)+' workload observations · '+n(profile.defenseSplitObservations)+' defensive splits · '+n(profile.availabilityObservations)+' coded availability observations.');
   }
-  const fresh=Object.values(activity.readiness||{}).filter(x=>x.freshCompleteBoard&&Number.isFinite(Date.parse(x.observedAt))&&Date.parse(x.observedAt)<=Date.now()&&Date.now()-Date.parse(x.observedAt)<=900000);
-  add(mount,'p','Fresh complete core boards: '+fresh.length+' / '+Object.keys(activity.readiness||{}).length+'. Old observations remain history, not live availability.');
+  const byScope=Object.entries(activity.readiness||{}).filter(([key,r])=>
+   /^[a-z0-9-]+\/(?:prizepicks|underdog)$/.test(key)&&r?.originalBoardCompletenessVerified===false);
+  if(byScope.length){
+   const viewAt=Date.now(),states={authentication_unproven:'Authentication not evidenced',
+    incomplete_traversal:'Traversal incomplete',membership_accounting_missing:'Membership counts missing',
+    possible_display_cap:'Possible display cap',membership_unproven:'Gaps or repeats detected'};
+   const ready=byScope.map(([key,r])=>{
+    const time=Date.parse(r.observedAt),age=viewAt-time,recent=Number.isFinite(age)&&age>=0&&age<=900000;
+    const clean=recent&&r.freshTraversal===true&&r.membership==='no_detected_membership_gaps';
+    const state=clean?'No membership gaps detected':!Number.isFinite(time)||age<0?'No verified observation':
+     age>900000?'Historical observation':r.boardState==='empty'?'Observed empty':
+     r.boardState==='disabled'?'Observed disabled':states[r.membership]||'Membership not yet verified';
+    return {key,time,clean,state};
+   });
+   const fresh=ready.filter(x=>x.clean).length;
+   add(mount,'p','Recent traversals with no membership gaps detected: '+fresh+' of '+ready.length+
+    ' registered sport/platform combinations. This is not a first-party availability check.');
+   const details=add(mount,'details','');add(details,'summary','Board coverage by sport and platform');
+   const wrapper=add(details,'div','');wrapper.style.overflowX='auto';
+   const table=add(wrapper,'table',''),header=add(add(table,'thead',''),'tr','');
+   for(const label of ['Sport','Platform','Last observation','Membership'])add(header,'th',label);
+   const body=add(table,'tbody','');
+   for(const {key,time,state} of ready){const [sport,book]=key.split('/'),row=add(body,'tr','');
+    for(const value of [sport.toUpperCase(),book==='prizepicks'?'PrizePicks':'Underdog',
+      Number.isFinite(time)?new Date(time).toLocaleString():'—',state])add(row,'td',value);
+   }
+  }else add(mount,'p','Board membership report pending. Old observations do not verify current availability.');
  }catch{add(mount,'p','Public activity center report pending; no native notification delivery certified.');}
  try{
   const r=await fetch('./data/pickfinder-reviewed-history-performance.json',{cache:'no-store'});

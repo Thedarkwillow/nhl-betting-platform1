@@ -132,3 +132,87 @@ test("Authenticated payouts and settlements must be for THIS exact original play
  assert.equal(p.settlement(original,witness,quote,{
   ...settled,payoutTableId:"different"}).platformSettlementVerified,false);
 });
+
+function fixture(n=2){
+ const ids=Array.from({length:n},(_,i)=>"fixture-"+i);
+ const legs=ids.map((id,i)=>{
+  const o={...original,gameId:2026020399+i,playerId:8484144+i,
+   originalSourceOfferId:"offer-fixture-"+i,originalModelSelectionId:id,
+   gameStartAt:i===1?"2026-11-21T22:00:00Z":original.gameStartAt};
+  const a={...witness,gameId:o.gameId,playerId:o.playerId,
+   receiptId:"app-fixture-"+i,originalSourceOfferId:o.originalSourceOfferId};
+  const q={...a,...quote,gameId:o.gameId,playerId:o.playerId,
+   originalSourceOfferId:o.originalSourceOfferId,
+   pickCount:n,includesOriginalSelectionIds:ids,currency:"USD",cashOnly:true};
+  return {original:o,app:a,quote:q};
+ });
+ const receipt={...settled,currency:"USD",cashOnly:true,grossPayoutCash:0,
+  legs:legs.map((l,i)=>({...l.original,resolution:i===0?"miss":"void"}))};
+ return {legs,receipt};
+}
+test("an exact all-leg cash quote is not a final settlement or expected value",()=>{
+ for(let i=2;i<=6;i++){
+  const {legs,receipt}=fixture(i);
+  const quoteOnly=p.exactLineupReceipt(legs);
+  assert.equal(quoteOnly.entrySpecificPayoutVerified,true);
+  assert.equal(quoteOnly.platformSettlementVerified,false);
+  assert.equal(quoteOnly.observedCashNet,null);
+  const final=p.exactLineupReceipt(legs,receipt);
+  assert.equal(final.verified,true);
+  assert.equal(final.observedCashNet,-1);
+  assert.equal(final.payoutAdjustedExpectedValue,null);
+  assert.equal(final.automaticWagersAuthorized,false);
+ }
+});
+test("a leg-specific amount, mixed entry, changed currency or late quote cannot bind a lineup",()=>{
+ for(const change of [
+  {includesOriginalSelectionIds:["fixture-1","different"]},
+  {entryId:"another-ticket"},{maximumMultiplier:5},{currency:"CAD"},
+  {cashOnly:false},{receiptId:"valid-but-different-quote"},
+  {observedAt:"2026-11-21T20:01:00Z"},{pickCount:3}
+ ]){
+  const {legs}=fixture();
+  Object.assign(legs[1].quote,change);
+  const result=p.exactLineupReceipt(legs);
+  assert.equal(result.exactAppOffersVerified,true);
+  assert.equal(result.entrySpecificPayoutVerified,false,JSON.stringify(change));
+ }
+});
+test("settlement must cover exact sides/results for every leg after the latest start",()=>{
+ const {legs,receipt}=fixture();
+ const [first,second]=receipt.legs;
+ for(const change of [
+  {settledAt:"2026-11-21T21:00:00Z"},{cashOnly:false},{grossPayoutCash:null},
+  {legs:[first,first]},{legs:[first]},{legs:[first,{...second,originalSide:"Higher"}]},
+  {legs:[first,{...second,period:"1Q"}]},{legs:[first,{...second,resolution:"pending"}]}
+ ]){
+  const result=p.exactLineupReceipt(legs,{...receipt,...change});
+  assert.equal(result.entrySpecificPayoutVerified,true);
+  assert.equal(result.platformSettlementVerified,false,JSON.stringify(change));
+  assert.equal(result.observedCashNet,null);
+ }
+});
+
+test("complete-lineup coverage counts each independent ticket at most once",()=>{
+ const {legs,receipt}=fixture();
+ const packet={legs,finalReceipt:receipt};
+ assert.deepEqual(p.coverage({entryLineupReceipts:[packet]}).entryLineups,{
+  independentCompleteCashQuotes:1,finalCashSettlements:1,
+  ambiguousDuplicateEntries:0,payoutAdjustedExpectedValue:null
+ });
+ assert.deepEqual(p.coverage({entryLineupReceipts:[packet,packet]}).entryLineups,{
+  independentCompleteCashQuotes:0,finalCashSettlements:0,
+  ambiguousDuplicateEntries:1,payoutAdjustedExpectedValue:null
+ });
+ assert.equal(p.coverage().entryLineups.finalCashSettlements,0);
+});
+
+test("cash net uses exact cent units and refuses unsupported or fractional-minor-unit receipts",()=>{
+ const {legs,receipt}=fixture();
+ for(const l of legs)l.quote.entryFee=.1;
+ assert.equal(p.exactLineupReceipt(legs,{...receipt,grossPayoutCash:.3}).observedCashNet,.2);
+ for(const invalid of [.105,Number.MAX_SAFE_INTEGER])
+  assert.equal(p.exactLineupReceipt(legs,{...receipt,grossPayoutCash:invalid}).platformSettlementVerified,false);
+ for(const l of legs)l.quote.currency="XXX";
+ assert.equal(p.exactLineupReceipt(legs,{...receipt,currency:"XXX"}).entrySpecificPayoutVerified,false);
+});

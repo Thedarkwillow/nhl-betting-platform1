@@ -120,7 +120,68 @@ function settlement(original,app,quote,settled){
   // A single verified settlement is not a calibrated probability or EV.
   payoutAdjustedExpectedValue:null,automaticWagersAuthorized:false};
 }
-function coverage({originals=[],appOffers=[],entryQuotes=[],settlements=[]}={}){
+// Entry-level proof is stronger than reusing a leg's receipt for a whole
+// ticket. This validates only externally authenticated, cash-only evidence.
+// It neither requests entries nor infers probabilities, payout rules or EV.
+const cashMinorUnits=(v,currency)=>{
+ if(!["USD","CAD"].includes(currency)||!n(v)||v<0)return null;
+ const scaled=v*100,rounded=Math.round(scaled);
+ return Number.isSafeInteger(rounded)&&Math.abs(scaled-rounded)<1e-7?rounded:null;
+};
+function exactLineupReceipt(legs,finalReceipt=null){
+ const result={kind:"exact_lineup_receipt_audit_v1",exactAppOffersVerified:false,
+  entrySpecificPayoutVerified:false,platformSettlementVerified:false,
+  observedCashFee:null,observedCashReturn:null,observedCashNet:null,
+  payoutAdjustedExpectedValue:null,automaticWagersAuthorized:false};
+ const reject=reason=>({...result,verified:false,reason});
+ if(!Array.isArray(legs)||legs.length<2||legs.length>6||
+    legs.some(l=>!l||!originalValid(l.original)))return reject("invalid_original_lineup");
+ const sameSet=(ids,wanted)=>Array.isArray(ids)&&ids.length===wanted.size&&
+  new Set(ids).size===wanted.size&&ids.every(id=>wanted.has(id));
+ const ids=new Set(legs.map(l=>l.original.originalModelSelectionId));
+ if(ids.size!==legs.length||
+    new Set(legs.map(l=>l.original.originalSourceOfferId)).size!==legs.length||
+    new Set(legs.map(l=>l.original.platform)).size!==1)
+  return reject("duplicate_or_mixed_platform_originals");
+ if(legs.some(l=>!exactOffer(l.original,l.app).verified)||
+    new Set(legs.map(l=>l.app.receiptId)).size!==legs.length)
+  return reject("missing_independent_exact_offer_for_a_leg");
+ result.exactAppOffersVerified=true;
+ const q=legs[0].quote,firstStart=Math.min(...legs.map(l=>at(l.original.gameStartAt)));
+ const entryKeys=["platform","entryId","entryType","pickCount","entryFee",
+  "maximumMultiplier","payoutTableId","currency","receiptId"];
+ if(!q||cashMinorUnits(q.entryFee,q.currency)===null||q.cashOnly!==true||
+    legs.some(l=>!payout(l.original,l.app,l.quote).verified||
+      !entryKeys.every(k=>q[k]===l.quote[k])||
+      at(q.observedAt)!==at(l.quote.observedAt)||at(l.quote.observedAt)>firstStart-900000||
+      at(l.quote.observedAt)<at(l.original.capturedAt)||
+      l.quote.pickCount!==legs.length||l.quote.cashOnly!==true||
+      !sameSet(l.quote.includesOriginalSelectionIds,ids)))
+  return reject("no_single_exact_entry_quote_for_all_legs");
+ result.entrySpecificPayoutVerified=true;
+ result.observedCashFee=q.entryFee;
+ const lastStart=Math.max(...legs.map(l=>at(l.original.gameStartAt)));
+ const validStat=new Set(["hit","miss","push","void","reboot"]);
+ if(!authentic(finalReceipt)||finalReceipt.receiptId===q.receiptId||
+    finalReceipt.status!=="final"||finalReceipt.entryId!==q.entryId||
+    finalReceipt.platform!==q.platform||finalReceipt.payoutTableId!==q.payoutTableId||
+    finalReceipt.currency!==q.currency||finalReceipt.cashOnly!==true||
+    cashMinorUnits(finalReceipt.grossPayoutCash,q.currency)===null||
+    !Number.isFinite(at(finalReceipt.settledAt))||at(finalReceipt.settledAt)<=lastStart||
+    !Array.isArray(finalReceipt.legs)||
+    !sameSet(finalReceipt.legs.map(l=>l?.originalModelSelectionId),ids))
+  return reject("missing_final_cash_settlement_for_exact_entry");
+ const finalLegs=new Map(finalReceipt.legs.map(l=>[l.originalModelSelectionId,l]));
+ if(legs.some(({original:o})=>{
+   const l=finalLegs.get(o.originalModelSelectionId);
+   return !sameOriginalReceiptFields(o,l)||l.originalSide!==o.originalSide||!validStat.has(l.resolution);
+ }))
+  return reject("final_settlement_changed_exact_leg");
+ return {...result,verified:true,platformSettlementVerified:true,
+  observedCashReturn:finalReceipt.grossPayoutCash,
+  observedCashNet:(cashMinorUnits(finalReceipt.grossPayoutCash,q.currency)-cashMinorUnits(q.entryFee,q.currency))/100};
+}
+function coverage({originals=[],appOffers=[],entryQuotes=[],settlements=[],entryLineupReceipts=[]}={}){
  let original=0,appMatched=0,payoutMatched=0,settled=0,invalidOriginal=0;
  const appIds=new Set(),quoteIds=new Set(),settlementIds=new Set();
  for(const o of originals){
@@ -135,12 +196,24 @@ function coverage({originals=[],appOffers=[],entryQuotes=[],settlements=[]}={}){
   if(ss.length!==1||settlementIds.has(ss[0].receiptId)||!settlement(o,a[0],qs[0],ss[0]).verified)continue;
   settlementIds.add(ss[0].receiptId);settled++;
  }
+ const tickets=new Map(),duplicates=new Set();
+ for(const packet of entryLineupReceipts){
+  const quote=packet?.legs?.[0]?.quote;
+  if(!PLATFORMS.has(quote?.platform)||typeof quote?.entryId!=="string"||!quote.entryId)continue;
+  const key=JSON.stringify([quote.platform,quote.entryId]);
+  if(tickets.has(key))duplicates.add(key);
+  else tickets.set(key,exactLineupReceipt(packet.legs,packet.finalReceipt));
+ }
+ const acceptedTickets=[...tickets].filter(([k])=>!duplicates.has(k)).map(([,ticket])=>ticket);
+ const entryLineups={independentCompleteCashQuotes:acceptedTickets.filter(x=>x.entrySpecificPayoutVerified).length,
+  finalCashSettlements:acceptedTickets.filter(x=>x.platformSettlementVerified).length,
+  ambiguousDuplicateEntries:duplicates.size,payoutAdjustedExpectedValue:null};
  return {kind:"private_original_app_quote_payout_reconciliation_coverage_v1",
   sourceOriginals:original,invalidOriginal,authenticatedExactAppOffers:appMatched,
-  authenticatedExactPayoutQuotes:payoutMatched,authenticatedFinalSettlements:settled,
+  authenticatedExactPayoutQuotes:payoutMatched,authenticatedFinalSettlements:settled,entryLineups,
   sourceOnlyCannotEstablishPlatformBookability:true,
   publicReferencePayoutTablesNotSpecificEntryQuotes:true,
   roiApproved:false,calibratedProbabilities:false,
   modelPromoted:false,automaticWagers:0};
 }
-module.exports={KIND,identityValid,exactOffer,payout,settlement,coverage};
+module.exports={KIND,identityValid,exactOffer,payout,settlement,exactLineupReceipt,coverage};

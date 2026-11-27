@@ -1,5 +1,5 @@
 'use strict';
-const {traverseNativeFilters}=require('./pickfinder-research-coverage.cjs');
+const {traverseNativeFilters,filterLabels}=require('./pickfinder-research-coverage.cjs');
 const {traverseCustomFilters}=require('./pickfinder-custom-filters.cjs');
 // Capture visible sporting tables and cards only, without account details or actions.
 function dashboardRoutes(name){return name==='Games'?['/games','/game-lines']:['/'+name.toLowerCase()];}
@@ -83,10 +83,13 @@ async function readyDashboard(page,name,shouldContinue,{attempts=6,pause=ms=>new
  let x;for(let i=0;i<attempts&&shouldContinue();i++){x=await captureDashboard(page,name);const state=dashboardState(x);if(state==='data_observed'||state==='explicit_empty')return {...x,dataState:state};if(i+1<attempts&&shouldContinue())await pause(1000);}
  return null;
 }
-async function traverseDashboard(page,name,{shouldContinue=()=>true,onSnapshot=async()=>{},filterSelection=null}={}){
+async function traverseDashboard(page,name,{shouldContinue=()=>true,onSnapshot=async()=>{},filterSelection=null,verifySelection=null}={}){
  const seen=new Set(),seenContent=new Set();let pages=0,state='unverified_pagination',expectedPage=1,totalPages=null;
  while(shouldContinue()){
+  if(verifySelection&&!await verifySelection()){state='filter_selection_changed';break;}
   const x=await readyDashboard(page,name,shouldContinue);if(!x){state='dashboard_data_unverified';break;}
+  if(verifySelection&&!await verifySelection()){state='filter_selection_changed';break;}
+  if(!shouldContinue()){state='deadline';break;}
   const p=pageMarker(x);
   const content=pageContent(x);
   const fingerprint=JSON.stringify([p,content]);
@@ -97,7 +100,7 @@ async function traverseDashboard(page,name,{shouldContinue=()=>true,onSnapshot=a
    state='pagination_changed_during_traversal';break;
   }
   if(expectedPage>1&&seenContent.has(content)){state='unchanged_page_content';break;}
-  seen.add(fingerprint);seenContent.add(content);await onSnapshot({...x,filterSelection});pages++;
+  seen.add(fingerprint);seenContent.add(content);await onSnapshot({...x,filterSelection,...(verifySelection?{filterSelectionVerified:true}:{})});pages++;
   if(x.dataState==='explicit_empty'){state=expectedPage===1&&(!x.pagination?.length||p?.page===1&&p.total===1)?'explicit_empty_observed':'pagination_changed_during_traversal';break;}
   if(!p){state='pagination_not_explicit';break;}
   if(p.page!==expectedPage){state='first_page_not_observed';break;}
@@ -135,6 +138,21 @@ async function verifiedNavigation(page,name,allowed){
  return unique.length===1?unique[0]:null;
 }
 const dashboardSequenceSchema='pickfinder-public-dashboard-sequence-v1';
+function dashboardFilterKind(selection){
+ if(!Array.isArray(selection)||!selection.length||new Set(selection.map(x=>x?.label)).size!==selection.length)return null;
+ const validChoice=x=>typeof x==='string'&&x.trim().length>0;
+ const validChoices=x=>Array.isArray(x)&&x.every(validChoice)&&new Set(x).size===x.length;
+ let native=false,custom=false;
+ for(const x of selection){
+  if(!x||!filterLabels.includes(x.label))return null;
+  if(x.kind==='aria_listbox'||x.kind==='aria_multiselect'){
+   if(!validChoices(x.values)||x.kind==='aria_listbox'&&(x.values.length!==1||x.display!==x.values[0]))return null;
+   custom=true;
+  }else if(!Object.hasOwn(x,'kind')&&(validChoice(x.value)||validChoices(x.value)))native=true;
+  else return null;
+ }
+ return native&&custom?'mixed':native?'native':'custom';
+}
 function receiptTime(source){
  if(typeof source!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{3})?Z$/.test(source))return NaN;
  const t=Date.parse(source);
@@ -143,6 +161,7 @@ function receiptTime(source){
 function verifyDashboardSequence(receipt,pages){
  if(receipt?.schema!==dashboardSequenceSchema||!['Games','Discrepancies','Popular'].includes(receipt.name)||
   !dashboardRoutes(receipt.name).includes(receipt.path)||!Object.hasOwn(receipt,'filterSelection')||
+  receipt.filterSelection!==null&&!dashboardFilterKind(receipt.filterSelection)||
   receipt.allDashboardDataVerified!==false||receipt.filtersExhausted!==false||
   !Array.isArray(receipt.pageDigests)||receipt.pageDigests.length<1||
   new Set(receipt.pageDigests).size!==receipt.pageDigests.length)return false;
@@ -153,6 +172,7 @@ function verifyDashboardSequence(receipt,pages){
   const page=pages.get(digest);
   if(page?.schema!=='pickfinder-public-dashboard-v1'||page.name!==receipt.name||page.path!==receipt.path||
    JSON.stringify(page.filterSelection)!==JSON.stringify(receipt.filterSelection)||
+   receipt.filterSelection!==null&&page.filterSelectionVerified!==true||
    page.dataState!=='data_observed'||dashboardState(page)!=='data_observed')return false;
   const marker=pageMarker(page),at=receiptTime(page.observedAt),content=pageContent(page);
   if(index===0)firstAt=at;
@@ -162,9 +182,9 @@ function verifyDashboardSequence(receipt,pages){
  });
 }
 async function traverseDashboardFilters(page,name,{shouldContinue=()=>true,onSnapshot=async()=>{},onSequence=async()=>{}}={}){
- const traverse=async(filterSelection)=>{
+ const traverse=async(filterSelection,verifySelection=null)=>{
   const path=new URL(page.url()).pathname,pageDigests=[];
-  const result=await traverseDashboard(page,name,{shouldContinue,filterSelection,onSnapshot:async s=>{
+  const result=await traverseDashboard(page,name,{shouldContinue,filterSelection,verifySelection,onSnapshot:async s=>{
    const digest=await onSnapshot(s);pageDigests.push(digest);
   }});
   if(result.completePageSequenceVerified&&pageDigests.length===result.pages&&pageDigests.every(d=>/^[a-f0-9]{64}$/.test(d)))
@@ -173,11 +193,32 @@ async function traverseDashboardFilters(page,name,{shouldContinue=()=>true,onSna
   return result;
  };
  const defaultTraversal=await traverse(null);
- const onState=async selection=>{const x=await traverse(selection);
-  if(!['explicit_last_page_observed','explicit_empty_observed'].includes(x.state))throw Error('filter pagination incomplete');
+ const started=Date.now(),issues=new Set();let maxEligibleControls=0;
+ const timeLeft=()=>Math.max(0,60000-(Date.now()-started));
+ const alive=()=>shouldContinue()&&timeLeft()>0;
+ const selectionStats={mixedSnapshots:0,nativeSnapshots:0,customSnapshots:0,unverifiedSelections:0};
+ const onState=async(native,custom,verifyNative,verifyCustom)=>{
+  const combined=[...native,...custom];
+  const kind=dashboardFilterKind(combined);
+  if(!kind){issues.add('ambiguous_filter_scope');return;}
+  const verify=async()=>await verifyNative()&&await verifyCustom()&&await verifyNative();
+  const result=await traverse(combined,verify);
+  if(result.pages)selectionStats[kind+'Snapshots']+=result.pages;
+  if(!['explicit_last_page_observed','explicit_empty_observed'].includes(result.state)){
+   selectionStats.unverifiedSelections++;issues.add(result.state);
+  }
  };
- const filterAudit=await traverseNativeFilters(page,{shouldContinue,maxMs:60000,onState});
- const customFilterAudit=await traverseCustomFilters(page,{shouldContinue,maxMs:60000,onState});
- return {...defaultTraversal,filterAudit,customFilterAudit,filtersExhausted:false,allDashboardDataVerified:false};
+ const inner=async(native=[],verifyNative=async()=>true)=>{
+  if(!alive()){issues.add('deadline');return;}
+  const a=await traverseCustomFilters(page,{shouldContinue:alive,maxMs:timeLeft(),onState:(custom,verifyCustom)=>onState(native,custom,verifyNative,verifyCustom)});
+  for(const issue of a.issues)issues.add(issue);
+  maxEligibleControls=Math.max(maxEligibleControls,a.eligibleControls);
+  // Keep a native-only scope only when no supported custom control was present.
+  if(native.length&&!a.eligibleControls)await onState(native,[],verifyNative,async()=>true);
+ };
+ const filterAudit=await traverseNativeFilters(page,{shouldContinue:alive,maxMs:timeLeft(),onState:inner});
+ if(!filterAudit.eligibleControls)await inner();
+ return {...defaultTraversal,filterAudit,customFilterAudit:{maxEligibleControls,issues:[...issues]},
+  selectionStats,filtersExhausted:false,allDashboardDataVerified:false};
 }
-module.exports={dashboardRoutes,captureGameDialogs,captureDashboard,traverseDashboard,traverseDashboardFilters,inspectCapabilities,verifiedNavigation,dashboardState,readyDashboard,pageMarker,verifyDashboardSequence,dashboardSequenceSchema};
+module.exports={dashboardRoutes,captureGameDialogs,captureDashboard,traverseDashboard,traverseDashboardFilters,inspectCapabilities,verifiedNavigation,dashboardState,readyDashboard,pageMarker,verifyDashboardSequence,dashboardSequenceSchema,dashboardFilterKind};

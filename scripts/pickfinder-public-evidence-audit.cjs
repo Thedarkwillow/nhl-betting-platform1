@@ -1,7 +1,8 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('node:child_process'),{ROOT,sha}=require('./pickfinder-public-archive.cjs');
 const {VERSION}=require('./pickfinder-research-coverage.cjs');
-const {dashboardRoutes,dashboardState,pageMarker,verifyDashboardSequence,dashboardSequenceSchema}=require('./pickfinder-dashboard-research.cjs');
+const {noVigHigher,quoteSourceTime,exactOffsetTime,sportsbookIds}=require('./pickfinder-quote-features.cjs');
+const {dashboardRoutes,dashboardState,pageMarker,verifyDashboardSequence,dashboardSequenceSchema,dashboardFilterKind}=require('./pickfinder-dashboard-research.cjs');
 const dt=Date.parse, key=x=>JSON.stringify(x), valid=x=>Number.isFinite(dt(x));
 const fields={offers:'distinctOfferKeys',researchObservations:'researchFields',unpricedTierObservations:'unpricedTierObservations',sportsbookQuotes:'sportsbookQuoteObservations'};
 const git=(root,args)=>execFileSync('git',['-C',root,...args],{stdio:['ignore','pipe','pipe'],timeout:120000,maxBuffer:128e6}).toString().trim();
@@ -48,6 +49,41 @@ function quotes(offer,rows,cut,maxAge=300000){
  }
  const result=new Map();for(const a of by.values())if(!a.conflict&&a.p.Higher&&a.p.Lower){const old=result.get(a.book);if(!old||dt(old.observedAt)<dt(a.observedAt))result.set(a.book,{book:a.book,observedAt:a.observedAt,higher:implied(a.p.Higher)/(implied(a.p.Higher)+implied(a.p.Lower))});}
  return [...result.values()];
+}
+// For public board context, a browser observation clock is not a quote clock.
+// Use one complete contemporaneous snapshot per bookmaker and reject conflicts
+// for the same source instant, including competing later reads of that instant.
+function sourceClockQuotes(offer,rows,cut,maxAge=300000){
+ const end=exactOffsetTime(cut);
+ if(!Number.isFinite(end)||!Number.isFinite(maxAge)||maxAge<0||!Number.isFinite(offer?.line)||offer.line<0||
+  ![offer.sport,offer.detailId,offer.eventId,offer.market].every(x=>typeof x==='string'&&x.trim()))return [];
+ const byBook=new Map();
+ for(const q of rows){
+  if(!q||!sportsbookIds.has(q.book)||scope(q)!==scope(offer)||q.quoteLine!==offer.line||!['Higher','Lower'].includes(q.side)||!price(q.price))continue;
+  const seen=exactOffsetTime(q.observedAt),source=quoteSourceTime(q,q.observedAt);
+  if(!source)continue;
+  const at=exactOffsetTime(source.sourceQuoteDateTime);
+  if(seen>end||end-at>maxAge)continue;
+  const old=byBook.get(q.book);
+  if(old&&at<old.at)continue;
+  const group=old?.at===at?old:{at,frames:new Map(),prices:{Higher:new Set(),Lower:new Set()}};
+  group.prices[q.side].add(Number(q.price));
+  const snapshot=group.frames.get(seen)??{};
+  snapshot[q.side]=q.price;
+  group.frames.set(seen,snapshot);
+  byBook.set(q.book,group);
+ }
+ const result=[];
+ for(const [book,g] of byBook){
+  if(g.prices.Higher.size!==1||g.prices.Lower.size!==1)continue;
+  const frame=[...g.frames].filter(([,s])=>s.Higher&&s.Lower).sort(([a],[b])=>b-a)[0];
+  if(!frame)continue;
+  const [seen,sides]=frame,higher=noVigHigher(sides.Higher,sides.Lower);
+  if(higher===null)continue;
+  result.push({book,observedAt:new Date(seen).toISOString(),sourceQuoteAt:new Date(g.at).toISOString(),higher,
+   sourceClockVerified:true,originalPlatformVerified:false,modelInputsApproved:false});
+ }
+ return result.sort((a,b)=>a.book.localeCompare(b.book));
 }
 function features(offer,rows){
  const out={},conflicts=new Set();for(const r of rows){
@@ -121,6 +157,7 @@ function coverage(root){
  const byDashboard={},dashboardEvidence={},gameDialogBySport={},pages=new Map(),sequences=[];
  let gameDialogReceipts=0,gameDialogObservations=0,namedDashboardSnapshots=0,unclassifiedDashboardFiles=0;
  let verifiedDashboardSequences=0,unverifiedDashboardSequences=0;
+ const verifiedFilterScopes={native:0,custom:0,mixed:0},seenFilters=new Set();
  const names=['Games','Discrepancies','Popular'];
  for(const name of names)dashboardEvidence[name]={dataSnapshots:0,explicitEmptySnapshots:0,unverifiedSnapshots:0,withExplicitPage:0,verifiedSequences:0};
  for(const [digest,d] of dashboards){
@@ -140,9 +177,16 @@ function coverage(root){
   }
   pages.set(digest,d);
   if(marker)stats.withExplicitPage++;
-  const state=dashboardState(d);
+  const state=dashboardState(d),filter=dashboardFilterKind(d.filterSelection);
+  const consistentEmpty=state==='explicit_empty'&&(!d.pagination?.length||marker?.page===1&&marker.total===1);
+  if(filter&&d.filterSelectionVerified===true&&(state==='data_observed'||consistentEmpty)&&d.dataState===state){
+   const choiceKey=d.filterSelection.map(x=>[x.label,x.kind??'native',Array.isArray(x.values??x.value)?[...(x.values??x.value)].sort():x.value])
+    .sort((a,b)=>a[0].localeCompare(b[0]));
+   const identity=key([d.name,d.path,choiceKey]);
+   if(!seenFilters.has(identity)){seenFilters.add(identity);verifiedFilterScopes[filter]++;}
+  }
   if(state==='data_observed'&&(!d.dataState||d.dataState===state))stats.dataSnapshots++;
-  else if(state==='explicit_empty'&&(!d.dataState||d.dataState===state)&&(!d.pagination?.length||marker?.page===1&&marker.total===1))stats.explicitEmptySnapshots++;
+  else if(consistentEmpty&&(!d.dataState||d.dataState===state))stats.explicitEmptySnapshots++;
   else stats.unverifiedSnapshots++;
  }
  const seen=new Set();
@@ -152,7 +196,7 @@ function coverage(root){
   seen.add(signature);verifiedDashboardSequences++;dashboardEvidence[d.name].verifiedSequences++;
  }
  return {profileAttempts,uniqueCompletedCurrentVersion:done.size,dashboardSnapshots:dashboards.size-sequences.length,
-  namedDashboardSnapshots,byDashboard,dashboardEvidence,verifiedDashboardSequences,unverifiedDashboardSequences,
+  namedDashboardSnapshots,byDashboard,dashboardEvidence,verifiedDashboardSequences,unverifiedDashboardSequences,verifiedFilterScopes,
   gameDialogReceipts,gameDialogObservations,gameDialogBySport,unclassifiedDashboardFiles,allFiltersVerified:false};
 }
-module.exports={load,walkBoards,analyze,coverage,features,matchupSample,quotes,scope,read,list,git};
+module.exports={load,walkBoards,analyze,coverage,features,matchupSample,quotes,sourceClockQuotes,scope,read,list,git};

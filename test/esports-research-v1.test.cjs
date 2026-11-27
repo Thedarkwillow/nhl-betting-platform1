@@ -13,3 +13,15 @@ test("future observed rows and mode mismatch excluded",()=>{const {maps,o}=fixtu
 test("headshot percentage is not count; missing stats never grade as zero",()=>{const {maps,o}=fixture("VALORANT");const x=maps.map(r=>({...r,stats:{kills:10,headshotPct:20}}));a.equal(m.grade({...o,market:"headshotKills"},x).status,"unresolved_missing_map_or_stat");a.equal(m.validMap({...maps[0],stats:{kills:2,headshotKills:3}}),false);});
 test("exposure known after cutoff is rejected and a known-at forecast is research only",()=>{const {maps,o}=fixture();const context={expectedExposure:42,exposureUnit:"rounds",sourceUrl:"https://example.test/forecast",knownAt:clock(14,1),independentPregameForecast:true};a.equal(m.predict({...o,context},maps).exposureChallenger,null);a.ok(m.predict({...o,context:{...context,knownAt:clock(12,20)}},maps).exposureChallenger);});
 test("push is not a loss; empty cohorts never fabricate performance",()=>{const {maps,o}=fixture();a.equal(m.grade({...o,line:20},maps).outcome,"Push");a.equal(m.evaluate([{...o,line:20}],maps).excluded.push,1);a.equal(m.evaluate([],[]).records,0);});
+test("direct forecast and final grade require distinct ordered complete maps for every title",()=>{
+ for(const title of Object.keys(m.TITLES)){
+  const {maps,o}=fixture(title);
+  const bad=(i,change)=>maps.map((r,j)=>i===j?{...r,...change}:r);
+  a.equal(m.predict(o,bad(1,{mapId:maps[0].mapId})).status,"insufficient_prior_complete_series");
+  a.equal(m.predict(o,bad(1,{opponentId:"different-team"})).status,"insufficient_prior_complete_series");
+  a.equal(m.predict(o,bad(1,{startAt:clock(1,1)})).status,"insufficient_prior_complete_series");
+  a.equal(m.grade(o,bad(25,{mapId:maps[24].mapId})).status,"unresolved_missing_map_or_stat");
+  a.equal(m.grade(o,bad(25,{participationVerified:false})).status,"unresolved_missing_map_or_stat");
+  a.equal(m.grade(o,bad(25,{final:false})).status,"unresolved_missing_map_or_stat");
+ }
+});

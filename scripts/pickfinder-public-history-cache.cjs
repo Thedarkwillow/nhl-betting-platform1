@@ -112,7 +112,7 @@ if(require.main===module){
   const q=queue(iterate(root,'board-parts',revision),profiles());
   const profileQueue={
    distinctScopes:q.total,completedCheckpointScopes:q.done,pendingScopes:q.pending.length,
-   malformedHistoryPending:q.malformedHistoryPending,offerReferences:q.offerReferences,
+   malformedHistoryPending:q.malformedHistoryPending,unresolvedHistoryRows:q.unresolvedHistoryRows,deferredHistoryScopes:q.deferredHistoryScopes,offerReferences:q.offerReferences,
    sharedAcrossBooks:q.sharedAcrossBooks
   };
   console.log(JSON.stringify({...history,archiveRevision:revision,profileQueue},null,2));

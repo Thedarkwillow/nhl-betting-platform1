@@ -41,7 +41,7 @@ function sharedScope(s){
  return {sport,player,market,eventId,detailId:u.pathname+'?'+u.searchParams.toString(),period:s.period??null,mapRange:s.mapRange??null,gameMode:s.gameMode??null};
 }
 function queue(boards,profiles){
- const done=new Set(),attempted=new Map(),repairs=new Map(),aligned=new Map();
+ const done=new Set(),attempted=new Map(),repairs=new Map(),aligned=new Map(),lastAligned=new Map();
  for(const b of profiles)for(const r of b.records||[]){
   const scope=sharedScope(r);if(!scope)continue;
   const key=sha(JSON.stringify(scope));attempted.set(key,(attempted.get(key)||0)+1);
@@ -52,14 +52,44 @@ function queue(boards,profiles){
    let cells;try{cells=JSON.parse(f.value);}catch{continue;}
    if(!Array.isArray(cells)||!Number.isFinite(Date.parse(f.observedAt)))continue;
    const n=String(f.scope||'').split(' | ').length,at=Date.parse(f.observedAt);
-   // Repair each tab/filter/row independently; one repaired table must not
-   // clear a different still-malformed historical table in the same profile.
-   const rowKey=JSON.stringify([key,f.tab??null,f.filterSelection??null,f.metric]);
-   if(n!==cells.length||String(f.scope).endsWith('[header truncated]'))repairs.set(rowKey,{key,at:Math.max(repairs.get(rowKey)?.at||0,at)});
-   else if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&(f.headerLayout==='span-grid-v1'||String(f.scope).length>500))aligned.set(rowKey,Math.max(aligned.get(rowKey)||0,at));
+   // The rolling game log moves rows between positions. Bind the entire cell vector
+   // (including date, opponent labels and values) to its profile/tab/filter context.
+   const contentKey=sha(JSON.stringify([key,f.tab??null,f.filterSelection??null,f.window??null,f.period??null,f.mapRange??null,f.gameMode??null,cells]));
+   const header=String(f.scope),rowKey=JSON.stringify([contentKey,header,f.metric]);
+   if(n!==cells.length||header.endsWith('[header truncated]')){
+    const old=repairs.get(rowKey);
+    if(!old||old.at<at)repairs.set(rowKey,{key,contentKey,header,metric:f.metric,at});
+   }else if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&(f.headerLayout==='span-grid-v1'||header.length>500)){
+    const rows=aligned.get(contentKey)||new Map(),id=JSON.stringify([header,f.metric]);
+    if(!rows.has(id)||rows.get(id).at<at)rows.set(id,{at,header,metric:f.metric});
+    aligned.set(contentKey,rows);
+    lastAligned.set(key,Math.max(lastAligned.get(key)||0,at));
+   }
   }
  }
- const repairKeys=new Set([...repairs].filter(([k,v])=>(aligned.get(k)||0)<=v.at).map(([,v])=>v.key));
+ let unresolvedHistoryRows=0;
+ const repairKeys=new Set(),latestGap=new Map(),oldPositions=new Map();
+ for(const x of repairs.values()){
+  const id=JSON.stringify([x.contentKey,x.header]),positions=oldPositions.get(id)||new Set();
+  positions.add(x.metric);oldPositions.set(id,positions);
+ }
+ for(const x of repairs.values()){
+  const prefix=x.header.replace(/ \| \[header truncated\]$/,'');
+  // Legacy capture clipped at 500 characters (or 480 plus the explicit marker).
+  // Only the clipped last label may be partial. Require every whole label to agree.
+  const clipped=prefix.length===500||x.header.endsWith('[header truncated]');
+  const whole=clipped?prefix.split(' | ').slice(0,-1).join(' | '):prefix;
+  const matching=[...(aligned.get(x.contentKey)?.values()||[])].filter(y=>y.at>x.at&&whole&&
+   (y.header===whole||y.header.startsWith(whole+' | '))&&(!clipped||y.header.startsWith(prefix)));
+  const hasSingleLayout=new Set(matching.map(y=>y.header)).size===1;
+  const oldUnique=oldPositions.get(JSON.stringify([x.contentKey,x.header])).size===1;
+  if(hasSingleLayout&&(matching.some(y=>y.metric===x.metric)||oldUnique&&matching.length===1))continue;
+  unresolvedHistoryRows++;
+  repairKeys.add(x.key);latestGap.set(x.key,Math.max(latestGap.get(x.key)||0,x.at));
+ }
+ // Replaying the same completed extraction cannot certify a missing old row.
+ // Reopen when a newer malformed row arrives or the collector version changes.
+ const deferred=new Set([...repairKeys].filter(k=>lastAligned.get(k)>latestGap.get(k)));
  for(const k of repairKeys)done.delete(k);
  const q=new Map();let references=0;
  for(const b of boards)for(const o of [...b.offers||[],...b.unpricedTierObservations||[],...(['offers','unpricedTierObservations'].includes(b.field)?b.rows:[])]){
@@ -69,11 +99,11 @@ function queue(boards,profiles){
   const books=[...new Set([...(prev?.books||[]),b.book])].sort();
   q.set(key,{key,...scope,book:books[0],books});
  }
- const groups=new Map();for(const x of q.values())if(!done.has(x.key)){const a=groups.get(x.sport)||[];a.push(x);groups.set(x.sport,a);}
+ const groups=new Map();for(const x of q.values())if(!done.has(x.key)&&!deferred.has(x.key)){const a=groups.get(x.sport)||[];a.push(x);groups.set(x.sport,a);}
  const order=['nba','nhl','nfl','cs2','dota2','valorant','lol','cod',...groups.keys()];const sports=[...new Set(order)].filter(s=>groups.has(s));
  for(const a of groups.values())a.sort((x,y)=>Number(repairKeys.has(y.key))-Number(repairKeys.has(x.key))||(attempted.get(x.key)||0)-(attempted.get(y.key)||0));
  const i=new Map(),pending=[];while(sports.some(s=>(i.get(s)||0)<groups.get(s).length))for(const s of sports){const n=i.get(s)||0;if(n<groups.get(s).length){pending.push(groups.get(s)[n]);i.set(s,n+1);}}
- return {total:q.size,done:[...done].filter(k=>q.has(k)).length,pending,repairPending:pending.filter(x=>repairKeys.has(x.key)),malformedHistoryPending:[...repairKeys].filter(k=>q.has(k)).length,offerReferences:references,sharedAcrossBooks:[...q.values()].filter(x=>x.books.length>1).length};
+ return {total:q.size,unresolvedHistoryRows,deferredHistoryScopes:[...deferred].filter(k=>q.has(k)).length,done:[...done].filter(k=>q.has(k)).length,pending,repairPending:pending.filter(x=>repairKeys.has(x.key)),malformedHistoryPending:[...repairKeys].filter(k=>q.has(k)).length,offerReferences:references,sharedAcrossBooks:[...q.values()].filter(x=>x.books.length>1).length};
 }
 function publicProfile(row){
  const fields=[];for(const f of row.research||[]){
@@ -191,7 +221,7 @@ async function main(root,env=process.env){
   }
   if(p.featuresOnly)return;
   const revision=archiveRevision(root);
-  const q=queue(iterate(root,'board-parts',revision),iterate(root,'profiles',revision));if(p.historyRepair)q.pending=q.repairPending;console.log(JSON.stringify({state:'public_deep_queue',archiveRevision:revision,total:q.total,completed:q.done,remaining:q.pending.length,malformedHistoryPending:q.malformedHistoryPending,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
+  const q=queue(iterate(root,'board-parts',revision),iterate(root,'profiles',revision));if(p.historyRepair)q.pending=q.repairPending;console.log(JSON.stringify({state:'public_deep_queue',archiveRevision:revision,total:q.total,completed:q.done,remaining:q.pending.length,malformedHistoryPending:q.malformedHistoryPending,unresolvedHistoryRows:q.unresolvedHistoryRows,deferredHistoryScopes:q.deferredHistoryScopes,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
   // Explicit manual deep runs alone trial two isolated tabs; all archives remain serialized.
   // Never increase parallelism in the protected morning board or scheduled collection paths.
   const workers=profileWorkers(env,p),pages=[];

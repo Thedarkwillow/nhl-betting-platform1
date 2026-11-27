@@ -1,0 +1,53 @@
+name: One-time approved NBA PrizePicksAPI 6 AM receipt (Nov 27)
+on:
+  pull_request:
+    paths: ['.github/workflows/prizepicks-nba-0600-20261127.yml','scripts/prizepicks-nba-0600-20261127.cjs','test/prizepicks-nba-0600-20261127.test.cjs']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/prizepicks-nba-0600-20261127.yml']
+permissions:
+  contents: read
+concurrency:
+  group: prizepicks-nba-once-20261127
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/prizepicks-nba-0600-20261127.test.cjs test/prizepicks-one-time-nov25.test.cjs
+  capture:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Refuse repeats and enforce Pacific day and hour
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          test "$(TZ=America/Los_Angeles date +%F-%H)" = '2026-11-27-06'
+          git cat-file -e "$BEFORE^{commit}"
+          if git cat-file -e "$BEFORE:.github/workflows/prizepicks-nba-0600-20261127.yml" 2>/dev/null; then
+            echo 'Previously introduced. Refusing repeat API requests.'
+            exit 1
+          fi
+      - name: One coverage check and at most one NBA projection request
+        id: fetch
+        env:
+          AUTHORIZED_NBA_WINDOW: '2026-11-27T06'
+          PRIZEPICKSAPI_KEY: ${{ secrets.PRIZEPICKSAPI_KEY }}
+        run: node scripts/prizepicks-nba-0600-20261127.cjs "$RUNNER_TEMP/prizepicks-nba-0600-receipt.json"
+      - name: Archive counts-only receipt
+        if: always() && steps.fetch.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: prizepicks-nba-0600-pacific-counts-safe
+          path: ${{ runner.temp }}/prizepicks-nba-0600-receipt.json
+          if-no-files-found: error

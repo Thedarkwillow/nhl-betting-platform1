@@ -140,6 +140,46 @@ function workloadPair(h, player, cutoff) {
      featureOff:selected(nativeHigher),historyGames:result.history};
 }
 
+const reviewedHistoryRevision='nba_independently_reviewed_history_prior20_v1';
+const reviewedHistoryMinimum=3;
+function reviewedHistoryPair(index,row,clock){
+ const {market,line,offeredSide,rawSelectedEstimate}=row;
+ if(!index?.size||!Object.values(aliases).includes(market)||!Number.isFinite(line)||line<0||
+    !Number.isInteger(line-.5)||!['Higher','Lower'].includes(offeredSide)||
+    !Number.isFinite(rawSelectedEstimate)||rawSelectedEstimate<0||rawSelectedEstimate>1)return null;
+ const {historyForModel}=require('./pickfinder-native-history-reconciliation.cjs');
+ const joined=historyForModel(index,{sport:'nba',playerId:row.playerId,market,asOf:clock,gameStartAt:row.gameStartAt});
+ const facts=joined.filter(f=>String(f.eventId)!==String(row.gameId)&&Number.isSafeInteger(f.value)&&f.value>=0).slice(-10);
+ if(new Set(facts.map(f=>f.eventId)).size!==facts.length||facts.length<reviewedHistoryMinimum)return null;
+ const wins=facts.filter(f=>offeredSide==='Higher'?f.value>line:f.value<line).length;
+ // Fixed shrinkage to the same model's selected-side estimate. The matched
+ // archive can overlap the native history, so it is never counted as independent training.
+ return {revision:reviewedHistoryRevision,featureOn:(20*rawSelectedEstimate+wins)/(20+facts.length),
+   featureOff:rawSelectedEstimate,historyGames:facts.length,facts};
+}
+
+function reviewedNbaHistory(root,clock){
+ const {committedProfiles}=require('./pickfinder-archived-model-inputs.cjs');
+ const {fromArchive,nativeIndex}=require('./pickfinder-native-history-reconciliation.cjs');
+ const profiles=function*(){
+  for(const file of committedProfiles(root)){
+   const records=(file.doc.records||[]).filter(x=>x.sport==='nba');
+   if(records.length)yield {...file,doc:{records}};
+  }
+ };
+ const index=nativeIndex({facts:[],nhlFinals:[],nflSeasons:[],nbaHistories:history(root,'nba-history'),
+   nbaFinalHistories:history(root,'nba-final-history')},clock);
+ return fromArchive(root,profiles(),clock,index).reviewedCache;
+}
+function withReviewedHistory(root,rows,clock){
+ if(!rows.length)return rows;
+ const reviewedCache=reviewedNbaHistory(root,clock);
+ return rows.map(row=>{
+  const pair=reviewedHistoryPair(reviewedCache,row,clock);
+  return pair?{...row,reviewedHistoryPair:pair}:row;
+ });
+}
+
 function modelRows({features,h,schedule,reviewed:crosswalk,clock,revision,injuryReceipts=[]}){
  const by=new Map();for(const x of crosswalk){const k=scope(x),a=by.get(k)||[];a.push(x);by.set(k,a);}
  const rows=[];for(const x of features){const o=x.offer,m=aliases[o.market];if(!Number.isFinite(dt(x.manifestFirst))||dt(x.manifestFirst)>dt(clock)||o.sport!=='nba'||!m||o.period||o.mapRange||o.gameMode||!Number.isFinite(dt(o.observedAt))||dt(o.observedAt)>dt(clock)||dt(clock)-dt(o.observedAt)>30*60000)continue;
@@ -198,7 +238,7 @@ async function grade(root,clock){
    if(rows.size===entries.length&&rows.size>=10){finals.set(id,{rows,observedAt:doc.capturedAt,digest:doc.sourceResponseSha256,source:doc.source});sourceRoutes.archived_official_web=(sourceRoutes.archived_official_web||0)+1;continue;}
   }
   const adapter=require('./nba-bounded-official-final.cjs'),a=await adapter.fetchFinal(id,start,clock);calls+=a.calls;for(const [k,n] of Object.entries(a.failures))sourceFailures[k]=(sourceFailures[k]||0)+n;if(!a.final)continue;const f=a.final,rows=adapter.parse(f.bytes,id,start,f.observedAt);if(rows){sourceRoutes[f.source]=(sourceRoutes[f.source]||0)+1;finals.set(id,{rows,observedAt:f.observedAt,digest:sha(f.bytes),source:f.source});}}
- const rows=[],seen=new Set();for(const x of selected){if(seen.has(x.id))continue;seen.add(x.id);const p=x.p,f=finals.get(p.gameId),stat=f?.rows.get(p.playerId);if(!stat||stat.team!==p.team)continue;const result=nba.gradePaper(p,stat);if(result==='pending')continue;rows.push({id:x.id,forecastDigest:x.forecastDigest,gameId:p.gameId,playerId:p.playerId,market:p.market,actual:stat[p.market],result,modelEstimate:p.rawSelectedEstimate,...(p.workloadPair?{workloadPair:p.workloadPair}:{}),...(p.matchupPair?{matchupPair:p.matchupPair}:{}),...(p.lowCountPair?{lowCountPair:p.lowCountPair}:{}),baselineEstimate:p.baselineSelectedEstimate??null,modelProjection:p.projection,pickfinderAverage:Number.isFinite(p.features?.['Avg L10'])?p.features['Avg L10']:null,quoteBenchmarks:p.quoteBenchmarks||[],side:p.offeredSide,officialResponseSha256:f.digest,officialObservedAt:f.observedAt,officialSource:f.source});}
+ const rows=[],seen=new Set();for(const x of selected){if(seen.has(x.id))continue;seen.add(x.id);const p=x.p,f=finals.get(p.gameId),stat=f?.rows.get(p.playerId);if(!stat||stat.team!==p.team)continue;const result=nba.gradePaper(p,stat);if(result==='pending')continue;rows.push({id:x.id,forecastDigest:x.forecastDigest,gameId:p.gameId,playerId:p.playerId,market:p.market,actual:stat[p.market],result,modelEstimate:p.rawSelectedEstimate,...(p.reviewedHistoryPair?{reviewedHistoryPair:p.reviewedHistoryPair}:{}),...(p.workloadPair?{workloadPair:p.workloadPair}:{}),...(p.matchupPair?{matchupPair:p.matchupPair}:{}),...(p.lowCountPair?{lowCountPair:p.lowCountPair}:{}),baselineEstimate:p.baselineSelectedEstimate??null,modelProjection:p.projection,pickfinderAverage:Number.isFinite(p.features?.['Avg L10'])?p.features['Avg L10']:null,quoteBenchmarks:p.quoteBenchmarks||[],side:p.offeredSide,officialResponseSha256:f.digest,officialObservedAt:f.observedAt,officialSource:f.source});}
  if(rows.length)save(root,'nba-grades',{kind:'pickfinder_public_nba_independent_grades_v1',generatedAt:now(),rows,appSettlementVerified:false});return {registered:selected.length,archivedPregameRows:archived,pendingNotDue,alreadyGraded,invalidPregameRows:invalid,dueForGrade:selected.length,pendingDueAfterRun:selected.length-rows.length,newGrades:rows.length,finalGames:finals.size,calls,sourceFailures,sourceRoutes};
 }
 function baselineScores(pairs){
@@ -216,7 +256,7 @@ function baselineScores(pairs){
  return {decided:n,modelBrier:modelBrier/n,baselineBrier:baselineBrier/n,modelLogLoss:modelLogLoss/n,baselineLogLoss:baselineLogLoss/n};
 }
 function pairedStats(rows){
- const by={},unique=new Map(),conflicts=new Set();for(const r of rows){if(!r.id)continue;const old=unique.get(r.id);if(old&&JSON.stringify(old)!==JSON.stringify(r))conflicts.add(r.id);else if(!old)unique.set(r.id,r);}for(const [id,r] of unique){if(conflicts.has(id)||!['correct','incorrect'].includes(r.result)||!Number.isFinite(r.actual)||!Number.isFinite(r.modelEstimate)||r.modelEstimate<0||r.modelEstimate>1)continue;const a=by[r.market]??={baselinePairs:[],lowCountPairs:[],matchupPairs:[],workloadPairs:[],n:0,brier:0,logLoss:0,quoteN:0,quoteBrier:0,pairedModelBrier:0,avgN:0,avgMAE:0,pairedProjectionMAE:0};const pair=r.lowCountPair;
+ const by={},unique=new Map(),conflicts=new Set();for(const r of rows){if(!r.id)continue;const old=unique.get(r.id);if(old&&JSON.stringify(old)!==JSON.stringify(r))conflicts.add(r.id);else if(!old)unique.set(r.id,r);}for(const [id,r] of unique){if(conflicts.has(id)||!['correct','incorrect'].includes(r.result)||!Number.isFinite(r.actual)||!Number.isFinite(r.modelEstimate)||r.modelEstimate<0||r.modelEstimate>1)continue;const a=by[r.market]??={baselinePairs:[],lowCountPairs:[],matchupPairs:[],workloadPairs:[],reviewedHistoryPairs:[],n:0,brier:0,logLoss:0,quoteN:0,quoteBrier:0,pairedModelBrier:0,avgN:0,avgMAE:0,pairedProjectionMAE:0};const pair=r.lowCountPair;
  if(pair?.revision===lowCountPairRevision&&[pair.featureOn,pair.featureOff].every(p=>Number.isFinite(p)&&p>=0&&p<=1))
   a.lowCountPairs.push({modelEstimate:pair.featureOn,baselineEstimate:pair.featureOff,result:r.result});
  const matchup=r.matchupPair;
@@ -225,8 +265,13 @@ function pairedStats(rows){
  const workload=r.workloadPair;
  if(workload?.revision===workloadPairRevision&&[workload.featureOn,workload.featureOff].every(p=>Number.isFinite(p)&&p>=0&&p<=1))
   a.workloadPairs.push({modelEstimate:workload.featureOn,baselineEstimate:workload.featureOff,result:r.result});
+ const reviewedHistory=r.reviewedHistoryPair;
+ if(reviewedHistory?.revision===reviewedHistoryRevision&&Number.isSafeInteger(reviewedHistory.historyGames)&&
+   reviewedHistory.historyGames>=reviewedHistoryMinimum&&[reviewedHistory.featureOn,reviewedHistory.featureOff].every(p=>Number.isFinite(p)&&p>=0&&p<=1))
+  a.reviewedHistoryPairs.push({modelEstimate:reviewedHistory.featureOn,baselineEstimate:reviewedHistory.featureOff,result:r.result});
  const y=Number(r.result==='correct');if(Number.isFinite(r.baselineEstimate)&&r.baselineEstimate>=0&&r.baselineEstimate<=1)a.baselinePairs.push(r);a.n++;a.brier+=(r.modelEstimate-y)**2;a.logLoss-=Math.log(Math.max(1e-15,y?r.modelEstimate:1-r.modelEstimate));const qs=(r.quoteBenchmarks||[]).filter(q=>Number.isFinite(q.higher)&&q.higher>=0&&q.higher<=1);if(qs.length){const p=qs.reduce((s,q)=>s+(r.side==='Higher'?q.higher:1-q.higher),0)/qs.length;a.quoteN++;a.quoteBrier+=(p-y)**2;a.pairedModelBrier+=(r.modelEstimate-y)**2;}if(Number.isFinite(r.pickfinderAverage)&&Number.isFinite(r.modelProjection)){a.avgN++;a.avgMAE+=Math.abs(r.pickfinderAverage-r.actual);a.pairedProjectionMAE+=Math.abs(r.modelProjection-r.actual);}}
- return Object.fromEntries(Object.entries(by).map(([k,a])=>[k,{workloadFeatureComparison:{revision:workloadPairRevision,...baselineScores(a.workloadPairs)},matchupFeatureComparison:{revision:matchupPairRevision,...baselineScores(a.matchupPairs)},lowCountFeatureComparison:{revision:lowCountPairRevision,...baselineScores(a.lowCountPairs)},frozenBaselineComparison:baselineScores(a.baselinePairs),decided:a.n,modelBrier:a.brier/a.n,modelLogLoss:a.logLoss/a.n,pairedQuoteN:a.quoteN,quoteBrier:a.quoteN?a.quoteBrier/a.quoteN:null,pairedModelBrier:a.quoteN?a.pairedModelBrier/a.quoteN:null,pairedAverageN:a.avgN,pickfinderAverageMAE:a.avgN?a.avgMAE/a.avgN:null,modelProjectionMAE:a.avgN?a.pairedProjectionMAE/a.avgN:null,approved:false}]));
+ return Object.fromEntries(Object.entries(by).map(([k,a])=>[k,{reviewedHistoryFeatureComparison:{revision:reviewedHistoryRevision,...baselineScores(a.reviewedHistoryPairs),
+   evenBrier:a.reviewedHistoryPairs.length ? .25 : null,evenLogLoss:a.reviewedHistoryPairs.length?Math.log(2):null},workloadFeatureComparison:{revision:workloadPairRevision,...baselineScores(a.workloadPairs)},matchupFeatureComparison:{revision:matchupPairRevision,...baselineScores(a.matchupPairs)},lowCountFeatureComparison:{revision:lowCountPairRevision,...baselineScores(a.lowCountPairs)},frozenBaselineComparison:baselineScores(a.baselinePairs),decided:a.n,modelBrier:a.brier/a.n,modelLogLoss:a.logLoss/a.n,pairedQuoteN:a.quoteN,quoteBrier:a.quoteN?a.quoteBrier/a.quoteN:null,pairedModelBrier:a.quoteN?a.pairedModelBrier/a.quoteN:null,pairedAverageN:a.avgN,pickfinderAverageMAE:a.avgN?a.avgMAE/a.avgN:null,modelProjectionMAE:a.avgN?a.pairedProjectionMAE/a.avgN:null,approved:false}]));
 }
 async function main(root){
  const clock=now(),revision=git(root,['rev-parse','HEAD']),archive=load(root),a=analyze(archive,clock);a.summary.researchCoverage=coverage(root);
@@ -247,10 +292,12 @@ async function main(root){
  // Historical walk-forward evaluation of existing model only; not a new feature qualification.
  a.summary.nbaRetrospective=nba.backtest(h);
  const existing=history(root,'nba-forecasts').flatMap(frame=>frame.doc.rows||[]);
- rows=newForecastRows(modelRows({features:a.featureRows,h,schedule:src.schedule,reviewed:reviewed(root,at),clock:at,revision,injuryReceipts}),existing);
+ rows=withReviewedHistory(root,newForecastRows(modelRows({features:a.featureRows,h,schedule:src.schedule,
+   reviewed:reviewed(root,at),clock:at,revision,injuryReceipts}),existing),at);
  if(rows.length)save(root,'nba-forecasts',{kind:'pickfinder_public_nba_shadow_forecasts_v1',generatedAt:at,rows,modelRevision:revision,researchOnly:true,originalPlatformVerified:false});
  }
  a.summary.nbaOfficialAvailability.forecastsWithStatus=rows.filter(row=>row.officialAvailability).length;
+ a.summary.nbaReviewedHistoryShadowRows=rows.filter(row=>row.reviewedHistoryPair).length;
  a.summary.nbaWorkloadShadowRows=rows.filter(row=>row.workloadPair).length;
  a.summary.nbaMatchupShadowRows=rows.filter(row=>row.matchupPair).length;
  a.summary.nbaShadowRows=rows.length;a.summary.independentGrading=await grade(root,now());
@@ -263,5 +310,5 @@ async function main(root){
  fs.mkdirSync(path.join(root,'data'),{recursive:true});fs.writeFileSync(path.join(root,'data/pickfinder-public-research-health.json'),JSON.stringify(a.summary,null,2)+'\n');
  console.log(JSON.stringify({state:'public_research_validation',manifests:a.summary.archiveManifests,invalid:a.summary.invalidManifests,offerRefs:a.summary.offerRefs,exactComparisons:a.summary.exactComparisons,nbaShadowRows:rows.length,nbaSources:a.summary.nbaOfficialSources,independentGrading:a.summary.independentGrading,paidRequests:0,privateRepoUsed:false}));
 }
-module.exports={grade,lowCountPair,matchupPair,workloadPair,newForecastRows,forecastOfferKey,candidates,modelRows,aliases,pairedStats,reviewed,history,save,gradingQueue,finalHistory,recoverFinalHistory,datedFinalGames,recentFinalSchedule};
+module.exports={grade,reviewedHistoryPair,reviewedNbaHistory,withReviewedHistory,lowCountPair,matchupPair,workloadPair,newForecastRows,forecastOfferKey,candidates,modelRows,aliases,pairedStats,reviewed,history,save,gradingQueue,finalHistory,recoverFinalHistory,datedFinalGames,recentFinalSchedule};
 if(require.main===module)main(fs.realpathSync(process.argv[2]||'.')).catch(()=>{console.error('Public research validation failed closed');process.exitCode=1;});

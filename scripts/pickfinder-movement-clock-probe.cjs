@@ -4,8 +4,9 @@ const {profileMarketEvidence}=require('./pickfinder-profile-market-evidence.cjs'
 const ZONES=['UTC','America/Los_Angeles'];
 const fingerprint=r=>JSON.stringify([r.book,r.quoteLine,r.higher,r.lower]);
 
-function select(receipts,at){
+function select(receipts,at,prior=[]){
  const cutoff=Date.parse(at),groups=new Map();
+ const attempted=new Set(probeRecords(prior,cutoff).flatMap(record=>record.observations.map(o=>o.detailId)));
  for(const {doc,first,digest} of receipts){
   if(doc.schema!=='pickfinder_profile_historical_sportsbook_recovery_v1'||!Number.isFinite(Date.parse(first))||Date.parse(first)>cutoff)continue;
   for(const r of doc.rows||[]){
@@ -16,7 +17,9 @@ function select(receipts,at){
    if(u.origin!=='https://www.pickfinder.app'||!/^\/players\/[a-z0-9_]+\/[a-z0-9_-]+$/i.test(u.pathname)||
      u.pathname.split('/')[2]!==r.sport||u.hash||prop.length!==1||[...u.searchParams].length!==1||
      prop[0].split(':').length!==4||prop[0].split(':')[1]!==r.market||prop[0].split(':')[2]!==r.eventId)continue;
-   const detailId=u.pathname+u.search,g=groups.get(detailId)||{target:{sport:r.sport,player:r.player,eventId:r.eventId,
+   const detailId=u.pathname+u.search;
+   if(attempted.has(detailId))continue;
+   const g=groups.get(detailId)||{target:{sport:r.sport,player:r.player,eventId:r.eventId,
     market:r.market,detailId,referenceDigest:digest},latest:0,pairs:new Set()};
    g.latest=Math.max(g.latest,observed);
    g.pairs.add(fingerprint(r));
@@ -43,31 +46,57 @@ function render(date,zone){
  return p.month+'/'+p.day+' '+p.hour+':'+p.minute+p.dayPeriod;
 }
 
-function compare(observations){
- const [a,b]=observations;
- if(observations.length!==2||a.detailId!==b.detailId||a.zone!==ZONES[0]||b.zone!==ZONES[1]||
-    a.browserZone!==a.zone||b.browserZone!==b.zone||!a.sampled||!b.sampled||
-    Math.abs(Date.parse(a.observedAt)-Date.parse(b.observedAt))>120000)return {state:'incomplete'};
-
+function matchedPairs(observations){
+ if(!Array.isArray(observations)||observations.length!==2)return null;
+ const [a,b]=observations,firstAt=Date.parse(a.observedAt),secondAt=Date.parse(b.observedAt);
+ if(typeof a.detailId!=='string'||a.detailId!==b.detailId||a.zone!==ZONES[0]||b.zone!==ZONES[1]||
+    a.browserZone!==a.zone||b.browserZone!==b.zone||a.sampled!==true||b.sampled!==true||
+    !Array.isArray(a.rows)||!Array.isArray(b.rows)||![firstAt,secondAt].every(Number.isFinite)||
+    secondAt<firstAt||secondAt-firstAt>120000)return null;
  const unique=rows=>{
   const groups=new Map();
   for(const r of rows){
-   if(!r.higher||!r.lower)continue;
+   if(!r.higher||!r.lower||!Number.isFinite(r.quoteLine)||!r.book||
+      !/^\d{1,2}\/\d{1,2} \d{1,2}:\d{2}(?:AM|PM)$/.test(r.displayedMovementClock))continue;
    const k=fingerprint(r),g=groups.get(k)||[];g.push(r);groups.set(k,g);
   }
   return groups;
  };
- const first=unique(a.rows),second=unique(b.rows);
- let matched=0,shifted=0,unchanged=0;
+ const first=unique(a.rows),second=unique(b.rows),matches=[];
  for(const [k,x] of first){
   const y=second.get(k);
   if(x.length!==1||y?.length!==1)continue;
-  matched++;
   const src=x[0].displayedMovementClock,dst=y[0].displayedMovementClock;
-  if(src===dst){unchanged++;continue;}
-  if(utcCandidates(src,Date.parse(a.observedAt)).filter(d=>render(d,b.zone)===dst).length===1)shifted++;
+  const shifted=src!==dst&&utcCandidates(src,firstAt).filter(d=>render(d,b.zone)===dst).length===1;
+  matches.push({key:JSON.stringify([a.detailId,x[0].book,x[0].quoteLine]),shifted,unchanged:src===dst});
  }
- return {state:matched>=2&&shifted===matched?'browser_local_candidate':matched>=2&&unchanged===matched?'fixed_zone_candidate':'inconclusive',matched,shifted,unchanged};
+ return matches;
+}
+
+function compare(observations){
+ const matches=matchedPairs(observations);
+ if(!matches)return {state:'incomplete'};
+ const matched=matches.length,shifted=matches.filter(x=>x.shifted).length,unchanged=matches.filter(x=>x.unchanged).length;
+ return aggregate([{matched,shifted,unchanged}]);
+}
+
+function probeRecords(documents,cutoff){
+ return documents.filter(d=>d.schema==='pickfinder-movement-clock-probe-v1'&&
+   Date.parse(d.observedAt)<=cutoff&&cutoff-Date.parse(d.observedAt)<=48*3600000&&Array.isArray(d.records))
+  .flatMap(d=>d.records.filter(r=>Array.isArray(r.observations)));
+}
+
+function combineProbeReceipts(documents,at){
+ const groups=new Map();
+ for(const r of probeRecords(documents,Date.parse(at))){
+  for(const match of matchedPairs(r.observations)||[]){
+   const states=groups.get(match.key)||new Set();
+   states.add(match.shifted?'shifted':match.unchanged?'unchanged':'other');
+   groups.set(match.key,states);
+  }
+ }
+ return aggregate([...groups.values()].map(states=>({matched:1,
+  shifted:Number(states.size===1&&states.has('shifted')),unchanged:Number(states.size===1&&states.has('unchanged'))})));
 }
 
 function aggregate(records){
@@ -77,7 +106,7 @@ function aggregate(records){
  return {...totals,state:matched>=2&&shifted===matched?'browser_local_candidate':
   matched>=2&&unchanged===matched?'fixed_zone_candidate':'inconclusive'};
 }
-async function observe({targets,open,alive,write,premium,origin}){
+async function observe({targets,open,alive,write,premium,origin,prior=[]}){
  const byTarget=targets.map(()=>[]);
  for(const zone of ZONES){
   if(!alive()||!targets.length)break;
@@ -113,9 +142,11 @@ async function observe({targets,open,alive,write,premium,origin}){
  }
  const records=byTarget.map((observations,i)=>({sport:targets[i].sport,player:targets[i].player,
   sourceEventId:targets[i].eventId,referenceDigest:targets[i].referenceDigest,observations,...compare(observations)}));
- const summary=aggregate(records);
- await write({schema:'pickfinder-movement-clock-probe-v1',observedAt:new Date().toISOString(),records,summary,
+ const summary=aggregate(records),observedAt=new Date().toISOString();
+ const receipt={schema:'pickfinder-movement-clock-probe-v1',observedAt,records,summary};
+ const recentComparison=combineProbeReceipts([...prior,receipt],observedAt);
+ await write({...receipt,recentComparison,
   providerDisplayZoneVerified:false,modelInputsApproved:false});
- return {targets:targets.length,observations:byTarget.flat().length,states:records.map(x=>x.state),summary};
+ return {targets:targets.length,observations:byTarget.flat().length,states:records.map(x=>x.state),summary,recentComparison};
 }
-module.exports={select,compare,aggregate,observe};
+module.exports={select,compare,aggregate,combineProbeReceipts,observe};

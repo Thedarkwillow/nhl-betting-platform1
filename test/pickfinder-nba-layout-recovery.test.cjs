@@ -34,3 +34,25 @@ test('only the exact unique archived layout with multiple donors recovers retros
   audit.observe(make('A'),{...full,scope:header+' alternate'},'b'.repeat(64),58);
   assert.equal(audit.run(index).summary.reconstructedHeaders,0);
 });
+
+
+test('full-game NBA TO resolves to independent turnovers without consuming a period column', () => {
+  const audit = createLayoutAudit(clock);
+  const scope = header.replace('Archive statistic number 0','TO')
+    .replace('Archive statistic number 1','2Q TO');
+  const row = {...field,scope:scope.slice(0,500)};
+  const values=JSON.parse(row.value);
+  values[8].value='3';
+  values[9].value='1';
+  row.value=JSON.stringify(values);
+  const athlete={...make('Athlete'),market:'player_turnovers'};
+  audit.gaps.push(audit.pin(athlete,row,'a'.repeat(64),58));
+  for (const [player,digest] of [['A','b'],['B','c']]) {
+    audit.observe(make(player),{...row,scope,headerLayout:'span-grid-v1'},digest.repeat(64),58);
+  }
+  const official=index.byPlayer.get(JSON.stringify(['nba','4']))[0];
+  const source={...index,byPlayer:new Map([[JSON.stringify(['nba','4']),
+    [{...official,stats:{turnovers:3}}]]])};
+  assert.equal(audit.run(source).rows[0].value,3);
+  assert.equal(audit.run(source).rows[0].retrospectiveOnly,true);
+});

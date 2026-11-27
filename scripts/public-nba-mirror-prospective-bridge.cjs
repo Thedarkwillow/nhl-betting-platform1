@@ -3,7 +3,7 @@
 // Alternate source rows stay in memory; no wagers or model promotion.
 const fs=require('node:fs'),path=require('node:path'),{load,analyze,git,read,list,scope}=require('./pickfinder-public-evidence-audit.cjs');
 const {ROOT}=require('./pickfinder-public-archive.cjs'),{indexReviews}=require('./pickfinder-reviewed-game-context.cjs');
-const {reviewed,history,save,modelRows,forecastOfferKey,aliases}=require('./pickfinder-public-model-validation.cjs'),nba=require('../src/nba-research-pipeline-v1.cjs');
+const {reviewed,history,save,modelRows,withReviewedHistory,forecastOfferKey,aliases}=require('./pickfinder-public-model-validation.cjs'),nba=require('../src/nba-research-pipeline-v1.cjs');
 const dt=Date.parse,now=()=>new Date().toISOString();
 const isHash=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 
@@ -75,8 +75,9 @@ function run(root,payload,clock=now()){
  const receipts=gameReviewReceipts(root,clock),derived=reviewedScopes({archive,schedule:latest?.doc,clock,receipts,explicit}),reviews=[...explicit,...derived];
  const selected=choose({archive,historyRows:payload.rows,reviewRows:reviews,schedule:latest?.doc,clock,revision,prior,digests:payload.digests,injuryReceipts:history(root,'nba-official-availability')});
  let receipt=null;
- if(selected.rows.length)receipt=save(root,'nba-forecasts',{kind:'pickfinder_public_nba_shadow_forecasts_v1',generatedAt:clock,rows:selected.rows,modelRevision:revision,historySourceDigests:payload.digests,scheduleDigest:latest.digest,researchOnly:true,originalPlatformVerified:false});
- return {kind:'nba_mirror_prospective_bridge_v1',generatedAt:clock,reviewedCrosswalkRows:reviews.length,explicitCrosswalkRows:explicit.length,reviewedReceiptScopes:derived.length,immutableGameReviewReceipts:receipts.length,newForecastRows:selected.rows.length,reason:selected.reason,forecastDigest:receipt?.digest??null,earliestGameStartAt:selected.rows.map(x=>x.gameStartAt).sort()[0]??null,rawHistoryRowsPublished:0,modelApproved:false,originalPlatformVerified:false};
+ const enriched=withReviewedHistory(root,selected.rows,clock);
+ if(enriched.length)receipt=save(root,'nba-forecasts',{kind:'pickfinder_public_nba_shadow_forecasts_v1',generatedAt:clock,rows:enriched,modelRevision:revision,historySourceDigests:payload.digests,scheduleDigest:latest.digest,researchOnly:true,originalPlatformVerified:false});
+ return {kind:'nba_mirror_prospective_bridge_v1',generatedAt:clock,reviewedCrosswalkRows:reviews.length,explicitCrosswalkRows:explicit.length,reviewedReceiptScopes:derived.length,immutableGameReviewReceipts:receipts.length,newForecastRows:enriched.length,reviewedHistoryShadowRows:enriched.filter(r=>r.reviewedHistoryPair).length,reason:selected.reason,forecastDigest:receipt?.digest??null,earliestGameStartAt:selected.rows.map(x=>x.gameStartAt).sort()[0]??null,rawHistoryRowsPublished:0,modelApproved:false,originalPlatformVerified:false};
 }
 if(require.main===module)try{console.log(JSON.stringify(run(process.argv[2],JSON.parse(fs.readFileSync(0,'utf8')))));}catch{console.error('NBA prospective bridge failed closed');process.exitCode=1;}
 module.exports={choose,run,gameReviewReceipts,reviewedScopes};

@@ -26,7 +26,42 @@
   for(const [sport,x] of Object.entries(activity.sportsbookThresholdEvidence||{}))add(mount,'p',sport.toUpperCase()+': '+n(x.explicitThreshold)+' explicit sportsbook thresholds; '+n(x.exactPairs)+' same-snapshot price pairs. Independent offer verification remains required.');
   const series=activity.esportsSeriesReview;
   if(series?.counts){
-   add(mount,'p','Independent esports series review: '+n(series.counts.roster_and_map_corroborated)+' of '+n(series.scopes)+' scopes corroborated for player and maps · '+n(series.counts.player_unresolved)+' player identities unresolved · '+n(series.counts.map_scope_unresolved)+' map scopes unresolved.');
+   add(mount,'p','Independent esports series review: '+n(series.counts.roster_and_map_corroborated)+' of '+n(series.scopes)+' scopes corroborated for player and maps · '+n(series.counts.player_unresolved??0)+' player identities unresolved · '+n(series.counts.roster_conflict??0)+' roster conflicts · '+n(series.counts.map_scope_unresolved)+' map scopes unresolved.');
+  }
+  const replay=activity.reviewedHistoryModel;
+  if(replay?.retrospective===true&&replay.modelApproved===false){
+   add(mount,'h3','NHL and NFL historical model replay');
+   for(const sport of ['nhl','nfl']){
+    const markets=Object.entries(replay.bySport?.[sport]||{});
+    add(mount,'h4',sport.toUpperCase());
+    const decided=markets.filter(([,m])=>m.decided>0);
+    if(!decided.length){add(mount,'p','No independently graded archive pairs met the pregame evidence gates.');continue;}
+    const table=add(mount,'table',''),header=add(add(table,'thead',''),'tr','');
+    for(const label of ['Market','Decisions','Games','Estimate','Brier score','Log loss'])add(header,'th',label);
+    const body=add(table,'tbody','');
+    for(const [market,m] of decided)for(const [key,label] of [
+     ['existing','Existing model'],['reviewed','Reviewed history'],['challenger','Combined'],['neutral','50% baseline']
+    ]){
+     const score=m.scores?.[key];
+     if(!Number.isFinite(score?.brier)||!Number.isFinite(score?.logLoss))continue;
+     const row=add(body,'tr','');
+     for(const v of [market,n(m.decided),n(m.distinctGames),label,score.brier.toFixed(3),score.logLoss.toFixed(3)])add(row,'td',v);
+    }
+   }
+  }
+  const valorant=activity.valorantRetrospective;
+  if(valorant?.prospective===false&&valorant.modelApproved===false){
+   add(mount,'h3','Valorant two-map retrospective');
+   add(mount,'p',n(valorant.examples)+' distinct propositions across '+n(valorant.series)+' series with independent results.');
+   const table=add(mount,'table',''),header=add(add(table,'thead',''),'tr','');
+   for(const label of ['Estimate','Brier score','Log loss'])add(header,'th',label);
+   const body=add(table,'tbody','');
+   for(const [key,label] of [['l10','Last ten'],['l5','Last five'],['l5L10Blend','Equal blend'],['even','50% baseline']]){
+    const score=valorant[key];
+    if(!Number.isFinite(score?.brier)||!Number.isFinite(score?.logLoss))continue;
+    const row=add(body,'tr','');
+    for(const v of [label,score.brier.toFixed(3),score.logLoss.toFixed(3)])add(row,'td',v);
+   }
   }
   const profile=activity.profileMarketEvidence;
   if(profile){
@@ -46,6 +81,7 @@
   {key:'frozenBaselineComparison',title:'Model and pregame baseline',arms:['Model','Pregame baseline']},
   {key:'lowCountFeatureComparison',title:'PickFinder last-ten average on eligible NBA markets',arms:['With last-ten average','Without last-ten average']},
   {key:'matchupFeatureComparison',title:'NBA head-to-head challenger',arms:['With head-to-head history','Native model']},
+  {key:'reviewedHistoryFeatureComparison',title:'NBA independently reviewed PickFinder history',arms:['With reviewed history','Existing model'],includeEven:true},
   {key:'workloadFeatureComparison',title:'NBA native minutes challenger',arms:['Minutes-adjusted count model','Unadjusted count model']}
  ]){
   add(mount,'h4',comparison.title);
@@ -57,7 +93,9 @@
   for(const label of ['Market','Decisions','Estimate',...scoreColumns])add(header,'th',label);
   const body=add(table,'tbody','');
   for(const [market,p] of paired){
-   for(const [label,brier,loss] of [[comparison.arms[0],p.modelBrier,p.modelLogLoss],[comparison.arms[1],p.baselineBrier,p.baselineLogLoss]]){
+   const arms=[[comparison.arms[0],p.modelBrier,p.modelLogLoss],[comparison.arms[1],p.baselineBrier,p.baselineLogLoss]];
+   if(comparison.includeEven&&[p.evenBrier,p.evenLogLoss].every(Number.isFinite))arms.push(['50% baseline',p.evenBrier,p.evenLogLoss]);
+   for(const [label,brier,loss] of arms){
     const row=add(body,'tr','');
     for(const value of [market,n(p.decided),label,brier.toFixed(3),loss.toFixed(3)])add(row,'td',value);
    }

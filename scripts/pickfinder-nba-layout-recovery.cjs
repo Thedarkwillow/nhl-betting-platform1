@@ -5,7 +5,7 @@ const {sha} = require('./pickfinder-public-archive.cjs');
 
 const tablePrefix = 'Date | Opponent | Min | Pts | Rebs | O-Reb | D-Reb | Asts | ';
 const marker = ' | [header truncated]';
-const aliases = {Rebs:'reb', Asts:'assists', Blks:'blocks', Stls:'steals'};
+const aliases = {Rebs:'reb', Asts:'assists', Blks:'blocks', Stls:'steals', TO:'tov'};
 const digestOk = value => /^[a-f0-9]{64}$/.test(value);
 function sawBy(value, cutoff) {
   return Number.isFinite(Date.parse(value)) && Date.parse(value) <= cutoff;

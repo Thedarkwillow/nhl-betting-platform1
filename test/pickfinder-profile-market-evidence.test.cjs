@@ -114,3 +114,23 @@ test('movement probe ranks evidenced paired prices and excludes unsupported refe
  assert.equal(aggregate([{matched:1,shifted:1,unchanged:0},{matched:1,shifted:1,unchanged:0}]).state,'browser_local_candidate');
  assert.equal(aggregate([{matched:1,shifted:1,unchanged:0},{matched:1,shifted:0,unchanged:1}]).state,'inconclusive');
 });
+
+test('movement follow-up rotates sampled profiles and never double-counts an archived quote',()=>{
+ const {select,combineProbeReceipts}=require('../scripts/pickfinder-movement-clock-probe.cjs');
+ const a='2026-11-27T01:31:43Z',b='2026-11-27T01:31:47Z';
+ const detailId='https://www.pickfinder.app/players/nfl/one?prop=id:yards:n1:10.5';
+ const pair={book:'hardrockbet',quoteLine:10.5,higher:'-115',lower:'-115'};
+ const record=id=>({observations:[
+  {detailId:id,zone:'UTC',browserZone:'UTC',observedAt:a,sampled:true,rows:[{...pair,displayedMovementClock:'11/27 1:21AM'}]},
+  {detailId:id,zone:'America/Los_Angeles',browserZone:'America/Los_Angeles',observedAt:b,sampled:true,rows:[{...pair,displayedMovementClock:'11/26 5:21PM'}]}
+ ]});
+ const old={schema:'pickfinder-movement-clock-probe-v1',observedAt:b,records:[record(detailId)]};
+ assert.equal(combineProbeReceipts([old,old],b).matched,1);
+ assert.equal(combineProbeReceipts([old,{...old,records:[record(detailId.replace('/one','/two'))]}],b).state,'browser_local_candidate');
+ const docs=[{first:a,digest:'a'.repeat(64),doc:{schema:'pickfinder_profile_historical_sportsbook_recovery_v1',rows:[
+  {...pair,detailId,sport:'nfl',player:'One',market:'yards',eventId:'n1',kind:'historical_sportsbook_quote',observedAt:a},
+  {...pair,detailId:'/players/nfl/two?prop=id:yards:n2:10.5',sport:'nfl',player:'Two',market:'yards',eventId:'n2',kind:'historical_sportsbook_quote',observedAt:a}
+ ]}}];
+ const prior={...old,records:[record(new URL(detailId).pathname+new URL(detailId).search)]};
+ assert.deepEqual(select(docs,b,[prior]).map(x=>x.player),['Two']);
+});

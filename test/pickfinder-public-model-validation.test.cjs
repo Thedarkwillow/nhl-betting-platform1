@@ -163,3 +163,32 @@ t('NBA availability distinguishes a committed official status from late, conflic
  assert.deepEqual(await collect({games:[game]},[f],clock,async()=>new Response(html)),
   {state:'committed_report_reused',calls:1});
 });
+
+t('reviewed NBA history blends only distinct independently known prior half-line results',()=>{
+ const {reviewedHistoryPair,pairedStats}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const clock='2026-11-26T10:00:00Z';
+ const row={gameId:99,gameStartAt:'2026-11-26T20:00:00Z',playerId:42,market:'points',line:19.5,offeredSide:'Lower',rawSelectedEstimate:.6};
+ const fact=(eventId,value,knownAt='2026-11-26T09:00:00Z',extra={})=>({sport:'nba',playerId:'42',market:'points',eventId:String(eventId),
+   officialStartAt:'2026-11-25T20:00:00Z',availableAt:knownAt,value,providerIdentityReviewed:true,
+   reviewDigest:'1'.repeat(64),nativeDigest:'2'.repeat(64),profileDigest:'3'.repeat(64),...extra});
+ const index=new Map(Object.entries({
+   a:fact(1,10),b:fact(2,25),c:fact(3,10),d:fact(4,10,'2026-11-26T11:00:00Z'),
+   e:fact(5,10,undefined,{officialStartAt:null}),f:fact(99,10),
+   g:fact(6,10,undefined,{providerIdentityReviewed:false})
+ }));
+ const pair=reviewedHistoryPair(index,row,clock);
+ assert.equal(pair.historyGames,3);
+ assert.deepEqual(pair.facts.map(x=>x.eventId),['1','2','3']);
+ assert.equal(pair.featureOff,.6);
+ assert.equal(pair.featureOn,14/23);
+ assert.equal(reviewedHistoryPair(index,{...row,line:20},clock),null);
+ assert.equal(reviewedHistoryPair(index,row,'2026-11-26T08:00:00Z'),null);
+ const base={id:'grade',market:'points',actual:10,result:'correct',modelEstimate:.6};
+ const scores=pairedStats([base,{...base,id:'qualified',reviewedHistoryPair:pair}]).points.reviewedHistoryFeatureComparison;
+ assert.equal(scores.decided,1);
+ assert.equal(scores.evenBrier,.25);
+ assert.equal(scores.evenLogLoss,Math.log(2));
+ assert.equal(scores.baselineBrier,(1-.6)**2);
+ assert.equal(scores.modelBrier,(1-14/23)**2);
+ assert.equal(pairedStats([base]).points.reviewedHistoryFeatureComparison.decided,0);
+});

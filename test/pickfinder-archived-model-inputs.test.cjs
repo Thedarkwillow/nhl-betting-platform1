@@ -387,3 +387,15 @@ test('current NFL replay uses the explicit rushing and receiving columns indepen
  assert.deepEqual([...replay(r,true).cache.values()].map(x=>x.market),['rushing_yards','receiving_yards','rushing_tds','receiving_tds','completions','targets','passing_interceptions','fg_made','pat_made','kicking_points']);
  assert.equal(replay({...r,period:'first_half'},true).cache.size,0);
 });
+
+test('sportsbook time qualification requires both explicit source clocks at the same instant',()=>{
+ const {quoteInventory}=require('../scripts/pickfinder-archived-model-inputs.cjs');
+ const q={detailId:'/players/nba/test',eventId:'game',market:'points',sport:'nba',book:'draftkings',quoteLine:20.5,price:'-110',
+  observedAt:'2026-11-27T12:04:00Z',sourceQuoteTimeBasis:'provider_quote_time_element',sourceQuoteDateTime:'2026-11-27T07:03:00-05:00',side:'Higher'};
+ const l={...q,side:'Lower',sourceQuoteDateTime:'2026-11-27T12:03:00Z'};
+ assert.equal(quoteInventory([q,l]).sourceTimedPairs,1);
+ const missing=quoteInventory([q,{...l,sourceQuoteDateTime:undefined}]);assert.equal(missing.exactPairs,1);assert.equal(missing.missingSourceTimePairs,1);
+ assert.equal(quoteInventory([q,{...l,sourceQuoteDateTime:'2026-11-27T12:02:00Z'}]).conflictingSourceTimePairs,1);
+ assert.equal(quoteInventory([q,{...l,sourceQuoteDateTime:'2026-11-27T12:05:00Z'}]).missingSourceTimePairs,1);
+ assert.equal(quoteInventory([q,{...q,sourceQuoteDateTime:'2026-11-27T12:02:00Z'},l]).conflictingSourceTimePairs,1);
+});

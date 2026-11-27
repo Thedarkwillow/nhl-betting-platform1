@@ -1,7 +1,7 @@
 'use strict';
 const {test}=require('node:test'),a=require('node:assert/strict');
 const {createHash}=require('node:crypto');
-const {dispatch}=require('../scripts/send-project-discord-alerts.cjs');
+const {dispatch,configDiagnostic}=require('../scripts/send-project-discord-alerts.cjs');
 const {buildSuggestions}=require('../scripts/project-discord-suggestions.cjs');
 const {collectionStatus}=require('../scripts/project-discord-line-alerts.cjs');
 const now=Date.parse('2026-11-27T16:00:00Z'),iso=(offset=0)=>new Date(now+offset*60000).toISOString();
@@ -61,7 +61,7 @@ test('refuses incomplete and reused routes, independently tests all destinations
  const f=fixture(),bad=fixture({bad:'prizepicks-props'}),options={...f,env,mode:'test_routes',runKey:'121',now};
  a.equal((await dispatch([],{...options,env:legacy})).status,'routes_unconfigured');a.equal(f.requests.length,0);
  a.equal((await dispatch([event('new_prop','prizepicks')],{...options,env:{...legacy,PROJECT_DISCORD_PLATFORM_ROUTING_ENABLED:'1'},mode:'deliver'})).status,'routes_unconfigured');
- await a.rejects(dispatch([],{...options,env:{...env,PROJECT_DISCORD_PLATFORM_ROUTES:JSON.stringify({'underdog-props':platform['underdog-props']})}}),/four platform routes/);
+ await a.rejects(dispatch([],{...options,env:{...env,PROJECT_DISCORD_PLATFORM_ROUTES:JSON.stringify({'underdog-props':platform['underdog-props']})}}),/invalid platform route configuration/);
  await a.rejects(dispatch([],{...options,env:{...env,PROJECT_DISCORD_PLATFORM_ROUTES:JSON.stringify({...platform,'underdog-props':platform['prizepicks-props']})}}),/invalid platform route/);
  const good=await dispatch([],{...options,env:{...env,PROJECT_DISCORD_PLATFORM_ROUTING_ENABLED:'0',PROJECT_DISCORD_BATCH_CONFIG:'{"messagesPerRun":1}'}});
  a.equal(good.delivered,5);a.deepEqual(Object.keys(good.results),routes);
@@ -106,4 +106,18 @@ test('collection status is recent, counts-only, throttled and routed as an opera
  const first=collectionStatus(doc,now),next=collectionStatus({...doc,generatedAt:iso(1)},now+60000);
  a.equal(first.length,1);a.match(first[0].text,/1 populated/);a.equal(first[0].id,next[0].id);
  a.equal(collectionStatus(doc,now+61*60000).length,0);
+});
+
+test('bad setup exposes only fixed diagnostic codes and known route names, never configured values',async()=>{
+ const f=fixture();
+ const check=async(raw,problem,route)=>{
+  try{await dispatch([],{...f,env:{...env,PROJECT_DISCORD_PLATFORM_ROUTES:raw},mode:'test_routes',runKey:'13',now});a.fail('expected invalid configuration');}
+  catch(error){a.deepEqual(configDiagnostic(error),{status:'invalid_route_configuration',problem,...(route?{route}:{}),paidRequests:0});}
+ };
+ await check('{"looks-like-a-secret"', 'invalid_routes_json');
+ await check(JSON.stringify({...platform,'prizepicks-props':{...platform['prizepicks-props'],channelId:123}}),'invalid_channel_id','prizepicks-props');
+ await check(JSON.stringify({...platform,'underdog-props':{...platform['underdog-props'],webhookUrl:'credential-placeholder'}}),'invalid_webhook_url','underdog-props');
+ await check(JSON.stringify({'not-a-known-route':platform['underdog-props']}),'missing_route','prizepicks-props');
+ a.equal(f.requests.length,0);
+ a.equal(configDiagnostic(Error('secret example')),null);
 });

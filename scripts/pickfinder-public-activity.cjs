@@ -62,6 +62,7 @@ function run(root,clock=new Date().toISOString()){
  report.sportsbookThresholdEvidence=audit.boards.quoteEvidence;
  report.profileMarketEvidence=audit.profiles.profileMarketEvidence;
  report.reviewedHistoryModel=audit.reviewedHistoryModel;
+ report.cs2HistoricalMapFacts=require('./pickfinder-cs2-map-finals.cjs').reconcile(clock).summary;
  report.valorantRetrospective=require('./pickfinder-valorant-retrospective.cjs').run(root,clock);
  report.dota2HistoricalMapFacts=require('./pickfinder-dota-map-finals.cjs').reconcile(
   history(root,'../pickfinder-public-identity-v1/dota-match-receipts'),clock).summary;

@@ -105,7 +105,7 @@ function clockOfferContext(o,clockRows,at){
  if(prop?.length!==4||Number(prop[3])!==o.line)return null;
  return {...r,startAt:r.nativeStartAt};
 }
-function generate(ctx,receipts=[],reviewedHistory=null){
+function generate(ctx,receipts=[],reviewedHistory=null,controlledHistory=null){
  const reconciliation=reconcileArchive(ctx,receipts);
  const clockRecovery=clockRepair.recover(ctx,receipts);
  reconciliation.clockRecovery=clockRecovery.summary;
@@ -150,7 +150,8 @@ function generate(ctx,receipts=[],reviewedHistory=null){
    const key=JSON.stringify([b.digest,o.detailId,o.eventId,o.market,o.period,o.line,side,tier]);if(seen.has(key))continue;seen.add(key);
    const q=p.probabilities;
    const reviewedHistoryPair=reviewedHistory?require('./pickfinder-reviewed-history-model.cjs').compareOffer({...o,side},s,reviewedHistory,clock,b.first,p):null;
-   rows.push({sport:s.sport,book:b.m.book,player:s.name,playerId:s.playerId,gameId:s.gameId,team:s.team,opponent:s.opponent,startAt:s.startAt,market:p.metric,line:o.line,side,tier,sourceTier:o.tier,platformTierVerified:false,projection:p.projection,probability:q?q[side.toLowerCase()]:null,pushProbability:q?.push??null,priorObservations:p.prior,method:p.method,sourceObservedAt:o.observedAt,contextObservedAt:recovered?.observedAt??null,clockCorroborated:!!corroborated,sourceClockVerified:false,researchOnly:true,forecastAt:clock,manifestDigest:b.digest,sourceEventId:o.eventId,sourceDetailId:o.detailId,...(reviewedHistoryPair&&{reviewedHistoryPair}),historyDigests:s.historyDigests,modelRevision:ctx.revision,offerFresh:at-Date.parse(o.observedAt)<=300000,originalPlatformVerified:false,calibrated:false,modelApproved:false,expectedValue:null});
+   const controlledHistoryPair=controlledHistory?require('./pickfinder-reviewed-history-model.cjs').compareOffer({...o,side},s,controlledHistory,clock,b.first,p,{controlledResearchOnly:true}):null;
+   rows.push({sport:s.sport,book:b.m.book,player:s.name,playerId:s.playerId,gameId:s.gameId,team:s.team,opponent:s.opponent,startAt:s.startAt,market:p.metric,line:o.line,side,tier,sourceTier:o.tier,platformTierVerified:false,projection:p.projection,probability:q?q[side.toLowerCase()]:null,pushProbability:q?.push??null,priorObservations:p.prior,method:p.method,sourceObservedAt:o.observedAt,contextObservedAt:recovered?.observedAt??null,clockCorroborated:!!corroborated,sourceClockVerified:false,researchOnly:true,forecastAt:clock,manifestDigest:b.digest,sourceEventId:o.eventId,sourceDetailId:o.detailId,...(reviewedHistoryPair&&{reviewedHistoryPair}),...(controlledHistoryPair&&{controlledHistoryPair}),historyDigests:s.historyDigests,modelRevision:ctx.revision,offerFresh:at-Date.parse(o.observedAt)<=300000,originalPlatformVerified:false,calibrated:false,modelApproved:false,expectedValue:null});
   }
  }
  return {kind:'native_individual_research_v1',generatedAt:clock,modelRevision:ctx.revision,native,rows,excluded,modelScopeByMarket,reconciliation,candidateOffers:candidateOffers(ctx,reconciliation),paidRequests:0,modelApproved:false};
@@ -165,5 +166,8 @@ if(require.main===module){
   profileClock.records.push(...clockRepair.profileContexts([pp],clock).records);yield pp;
  }}
  const reviewedHistory=reviewedFromArchive(root,profiles(),clock).reviewedCache;
- const out=generate(fromArchive(root,clock,revision),[...read(root,'directory'),profileClock],reviewedHistory);
-fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,reviewedHistoryComparisons:out.rows.filter(r=>r.reviewedHistoryPair).length,candidateOfferReferences:out.candidateOffers.length,excluded:out.excluded,modelScopeByMarket:out.modelScopeByMarket,reconciliation:{...out.reconciliation,rows:undefined,identityOnlyRows:undefined,clockRecoveredRows:undefined}}));}
+ const committedRegistry=JSON.parse(git(root,['show','HEAD:data/pickfinder-current-identity-registry.json']));
+ const controlledHistory=new Map((committedRegistry.paidRequests===0&&committedRegistry.modelApproved===false?
+  committedRegistry.qualifiedShadowStatistics||[]:[]).filter(r=>Date.parse(r.availableAt)<=Date.parse(clock)).map(r=>[JSON.stringify([r.sport,r.playerId,r.eventId,r.market]),r]));
+ const out=generate(fromArchive(root,clock,revision),[...read(root,'directory'),profileClock],reviewedHistory,controlledHistory);
+fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,reviewedHistoryComparisons:out.rows.filter(r=>r.reviewedHistoryPair).length,controlledHistoryComparisons:out.rows.filter(r=>r.controlledHistoryPair).length,candidateOfferReferences:out.candidateOffers.length,excluded:out.excluded,modelScopeByMarket:out.modelScopeByMarket,reconciliation:{...out.reconciliation,rows:undefined,identityOnlyRows:undefined,clockRecoveredRows:undefined}}));}

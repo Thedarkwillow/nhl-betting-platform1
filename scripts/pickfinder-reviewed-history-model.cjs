@@ -17,7 +17,7 @@ const sportOf=s=>String(s.sport||'').toLowerCase();
 const probability=x=>Number.isFinite(x)&&x>=0&&x<=1;
 const policy='reviewed-history-jeffreys-half-blend-v1';
 
-function compareOffer(offer,scope,reviewedCache,clock,sourceFirst,baseline=pickfinderProject(offer,scope,clock).prediction){
+function compareOffer(offer,scope,reviewedCache,clock,sourceFirst,baseline=pickfinderProject(offer,scope,clock).prediction,{controlledResearchOnly=false}={}){
  const sport=sportOf(scope),at=dt(clock),start=dt(offer.startAt),seen=dt(offer.observedAt),first=dt(sourceFirst);
  const metric=markets[sport]?.[baseline?.metric];
  if(!metric||!baseline?.probabilities||!['Higher','Lower'].includes(offer.side)||!Number.isFinite(offer.line)||
@@ -37,7 +37,11 @@ function compareOffer(offer,scope,reviewedCache,clock,sourceFirst,baseline=pickf
   if(rows.has(id))duplicate.add(id);
   rows.set(id,r);
  }
- const facts=historyForModel(reviewedCache,{sport,playerId:scope.playerId,market:metric,asOf:clock,gameStartAt:scope.startAt});
+ const facts=controlledResearchOnly?[...reviewedCache.values()].filter(x=>
+  x.evidenceKind==='verified_current_identity_and_independent_final_stat'&&x.shadowResearchEligible===true&&x.productionModelEligible===false&&
+  x.sport===sport&&String(x.playerId)===String(scope.playerId)&&x.market===metric&&
+  hash(x.identityReceiptDigest)&&hash(x.nativeDigest)&&hash(x.profileDigest)&&x.timezoneReceiptDigests?.length===3&&new Set(x.timezoneReceiptDigests).size===3&&x.timezoneReceiptDigests.every(hash)&&
+  Number.isFinite(dt(x.availableAt))&&dt(x.availableAt)<=at&&Number.isFinite(dt(x.officialStartAt))&&dt(x.officialStartAt)<at):historyForModel(reviewedCache,{sport,playerId:scope.playerId,market:metric,asOf:clock,gameStartAt:scope.startAt});
  const matches=[];
  for(const f of facts){
   const id=String(f.eventId),row=rows.get(id);
@@ -53,9 +57,9 @@ function compareOffer(offer,scope,reviewedCache,clock,sourceFirst,baseline=pickf
  const wins=matches.filter(f=>offer.side==='Higher'?f.value>offer.line:f.value<offer.line).length;
  const existing=q[offer.side.toLowerCase()]/decided;
  const reviewed=(wins+.5)/(matches.length+1);
- return {policy,existing,reviewed,challenger:(existing+reviewed)/2,neutral:.5,
+ return {policy:controlledResearchOnly?'independent-controlled-identity-shadow-v1':policy,existing,reviewed,challenger:(existing+reviewed)/2,neutral:.5,
   nativeMetric:metric,reviewedObservations:matches.length,
-  reviewDigests:[...new Set(matches.map(f=>f.reviewDigest))].sort(),modelApproved:false};
+  reviewDigests:[...new Set(matches.map(f=>controlledResearchOnly?f.identityReceiptDigest:f.reviewDigest))].sort(),modelApproved:false};
 }
 
 function pregameBoardOffers(b){

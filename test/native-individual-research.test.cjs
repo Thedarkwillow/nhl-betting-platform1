@@ -72,3 +72,22 @@ test('PickFinder native aliases preserve period and history gates',()=>{
  assert.equal(pickfinderProject({...o,market:'unknown'},s,clock).reason,'unmapped_market');
  assert.equal(pickfinderProject(o,{...s,history:null},clock).reason,'history_or_role_gate');
 });
+
+test('controlled-history research consumes five independently qualified facts without changing the default arm',()=>{
+ const {compareOffer}=require('../scripts/pickfinder-reviewed-history-model.cjs');
+ const clock='2026-11-25T19:00:00Z',startAt='2026-11-26T01:00:00Z',d='a'.repeat(64);
+ const scope={sport:'NHL',playerId:1,gameId:9,startAt,firstGitAt:clock,identityReviewed:true,eventReviewed:true,rosterReviewed:true,
+  history:{games:Array.from({length:5},(_,i)=>({gameId:i+1,gameDate:'2026-11-01',knownAt:'2026-11-02T00:00:00Z',finalVerified:true,goals:1}))}};
+ const o={sport:'nhl',player:'Example',market:'player_goals',eventId:'e',detailId:'/players/nhl/a?prop=x:player_goals:e:0.5',
+  side:'Higher',line:.5,startAt,observedAt:clock};
+ const baseline={metric:'goals',probabilities:{higher:.6,lower:.4}};
+ const evidence=new Map(scope.history.games.map(g=>[g.gameId,{sport:'nhl',playerId:'1',eventId:g.gameId,market:'goals',value:1,
+  shadowResearchEligible:true,productionModelEligible:false,evidenceKind:'verified_current_identity_and_independent_final_stat',
+  availableAt:clock,officialStartAt:'2026-11-01T00:00:00Z',profileDigest:d,nativeDigest:d,identityReceiptDigest:d,timezoneReceiptDigests:[d,'b'.repeat(64),'c'.repeat(64)]}]));
+ const r=compareOffer(o,scope,evidence,clock,clock,baseline,{controlledResearchOnly:true});
+ assert.equal(r.reviewedObservations,5);assert.equal(r.modelApproved,false);
+ assert.equal(r.policy,'independent-controlled-identity-shadow-v1');
+ assert.equal(compareOffer(o,scope,evidence,clock,clock,baseline),null);
+ evidence.get(1).availableAt=startAt;
+ assert.equal(compareOffer(o,scope,evidence,clock,clock,baseline,{controlledResearchOnly:true}),null);
+});

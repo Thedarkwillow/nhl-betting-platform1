@@ -21,6 +21,11 @@ function slotEvidence(root,day,slot){
  const needed=new Set(boards.flatMap(({doc})=>Array.isArray(doc.partDigests)?doc.partDigests:[]));
  return {boards,parts:needed.size?load(root,'board-parts',needed):new Map()};
 }
+function hasVerifiedSlotPartition(root,day,slot){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!['06:00','09:00'].includes(slot))throw Error('slot');
+ const {boards,parts}=slotEvidence(root,day,slot);
+ return boards.some(({doc,first})=>assess({manifest:doc,first,parts,day,slot})!=='pending');
+}
 function run(root,day,slot,now=new Date()){
  const h=Number(slot.slice(0,2));if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!['06:00','09:00'].includes(slot))throw Error('slot');
  const t=pacific(now);if(t.day<day||t.day===day&&t.hour<=h)return {state:'slot_not_finished',day,slot};
@@ -29,8 +34,8 @@ function run(root,day,slot,now=new Date()){
  return {state:'public_pickfinder_morning_audit',day,slot,partitions:results,corePartitionsVerified:['nba','nhl','nfl'].every(s=>['prizepicks','underdog'].every(b=>results[s+'/'+b]?.verified>0)),originalPlatformAvailabilityVerified:false,modelApproved:false,privateRepoUsed:false};
 }
 function scheduledRunMatches(origin,run,day,slot,first){
- const hour=Number(slot.slice(0,2)),expected='7 '+hour+' * * *';
- return !!origin&&origin.event==='schedule'&&origin.cron===expected&&/^[1-9][0-9]{0,19}$/.test(origin.runId)&&/^[1-9][0-9]{0,5}$/.test(origin.attempt)&&/^[a-f0-9]{40}$/.test(origin.revision)&&!!run&&String(run.id)===origin.runId&&String(run.run_attempt)===origin.attempt&&run.event==='schedule'&&run.head_sha===origin.revision&&run.head_branch==='main'&&run.repository?.full_name==='Thedarkwillow/nhl-betting-platform1'&&run.path==='.github/workflows/pickfinder-premium-hosted.yml'&&run.status==='completed'&&run.conclusion==='success'&&inHour(run.run_started_at,day,hour)&&Date.parse(run.run_started_at)<=Date.parse(first);
+ const hour=Number(slot.slice(0,2)),expected=[7,29].map(minute=>minute+' '+hour+' * * *');
+ return !!origin&&origin.event==='schedule'&&expected.includes(origin.cron)&&/^[1-9][0-9]{0,19}$/.test(origin.runId)&&/^[1-9][0-9]{0,5}$/.test(origin.attempt)&&/^[a-f0-9]{40}$/.test(origin.revision)&&!!run&&String(run.id)===origin.runId&&String(run.run_attempt)===origin.attempt&&run.event==='schedule'&&run.head_sha===origin.revision&&run.head_branch==='main'&&run.repository?.full_name==='Thedarkwillow/nhl-betting-platform1'&&run.path==='.github/workflows/pickfinder-premium-hosted.yml'&&run.status==='completed'&&run.conclusion==='success'&&inHour(run.run_started_at,day,hour)&&Date.parse(run.run_started_at)<=Date.parse(first);
 }
 async function verifyScheduled(root,report,env=process.env,client=fetch){
  if(report.state!=='public_pickfinder_morning_audit')return report;
@@ -53,7 +58,7 @@ async function verifyScheduled(root,report,env=process.env,client=fetch){
 function scheduledAuditExit(report){
  return report.state==='public_pickfinder_morning_audit'&&report.scheduledCorePartitionsVerified===true?0:1;
 }
-module.exports={assess,run,scheduledRunMatches,verifyScheduled,scheduledAuditExit};
+module.exports={assess,run,scheduledRunMatches,verifyScheduled,scheduledAuditExit,hasVerifiedSlotPartition};
 if(require.main===module){(async()=>{
  const day=pacific(new Date()).day,root=process.argv[2];
  const report=await verifyScheduled(root,run(root,day,process.argv[3]));

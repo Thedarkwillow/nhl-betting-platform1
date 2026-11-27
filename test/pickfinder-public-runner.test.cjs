@@ -14,6 +14,8 @@ test('scheduled provenance must match an independently verified successful actua
  const p={expected:'06:00'},o=captureOrigin(env,p),day='2026-11-25',slot='06:00',first='2026-11-25T14:20:00Z';
  const run={id:123,run_attempt:1,event:'schedule',head_sha:env.GITHUB_SHA,head_branch:'main',repository:{full_name:'Thedarkwillow/nhl-betting-platform1'},path:'.github/workflows/pickfinder-premium-hosted.yml',status:'completed',conclusion:'success',run_started_at:'2026-11-25T14:07:00Z'};
  assert.equal(scheduledRunMatches(o,run,day,slot,first),true);
+ assert.equal(scheduledRunMatches({...o,cron:'29 6 * * *'},run,day,slot,first),true);
+ assert.equal(scheduledRunMatches({...o,cron:'29 9 * * *'},run,day,slot,first),false);
  assert.equal(scheduledRunMatches(o,{...run,event:'workflow_dispatch'},day,slot,first),false);
  assert.equal(scheduledRunMatches(o,{...run,run_started_at:'2026-11-25T17:07:00Z'},day,slot,first),false);
  assert.equal(scheduledRunMatches(o,{...run,conclusion:'failure'},day,slot,first),false);

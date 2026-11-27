@@ -48,7 +48,7 @@ function createLayoutAudit(clock) {
           if (refs.digests.size >= 2 && refs.players.size >= 2) {
             reconstructed++;
             const normalized = scope.split(' | ').map(label=>aliases[label] || label).join(' | ');
-            const result = matchRow(record, {...field, scope:normalized}, index, clock);
+            const result = matchRow(record, {...field, scope:normalized}, index, clock, {allowNbaExtendedFinals:true});
             reason = result.reason;
             if (result.candidate) {
               const fact = result.candidate;

@@ -111,6 +111,9 @@ test('movement probe ranks evidenced paired prices and excludes unsupported refe
   {...quote('Old','n4','fanduel'),observedAt:'2026-11-01T00:00:00Z'}
  ]}}];
  assert.deepEqual(select(receipts,time).map(({player})=>player),['Second','First']);
+ const tennis={...first,sport:'tennis',player:'Third',eventId:'t1',detailId:'/players/tennis/third?prop=id:yards:t1:1.5'};
+ const diverse=[{...receipts[0],doc:{...receipts[0].doc,rows:[...receipts[0].doc.rows,tennis]}}];
+ assert.deepEqual(select(diverse,time).map(({player})=>player),['Second','Third']);
  assert.equal(aggregate([{matched:1,shifted:1,unchanged:0},{matched:1,shifted:1,unchanged:0}]).state,'browser_local_candidate');
  assert.equal(aggregate([{matched:1,shifted:1,unchanged:0},{matched:1,shifted:0,unchanged:1}]).state,'inconclusive');
 });

@@ -43,8 +43,8 @@ function finalHistory(doc,g,observedAt,digest){
 // When the CDN season schedule is unavailable, corroborate dated official NBA
 // game routes with ESPN final status. The actual boxscore still independently
 // verifies the NBA ID, final status, clock, teams and player results.
-function datedFinalGames(html,doc,date){
- const routes=require('./nba-public-schedule-corroboration.cjs').links(html),out=[],seen=new Set();
+function datedFinalGames(html,doc,date,{historicalSeasonTypes=false}={}){
+ const routes=require('./nba-public-schedule-corroboration.cjs').links(html,{includeHistoricalSeasonTypes:historicalSeasonTypes}),out=[],seen=new Set();
  if(!Array.isArray(doc?.events)||doc.events.length>15)return out;
  for(const e of doc.events){
   const c=e.competitions?.[0],s=c?.status?.type;
@@ -174,10 +174,11 @@ function reviewedNbaHistory(root,clock){
 function withReviewedHistory(root,rows,clock){
  if(!rows.length)return rows;
  const reviewedCache=reviewedNbaHistory(root,clock);
- return rows.map(row=>{
+ const enriched=rows.map(row=>{
   const pair=reviewedHistoryPair(reviewedCache,row,clock);
   return pair?{...row,reviewedHistoryPair:pair}:row;
  });
+ return require('./native-context-prospective-pairs.cjs').attachNativeContext(root,enriched,clock,'NBA');
 }
 
 function modelRows({features,h,schedule,reviewed:crosswalk,clock,revision,injuryReceipts=[]}){
@@ -238,7 +239,7 @@ async function grade(root,clock){
    if(rows.size===entries.length&&rows.size>=10){finals.set(id,{rows,observedAt:doc.capturedAt,digest:doc.sourceResponseSha256,source:doc.source});sourceRoutes.archived_official_web=(sourceRoutes.archived_official_web||0)+1;continue;}
   }
   const adapter=require('./nba-bounded-official-final.cjs'),a=await adapter.fetchFinal(id,start,clock);calls+=a.calls;for(const [k,n] of Object.entries(a.failures))sourceFailures[k]=(sourceFailures[k]||0)+n;if(!a.final)continue;const f=a.final,rows=adapter.parse(f.bytes,id,start,f.observedAt);if(rows){sourceRoutes[f.source]=(sourceRoutes[f.source]||0)+1;finals.set(id,{rows,observedAt:f.observedAt,digest:sha(f.bytes),source:f.source});}}
- const rows=[],seen=new Set();for(const x of selected){if(seen.has(x.id))continue;seen.add(x.id);const p=x.p,f=finals.get(p.gameId),stat=f?.rows.get(p.playerId);if(!stat||stat.team!==p.team)continue;const result=nba.gradePaper(p,stat);if(result==='pending')continue;rows.push({id:x.id,forecastDigest:x.forecastDigest,gameId:p.gameId,playerId:p.playerId,market:p.market,actual:stat[p.market],result,modelEstimate:p.rawSelectedEstimate,...(p.reviewedHistoryPair?{reviewedHistoryPair:p.reviewedHistoryPair}:{}),...(p.workloadPair?{workloadPair:p.workloadPair}:{}),...(p.matchupPair?{matchupPair:p.matchupPair}:{}),...(p.lowCountPair?{lowCountPair:p.lowCountPair}:{}),baselineEstimate:p.baselineSelectedEstimate??null,modelProjection:p.projection,pickfinderAverage:Number.isFinite(p.features?.['Avg L10'])?p.features['Avg L10']:null,quoteBenchmarks:p.quoteBenchmarks||[],side:p.offeredSide,officialResponseSha256:f.digest,officialObservedAt:f.observedAt,officialSource:f.source});}
+ const rows=[],seen=new Set();for(const x of selected){if(seen.has(x.id))continue;seen.add(x.id);const p=x.p,f=finals.get(p.gameId),stat=f?.rows.get(p.playerId);if(!stat||stat.team!==p.team)continue;const result=nba.gradePaper(p,stat);if(result==='pending')continue;rows.push({id:x.id,forecastDigest:x.forecastDigest,gameId:p.gameId,playerId:p.playerId,market:p.market,actual:stat[p.market],result,modelEstimate:p.rawSelectedEstimate,...(p.reviewedHistoryPair?{reviewedHistoryPair:p.reviewedHistoryPair}:{}),...(p.nativeContextPair?{nativeContextPair:p.nativeContextPair}:{}),...(p.workloadPair?{workloadPair:p.workloadPair}:{}),...(p.matchupPair?{matchupPair:p.matchupPair}:{}),...(p.lowCountPair?{lowCountPair:p.lowCountPair}:{}),baselineEstimate:p.baselineSelectedEstimate??null,modelProjection:p.projection,pickfinderAverage:Number.isFinite(p.features?.['Avg L10'])?p.features['Avg L10']:null,quoteBenchmarks:p.quoteBenchmarks||[],side:p.offeredSide,officialResponseSha256:f.digest,officialObservedAt:f.observedAt,officialSource:f.source});}
  if(rows.length)save(root,'nba-grades',{kind:'pickfinder_public_nba_independent_grades_v1',generatedAt:now(),rows,appSettlementVerified:false});return {registered:selected.length,archivedPregameRows:archived,pendingNotDue,alreadyGraded,invalidPregameRows:invalid,dueForGrade:selected.length,pendingDueAfterRun:selected.length-rows.length,newGrades:rows.length,finalGames:finals.size,calls,sourceFailures,sourceRoutes};
 }
 function baselineScores(pairs){
@@ -256,7 +257,7 @@ function baselineScores(pairs){
  return {decided:n,modelBrier:modelBrier/n,baselineBrier:baselineBrier/n,modelLogLoss:modelLogLoss/n,baselineLogLoss:baselineLogLoss/n};
 }
 function pairedStats(rows){
- const by={},unique=new Map(),conflicts=new Set();for(const r of rows){if(!r.id)continue;const old=unique.get(r.id);if(old&&JSON.stringify(old)!==JSON.stringify(r))conflicts.add(r.id);else if(!old)unique.set(r.id,r);}for(const [id,r] of unique){if(conflicts.has(id)||!['correct','incorrect'].includes(r.result)||!Number.isFinite(r.actual)||!Number.isFinite(r.modelEstimate)||r.modelEstimate<0||r.modelEstimate>1)continue;const a=by[r.market]??={baselinePairs:[],lowCountPairs:[],matchupPairs:[],workloadPairs:[],reviewedHistoryPairs:[],n:0,brier:0,logLoss:0,quoteN:0,quoteBrier:0,pairedModelBrier:0,avgN:0,avgMAE:0,pairedProjectionMAE:0};const pair=r.lowCountPair;
+ const by={},unique=new Map(),conflicts=new Set();for(const r of rows){if(!r.id)continue;const old=unique.get(r.id);if(old&&JSON.stringify(old)!==JSON.stringify(r))conflicts.add(r.id);else if(!old)unique.set(r.id,r);}for(const [id,r] of unique){if(conflicts.has(id)||!['correct','incorrect'].includes(r.result)||!Number.isFinite(r.actual)||!Number.isFinite(r.modelEstimate)||r.modelEstimate<0||r.modelEstimate>1)continue;const a=by[r.market]??={baselinePairs:[],lowCountPairs:[],matchupPairs:[],workloadPairs:[],reviewedHistoryPairs:[],nativeContextPairs:[],n:0,brier:0,logLoss:0,quoteN:0,quoteBrier:0,pairedModelBrier:0,avgN:0,avgMAE:0,pairedProjectionMAE:0};const pair=r.lowCountPair;
  if(pair?.revision===lowCountPairRevision&&[pair.featureOn,pair.featureOff].every(p=>Number.isFinite(p)&&p>=0&&p<=1))
   a.lowCountPairs.push({modelEstimate:pair.featureOn,baselineEstimate:pair.featureOff,result:r.result});
  const matchup=r.matchupPair;
@@ -269,8 +270,9 @@ function pairedStats(rows){
  if(reviewedHistory?.revision===reviewedHistoryRevision&&Number.isSafeInteger(reviewedHistory.historyGames)&&
    reviewedHistory.historyGames>=reviewedHistoryMinimum&&[reviewedHistory.featureOn,reviewedHistory.featureOff].every(p=>Number.isFinite(p)&&p>=0&&p<=1))
   a.reviewedHistoryPairs.push({modelEstimate:reviewedHistory.featureOn,baselineEstimate:reviewedHistory.featureOff,result:r.result});
+ if(r.nativeContextPair)a.nativeContextPairs.push(r);
  const y=Number(r.result==='correct');if(Number.isFinite(r.baselineEstimate)&&r.baselineEstimate>=0&&r.baselineEstimate<=1)a.baselinePairs.push(r);a.n++;a.brier+=(r.modelEstimate-y)**2;a.logLoss-=Math.log(Math.max(1e-15,y?r.modelEstimate:1-r.modelEstimate));const qs=(r.quoteBenchmarks||[]).filter(q=>Number.isFinite(q.higher)&&q.higher>=0&&q.higher<=1);if(qs.length){const p=qs.reduce((s,q)=>s+(r.side==='Higher'?q.higher:1-q.higher),0)/qs.length;a.quoteN++;a.quoteBrier+=(p-y)**2;a.pairedModelBrier+=(r.modelEstimate-y)**2;}if(Number.isFinite(r.pickfinderAverage)&&Number.isFinite(r.modelProjection)){a.avgN++;a.avgMAE+=Math.abs(r.pickfinderAverage-r.actual);a.pairedProjectionMAE+=Math.abs(r.modelProjection-r.actual);}}
- return Object.fromEntries(Object.entries(by).map(([k,a])=>[k,{reviewedHistoryFeatureComparison:{revision:reviewedHistoryRevision,...baselineScores(a.reviewedHistoryPairs),
+ return Object.fromEntries(Object.entries(by).map(([k,a])=>[k,{nativeContextFeatureComparison:require('./native-context-prospective-pairs.cjs').scores(a.nativeContextPairs),reviewedHistoryFeatureComparison:{revision:reviewedHistoryRevision,...baselineScores(a.reviewedHistoryPairs),
    evenBrier:a.reviewedHistoryPairs.length ? .25 : null,evenLogLoss:a.reviewedHistoryPairs.length?Math.log(2):null},workloadFeatureComparison:{revision:workloadPairRevision,...baselineScores(a.workloadPairs)},matchupFeatureComparison:{revision:matchupPairRevision,...baselineScores(a.matchupPairs)},lowCountFeatureComparison:{revision:lowCountPairRevision,...baselineScores(a.lowCountPairs)},frozenBaselineComparison:baselineScores(a.baselinePairs),decided:a.n,modelBrier:a.brier/a.n,modelLogLoss:a.logLoss/a.n,pairedQuoteN:a.quoteN,quoteBrier:a.quoteN?a.quoteBrier/a.quoteN:null,pairedModelBrier:a.quoteN?a.pairedModelBrier/a.quoteN:null,pairedAverageN:a.avgN,pickfinderAverageMAE:a.avgN?a.avgMAE/a.avgN:null,modelProjectionMAE:a.avgN?a.pairedProjectionMAE/a.avgN:null,approved:false}]));
 }
 async function main(root){

@@ -47,3 +47,23 @@ test('website includes validated aggregate comparisons but cannot relabel a prom
  assert.equal(rows({...report,prospective:true}),null);
  assert.equal(rows({...report,modelPromoted:true}),null);
 });
+test('prospective feature arms require pregame committed history, cannot use retrospective receipts, and retain source digests',()=>{
+ const archiveDigest='a'.repeat(64), asOf=now-3600000;
+ const p=forecast({...input,asOf});
+ assert.equal(p,null);
+ const committed=playerRows.map(r=>({...r,knownAt:r.start+12*3600000,archiveDigest}));
+ const late={...committed[0],knownAt:asOf+1};
+ const q=forecast({...input,asOf,playerRows:[late,...committed.slice(1)]});
+ assert.equal(q.priorGames,14);
+ assert.deepEqual(q.sourceDigests,[archiveDigest]);
+ assert.ok(Date.parse(q.latestArchiveKnownAt)<asOf);
+ assert.equal(forecast({...input,playerRows:committed,asOf:now-900000}),null);
+});
+test('prospective report keeps ungraded and failed validation pairs out of performance',()=>{
+ const {scores}=require('../scripts/native-context-prospective-pairs.cjs');
+ const p={...forecast(input),sourceDigests:['a'.repeat(64)],latestArchiveKnownAt:'2026-11-19T00:00Z'};
+ assert.equal(scores([{gameId:'1',result:'pending',nativeContextPair:p}]).workload.decisions,0);
+ const a=scores([{gameId:'1',result:'correct',nativeContextPair:p},{gameId:'2',result:'incorrect',nativeContextPair:{...p,modelApproved:true}}]);
+ assert.equal(a.workload.decisions,1);
+ assert.equal(a.workload.scores.neutral.brier,.25);
+});

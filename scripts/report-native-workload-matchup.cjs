@@ -18,20 +18,24 @@ function statRows(sport,docs){
  const nflDocs=sport==='NFL'?[...group(docs,r=>r.season).values()].map(a=>a.sort((x,y)=>dt(y.observedAt)-dt(x.observedAt))[0]):[];
  const games=[];
  for(const doc of sport==='NFL'?nflDocs:docs){
+  const provenance={knownAt:doc.__archiveKnownAt,archiveDigest:doc.__archiveDigest};
   if(doc.kind!==sourceVersion[sport])continue;
   if(sport==='NHL')for(const g of doc.games||[]){
    const t=g.event;
    if(t?.namespace!=='nhl:official'||t.status!=='post'||t.completed!==true||t.teams?.length!==2||
-    !hash(g.sourceDigest)||!(dt(g.observedAt)>dt(t.startAt)))continue;
-   games.push({event:t.eventId,start:t.startAt,teams:t.teams.map(x=>x.abbr),
+    !hash(g.sourceDigest)||!(dt(g.observedAt)>dt(t.startAt))||
+    finite(provenance.knownAt)&&dt(g.observedAt)>provenance.knownAt)continue;
+   games.push({...provenance,event:t.eventId,start:t.startAt,teams:t.teams.map(x=>x.abbr),
     minRows:12,players:(g.rows||[]).filter(p=>p.appeared===true&&Number.isSafeInteger(p.stats?.sog)).map(p=>
      ({id:p.playerId,team:p.team,values:p.stats,exposure:parseNN(p.toi)}))});
   }
+  // Preseason boxes can corroborate historical rows but cannot train a regular-season arm.
   if(sport==='NBA'&&doc.source==='nba.com official game box score'&&doc.officialFinalClockVerified===true&&
+   !String(doc.gameId).padStart(10,'0').startsWith('001')&&
    hash(doc.sourceResponseSha256)&&dt(doc.capturedAt)>dt(doc.startAt)){
    const players=(doc.rows||[]).filter(p=>p.gameId===doc.gameId&&p.appeared===true&&p.identityVerified===true&&
     p.officialGameFinalVerified===true);
-   games.push({event:doc.gameId,start:doc.startAt,teams:[...new Set(players.map(p=>p.team))],minRows:5,
+   games.push({...provenance,event:doc.gameId,start:doc.startAt,teams:[...new Set(players.map(p=>p.team))],minRows:5,
     players:players.map(p=>({id:p.playerId,team:p.team,opp:p.opponent,values:p,exposure:p.minutes}))});
   }
   if(sport==='NFL'&&doc.attribution?.url==='https://github.com/nflverse/nflverse-data'&&
@@ -40,7 +44,7 @@ function statRows(sport,docs){
    for(const g of doc.games||[]){
     if(g.completedScoreObserved!==true||g.season!==doc.season||!Number.isInteger(g.week)||g.week<1||g.week>18||
      !(dt(doc.observedAt)>dt(g.startAt)))continue;
-    games.push({event:g.gameId,start:g.startAt,teams:[g.home,g.away],season:g.season,week:g.week,minRows:8,
+    games.push({...provenance,event:g.gameId,start:g.startAt,teams:[g.home,g.away],season:g.season,week:g.week,minRows:8,
      players:(sides.get(g.gameId)||[]).filter(p=>dt(p.gameStartAt)===dt(g.startAt)&&p.week===g.week)
       .map(p=>({id:p.playerId,team:p.team,opp:p.opponent,values:p.stats,exposure:p.stats?.targets}))});
    }
@@ -48,7 +52,7 @@ function statRows(sport,docs){
  }
  const byGame=group(games,g=>String(g.event)),rows=[],sides=[];let conflicts=0,invalid=0;
  for(const list of byGame.values()){
-  const g=list[0],fields=settings[sport].markets;
+  const g=list.sort((a,b)=>(a.knownAt??0)-(b.knownAt??0))[0],fields=settings[sport].markets;
   const sig=d=>key(dt(d.start),[...d.teams].sort(),d.players.map(p=>key(String(p.id),p.team,p.opp??null,p.exposure,
    fields.map(m=>p.values?.[m]))).sort());
   if(list.length>1&&new Set(list.map(sig)).size!==1){conflicts++;continue;}
@@ -61,7 +65,7 @@ function statRows(sport,docs){
   for(const team of g.teams){
    const own=g.players.filter(p=>p.team===team),opponent=g.teams.find(x=>x!==team),exposure=sum(own,p=>p.exposure);
    if(own.length<g.minRows||exposure<=0)continue;
-   const base={sport,event:String(g.event),team,opponent,start:dt(g.start),season:g.season,week:g.week};
+   const base={sport,event:String(g.event),team,opponent,start:dt(g.start),season:g.season,week:g.week,knownAt:g.knownAt,archiveDigest:g.archiveDigest};
    combined.push({side:{...base,exposure,values:Object.fromEntries(fields.map(m=>[m,sum(own,p=>p.values[m])]))},
     rows:own.map(p=>({...base,id:String(p.id),exposure:p.exposure,values:Object.fromEntries(fields.map(m=>[m,p.values[m]]))}))});
   }
@@ -124,14 +128,19 @@ function evaluate({rows,sides,conflicts,invalid,gameCount},sport){
  return {source:authorizations[sport],archivedEvents:gameCount,archivedPlayerAppearances:rows.length,
   incompatibleEventCopies:conflicts,incompleteEvents:invalid,comparison};
 }
-function archive(root,sport){
+function archive(root,sport,asOf=null){
  const git=args=>execFileSync('git',args,{cwd:root,maxBuffer:35e6,stdio:['ignore','pipe','pipe']});
  const paths=git(['ls-tree','--name-only','-r','HEAD',dirs[sport]]).toString().trim().split('\n').filter(Boolean);
  if(!paths.length)throw Error('missing native final archive: '+sport);
- return paths.map(path=>{
+ return paths.flatMap(path=>{
   const digest=path.split('/').at(-1).replace(/\.json$/,''),raw=git(['show','HEAD:'+path]);
   if(!hash(digest)||createHash('sha256').update(raw).digest('hex')!==digest)throw Error('native archive digest mismatch: '+sport);
-  return JSON.parse(raw);
+  const doc=JSON.parse(raw);
+  if(asOf===null)return [doc];
+  const clock=git(['log','--format=%cI','--',path]).toString().trim().split('\n');
+  const knownAt=dt(clock[0]),observedAt=dt(doc.observedAt??doc.capturedAt);
+  return clock.length===1&&finite(knownAt)&&knownAt<=asOf&&finite(observedAt)&&observedAt<=knownAt+999?
+   [{...doc,__archiveKnownAt:Math.max(knownAt,observedAt),__archiveDigest:digest}]:[];
  });
 }
 function report(root){
@@ -142,7 +151,7 @@ function report(root){
   originalOffersVerified:0,appSettlementVerified:false,prospective:false,untouchedHoldout:false,modelPromoted:false,
   rawRowsPublished:0,paidRequests:0,bySport:Object.fromEntries(Object.keys(dirs).map(sport=>[sport,evaluate(statRows(sport,archive(root,sport)),sport)]))};
 }
-module.exports={statRows,incumbent,evaluate,report};
+module.exports={statRows,incumbent,evaluate,report,archive};
 if(require.main===module){
  try{const r=JSON.stringify(report(process.cwd()),null,2)+'\n';if(process.argv[2])fs.writeFileSync(process.argv[2],r);else process.stdout.write(r);}
  catch(e){console.error(e.message);process.exitCode=1;}

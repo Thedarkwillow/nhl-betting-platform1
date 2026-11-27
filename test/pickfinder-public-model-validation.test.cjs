@@ -28,6 +28,10 @@ t('dated final fallback requires explicit ESPN final and unique official NBA gam
  const {datedFinalGames,recentFinalSchedule}=require('../scripts/pickfinder-public-model-validation.cjs');
  const date='2026-11-24',html='<a href="/game/tor-vs-bos-0022600001">Box Score</a>',event={competitions:[{date:'2026-11-24T23:00:00Z',status:{type:{name:'STATUS_FINAL',state:'post',completed:true}},competitors:[{homeAway:'home',team:{abbreviation:'BOS'}},{homeAway:'away',team:{abbreviation:'TOR'}}]}]};
  assert.equal(datedFinalGames(html,{events:[event]},date)[0].gameId,22600001);
+ const preseason=html.replace('0022600001','0012600001');
+ assert.equal(datedFinalGames(preseason,{events:[event]},date).length,0);
+ assert.equal(datedFinalGames(preseason,{events:[event]},date,{historicalSeasonTypes:true})[0].gameId,12600001);
+ assert.equal(datedFinalGames(preseason+' /game/tor-vs-bos-0042600001',{events:[event]},date,{historicalSeasonTypes:true}).length,0);
  assert.equal(datedFinalGames(html+' /game/tor-vs-bos-0022600002',{events:[event]},date).length,0);
  assert.equal(datedFinalGames(html,{events:[{competitions:[{...event.competitions[0],status:{type:{state:'pre'}}}]}]},date).length,0);
  const r=await recentFinalSchedule('2026-11-26T01:00:00Z',async url=>url.includes('www.nba.com')?new Response(html):new Response(JSON.stringify({events:[event]})));

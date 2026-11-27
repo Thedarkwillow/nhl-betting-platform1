@@ -96,7 +96,7 @@ function candidateOffers(ctx,reconciliation){
 }
 function clockOfferContext(o,clockRows,at){
  const t=target(o);if(!t)return null;
- const a=clockRows.filter(r=>contextKey(r)===contextKey(t)&&r.clockCorroborated===true&&Date.parse(r.observedAt)<=at&&Date.parse(r.nativeStartAt)>at+900000);
+ const a=clockRows.filter(r=>contextKey(r)===contextKey(t)&&(!r.sourceDetailId||r.sourceDetailId===t.detailId)&&r.clockCorroborated===true&&Date.parse(r.observedAt)<=at&&Date.parse(r.nativeStartAt)>at+900000);
  const signatures=new Set(a.map(r=>JSON.stringify([r.nativeGameId,r.nativePlayerId,r.nativeStartAt,r.team,r.opponent])));
  if(signatures.size!==1)return null;
  const r=a.sort((x,y)=>Date.parse(y.observedAt)-Date.parse(x.observedAt))[0];
@@ -160,6 +160,10 @@ if(require.main===module){
  const root=process.cwd(),clock=new Date().toISOString(),revision=git(root,['rev-parse','HEAD']);
  const {committedProfiles}=require('./pickfinder-archived-model-inputs.cjs');
  const {fromArchive:reviewedFromArchive}=require('./pickfinder-native-history-reconciliation.cjs');
- const reviewedHistory=reviewedFromArchive(root,committedProfiles(root),clock).reviewedCache;
- const out=generate(fromArchive(root,clock,revision),read(root,'directory'),reviewedHistory);
+ const profileClock={schema:'pickfinder-public-nba-context-v1',records:[]};
+ function* profiles(){for(const pp of committedProfiles(root)){
+  profileClock.records.push(...clockRepair.profileContexts([pp],clock).records);yield pp;
+ }}
+ const reviewedHistory=reviewedFromArchive(root,profiles(),clock).reviewedCache;
+ const out=generate(fromArchive(root,clock,revision),[...read(root,'directory'),profileClock],reviewedHistory);
 fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,reviewedHistoryComparisons:out.rows.filter(r=>r.reviewedHistoryPair).length,candidateOfferReferences:out.candidateOffers.length,excluded:out.excluded,modelScopeByMarket:out.modelScopeByMarket,reconciliation:{...out.reconciliation,rows:undefined,identityOnlyRows:undefined,clockRecoveredRows:undefined}}));}

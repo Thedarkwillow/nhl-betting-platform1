@@ -7,6 +7,29 @@ const same=(a,b)=>!!a&&!!b&&['weekday','hour','minute','dayPeriod'].every(k=>a[k
 function nativeMatches(r,scopes,at){
  return scopes.filter(s=>s.sport===r.sport.toUpperCase()&&norm(s.name)===norm(r.player)&&norm(s.team)===norm(r.team)&&norm(s.opponent)===norm(r.opponent)&&s.homeAway===r.localMatchup?.homeAway&&s.identityReviewed===true&&s.eventReviewed===true&&s.rosterReviewed===true&&s.evidenceKind==='automated_native_schedule_roster_only'&&/^[a-f0-9]{64}$/.test(s.receiptDigest||'')&&Number.isFinite(dt(s.firstGitAt))&&dt(s.firstGitAt)<=at&&Number.isFinite(dt(s.startAt))&&dt(s.startAt)>dt(r.observedAt)&&dt(s.startAt)<=dt(r.observedAt)+7*86400000);
 }
+// Adapt the bounded profile checkpoint and the normal current profile header.
+ // Neither a browser zone nor a local label establishes source UTC. The existing
+ // independently corroborated, three-zone event sample is still required.
+function profileContexts(documents,clock){
+ const at=dt(clock),records=[];
+ if(!Number.isFinite(at))return {schema:'pickfinder-public-nba-context-v1',records};
+ for(const {doc,digest,first} of documents){
+  if(doc.schema!=='pickfinder-public-profiles-v1'||!/^[a-f0-9]{64}$/.test(digest||'')||
+     !Number.isFinite(dt(first))||dt(first)>at)continue;
+  for(const p of doc.records||[]){
+   const t=target(p),c=p.independentReconciliationContext;
+   if(!t||!c||c.conflictingClock||c.startAt||c.gameDateUtc||c.providerDisplayZoneVerified!==false||
+      !ZONES.includes(c.browserClock?.zone)||!Number.isFinite(dt(c.observedAt))||dt(c.observedAt)>dt(first)+999||
+      !c.displayedMatchupLabel||c.displayedLocalMatchup?.team!==c.team||c.displayedLocalMatchup?.opponent!==c.opponent)continue;
+   const displayedEvidence=[{label:'Matchup',value:c.displayedMatchupLabel}];
+   const local=localMatchup(displayedEvidence);
+   if(!same(local,c.displayedLocalMatchup)||local.homeAway!==c.displayedLocalMatchup.homeAway)continue;
+   records.push({...t,team:c.team,opponent:c.opponent,observedAt:c.observedAt,browserClock:c.browserClock,
+    displayedEvidence,displayedClocks:[],sourceProfileDigest:digest,routeVerified:true,playerLabelVerified:true});
+  }
+ }
+ return {schema:'pickfinder-public-nba-context-v1',records};
+}
 function recover(ctx,docs){
  const at=dt(ctx.preparedAt),scopes=ctx.identityScopes||[],groups=new Map(),sample={},rows=[],reasons={};
  for(const d of docs.filter(x=>x.schema==='pickfinder-controlled-clock-v1'))for(const r of d.records||[]){const k=key(r),a=groups.get(k)||[];a.push(r);groups.set(k,a);}
@@ -32,9 +55,9 @@ function recover(ctx,docs){
    if(!verifiedSample){reject('event_not_independently_sampled');continue;}
    const m=nativeMatches({...r,localMatchup:local},scopes,at).filter(s=>s.startAt===verifiedSample&&same(local,clockAt(s.startAt,zone)));
    if(m.length!==1){reject('missing_or_conflicting_native_scope');continue;}
-   const s=m[0];rows.push({sport:r.sport,eventId:r.eventId,player:r.player,playerPath:r.playerPath,team:r.team,opponent:r.opponent,observedAt:r.observedAt,nativeGameId:s.gameId,nativePlayerId:s.playerId,nativeStartAt:s.startAt,nativeReceiptDigest:s.receiptDigest,clockCorroborated:true,sourceClockVerified:false,modelApproved:false});
+   const s=m[0];rows.push({sport:r.sport,eventId:r.eventId,player:r.player,playerPath:r.playerPath,team:r.team,opponent:r.opponent,observedAt:r.observedAt,nativeGameId:s.gameId,nativePlayerId:s.playerId,nativeStartAt:s.startAt,nativeReceiptDigest:s.receiptDigest,...(r.sourceProfileDigest?{sourceProfileDigest:r.sourceProfileDigest,sourceDetailId:r.detailId}:{}),clockCorroborated:true,sourceClockVerified:false,modelApproved:false});
   }catch{reject('invalid_record');}
  }
  return {rows,summary:{sample,attempts,corroboratedAttempts:rows.length,reasons,modelApproved:false,paidRequests:0}};
 }
-module.exports={recover,nativeMatches};
+module.exports={recover,nativeMatches,profileContexts};

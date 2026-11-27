@@ -175,5 +175,5 @@ async function main(root){
  const summary={kind:'public_pickfinder_identity_health_v1',generatedAt:now(),archiveRevision:git(root,['rev-parse','HEAD']),sourceEvents:groups.length,sources,nativeHistory,independentlyReviewedCrosswalks:0,paidRequests:0,publicRequests:requests,privateRepoUsed:false,modelApproved:false};
  fs.mkdirSync(path.join(root,'data'),{recursive:true});fs.writeFileSync(path.join(root,'data/pickfinder-public-identity-health.json'),JSON.stringify(summary,null,2)+'\n');console.log(JSON.stringify(summary));
 }
-module.exports={espnEvents,espnRoster,nhlEvents,nhlRoster,groupOffers,match,nhlFinal,selectNhlFinals};
+module.exports={request,save,espnEvents,espnRoster,nhlEvents,nhlRoster,groupOffers,match,nhlFinal,selectNhlFinals};
 if(require.main===module)main(fs.realpathSync(process.argv[2]||'.')).catch(()=>{console.error('Public identity audit failed closed');process.exitCode=1;});

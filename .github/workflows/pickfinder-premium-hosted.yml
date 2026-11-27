@@ -95,6 +95,7 @@ jobs:
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
           REQUESTED_MODE: ${{ inputs.mode }}
           PICKFINDER_PUBLIC_DATA_AUTHORIZED: '1'
+          PICKFINDER_NHL_SHADOW_DISPATCH: ${{ github.token }}
           PICKFINDER_AUTOMATION_AUTHORIZED: ${{ vars.PICKFINDER_AUTOMATION_AUTHORIZED }}
           PICKFINDER_EMAIL: ${{ secrets.PICKFINDER_EMAIL }}
           PICKFINDER_PASSWORD: ${{ secrets.PICKFINDER_PASSWORD }}

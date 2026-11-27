@@ -201,6 +201,20 @@
       correlationCoefficientVerified:false,
       originalPlatformPayoutVerified:false};
   }
+  // Published format changes only. Input assumes a single platform-confirmed
+  // removal; it does not infer a DNP/void from box scores or prices.
+  function oneRemovalShape(picks,removed,format){
+    if(!Array.isArray(picks)||picks.length<2||picks.length>6||
+       !Number.isInteger(removed)||removed<0||removed>=picks.length||
+       !["power","flex"].includes(format))return null;
+    const teams=picks.map(p=>norm(p?.team));
+    if(teams.some(s=>!s||s==="—"||s==="unknown")||new Set(teams).size<2)return null;
+    const remaining=teams.filter((_,i)=>i!==removed),size=remaining.length;
+    const refund=size<2||new Set(remaining).size<2;
+    return {prizePicks:refund?"Refund case":size+"-pick "+(format==="flex"&&size>2?"Flex":"Power"),
+      underdog:format==="flex"&&picks.length===2?"Not offered":refund?"Refund case":
+        size+"-pick "+(format==="flex"&&size>2?"Flex":"Standard")};
+  }
   return {key,playerKey,eligible,candidates,validComplete,build,swapOptions,
-    addSelection,createDraft,restoreDraft,structuralRisk};
+    addSelection,createDraft,restoreDraft,structuralRisk,oneRemovalShape};
 });

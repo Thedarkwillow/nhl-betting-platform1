@@ -143,6 +143,10 @@
 <p id="lineupDetails" class="minor" aria-live="polite">Edits use only eligible fresh research offers.</p><p id="lineupFeedback" class="minor" role="status" aria-live="polite">Research drafts stay in this browser only. Saved offers must pass freshness checks again before restoration. Drafts restore as Power; choose Flex again for 3–6 picks.</p>
 <p class="minor">Lineup joint probabilities, payout-specific expected value, and platform settlement are not established. Check the original platform's rules and availability independently.</p>
 <p class="minor" id="lineupDependencyNote">Pairs sharing a game can have unmeasured team, goalie/shooter and scoring interactions. No joint success rate or payout is inferred.</p>
+<details><summary>Paper lineup removal scenarios</summary>
+<p class="minor">Compare one hypothetical PrizePicks Player Pick DNP or Reboot with one Underdog Pick’em void. PrizePicks ties are separate and do not trigger the same-team or minimum-size rule. These are public rules for format changes only, not original eligibility, payout or settlement.</p>
+<p class="minor"><a href="https://www.prizepicks.com/help-center/dnps-reboots-and-ties" rel="noopener noreferrer">PrizePicks DNP, reboots and ties</a> · <a href="https://help.underdogsports.com/en/articles/8974260-tied-or-voided-picks" rel="noopener noreferrer">Underdog tied or voided picks</a> · <a href="https://help.underdogsports.com/en/articles/13161362-pick-em-flex-flexed-payouts" rel="noopener noreferrer">Underdog Flex rules</a></p>
+<p class="minor" id="lineupRemovalStatus">No current research lineup to compare.</p><ul id="lineupRemovalScenarios"></ul></details>
 </div>
 </section>
 <section class="desk-section" id="results">
@@ -660,6 +664,8 @@ function renderLineup(){
  const formatName=format.value==="flex"?"Flex":"Power";
  if(editor.size!==n)resetEditor(n);
  body.replaceChildren();
+ $("lineupRemovalStatus").textContent="No current research lineup to compare.";
+ $("lineupRemovalScenarios").replaceChildren();
  const candidates=currentCandidates(at),result=chooseLineup(at,candidates),picks=result.picks||[];
  $("rebuildLineup").disabled=!candidates.length;
  $("saveLineupDraft").disabled=!candidates.length;
@@ -675,6 +681,13 @@ function renderLineup(){
  const fresh=picks.every(p=>workspace.eligible(p,at)&&isCurrentOffer(p));
  if(!fresh){editor.picks=[];$("lineupStatus").textContent="Research offer expired. Refresh and rebuild from a new verified snapshot.";return;}
  const structural=workspace.structuralRisk(picks,at);
+ const formats=picks.map((p,i)=>workspace.oneRemovalShape(picks,i,format.value));
+ $("lineupRemovalStatus").textContent=formats.every(Boolean)?"If the named pick were removed":"Not evaluated because team identity or diversity is missing.";
+ if(formats.every(Boolean))formats.forEach((outcome,i)=>{
+  const item=document.createElement("li");
+  item.textContent=picks[i].player+" · PrizePicks: "+outcome.prizePicks+" · Underdog: "+outcome.underdog;
+  $("lineupRemovalScenarios").append(item);
+ });
  $("lineupDependencyNote").textContent=structural.sharedGamePairs?
   "Structural risk: "+structural.sharedGamePairs+" same-game pair(s) · "+
   structural.categories.join(", ")+

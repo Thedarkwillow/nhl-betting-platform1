@@ -21,21 +21,35 @@
   const t=Date.parse(time);
   return validTime(time)&&t<=now&&now-t<=minutes*60000;
  }
+ function pacificHour(at){
+  return Number(new Intl.DateTimeFormat("en-US",{timeZone:"America/Los_Angeles",
+   hour:"2-digit",hourCycle:"h23"}).format(new Date(at)));
+ }
  function summarize({health,freeze,diagnostic}={},now=Date.now()){
   const today=pacificDay(now);
   const valid=health?.kind==="public_nhl_nfl_pacific_morning_collection_health_v1"&&
    health.pacificDate===today&&validTime(health.generatedAt)&&Date.parse(health.generatedAt)<=now;
   const slots=valid?health.slots||{}:{};
-  const captured=slot=>slot?.status==="privately_archived_complete"&&
+  const captured=(slot,hour)=>slot?.status==="privately_archived_complete"&&
    fresh(slot.observedAt,now,24*60)&&pacificDay(Date.parse(slot.observedAt))===today&&
+   pacificHour(Date.parse(slot.observedAt))===hour&&Date.parse(slot.observedAt)<=Date.parse(health.generatedAt)&&
    Number.isInteger(slot.nhlOffers)&&slot.nhlOffers>0&&
    Number.isInteger(slot.nflOffers)&&slot.nflOffers>0;
-  const six=captured(slots["06:00"]),nine=captured(slots["09:00"]);
-  const source=valid&&[slots["06:00"],slots["09:00"]].some(x=>
-   captured(x)&&x.observedAt===freeze?.sourceCaptureFinishedUTC);
+  const describeSlot=(key,hour)=>{
+   const slot=slots[key], verified=captured(slot,hour), localHour=pacificHour(now);
+   const outcome=verified?"verified":localHour<hour?"not yet due":localHour===hour?"awaiting verification":
+    slot?.status==="no_verified_full_capture"&&pacificHour(Date.parse(health.generatedAt))>hour?
+     "no verified archive":"post-window audit pending";
+   return {key,hour,verified,outcome};
+  };
+  const captureSlots=[describeSlot("06:00",6),describeSlot("09:00",9)];
+  const [six,nine]=captureSlots.map(x=>x.verified);
+  const source=captureSlots.some(x=>x.verified&&x.key===freeze?.captureSlotPacific&&
+   slots[x.key].observedAt===freeze.sourceCaptureFinishedUTC);
   const frozen=source&&freeze?.kind==="public_safe_nhl_nfl_original_pregame_freeze_status_v1"&&
    freeze.firstGitAdditionVerified===true&&freeze.originalModelDirectionsBeforeKickoff===true&&
    validTime(freeze.originalPrivateGitCommitUTC)&&
+   Date.parse(freeze.originalPrivateGitCommitUTC)>=Date.parse(freeze.sourceCaptureFinishedUTC)&&
    Date.parse(freeze.originalPrivateGitCommitUTC)<=now&&
    Number.isInteger(freeze.pregameSelections?.NHL?.count)&&
    Number.isInteger(freeze.pregameSelections?.NFL?.count)&&
@@ -48,14 +62,14 @@
   const reason=typeof diagnostic?.reason==="string"&&/^[a-z_]{3,80}$/.test(diagnostic.reason)?
    diagnostic.reason.replaceAll("_"," "):"fresh public source not verified";
   return {
-   date:today,sourceStatus:six&&nine?"6 AM and 9 AM captured":six?"6 AM captured; 9 AM not yet verified":"Morning captures not yet verified",
-   sourceDetail:six&&nine?"Original NHL/NFL source observations independently archived":"No missing or delayed capture is assumed successful",
+   date:today,sourceStatus:captureSlots.map(x=>x.hour+" AM "+x.outcome).join(" · "),
+   sourceDetail:six&&nine?"Original NHL/NFL source observations independently archived":"A delayed run alone does not verify a board capture",
    frozenStatus:frozen?freeze.pregameSelections.NHL.count+" NHL / "+freeze.pregameSelections.NFL.count+" NFL research directions frozen":"Pregame freeze not verified against the latest source",
    rankingStatus:approved?diagnostic.publishedRows+" fresh public research rows":"Fresh public player rankings withheld",
    rankingDetail:approved?
     "Independent-source research only; no calibrated probabilities, verified app availability or payouts":
     "Private capture does not authorize public player lines. Status: "+reason+".",
-   six,nine,frozen,approved,originalAppVerified:false,calibrated:false
+   six,nine,captureSlots,frozen,approved,originalAppVerified:false,calibrated:false
   };
  }
  function render(host,summary){
@@ -80,11 +94,12 @@
   const refresh=async()=>{
    try{
     const names=["collection-health.json","nhl-nfl-freeze-status.json","nhl-freshness-diagnostic.json"];
-    const values=await Promise.all(names.map(async name=>{
+    const settled=await Promise.allSettled(names.map(async name=>{
      const res=await fetchFn("./data/"+name,{cache:"no-store"});
      if(!res.ok)throw Error("status feed unavailable");
      return res.json();
     }));
+    const values=settled.map(item=>item.status==="fulfilled"?item.value:null);
     render(host,summarize({health:values[0],freeze:values[1],diagnostic:values[2]},now()));
    }catch{
     render(host,summarize({},now()));

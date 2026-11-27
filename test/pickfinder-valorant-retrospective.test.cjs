@@ -47,3 +47,21 @@ test('replays both mapped results with a prior board clock and fails closed on s
  players['3168']=players['3169'];delete players['3169'];
  assert.equal(sample(board,missingPlayer).skip.unprovedPlayer,1);
 });
+
+test('a later finish does not silently turn the original-date offer into a rescheduled offer',()=>{
+ const eventId='2026112600B7ED27';
+ const fixture=require('../config/esports/pickfinder-series-review-2026-11-27.json').series.find(x=>x.sourceEventId===eventId);
+ const player=fixture.roster[0];
+ const moved='2026-11-28T22:00:00Z';
+ const receipt=structuredClone(raw);
+ receipt.doc.series[0].sourceEventId=eventId;
+ receipt.doc.series[0].listedStartAt=moved;
+ receipt.doc.series[0].resultUrl=fixture.seriesUrl;
+ receipt.doc.observedAt=receipt.first='2026-11-29T01:00:00Z';
+ const candidate={...offer,player:player.label,eventId,
+   detailId:player.pickfinderProfilePath+'?prop=testing%3A'+offer.market+'%3A'+eventId+'%3A'+offer.line};
+ const run=o=>samples(new Map([['test',{...board,offer:o}]]),[receipt],'2026-11-29T12:00:00Z',observations).skip;
+ assert.equal(run(candidate).rescheduledOfferNotReissued,1);
+ assert.equal(run({...candidate,startAt:'2026-11-26T22:00:00Z'}).rescheduledOfferNotReissued,1);
+ assert.equal(run({...candidate,startAt:moved}).unprovedMapScope,1);
+});

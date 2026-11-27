@@ -10,6 +10,7 @@ const health={
 };
 const freeze={
  kind:"public_safe_nhl_nfl_original_pregame_freeze_status_v1",
+ captureSlotPacific:"09:00",
  sourceCaptureFinishedUTC:"2026-11-17T17:05:00Z",originalPrivateGitCommitUTC:"2026-11-17T17:06:00Z",
  firstGitAdditionVerified:true,originalModelDirectionsBeforeKickoff:true,
  pregameSelections:{NHL:{count:402},NFL:{count:238}}
@@ -41,4 +42,26 @@ test("Pacific local day is used, not a UTC calendar date",()=>{
  assert.equal(pacificDay(Date.parse("2026-11-17T02:00:00Z")),"2026-11-16");
  const stale=summarize({health,freeze,diagnostic},Date.parse("2026-11-18T20:00:00Z"));
  assert.equal(stale.six,false);assert.equal(stale.nine,false);
+});
+test("9 AM-only evidence stays visible alongside a missing 6 AM archive",()=>{
+ const absent={status:"no_verified_full_capture"};
+ const x=summarize({health:{...health,slots:{"06:00":absent,"09:00":health.slots["09:00"]}},freeze},now);
+ assert.match(x.sourceStatus,/6 AM no verified archive · 9 AM verified/);
+ assert.equal(x.six,false);assert.equal(x.nine,true);assert.equal(x.frozen,true);
+});
+test("audit timing distinguishes not due, awaiting verification and missing",()=>{
+ const missing={...health,generatedAt:"2026-11-17T15:05:00Z",
+  slots:{"06:00":{status:"no_verified_full_capture"},"09:00":{status:"no_verified_full_capture"}}};
+ assert.match(summarize({health:missing},Date.parse("2026-11-17T16:00:00Z")).sourceStatus,
+  /6 AM no verified archive · 9 AM not yet due/);
+ assert.match(summarize({health:missing},Date.parse("2026-11-17T17:20:00Z")).sourceStatus,
+  /9 AM awaiting verification/);
+ assert.match(summarize({health:missing},now).sourceStatus,/9 AM post-window audit pending/);
+});
+test("wrong-slot capture or freeze commit preceding the source cannot be promoted",()=>{
+ const x=summarize({health:{...health,slots:{...health.slots,"09:00":{
+  ...health.slots["09:00"],observedAt:"2026-11-17T18:05:00Z"}}},freeze},now);
+ assert.equal(x.nine,false);assert.equal(x.frozen,false);
+ assert.equal(summarize({health,freeze:{...freeze,captureSlotPacific:"06:00"}},now).frozen,false);
+ assert.equal(summarize({health,freeze:{...freeze,originalPrivateGitCommitUTC:"2026-11-17T17:04:00Z"}},now).frozen,false);
 });

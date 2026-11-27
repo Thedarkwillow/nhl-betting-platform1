@@ -1,6 +1,6 @@
 {
   "kind": "public_prizepicks_model_ranking_v1",
-  "generatedAt": "2026-11-26T23:59:42.863Z",
+  "generatedAt": "2026-11-27T00:29:54.173Z",
   "rows": [],
   "bySport": {
     "nba": {
@@ -54,7 +54,7 @@
   },
   "excluded": {},
   "archivedForecastFrames": 1,
-  "archivedGradeFrames": 0,
+  "archivedGradeFrames": 1,
   "modelApproved": false,
   "calibrated": false,
   "originalPlatformVerified": false,

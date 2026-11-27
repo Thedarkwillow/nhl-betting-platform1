@@ -1,8 +1,8 @@
 {
   "kind": "public_pickfinder_identity_health_v1",
-  "generatedAt": "2026-11-27T13:53:45.881Z",
-  "archiveRevision": "95308a2391421f7c2429fb7761747a22d2b74145",
-  "sourceEvents": 190,
+  "generatedAt": "2026-11-27T23:29:57.043Z",
+  "archiveRevision": "89384ddf4dc88725111105f0b30b72eda44d0b3d",
+  "sourceEvents": 219,
   "sources": {
     "nba": {
       "state": "observed",
@@ -13,7 +13,7 @@
       "failedTeams": 0,
       "sourceEvents": 11,
       "uniqueEventCandidates": 11,
-      "uniquePlayerCandidates": 152,
+      "uniquePlayerCandidates": 159,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -21,12 +21,12 @@
       "state": "observed",
       "source": "espn:nfl",
       "events": 12,
-      "upcoming": 12,
-      "rosterPlayers": 1773,
+      "upcoming": 11,
+      "rosterPlayers": 1615,
       "failedTeams": 0,
       "sourceEvents": 12,
-      "uniqueEventCandidates": 11,
-      "uniquePlayerCandidates": 304,
+      "uniqueEventCandidates": 10,
+      "uniquePlayerCandidates": 328,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -34,12 +34,12 @@
       "state": "observed",
       "source": "nhl:official",
       "events": 60,
-      "upcoming": 60,
-      "rosterPlayers": 806,
+      "upcoming": 48,
+      "rosterPlayers": 782,
       "failedTeams": 0,
-      "sourceEvents": 15,
-      "uniqueEventCandidates": 13,
-      "uniquePlayerCandidates": 551,
+      "sourceEvents": 13,
+      "uniqueEventCandidates": 9,
+      "uniquePlayerCandidates": 467,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -53,12 +53,12 @@
       "state": "observed",
       "source": "espn:college-football",
       "events": 66,
-      "upcoming": 66,
+      "upcoming": 56,
       "rosterPlayers": 4000,
       "failedTeams": 0,
-      "sourceEvents": 64,
+      "sourceEvents": 58,
       "uniqueEventCandidates": 20,
-      "uniquePlayerCandidates": 401,
+      "uniquePlayerCandidates": 393,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -66,12 +66,12 @@
       "state": "observed",
       "source": "espn:college-basketball",
       "events": 93,
-      "upcoming": 93,
-      "rosterPlayers": 615,
+      "upcoming": 84,
+      "rosterPlayers": 608,
       "failedTeams": 0,
-      "sourceEvents": 8,
-      "uniqueEventCandidates": 0,
-      "uniquePlayerCandidates": 24,
+      "sourceEvents": 18,
+      "uniqueEventCandidates": 3,
+      "uniquePlayerCandidates": 34,
       "sourceContextCorroborated": 0,
       "independentReviewVerified": 0
     },
@@ -82,7 +82,7 @@
       "upcoming": 0,
       "rosterPlayers": 0,
       "failedTeams": 0,
-      "sourceEvents": 19,
+      "sourceEvents": 11,
       "uniqueEventCandidates": 0,
       "uniquePlayerCandidates": 0,
       "sourceContextCorroborated": 0,
@@ -92,10 +92,10 @@
       "state": "observed",
       "source": "espn:soccer",
       "events": 10,
-      "upcoming": 10,
+      "upcoming": 9,
       "rosterPlayers": 0,
       "failedTeams": 0,
-      "sourceEvents": 53,
+      "sourceEvents": 78,
       "uniqueEventCandidates": 0,
       "uniquePlayerCandidates": 0,
       "sourceContextCorroborated": 0,
@@ -103,17 +103,17 @@
     },
     "cs2": {
       "state": "fixture_source_pending",
-      "sourceEvents": 4,
+      "sourceEvents": 10,
       "independentReviewVerified": 0
     },
     "valorant": {
       "state": "fixture_source_pending",
-      "sourceEvents": 3,
+      "sourceEvents": 5,
       "independentReviewVerified": 0
     },
     "dota2": {
       "state": "fixture_source_pending",
-      "sourceEvents": 1,
+      "sourceEvents": 3,
       "independentReviewVerified": 0
     },
     "lol": {
@@ -129,8 +129,8 @@
   },
   "nativeHistory": {
     "nhl": {
-      "finalGames": 35,
-      "playerAppearances": 904,
+      "finalGames": 8,
+      "playerAppearances": 206,
       "completeHistoricalSeasons": false
     },
     "dota2": {
@@ -141,7 +141,7 @@
   },
   "independentlyReviewedCrosswalks": 0,
   "paidRequests": 0,
-  "publicRequests": 239,
+  "publicRequests": 209,
   "privateRepoUsed": false,
   "modelApproved": false
 }

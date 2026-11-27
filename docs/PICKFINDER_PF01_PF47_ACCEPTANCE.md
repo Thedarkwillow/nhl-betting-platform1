@@ -35,6 +35,13 @@ PrizePicks rows with unconfirmed prices or repeated details remain separate. The
 
 [The automatic Discord run triggered by the manual capture](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46029956092) confirmed 72 delivered alerts in 12 messages: 24 PrizePicks line-change alerts and 48 Underdog new-prop alerts. There were zero qualified suggestions and zero paid requests. This verifies live delivery to both prop channels, but not an independently scheduled delivery or PrizePicks new-prop detection. The six core sport/book release baselines reported unresolved prior rows, so no core-board new release was inferred from them.
 
+
+## Nov 27 scheduled capture readback
+
+Replayed the read-only morning auditor with `--require-scheduled-core` for both Pacific slots against [pinned Git main `54212dfb`](https://github.com/Thedarkwillow/nhl-betting-platform1/commit/54212dfb8fa2d61ecbdb1618b24bd17bca81f848). Both slots failed the evidence gate with **0 of 6** verified NBA/NHL/NFL sport/platform pairs and no in-slot board manifests. The [capture event history](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/workflows/pickfinder-premium-hosted.yml) had no scheduled dispatch in either target hour. This was not an observed provider or parsing failure in either window. The 07:37–07:49 manual core captures do not count toward either slot. [Full incident record](https://github.com/Thedarkwillow/nhl-betting-platform1/commit/c0170f62eb19d010a42251495dea8956a98b00c5).
+
+The two follow-up senders [46030456106](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46030456106) and [46030458393](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/runs/46030458393) each confirmed 72 prop alerts. Both reported zero PrizePicks new-release candidates. NBA, NHL and NFL PrizePicks each had an unresolved prior-board baseline in both runs. Keep PF-16 and PF-42 open. No schedules, release gates or model inputs changed, and no paid requests were made.
+
 ## Remaining acceptance by task
 
 | Task IDs | Verified scope | Evidence still needed |

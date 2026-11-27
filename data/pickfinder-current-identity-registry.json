@@ -1,24 +1,24 @@
 {
   "kind": "pickfinder_current_identity_registry_v1",
-  "generatedAt": "2026-11-27T09:06:34.531Z",
-  "archiveRevision": "2a996cb8ccc35f2351da02f39a4867339f42e69c",
+  "generatedAt": "2026-11-27T09:08:19.899Z",
+  "archiveRevision": "7662c1ea8bbc4aa6c0d677e1c95feb309a25bf72",
   "profiles": 416,
-  "scopesWithReusedPlayerId": 15,
+  "scopesWithReusedPlayerId": 27,
   "players": 369,
   "fields": 198788,
   "bySport": {
     "nba": {
       "scopes": 62,
-      "confirmed": 0,
+      "confirmed": 4,
       "needsReview": 0,
-      "missingEvidence": 62,
+      "missingEvidence": 58,
       "fields": 80975
     },
     "nhl": {
       "scopes": 111,
-      "confirmed": 0,
+      "confirmed": 8,
       "needsReview": 0,
-      "missingEvidence": 111,
+      "missingEvidence": 103,
       "fields": 61218
     },
     "cs2": {
@@ -58,9 +58,9 @@
     },
     "nfl": {
       "scopes": 19,
-      "confirmed": 0,
+      "confirmed": 1,
       "needsReview": 0,
-      "missingEvidence": 19,
+      "missingEvidence": 18,
       "fields": 6324
     },
     "valorant": {
@@ -176,9 +176,31 @@
       "sourcePlayerPath": "/players/nba/4x82a7fyri044ya",
       "sourceEventId": "202611282635DA8A",
       "profileDigest": "09e6d2d104dfe5b4caa485ea36a79574d5ebb40424ec32aced35b68bc882c00d",
-      "status": "source_matchup_or_clock_missing",
-      "cachedIdentity": null,
-      "match": null,
+      "status": "confirmed",
+      "cachedIdentity": {
+        "sport": "nba",
+        "sourcePlayerPath": "/players/nba/4x82a7fyri044ya",
+        "sourcePlayer": "Jaxson Hayes",
+        "namespace": "espn:nba",
+        "playerId": "4397077",
+        "receiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5"
+      },
+      "match": {
+        "namespace": "espn:nba",
+        "playerId": "4397077",
+        "eventId": "401909334",
+        "team": "UTAH",
+        "opponent": "DEN",
+        "startAt": "2026-11-28T02:30:00.000Z",
+        "receiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5",
+        "timezoneReceiptDigests": [
+          "2929b3c1db7782d5af98b907978c3443769e09e3b97b432273bda26060f940fb",
+          "3cca62c68565f963697dc5304a36d2ca308415ca5806f14a72412e1a22a2f5c5",
+          "818bb5042451e8c07df0942db5702dde6c2c8d56a9743ca0498ae2e2af3a988b"
+        ],
+        "proofAvailableAt": "2026-11-27T08:28:58.000Z",
+        "evidenceMethod": "controlled_display_and_independent_schedule_roster"
+      },
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
@@ -1001,9 +1023,31 @@
       "sourcePlayerPath": "/players/nfl/q4mqlawzc7wep2j",
       "sourceEventId": "20261129172FF93C",
       "profileDigest": "24561a775a881c44b65ae20b4868700279a3ff0bf5f02582f2f88bc8ea5bc059",
-      "status": "source_matchup_or_clock_missing",
-      "cachedIdentity": null,
-      "match": null,
+      "status": "confirmed",
+      "cachedIdentity": {
+        "sport": "nfl",
+        "sourcePlayerPath": "/players/nfl/q4mqlawzc7wep2j",
+        "sourcePlayer": "Harrison Wallace III",
+        "namespace": "espn:nfl",
+        "playerId": "4699354",
+        "receiptDigest": "888e45ecf6b42d1a5ca3914ac0b365b83681dd45b4c8af14a0b3340bc3f709f1"
+      },
+      "match": {
+        "namespace": "espn:nfl",
+        "playerId": "4699354",
+        "eventId": "401873092",
+        "team": "ARI",
+        "opponent": "WSH",
+        "startAt": "2026-11-29T21:25:00.000Z",
+        "receiptDigest": "888e45ecf6b42d1a5ca3914ac0b365b83681dd45b4c8af14a0b3340bc3f709f1",
+        "timezoneReceiptDigests": [
+          "3c58c7eab54c259b379d820eb85470905593a7f10cdfd1159a84cf79d10f9ccf",
+          "4f1274a0f8d01bc9f601385e4166f3673b20783e30052d3cbfdb558f84c70029",
+          "5f88dd47e83697f4f407ee3bf5ee3d25e0f43fe03eecdb073d097ca67794a159"
+        ],
+        "proofAvailableAt": "2026-11-27T08:29:06.000Z",
+        "evidenceMethod": "controlled_display_and_independent_schedule_roster"
+      },
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
@@ -1016,9 +1060,31 @@
       "sourcePlayerPath": "/players/nba/yoamd9ptyymsf35",
       "sourceEventId": "202611282635DA8A",
       "profileDigest": "24561a775a881c44b65ae20b4868700279a3ff0bf5f02582f2f88bc8ea5bc059",
-      "status": "source_matchup_or_clock_missing",
-      "cachedIdentity": null,
-      "match": null,
+      "status": "confirmed",
+      "cachedIdentity": {
+        "sport": "nba",
+        "sourcePlayerPath": "/players/nba/yoamd9ptyymsf35",
+        "sourcePlayer": "Nikola Jokic",
+        "namespace": "espn:nba",
+        "playerId": "3112335",
+        "receiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5"
+      },
+      "match": {
+        "namespace": "espn:nba",
+        "playerId": "3112335",
+        "eventId": "401909334",
+        "team": "DEN",
+        "opponent": "UTAH",
+        "startAt": "2026-11-28T02:30:00.000Z",
+        "receiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5",
+        "timezoneReceiptDigests": [
+          "2929b3c1db7782d5af98b907978c3443769e09e3b97b432273bda26060f940fb",
+          "3cca62c68565f963697dc5304a36d2ca308415ca5806f14a72412e1a22a2f5c5",
+          "818bb5042451e8c07df0942db5702dde6c2c8d56a9743ca0498ae2e2af3a988b"
+        ],
+        "proofAvailableAt": "2026-11-27T08:28:58.000Z",
+        "evidenceMethod": "controlled_display_and_independent_schedule_roster"
+      },
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
@@ -1031,9 +1097,31 @@
       "sourcePlayerPath": "/players/nhl/gscqt8ak7ph6v9x",
       "sourceEventId": "202611278D8AF98F",
       "profileDigest": "24561a775a881c44b65ae20b4868700279a3ff0bf5f02582f2f88bc8ea5bc059",
-      "status": "source_matchup_or_clock_missing",
-      "cachedIdentity": null,
-      "match": null,
+      "status": "confirmed",
+      "cachedIdentity": {
+        "sport": "nhl",
+        "sourcePlayerPath": "/players/nhl/gscqt8ak7ph6v9x",
+        "sourcePlayer": "Brandon Montour",
+        "namespace": "nhl:official",
+        "playerId": "8477986",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
+      },
+      "match": {
+        "namespace": "nhl:official",
+        "playerId": "8477986",
+        "eventId": "2026020414",
+        "team": "SEA",
+        "opponent": "EDM",
+        "startAt": "2026-11-28T01:00:00.000Z",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+        "timezoneReceiptDigests": [
+          "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+          "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+          "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+        ],
+        "proofAvailableAt": "2026-11-27T08:29:02.000Z",
+        "evidenceMethod": "controlled_display_and_independent_schedule_roster"
+      },
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
@@ -2810,9 +2898,31 @@
       "sourcePlayerPath": "/players/nhl/gu23634m8pzegc5",
       "sourceEventId": "202611278D8AF98F",
       "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
-      "status": "source_matchup_or_clock_missing",
-      "cachedIdentity": null,
-      "match": null,
+      "status": "confirmed",
+      "cachedIdentity": {
+        "sport": "nhl",
+        "sourcePlayerPath": "/players/nhl/gu23634m8pzegc5",
+        "sourcePlayer": "Matthew Wood",
+        "namespace": "nhl:official",
+        "playerId": "8484241",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
+      },
+      "match": {
+        "namespace": "nhl:official",
+        "playerId": "8484241",
+        "eventId": "2026020414",
+        "team": "SEA",
+        "opponent": "EDM",
+        "startAt": "2026-11-28T01:00:00.000Z",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+        "timezoneReceiptDigests": [
+          "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+          "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+          "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+        ],
+        "proofAvailableAt": "2026-11-27T08:29:02.000Z",
+        "evidenceMethod": "controlled_display_and_independent_schedule_roster"
+      },
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
@@ -2825,9 +2935,31 @@
       "sourcePlayerPath": "/players/nhl/nobl510iajgi8iy",
       "sourceEventId": "202611278D8AF98F",
       "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
-      "status": "source_matchup_or_clock_missing",
-      "cachedIdentity": null,
-      "match": null,
+      "status": "confirmed",
+      "cachedIdentity": {
+        "sport": "nhl",
+        "sourcePlayerPath": "/players/nhl/nobl510iajgi8iy",
+        "sourcePlayer": "Mattias Ekholm",
+        "namespace": "nhl:official",
+        "playerId": "8475218",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
+      },
+      "match": {
+        "namespace": "nhl:official",
+        "playerId": "8475218",
+        "eventId": "2026020414",
+        "team": "EDM",
+        "opponent": "SEA",
+        "startAt": "2026-11-28T01:00:00.000Z",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+        "timezoneReceiptDigests": [
+          "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+          "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+          "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+        ],
+        "proofAvailableAt": "2026-11-27T08:29:02.000Z",
+        "evidenceMethod": "controlled_display_and_independent_schedule_roster"
+      },
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
@@ -2840,9 +2972,31 @@
       "sourcePlayerPath": "/players/nba/cfbi5mq23kpiq3l",
       "sourceEventId": "202611282635DA8A",
       "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
-      "status": "source_matchup_or_clock_missing",
-      "cachedIdentity": null,
-      "match": null,
+      "status": "confirmed",
+      "cachedIdentity": {
+        "sport": "nba",
+        "sourcePlayerPath": "/players/nba/cfbi5mq23kpiq3l",
+        "sourcePlayer": "Aaron Gordon",
+        "namespace": "espn:nba",
+        "playerId": "3064290",
+        "receiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5"
+      },
+      "match": {
+        "namespace": "espn:nba",
+        "playerId": "3064290",
+        "eventId": "401909334",
+        "team": "DEN",
+        "opponent": "UTAH",
+        "startAt": "2026-11-28T02:30:00.000Z",
+        "receiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5",
+        "timezoneReceiptDigests": [
+          "2929b3c1db7782d5af98b907978c3443769e09e3b97b432273bda26060f940fb",
+          "3cca62c68565f963697dc5304a36d2ca308415ca5806f14a72412e1a22a2f5c5",
+          "818bb5042451e8c07df0942db5702dde6c2c8d56a9743ca0498ae2e2af3a988b"
+        ],
+        "proofAvailableAt": "2026-11-27T08:28:58.000Z",
+        "evidenceMethod": "controlled_display_and_independent_schedule_roster"
+      },
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
@@ -2960,9 +3114,31 @@
       "sourcePlayerPath": "/players/nhl/uc2rjyyfjhm7dzo",
       "sourceEventId": "202611278D8AF98F",
       "profileDigest": "6a1be1a917b60e8ac748ae0ef97ace44190dcc5e317ea8353a29bec35e9969c8",
-      "status": "source_matchup_or_clock_missing",
-      "cachedIdentity": null,
-      "match": null,
+      "status": "confirmed",
+      "cachedIdentity": {
+        "sport": "nhl",
+        "sourcePlayerPath": "/players/nhl/uc2rjyyfjhm7dzo",
+        "sourcePlayer": "Jason Dickinson",
+        "namespace": "nhl:official",
+        "playerId": "8477450",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
+      },
+      "match": {
+        "namespace": "nhl:official",
+        "playerId": "8477450",
+        "eventId": "2026020414",
+        "team": "EDM",
+        "opponent": "SEA",
+        "startAt": "2026-11-28T01:00:00.000Z",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+        "timezoneReceiptDigests": [
+          "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+          "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+          "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+        ],
+        "proofAvailableAt": "2026-11-27T08:29:02.000Z",
+        "evidenceMethod": "controlled_display_and_independent_schedule_roster"
+      },
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
@@ -3635,9 +3811,31 @@
       "sourcePlayerPath": "/players/nhl/mqa4hclx08najm0",
       "sourceEventId": "202611278D8AF98F",
       "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
-      "status": "source_matchup_or_clock_missing",
-      "cachedIdentity": null,
-      "match": null,
+      "status": "confirmed",
+      "cachedIdentity": {
+        "sport": "nhl",
+        "sourcePlayerPath": "/players/nhl/mqa4hclx08najm0",
+        "sourcePlayer": "Ryan Winterton",
+        "namespace": "nhl:official",
+        "playerId": "8482751",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
+      },
+      "match": {
+        "namespace": "nhl:official",
+        "playerId": "8482751",
+        "eventId": "2026020414",
+        "team": "SEA",
+        "opponent": "EDM",
+        "startAt": "2026-11-28T01:00:00.000Z",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+        "timezoneReceiptDigests": [
+          "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+          "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+          "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+        ],
+        "proofAvailableAt": "2026-11-27T08:29:02.000Z",
+        "evidenceMethod": "controlled_display_and_independent_schedule_roster"
+      },
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
@@ -3680,9 +3878,31 @@
       "sourcePlayerPath": "/players/nhl/ke1w9wjm7tkf8h7",
       "sourceEventId": "202611278D8AF98F",
       "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
-      "status": "source_matchup_or_clock_missing",
-      "cachedIdentity": null,
-      "match": null,
+      "status": "confirmed",
+      "cachedIdentity": {
+        "sport": "nhl",
+        "sourcePlayerPath": "/players/nhl/ke1w9wjm7tkf8h7",
+        "sourcePlayer": "Owen Michaels",
+        "namespace": "nhl:official",
+        "playerId": "8486161",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
+      },
+      "match": {
+        "namespace": "nhl:official",
+        "playerId": "8486161",
+        "eventId": "2026020414",
+        "team": "EDM",
+        "opponent": "SEA",
+        "startAt": "2026-11-28T01:00:00.000Z",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+        "timezoneReceiptDigests": [
+          "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+          "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+          "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+        ],
+        "proofAvailableAt": "2026-11-27T08:29:02.000Z",
+        "evidenceMethod": "controlled_display_and_independent_schedule_roster"
+      },
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
@@ -3740,7 +3960,7 @@
       "sourcePlayerPath": "/players/nhl/9wep5tm3c50dgqv",
       "sourceEventId": "202611278D8AF98F",
       "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
-      "status": "source_matchup_or_clock_missing",
+      "status": "confirmed",
       "cachedIdentity": {
         "sport": "nhl",
         "sourcePlayerPath": "/players/nhl/9wep5tm3c50dgqv",
@@ -3751,7 +3971,22 @@
         ],
         "receiptDigest": "79b02f0f4cf1023eedb8cea90e2d02a2c286354dde90950a2fce57dd010a6e54"
       },
-      "match": null,
+      "match": {
+        "namespace": "nhl:official",
+        "playerId": "8474586",
+        "eventId": "2026020414",
+        "team": "SEA",
+        "opponent": "EDM",
+        "startAt": "2026-11-28T01:00:00.000Z",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+        "timezoneReceiptDigests": [
+          "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+          "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+          "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+        ],
+        "proofAvailableAt": "2026-11-27T08:29:02.000Z",
+        "evidenceMethod": "controlled_display_and_independent_schedule_roster"
+      },
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
@@ -5267,9 +5502,31 @@
       "sourcePlayerPath": "/players/nba/qz5hx93u7f48g1j",
       "sourceEventId": "202611282635DA8A",
       "profileDigest": "d6f53be8a34bc5d9d6bf6b4245d4844c3be84fa4e565dad2d4c0d4579126835c",
-      "status": "source_matchup_or_clock_missing",
-      "cachedIdentity": null,
-      "match": null,
+      "status": "confirmed",
+      "cachedIdentity": {
+        "sport": "nba",
+        "sourcePlayerPath": "/players/nba/qz5hx93u7f48g1j",
+        "sourcePlayer": "DeMar DeRozan",
+        "namespace": "espn:nba",
+        "playerId": "3978",
+        "receiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5"
+      },
+      "match": {
+        "namespace": "espn:nba",
+        "playerId": "3978",
+        "eventId": "401909334",
+        "team": "DEN",
+        "opponent": "UTAH",
+        "startAt": "2026-11-28T02:30:00.000Z",
+        "receiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5",
+        "timezoneReceiptDigests": [
+          "2929b3c1db7782d5af98b907978c3443769e09e3b97b432273bda26060f940fb",
+          "3cca62c68565f963697dc5304a36d2ca308415ca5806f14a72412e1a22a2f5c5",
+          "818bb5042451e8c07df0942db5702dde6c2c8d56a9743ca0498ae2e2af3a988b"
+        ],
+        "proofAvailableAt": "2026-11-27T08:28:58.000Z",
+        "evidenceMethod": "controlled_display_and_independent_schedule_roster"
+      },
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
@@ -5372,9 +5629,31 @@
       "sourcePlayerPath": "/players/nhl/iagfqbdrtqb3ons",
       "sourceEventId": "202611278D8AF98F",
       "profileDigest": "d6f53be8a34bc5d9d6bf6b4245d4844c3be84fa4e565dad2d4c0d4579126835c",
-      "status": "source_matchup_or_clock_missing",
-      "cachedIdentity": null,
-      "match": null,
+      "status": "confirmed",
+      "cachedIdentity": {
+        "sport": "nhl",
+        "sourcePlayerPath": "/players/nhl/iagfqbdrtqb3ons",
+        "sourcePlayer": "Berkly Catton",
+        "namespace": "nhl:official",
+        "playerId": "8484800",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
+      },
+      "match": {
+        "namespace": "nhl:official",
+        "playerId": "8484800",
+        "eventId": "2026020414",
+        "team": "SEA",
+        "opponent": "EDM",
+        "startAt": "2026-11-28T01:00:00.000Z",
+        "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+        "timezoneReceiptDigests": [
+          "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+          "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+          "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+        ],
+        "proofAvailableAt": "2026-11-27T08:29:02.000Z",
+        "evidenceMethod": "controlled_display_and_independent_schedule_roster"
+      },
       "operatorOfferVerified": false,
       "settlementVerified": false,
       "statisticalModelEligible": false,
@@ -6457,6 +6736,13 @@
   ],
   "registry": [
     {
+      "sport": "nba",
+      "sourcePlayerPath": "/players/nba/4x82a7fyri044ya",
+      "namespace": "espn:nba",
+      "playerId": "4397077",
+      "receiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5"
+    },
+    {
       "sport": "nhl",
       "sourcePlayerPath": "/players/nhl/467qlhi61ja31h2",
       "namespace": "nhl:official",
@@ -6490,6 +6776,27 @@
       "namespace": "nhl:official",
       "playerId": "8482089",
       "receiptDigest": "79b02f0f4cf1023eedb8cea90e2d02a2c286354dde90950a2fce57dd010a6e54"
+    },
+    {
+      "sport": "nfl",
+      "sourcePlayerPath": "/players/nfl/q4mqlawzc7wep2j",
+      "namespace": "espn:nfl",
+      "playerId": "4699354",
+      "receiptDigest": "888e45ecf6b42d1a5ca3914ac0b365b83681dd45b4c8af14a0b3340bc3f709f1"
+    },
+    {
+      "sport": "nba",
+      "sourcePlayerPath": "/players/nba/yoamd9ptyymsf35",
+      "namespace": "espn:nba",
+      "playerId": "3112335",
+      "receiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5"
+    },
+    {
+      "sport": "nhl",
+      "sourcePlayerPath": "/players/nhl/gscqt8ak7ph6v9x",
+      "namespace": "nhl:official",
+      "playerId": "8477986",
+      "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
     },
     {
       "sport": "nba",
@@ -6535,10 +6842,52 @@
     },
     {
       "sport": "nhl",
+      "sourcePlayerPath": "/players/nhl/gu23634m8pzegc5",
+      "namespace": "nhl:official",
+      "playerId": "8484241",
+      "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
+    },
+    {
+      "sport": "nhl",
+      "sourcePlayerPath": "/players/nhl/nobl510iajgi8iy",
+      "namespace": "nhl:official",
+      "playerId": "8475218",
+      "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
+    },
+    {
+      "sport": "nba",
+      "sourcePlayerPath": "/players/nba/cfbi5mq23kpiq3l",
+      "namespace": "espn:nba",
+      "playerId": "3064290",
+      "receiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5"
+    },
+    {
+      "sport": "nhl",
+      "sourcePlayerPath": "/players/nhl/uc2rjyyfjhm7dzo",
+      "namespace": "nhl:official",
+      "playerId": "8477450",
+      "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
+    },
+    {
+      "sport": "nhl",
+      "sourcePlayerPath": "/players/nhl/mqa4hclx08najm0",
+      "namespace": "nhl:official",
+      "playerId": "8482751",
+      "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
+    },
+    {
+      "sport": "nhl",
+      "sourcePlayerPath": "/players/nhl/ke1w9wjm7tkf8h7",
+      "namespace": "nhl:official",
+      "playerId": "8486161",
+      "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
+    },
+    {
+      "sport": "nhl",
       "sourcePlayerPath": "/players/nhl/9wep5tm3c50dgqv",
       "namespace": "nhl:official",
       "playerId": "8474586",
-      "receiptDigest": "79b02f0f4cf1023eedb8cea90e2d02a2c286354dde90950a2fce57dd010a6e54"
+      "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
     },
     {
       "sport": "nba",
@@ -6555,13 +6904,236 @@
       "receiptDigest": "79b02f0f4cf1023eedb8cea90e2d02a2c286354dde90950a2fce57dd010a6e54"
     },
     {
+      "sport": "nba",
+      "sourcePlayerPath": "/players/nba/qz5hx93u7f48g1j",
+      "namespace": "espn:nba",
+      "playerId": "3978",
+      "receiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5"
+    },
+    {
+      "sport": "nhl",
+      "sourcePlayerPath": "/players/nhl/iagfqbdrtqb3ons",
+      "namespace": "nhl:official",
+      "playerId": "8484800",
+      "receiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29"
+    },
+    {
       "sport": "nhl",
       "sourcePlayerPath": "/players/nhl/kxu2ssq0b2kc975",
       "namespace": "nhl:official",
       "playerId": "8477015",
       "receiptDigest": "79b02f0f4cf1023eedb8cea90e2d02a2c286354dde90950a2fce57dd010a6e54"
+    },
+    {
+      "sport": "nfl",
+      "sourcePlayerPath": "/players/nfl/dnlt5rk59f16eqt",
+      "namespace": "espn:nfl",
+      "playerId": "4035687",
+      "receiptDigest": "0802a649760c3801482499afd9b0a1f32a242ba020e42d9a0e5e5fdc41e41c65"
+    },
+    {
+      "sport": "nhl",
+      "sourcePlayerPath": "/players/nhl/lptdi7dn0cusy5y",
+      "namespace": "nhl:official",
+      "playerId": "8477476",
+      "receiptDigest": "2c1d5234508f85d24af55f45618ac524953381af57e71ca6b06e1a2f508a5ea5"
+    },
+    {
+      "sport": "nhl",
+      "sourcePlayerPath": "/players/nhl/8hwo0qlkt5g5uok",
+      "namespace": "nhl:official",
+      "playerId": "8484186",
+      "receiptDigest": "2c1d5234508f85d24af55f45618ac524953381af57e71ca6b06e1a2f508a5ea5"
+    },
+    {
+      "sport": "nhl",
+      "sourcePlayerPath": "/players/nhl/g272uuvt9rqq85h",
+      "namespace": "nhl:official",
+      "playerId": "8480045",
+      "receiptDigest": "2c1d5234508f85d24af55f45618ac524953381af57e71ca6b06e1a2f508a5ea5"
+    },
+    {
+      "sport": "nba",
+      "sourcePlayerPath": "/players/nba/cnok1ipijlk84c0",
+      "namespace": "espn:nba",
+      "playerId": "4711272",
+      "receiptDigest": "3cb0e1261249a51b002274fd69720ed78cf29acf9e6ac460ab4869e2cd61bfd6"
+    },
+    {
+      "sport": "nba",
+      "sourcePlayerPath": "/players/nba/gvokr28hf13tdar",
+      "namespace": "espn:nba",
+      "playerId": "2991139",
+      "receiptDigest": "3cb0e1261249a51b002274fd69720ed78cf29acf9e6ac460ab4869e2cd61bfd6"
+    },
+    {
+      "sport": "nba",
+      "sourcePlayerPath": "/players/nba/35qszbbzzi2h0og",
+      "namespace": "espn:nba",
+      "playerId": "4683778",
+      "receiptDigest": "3cb0e1261249a51b002274fd69720ed78cf29acf9e6ac460ab4869e2cd61bfd6"
+    },
+    {
+      "sport": "nba",
+      "sourcePlayerPath": "/players/nba/hv2b17m24g6ogje",
+      "namespace": "espn:nba",
+      "playerId": "4431767",
+      "receiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5"
     }
   ],
+  "eventRegistry": [
+    {
+      "sport": "nfl",
+      "sourceEventId": "20261127379EC3AA",
+      "namespace": "espn:nfl",
+      "eventId": "401873083",
+      "startAt": "2026-11-27T20:00:00.000Z",
+      "proofAvailableAt": "2026-11-25T22:45:25.000Z",
+      "nativeReceiptDigest": "0802a649760c3801482499afd9b0a1f32a242ba020e42d9a0e5e5fdc41e41c65",
+      "timezoneReceiptDigests": [
+        "754ee8f3c79d425d252f88894a78875cbd084abb54be45ecba007fb17a9bd0e6",
+        "a8e1d6fb34894491872201c50aa290a49bf42c4271582b32a224646d5aaf47d4",
+        "d70efa30852172346ffdbf3019e8cf346461907d38a01274bb8797990317aac4"
+      ]
+    },
+    {
+      "sport": "nhl",
+      "sourceEventId": "202611278D8AF98F",
+      "namespace": "nhl:official",
+      "eventId": "2026020414",
+      "startAt": "2026-11-28T01:00:00.000Z",
+      "proofAvailableAt": "2026-11-27T08:29:02.000Z",
+      "nativeReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ]
+    },
+    {
+      "sport": "nhl",
+      "sourceEventId": "20261125F5A3415B",
+      "namespace": "nhl:official",
+      "eventId": "2026020397",
+      "startAt": "2026-11-26T02:30:00.000Z",
+      "proofAvailableAt": "2026-11-25T22:45:17.000Z",
+      "nativeReceiptDigest": "2c1d5234508f85d24af55f45618ac524953381af57e71ca6b06e1a2f508a5ea5",
+      "timezoneReceiptDigests": [
+        "2120d67e69f5f780813f31741c0220c7da423f1dddf6877a3de58cf8098df6a5",
+        "4b21b5dc32a34d67159cf89d10238d6452a07ac113a8d58c2a4f7b7c0b1c9e8f",
+        "e40bf84130559470f90238d37483ae35cf9f6bf914c4389afea221007e2b0d5f"
+      ]
+    },
+    {
+      "sport": "nhl",
+      "sourceEventId": "20261125B8148939",
+      "namespace": "nhl:official",
+      "eventId": "2026020392",
+      "startAt": "2026-11-26T00:00:00.000Z",
+      "proofAvailableAt": "2026-11-25T22:45:13.000Z",
+      "nativeReceiptDigest": "2c1d5234508f85d24af55f45618ac524953381af57e71ca6b06e1a2f508a5ea5",
+      "timezoneReceiptDigests": [
+        "328575911ccc611d70b233fa68719b9d8dd6ad4751a651e22fb74290b8c74e17",
+        "4b6a90151f80ca75c14912ee0092b6e9a588a897db63efb1c060e12d1f7d673d",
+        "95a658aabc595b224f4c1187166eeeba1494ecec518e25cafe839930711a4f0e"
+      ]
+    },
+    {
+      "sport": "nhl",
+      "sourceEventId": "202611250D9E01EF",
+      "namespace": "nhl:official",
+      "eventId": "2026020387",
+      "startAt": "2026-11-26T00:00:00.000Z",
+      "proofAvailableAt": "2026-11-25T22:45:10.000Z",
+      "nativeReceiptDigest": "2c1d5234508f85d24af55f45618ac524953381af57e71ca6b06e1a2f508a5ea5",
+      "timezoneReceiptDigests": [
+        "4e94880dcec00390de33f6003e314ade2c2e51bcf91b78daba1c44ccb225d7e9",
+        "c202fbcc9ef13b85395122dd97f02cd4b9636094c3b8d6b0f8eaaed72fe1cf1e",
+        "d9f16c4f66c05b2bda7355843f6aaf49353df2782625567759bc723ac2e2adab"
+      ]
+    },
+    {
+      "sport": "nba",
+      "sourceEventId": "20261126109D39D5",
+      "namespace": "espn:nba",
+      "eventId": "401909323",
+      "startAt": "2026-11-26T01:30:00.000Z",
+      "proofAvailableAt": "2026-11-25T22:45:02.000Z",
+      "nativeReceiptDigest": "3cb0e1261249a51b002274fd69720ed78cf29acf9e6ac460ab4869e2cd61bfd6",
+      "timezoneReceiptDigests": [
+        "332e2c6f6eb241e152ae0802425164a688c1955e57648a826f6e7a7d68e486e5",
+        "77d50d0fdd3befb5f23dbe13e77a7826ba95bc9886936624e274254ea6a88389",
+        "a5825481a1fc2fabcf77c27cbbfa9781d518d32690e2740e227812feed7a4fd7"
+      ]
+    },
+    {
+      "sport": "nba",
+      "sourceEventId": "2026112666948362",
+      "namespace": "espn:nba",
+      "eventId": "401909321",
+      "startAt": "2026-11-26T01:00:00.000Z",
+      "proofAvailableAt": "2026-11-25T22:44:58.000Z",
+      "nativeReceiptDigest": "3cb0e1261249a51b002274fd69720ed78cf29acf9e6ac460ab4869e2cd61bfd6",
+      "timezoneReceiptDigests": [
+        "4dfcfca62bb67d5e5e38a21cfa96372309201d3252d563e891c186ee6fc27a42",
+        "5360afccfeefaf842ba05e4b5b46579277c27e918181ee11d308016a846a6f5c",
+        "b814f4828828a0e9dc341c440f0fc6013ceacb1c7d13095e9d07980d3ff5220f"
+      ]
+    },
+    {
+      "sport": "nba",
+      "sourceEventId": "20261126BD81AFED",
+      "namespace": "espn:nba",
+      "eventId": "401909320",
+      "startAt": "2026-11-26T00:30:00.000Z",
+      "proofAvailableAt": "2026-11-25T22:45:06.000Z",
+      "nativeReceiptDigest": "3cb0e1261249a51b002274fd69720ed78cf29acf9e6ac460ab4869e2cd61bfd6",
+      "timezoneReceiptDigests": [
+        "c4a80a5b32ce7818c216c266256904c5ae95064503394f7fc357cc7718013bef",
+        "e93995e5c21de9d480ee510b0a3a72c9fb03858b6c7ffa8c94d9192f13833e14",
+        "ebd1b786cd55179b8f40e8cb26648477e8296d4008ed2993feda12683a46ec0c"
+      ]
+    },
+    {
+      "sport": "nba",
+      "sourceEventId": "202611282635DA8A",
+      "namespace": "espn:nba",
+      "eventId": "401909334",
+      "startAt": "2026-11-28T02:30:00.000Z",
+      "proofAvailableAt": "2026-11-27T08:28:58.000Z",
+      "nativeReceiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5",
+      "timezoneReceiptDigests": [
+        "2929b3c1db7782d5af98b907978c3443769e09e3b97b432273bda26060f940fb",
+        "3cca62c68565f963697dc5304a36d2ca308415ca5806f14a72412e1a22a2f5c5",
+        "818bb5042451e8c07df0942db5702dde6c2c8d56a9743ca0498ae2e2af3a988b"
+      ]
+    },
+    {
+      "sport": "nfl",
+      "sourceEventId": "20261129172FF93C",
+      "namespace": "espn:nfl",
+      "eventId": "401873092",
+      "startAt": "2026-11-29T21:25:00.000Z",
+      "proofAvailableAt": "2026-11-27T08:29:06.000Z",
+      "nativeReceiptDigest": "888e45ecf6b42d1a5ca3914ac0b365b83681dd45b4c8af14a0b3340bc3f709f1",
+      "timezoneReceiptDigests": [
+        "3c58c7eab54c259b379d820eb85470905593a7f10cdfd1159a84cf79d10f9ccf",
+        "4f1274a0f8d01bc9f601385e4166f3673b20783e30052d3cbfdb558f84c70029",
+        "5f88dd47e83697f4f407ee3bf5ee3d25e0f43fe03eecdb073d097ca67794a159"
+      ]
+    }
+  ],
+  "verifiedTeamAliases": [
+    {
+      "sport": "nba",
+      "namespace": "espn:nba",
+      "sourceCode": "UTA",
+      "nativeCode": "UTAH",
+      "nativeReceiptDigest": "61608155f417f6d16679c4346e40928209d5bfee0e9660bb8e1e057fdcbcf7e5"
+    }
+  ],
+  "identityConflicts": 0,
+  "durableEventProfileAssociations": 13,
   "discovery": {
     "directoryLinks": 4527,
     "referenceRows": 5859,
@@ -6583,5 +7155,1786 @@
   },
   "originalPlatformVerified": false,
   "modelApproved": false,
-  "paidRequests": 0
+  "paidRequests": 0,
+  "qualifiedShadowStatistics": [
+    {
+      "sport": "nhl",
+      "playerId": "8484241",
+      "eventId": "2026020399",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-26T02:40:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
+      "nativeDigest": "df559cbb3d9498ac2a2c0a585441ba1dc3c8504ea202d19e28bd3c023dc1ed5d",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484241",
+      "eventId": "2026020383",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-24T02:40:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
+      "nativeDigest": "32fd88bc4007e0e77712e86cb7b8a49caf9ec3f561bf245991c0afbd45d7d83a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484241",
+      "eventId": "2026020357",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-20T02:40:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
+      "nativeDigest": "e9003b135eab0584afaaa1df27eb19765f90537ae6d2f42ffb6b38fdb30e003a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484241",
+      "eventId": "2026020321",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-14T18:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
+      "nativeDigest": "d9037c1b955ea36e3d65594b97c61cb00474f4adc17a96d5ba94e01871383669",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484241",
+      "eventId": "2026020309",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-12T17:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
+      "nativeDigest": "d9037c1b955ea36e3d65594b97c61cb00474f4adc17a96d5ba94e01871383669",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484241",
+      "eventId": "2026020267",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-07T22:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
+      "nativeDigest": "91d565abb0e61c9fe866132fb9e427dbef922541718899b1f00126ae63f8cf48",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484241",
+      "eventId": "2026020250",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-05T03:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
+      "nativeDigest": "b8d763c574bfc79f395d3800be3145160adba2f0b02fb8fdcc66fef5ca329e23",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484241",
+      "eventId": "2026020208",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-10-30T00:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
+      "nativeDigest": "4b68c54f51a8b8a49b96d5d402f25678cfb004d7f926fd5d02d4b50c2527301e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484241",
+      "eventId": "2026020192",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-10-28T00:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
+      "nativeDigest": "4b68c54f51a8b8a49b96d5d402f25678cfb004d7f926fd5d02d4b50c2527301e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484241",
+      "eventId": "2026020183",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-10-26T00:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
+      "nativeDigest": "4b68c54f51a8b8a49b96d5d402f25678cfb004d7f926fd5d02d4b50c2527301e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484241",
+      "eventId": "2026020172",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-10-24T23:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
+      "nativeDigest": "7fcf74f3f893e5017ac722b618b164ffb8416ab615e88eeef6cf6e1b879ec72e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484241",
+      "eventId": "2026020154",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-10-22T23:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
+      "nativeDigest": "7fcf74f3f893e5017ac722b618b164ffb8416ab615e88eeef6cf6e1b879ec72e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484241",
+      "eventId": "2026020131",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-10-18T00:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6814bc1b795d8ab4b573d326709bfd7fc2e9b4d0aa76246174fe33ebd89a2c28",
+      "nativeDigest": "df559cbb3d9498ac2a2c0a585441ba1dc3c8504ea202d19e28bd3c023dc1ed5d",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8477450",
+      "eventId": "2026020385",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-25T01:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6a1be1a917b60e8ac748ae0ef97ace44190dcc5e317ea8353a29bec35e9969c8",
+      "nativeDigest": "32fd88bc4007e0e77712e86cb7b8a49caf9ec3f561bf245991c0afbd45d7d83a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8477450",
+      "eventId": "2026020375",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-23T00:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6a1be1a917b60e8ac748ae0ef97ace44190dcc5e317ea8353a29bec35e9969c8",
+      "nativeDigest": "32fd88bc4007e0e77712e86cb7b8a49caf9ec3f561bf245991c0afbd45d7d83a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8477450",
+      "eventId": "2026020359",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-21T18:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6a1be1a917b60e8ac748ae0ef97ace44190dcc5e317ea8353a29bec35e9969c8",
+      "nativeDigest": "e9003b135eab0584afaaa1df27eb19765f90537ae6d2f42ffb6b38fdb30e003a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8477450",
+      "eventId": "2026020335",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-18T00:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6a1be1a917b60e8ac748ae0ef97ace44190dcc5e317ea8353a29bec35e9969c8",
+      "nativeDigest": "e9003b135eab0584afaaa1df27eb19765f90537ae6d2f42ffb6b38fdb30e003a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8477450",
+      "eventId": "2026020326",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-16T00:30:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6a1be1a917b60e8ac748ae0ef97ace44190dcc5e317ea8353a29bec35e9969c8",
+      "nativeDigest": "e9003b135eab0584afaaa1df27eb19765f90537ae6d2f42ffb6b38fdb30e003a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8477450",
+      "eventId": "2026020314",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-15T00:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6a1be1a917b60e8ac748ae0ef97ace44190dcc5e317ea8353a29bec35e9969c8",
+      "nativeDigest": "d9037c1b955ea36e3d65594b97c61cb00474f4adc17a96d5ba94e01871383669",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8477450",
+      "eventId": "2026020295",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-12T02:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6a1be1a917b60e8ac748ae0ef97ace44190dcc5e317ea8353a29bec35e9969c8",
+      "nativeDigest": "d9037c1b955ea36e3d65594b97c61cb00474f4adc17a96d5ba94e01871383669",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8477450",
+      "eventId": "2026020283",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-10T01:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6a1be1a917b60e8ac748ae0ef97ace44190dcc5e317ea8353a29bec35e9969c8",
+      "nativeDigest": "91d565abb0e61c9fe866132fb9e427dbef922541718899b1f00126ae63f8cf48",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8477450",
+      "eventId": "2026020276",
+      "market": "goals",
+      "value": 1,
+      "officialStartAt": "2026-11-08T03:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6a1be1a917b60e8ac748ae0ef97ace44190dcc5e317ea8353a29bec35e9969c8",
+      "nativeDigest": "91d565abb0e61c9fe866132fb9e427dbef922541718899b1f00126ae63f8cf48",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8477450",
+      "eventId": "2026020260",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-06T01:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6a1be1a917b60e8ac748ae0ef97ace44190dcc5e317ea8353a29bec35e9969c8",
+      "nativeDigest": "91d565abb0e61c9fe866132fb9e427dbef922541718899b1f00126ae63f8cf48",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8477450",
+      "eventId": "2026020230",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-01T23:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6a1be1a917b60e8ac748ae0ef97ace44190dcc5e317ea8353a29bec35e9969c8",
+      "nativeDigest": "b8d763c574bfc79f395d3800be3145160adba2f0b02fb8fdcc66fef5ca329e23",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8477450",
+      "eventId": "2026020220",
+      "market": "goals",
+      "value": 1,
+      "officialStartAt": "2026-10-31T18:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6a1be1a917b60e8ac748ae0ef97ace44190dcc5e317ea8353a29bec35e9969c8",
+      "nativeDigest": "b8d763c574bfc79f395d3800be3145160adba2f0b02fb8fdcc66fef5ca329e23",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8477450",
+      "eventId": "2026020200",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-10-29T00:30:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "6a1be1a917b60e8ac748ae0ef97ace44190dcc5e317ea8353a29bec35e9969c8",
+      "nativeDigest": "4b68c54f51a8b8a49b96d5d402f25678cfb004d7f926fd5d02d4b50c2527301e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8482751",
+      "eventId": "2026020399",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-26T02:40:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "df559cbb3d9498ac2a2c0a585441ba1dc3c8504ea202d19e28bd3c023dc1ed5d",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8482751",
+      "eventId": "2026020383",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-24T02:40:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "32fd88bc4007e0e77712e86cb7b8a49caf9ec3f561bf245991c0afbd45d7d83a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8482751",
+      "eventId": "2026020357",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-20T02:40:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "e9003b135eab0584afaaa1df27eb19765f90537ae6d2f42ffb6b38fdb30e003a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8482751",
+      "eventId": "2026020321",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-14T18:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "d9037c1b955ea36e3d65594b97c61cb00474f4adc17a96d5ba94e01871383669",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8482751",
+      "eventId": "2026020309",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-12T17:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "d9037c1b955ea36e3d65594b97c61cb00474f4adc17a96d5ba94e01871383669",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8482751",
+      "eventId": "2026020267",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-07T22:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "91d565abb0e61c9fe866132fb9e427dbef922541718899b1f00126ae63f8cf48",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8482751",
+      "eventId": "2026020250",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-05T03:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "b8d763c574bfc79f395d3800be3145160adba2f0b02fb8fdcc66fef5ca329e23",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8482751",
+      "eventId": "2026020216",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-10-31T00:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "4b68c54f51a8b8a49b96d5d402f25678cfb004d7f926fd5d02d4b50c2527301e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8482751",
+      "eventId": "2026020202",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-10-29T02:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "4b68c54f51a8b8a49b96d5d402f25678cfb004d7f926fd5d02d4b50c2527301e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8482751",
+      "eventId": "2026020179",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-10-25T02:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "7fcf74f3f893e5017ac722b618b164ffb8416ab615e88eeef6cf6e1b879ec72e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8482751",
+      "eventId": "2026020149",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-10-21T01:40:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "df559cbb3d9498ac2a2c0a585441ba1dc3c8504ea202d19e28bd3c023dc1ed5d",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8482751",
+      "eventId": "2026020124",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-10-17T22:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "df559cbb3d9498ac2a2c0a585441ba1dc3c8504ea202d19e28bd3c023dc1ed5d",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8486161",
+      "eventId": "2026020385",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-25T01:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "32fd88bc4007e0e77712e86cb7b8a49caf9ec3f561bf245991c0afbd45d7d83a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8486161",
+      "eventId": "2026020375",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-23T00:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "32fd88bc4007e0e77712e86cb7b8a49caf9ec3f561bf245991c0afbd45d7d83a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8486161",
+      "eventId": "2026020359",
+      "market": "goals",
+      "value": 1,
+      "officialStartAt": "2026-11-21T18:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "e9003b135eab0584afaaa1df27eb19765f90537ae6d2f42ffb6b38fdb30e003a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8486161",
+      "eventId": "2026020335",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-18T00:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "e9003b135eab0584afaaa1df27eb19765f90537ae6d2f42ffb6b38fdb30e003a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8486161",
+      "eventId": "2026020326",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-16T00:30:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "e9003b135eab0584afaaa1df27eb19765f90537ae6d2f42ffb6b38fdb30e003a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8486161",
+      "eventId": "2026020314",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-15T00:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "d9037c1b955ea36e3d65594b97c61cb00474f4adc17a96d5ba94e01871383669",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8486161",
+      "eventId": "2026020295",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-12T02:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "d9037c1b955ea36e3d65594b97c61cb00474f4adc17a96d5ba94e01871383669",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8486161",
+      "eventId": "2026020283",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-10T01:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "91d565abb0e61c9fe866132fb9e427dbef922541718899b1f00126ae63f8cf48",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8486161",
+      "eventId": "2026020276",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-08T03:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "91d565abb0e61c9fe866132fb9e427dbef922541718899b1f00126ae63f8cf48",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8486161",
+      "eventId": "2026020260",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-06T01:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "91d565abb0e61c9fe866132fb9e427dbef922541718899b1f00126ae63f8cf48",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8486161",
+      "eventId": "2026020230",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-11-01T23:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "b8d763c574bfc79f395d3800be3145160adba2f0b02fb8fdcc66fef5ca329e23",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8486161",
+      "eventId": "2026020220",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-10-31T18:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "b8d763c574bfc79f395d3800be3145160adba2f0b02fb8fdcc66fef5ca329e23",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8486161",
+      "eventId": "2026020200",
+      "market": "goals",
+      "value": 0,
+      "officialStartAt": "2026-10-29T00:30:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "4b68c54f51a8b8a49b96d5d402f25678cfb004d7f926fd5d02d4b50c2527301e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8474586",
+      "eventId": "2026020399",
+      "market": "sog",
+      "value": 2,
+      "officialStartAt": "2026-11-26T02:40:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "df559cbb3d9498ac2a2c0a585441ba1dc3c8504ea202d19e28bd3c023dc1ed5d",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8474586",
+      "eventId": "2026020383",
+      "market": "sog",
+      "value": 1,
+      "officialStartAt": "2026-11-24T02:40:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "32fd88bc4007e0e77712e86cb7b8a49caf9ec3f561bf245991c0afbd45d7d83a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8474586",
+      "eventId": "2026020357",
+      "market": "sog",
+      "value": 3,
+      "officialStartAt": "2026-11-20T02:40:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "e9003b135eab0584afaaa1df27eb19765f90537ae6d2f42ffb6b38fdb30e003a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8474586",
+      "eventId": "2026020321",
+      "market": "sog",
+      "value": 2,
+      "officialStartAt": "2026-11-14T18:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "d9037c1b955ea36e3d65594b97c61cb00474f4adc17a96d5ba94e01871383669",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8474586",
+      "eventId": "2026020309",
+      "market": "sog",
+      "value": 0,
+      "officialStartAt": "2026-11-12T17:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "d9037c1b955ea36e3d65594b97c61cb00474f4adc17a96d5ba94e01871383669",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8474586",
+      "eventId": "2026020267",
+      "market": "sog",
+      "value": 2,
+      "officialStartAt": "2026-11-07T22:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "91d565abb0e61c9fe866132fb9e427dbef922541718899b1f00126ae63f8cf48",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8474586",
+      "eventId": "2026020250",
+      "market": "sog",
+      "value": 1,
+      "officialStartAt": "2026-11-05T03:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "b8d763c574bfc79f395d3800be3145160adba2f0b02fb8fdcc66fef5ca329e23",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8474586",
+      "eventId": "2026020216",
+      "market": "sog",
+      "value": 2,
+      "officialStartAt": "2026-10-31T00:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "4b68c54f51a8b8a49b96d5d402f25678cfb004d7f926fd5d02d4b50c2527301e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8474586",
+      "eventId": "2026020202",
+      "market": "sog",
+      "value": 1,
+      "officialStartAt": "2026-10-29T02:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "4b68c54f51a8b8a49b96d5d402f25678cfb004d7f926fd5d02d4b50c2527301e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8474586",
+      "eventId": "2026020179",
+      "market": "sog",
+      "value": 2,
+      "officialStartAt": "2026-10-25T02:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "7fcf74f3f893e5017ac722b618b164ffb8416ab615e88eeef6cf6e1b879ec72e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8474586",
+      "eventId": "2026020149",
+      "market": "sog",
+      "value": 4,
+      "officialStartAt": "2026-10-21T01:40:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "df559cbb3d9498ac2a2c0a585441ba1dc3c8504ea202d19e28bd3c023dc1ed5d",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8474586",
+      "eventId": "2026020124",
+      "market": "sog",
+      "value": 1,
+      "officialStartAt": "2026-10-17T22:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "8e00d0b8d1047479f5fe065b03b19f6364653e3075e1d708e0097554a199bff5",
+      "nativeDigest": "df559cbb3d9498ac2a2c0a585441ba1dc3c8504ea202d19e28bd3c023dc1ed5d",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484800",
+      "eventId": "2026020399",
+      "market": "sog",
+      "value": 1,
+      "officialStartAt": "2026-11-26T02:40:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "d6f53be8a34bc5d9d6bf6b4245d4844c3be84fa4e565dad2d4c0d4579126835c",
+      "nativeDigest": "df559cbb3d9498ac2a2c0a585441ba1dc3c8504ea202d19e28bd3c023dc1ed5d",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484800",
+      "eventId": "2026020383",
+      "market": "sog",
+      "value": 0,
+      "officialStartAt": "2026-11-24T02:40:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "d6f53be8a34bc5d9d6bf6b4245d4844c3be84fa4e565dad2d4c0d4579126835c",
+      "nativeDigest": "32fd88bc4007e0e77712e86cb7b8a49caf9ec3f561bf245991c0afbd45d7d83a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484800",
+      "eventId": "2026020357",
+      "market": "sog",
+      "value": 4,
+      "officialStartAt": "2026-11-20T02:40:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "d6f53be8a34bc5d9d6bf6b4245d4844c3be84fa4e565dad2d4c0d4579126835c",
+      "nativeDigest": "e9003b135eab0584afaaa1df27eb19765f90537ae6d2f42ffb6b38fdb30e003a",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484800",
+      "eventId": "2026020321",
+      "market": "sog",
+      "value": 0,
+      "officialStartAt": "2026-11-14T18:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "d6f53be8a34bc5d9d6bf6b4245d4844c3be84fa4e565dad2d4c0d4579126835c",
+      "nativeDigest": "d9037c1b955ea36e3d65594b97c61cb00474f4adc17a96d5ba94e01871383669",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484800",
+      "eventId": "2026020309",
+      "market": "sog",
+      "value": 0,
+      "officialStartAt": "2026-11-12T17:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "d6f53be8a34bc5d9d6bf6b4245d4844c3be84fa4e565dad2d4c0d4579126835c",
+      "nativeDigest": "d9037c1b955ea36e3d65594b97c61cb00474f4adc17a96d5ba94e01871383669",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484800",
+      "eventId": "2026020267",
+      "market": "sog",
+      "value": 0,
+      "officialStartAt": "2026-11-07T22:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "d6f53be8a34bc5d9d6bf6b4245d4844c3be84fa4e565dad2d4c0d4579126835c",
+      "nativeDigest": "91d565abb0e61c9fe866132fb9e427dbef922541718899b1f00126ae63f8cf48",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484800",
+      "eventId": "2026020250",
+      "market": "sog",
+      "value": 1,
+      "officialStartAt": "2026-11-05T03:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "d6f53be8a34bc5d9d6bf6b4245d4844c3be84fa4e565dad2d4c0d4579126835c",
+      "nativeDigest": "b8d763c574bfc79f395d3800be3145160adba2f0b02fb8fdcc66fef5ca329e23",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484800",
+      "eventId": "2026020216",
+      "market": "sog",
+      "value": 1,
+      "officialStartAt": "2026-10-31T00:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "d6f53be8a34bc5d9d6bf6b4245d4844c3be84fa4e565dad2d4c0d4579126835c",
+      "nativeDigest": "4b68c54f51a8b8a49b96d5d402f25678cfb004d7f926fd5d02d4b50c2527301e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484800",
+      "eventId": "2026020202",
+      "market": "sog",
+      "value": 1,
+      "officialStartAt": "2026-10-29T02:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "d6f53be8a34bc5d9d6bf6b4245d4844c3be84fa4e565dad2d4c0d4579126835c",
+      "nativeDigest": "4b68c54f51a8b8a49b96d5d402f25678cfb004d7f926fd5d02d4b50c2527301e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484800",
+      "eventId": "2026020179",
+      "market": "sog",
+      "value": 5,
+      "officialStartAt": "2026-10-25T02:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "d6f53be8a34bc5d9d6bf6b4245d4844c3be84fa4e565dad2d4c0d4579126835c",
+      "nativeDigest": "7fcf74f3f893e5017ac722b618b164ffb8416ab615e88eeef6cf6e1b879ec72e",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    },
+    {
+      "sport": "nhl",
+      "playerId": "8484800",
+      "eventId": "2026020124",
+      "market": "sog",
+      "value": 2,
+      "officialStartAt": "2026-10-17T22:00:00Z",
+      "availableAt": "2026-11-27T08:29:02.000Z",
+      "profileDigest": "d6f53be8a34bc5d9d6bf6b4245d4844c3be84fa4e565dad2d4c0d4579126835c",
+      "nativeDigest": "df559cbb3d9498ac2a2c0a585441ba1dc3c8504ea202d19e28bd3c023dc1ed5d",
+      "identityReceiptDigest": "13c4a514ae73c2d71c35b89849e39c280dfd400326db63427c6f317f09ad1e29",
+      "timezoneReceiptDigests": [
+        "b37866cee67d9ea6142c69e7f892593af4284300c9901829deb296e4418b3bb3",
+        "cc9ba773e71a9b6dbd1c13ca5b5be46e227d7cf0d6f3ca2b4267f90357b78897",
+        "f8f318374e2d4e2dd429a41030eee826fbf77118fdfc1d157ecc431d231d4292"
+      ],
+      "evidenceKind": "verified_current_identity_and_independent_final_stat",
+      "shadowResearchEligible": true,
+      "productionModelEligible": false,
+      "operatorOfferVerified": false,
+      "settlementVerified": false
+    }
+  ],
+  "statisticalResearchAudit": {
+    "kind": "pickfinder_native_history_candidate_reconciliation_v1",
+    "bySport": {
+      "nba": {
+        "attempts": 18208,
+        "candidates": 228,
+        "reasons": {
+          "missing_exact_columns": 1850,
+          "not_game_log": 4383,
+          "unsupported_market": 7861,
+          "no_matching_native_game": 1212,
+          "unsupported_scope": 2470,
+          "native_identity_ambiguous": 180,
+          "stat_or_opponent_shape": 24
+        },
+        "columnShapes": {
+          "other|other|other|other|other|other|other|other|other": 192,
+          "other|other|other|other|other|other": 170,
+          "date|opponent|min|pts|other|other|other|other|other|other|other|other|other|other|other|other|other|other|other|other": 1488
+        }
+      },
+      "nhl": {
+        "attempts": 24004,
+        "candidates": 6360,
+        "reasons": {
+          "missing_exact_columns": 2262,
+          "no_matching_native_game": 7000,
+          "not_game_log": 6022,
+          "native_result_mismatch": 70,
+          "unsupported_market": 1620,
+          "native_identity_ambiguous": 580,
+          "ambiguous_native_game": 20,
+          "date_shape": 70
+        },
+        "columnShapes": {
+          "other|other|other|other|other": 1212,
+          "date|opponent|toi|pts|other|other|sog|shots|other|other|other|other|other|other|other|other|other|other|other|other": 1050
+        }
+      },
+      "cs2": {
+        "attempts": 4998,
+        "candidates": 0,
+        "reasons": {
+          "native_adapter_unavailable": 4998
+        }
+      },
+      "nfl": {
+        "attempts": 3784,
+        "candidates": 120,
+        "reasons": {
+          "missing_exact_columns": 504,
+          "not_game_log": 1422,
+          "unsupported_market": 826,
+          "unsupported_scope": 816,
+          "date_shape": 40,
+          "stat_or_opponent_shape": 24,
+          "no_matching_native_game": 32
+        },
+        "columnShapes": {
+          "other|other|other|other|other": 24,
+          "other|other|other": 140,
+          "date|opponent|rush yds|other|other|other|rec yds|other|other|other|other|other|other|other|other|other|other|other|other|other": 280,
+          "other|other|other|other": 60
+        }
+      },
+      "valorant": {
+        "attempts": 150,
+        "candidates": 0,
+        "reasons": {
+          "native_adapter_unavailable": 150
+        }
+      },
+      "dota2": {
+        "attempts": 1239,
+        "candidates": 0,
+        "reasons": {
+          "native_adapter_unavailable": 1239
+        }
+      }
+    },
+    "nativeCoverage": {
+      "nhl": {
+        "playerGameRows": 9036
+      },
+      "nfl": {
+        "playerGameRows": 48095
+      },
+      "nba": {
+        "playerGameRows": 1413
+      }
+    },
+    "identityEvidence": {
+      "profiles": 64,
+      "invalidEvidence": 0,
+      "multipleGameCandidates": 63,
+      "bySport": {
+        "nhl": {
+          "profiles": 55,
+          "conflictingProfiles": 0,
+          "unresolvedSingleGame": 0,
+          "multipleGameCandidates": 55,
+          "distinctGameFacts": 636
+        },
+        "nba": {
+          "profiles": 7,
+          "conflictingProfiles": 0,
+          "unresolvedSingleGame": 1,
+          "multipleGameCandidates": 6,
+          "distinctGameFacts": 18
+        },
+        "nfl": {
+          "profiles": 2,
+          "conflictingProfiles": 0,
+          "unresolvedSingleGame": 0,
+          "multipleGameCandidates": 2,
+          "distinctGameFacts": 15
+        }
+      },
+      "independentReviewVerified": false,
+      "modelApproved": false
+    },
+    "reviewedHistory": {
+      "reviewedProfiles": 0,
+      "reviewedHistoricalFacts": 0,
+      "conflicts": 0,
+      "rejects": {
+        "review_evidence_unmatched": 110
+      },
+      "modelApproved": false
+    },
+    "reassembledRows": 32127,
+    "reusableResearchCandidates": 670,
+    "researchCacheConflicts": 0,
+    "candidates": 6708,
+    "distinctCandidates": 6708,
+    "conflictingNativeGames": 1,
+    "independentlyReviewedProviderIdentities": 0,
+    "qualifiedCacheEntries": 0,
+    "qualifiedModelInputs": 0,
+    "paidRequests": 0,
+    "requestsSkipped": 0,
+    "modelApproved": false,
+    "currentScopesReplayed": 416,
+    "archivedProfileReceipts": 46,
+    "separateEventIdentityGate": true,
+    "requiresOriginalOperatorOfferId": false,
+    "reviewedResearchFacts": 0,
+    "newlyQualifiedShadowInputs": 74,
+    "officialFinalMetricsForMatchedEvents": 0,
+    "newlyQualifiedProductionInputs": 0
+  }
 }

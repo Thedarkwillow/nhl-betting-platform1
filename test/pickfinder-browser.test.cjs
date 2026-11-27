@@ -121,8 +121,9 @@ test('archive retains the visible prop matchup and local clock without inventing
  const {cleanBoard,splitBoard}=require('../scripts/pickfinder-public-runner.cjs');
  const old=global.document,observedAt='2026-11-27T06:50:00Z',label='PHI @ IND • Fri @ 4:30PM';
  const a={href:'https://www.pickfinder.app/players/nba/edgecombe?prop=fixture:player_assists:event:4',
-   innerText:'VJ Edgecombe\n'+label,querySelector:()=>({innerText:'VJ Edgecombe'})};
- const tr={querySelector:()=>a,querySelectorAll:()=>[],cells:[]};
+   innerText:'VJ Edgecombe',querySelector:()=>({innerText:'VJ Edgecombe'})};
+ const gameCell={innerText:label.replace(' • ',' •\n')};
+ const tr={querySelector:()=>a,querySelectorAll:()=>[],cells:[gameCell]};
  const table={innerText:'',querySelectorAll:s=>s==='tbody tr'?[tr]:[]};
  try{
   global.document={body:{innerText:'Premium'},querySelector:s=>s==='table'?table:null};
@@ -138,4 +139,27 @@ test('archive retains the visible prop matchup and local clock without inventing
   a.innerText+='\nPHI @ IND • Sat @ 4:30PM';
   assert.ok(read().research.every(f=>f.metric!=='Displayed Matchup and Time'));
  }finally{if(old===undefined)delete global.document;else global.document=old;}
+});
+
+test('compact prop card binds the line below the offer to one exact board link',()=>{
+ const {readCompactBoardClocks}=require('../scripts/pickfinder-browser.cjs');
+ const oldDoc=global.document,oldLoc=global.location,sport='nba',observedAt='2026-11-27T08:30:00Z';
+ const a={href:'https://www.pickfinder.app/players/nba/edgecombe?prop=fixture:player_assists:event:4',innerText:'VJ Edgecombe (SG)',getClientRects:()=>[1],querySelectorAll:()=>[]};
+ const card={innerText:'VJ Edgecombe (SG)\nO/U 4 Assists\nPHI @ IND •\nFri @ 4:30PM\nDefense\n#15',getClientRects:()=>[1],querySelectorAll:()=>[a]};
+ a.parentElement=card;
+ try{
+  global.location={origin:'https://www.pickfinder.app',pathname:'/props'};
+  global.document={body:{innerText:'Premium'},querySelector:()=>({}),querySelectorAll:()=>[a]};
+  const read=()=>readCompactBoardClocks({sport,observedAt});
+  const r=read().records[0];assert.equal(r.player,'VJ Edgecombe');assert.equal(r.market,'player_assists');assert.equal(r.threshold,4);
+  assert.equal(r.eventId,'event');assert.equal(r.displayedMatchupLabel,'PHI @ IND • Fri @ 4:30PM');
+  assert.equal(r.startAt,null);assert.equal(r.sourceBook,null);
+  card.innerText=card.innerText.replace('4 Assists','4.5 Assists');assert.equal(read().records.length,0);
+  card.innerText=card.innerText.replace('4.5 Assists','4 Assists');
+  card.querySelectorAll=()=>[a,{...a,href:a.href.replace('event:4','event:5')}];assert.equal(read().records.length,0);
+  global.location.pathname='/players/nba/edgecombe';assert.equal(read().records.length,0);
+ }finally{
+  if(oldDoc===undefined)delete global.document;else global.document=oldDoc;
+  if(oldLoc===undefined)delete global.location;else global.location=oldLoc;
+ }
 });

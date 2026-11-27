@@ -67,3 +67,19 @@ test('prospective report keeps ungraded and failed validation pairs out of perfo
  assert.equal(a.workload.decisions,1);
  assert.equal(a.workload.scores.neutral.brier,.25);
 });
+test('website distinguishes verified prospective NBA and NHL/NFL feeds from retrospective and future reports',()=>{
+ const {prospectiveRows}=require('../assets/native-context-performance.js'),score={brier:.25,logLoss:.6931};
+ const item={approved:false,nativeContextFeatureComparison:{workload:{decisions:1,distinctGames:1,
+  scores:{candidate:score,incumbent:score,priorEmpirical:score,neutral:score}}}};
+ const nba={schema:'pickfinder_public_research_health_v1',modelApproved:false,paidRequests:0,
+  generatedAt:'2026-11-20T20:00Z',prospectiveComparisons:{points:item}};
+ const live={...nba,prospectiveComparisonEvidence:'first_git_forecast_and_official_grade_v1'};
+ assert.equal(prospectiveRows('NBA',nba,now),null);
+ assert.equal(prospectiveRows('NBA',live,now)[0].events,1);
+ assert.equal(prospectiveRows('NBA',{...live,generatedAt:'2026-11-21T20:00Z'},now),null);
+ const nhl={kind:'pickfinder_nhlnfl_reviewed_history_performance_v1',modelApproved:false,paidRequests:0,
+  generatedAt:nba.generatedAt,retrospective:false,productionChanged:false,bySport:{NHL:{shotsOnGoal:item}}};
+ assert.equal(prospectiveRows('NHL',nhl,now)[0].market,'Shots on goal');
+ assert.deepEqual(prospectiveRows('NFL',nhl,now),[]);
+ assert.equal(prospectiveRows('NHL',{...nhl,retrospective:true},now),null);
+});

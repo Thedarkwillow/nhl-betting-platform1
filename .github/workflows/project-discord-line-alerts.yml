@@ -1,0 +1,75 @@
+name: Project Discord research alerts
+on:
+  pull_request:
+    paths: ['scripts/*project-discord*','scripts/pickfinder-local-line-alerts.cjs','test/project-discord-line-alerts.test.cjs','.github/workflows/project-discord-line-alerts.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/*project-discord*','.github/workflows/project-discord-line-alerts.yml']
+  workflow_run:
+    workflows: ['PickFinder Premium public orchestration','PickFinder archived model input processing','Public-only PickFinder research validation']
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Preview archive changes or send one verified channel test
+        type: choice
+        options: [preview, test]
+        default: preview
+permissions:
+  contents: read
+concurrency:
+  group: project-discord-alerts-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+jobs:
+  test:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event != 'pull_request')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/project-discord-line-alerts.test.cjs test/pickfinder-local-tools.test.cjs
+  preview:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'workflow_run' && inputs.mode != 'test'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+          sparse-checkout: |
+            scripts
+            src
+            config
+            data
+            research/pickfinder-public-v1/boards
+            research/pickfinder-public-v1/board-parts
+      - run: node scripts/send-project-discord-alerts.cjs preview .
+  send:
+    needs: test
+    if: github.ref == 'refs/heads/main' && ((github.event_name == 'workflow_dispatch' && inputs.mode == 'test') || (github.event_name == 'workflow_run' && vars.PROJECT_DISCORD_ALERTS_ENABLED == '1'))
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          sparse-checkout: |
+            scripts
+            src
+            config
+            data
+            research/pickfinder-public-v1/boards
+            research/pickfinder-public-v1/board-parts
+      - run: node scripts/send-project-discord-alerts.cjs "$MODE" .
+        env:
+          MODE: ${{ inputs.mode == 'test' && 'test' || 'deliver' }}
+          PROJECT_DISCORD_ALERTS_ENABLED: ${{ vars.PROJECT_DISCORD_ALERTS_ENABLED }}
+          PROJECT_DISCORD_GUILD_ID: ${{ vars.PROJECT_DISCORD_GUILD_ID }}
+          PROJECT_DISCORD_CHANNEL_ID: ${{ vars.PROJECT_DISCORD_CHANNEL_ID }}
+          PROJECT_DISCORD_WEBHOOK_URL: ${{ secrets.PROJECT_DISCORD_WEBHOOK_URL }}

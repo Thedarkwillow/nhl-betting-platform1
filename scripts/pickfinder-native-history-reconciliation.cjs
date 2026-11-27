@@ -93,6 +93,18 @@ function nbaNameIds(index,name){
  const bare=name.replace(/\.$/,'');
  return new Set([...(index.names.get(key(['nba',bare]))||[]),...(index.names.get(key(['nba',bare+'.']))||[])]);
 }
+// This exact archived Portland profile omits a generation suffix. NBA's official
+// player page /player/1629057/robert_williams binds the short URL name to Robert
+// Williams III, and official scorebooks corroborate the same native ID and team.
+// Do not generalize to other profiles, teams, or approved cache/model use.
+function reviewedLayoutAlias(r,index){
+ if(r.sport!=='nba'||r.market!=='player_turnovers'||norm(r.player)!=='robert williams'||
+  profilePath(r.sport,r.detailId)!=='/players/nba/drgx5hfd7wpqhff')return undefined;
+ const id='1629057',canonical=nbaNameIds(index,'robert williams iii'),short=nbaNameIds(index,'robert williams');
+ if(canonical?.size!==1||!canonical.has(id)||short&&[...short].some(x=>x!==id))return null;
+ const games=(index.byPlayer.get(key(['nba',id]))||[]).filter(g=>g.team==='POR'&&Number.isFinite(dt(g.start)));
+ return new Set(games.map(g=>g.event)).size>=2?{id,team:'POR'}:null;
+}
 function matchRow(r,f,index,clock,{allowNbaExtendedFinals=false}={}){
  const reject=reason=>({reason});
  if(!['nhl','nfl','nba'].includes(r.sport))return reject('native_adapter_unavailable');
@@ -138,8 +150,10 @@ function matchRow(r,f,index,clock,{allowNbaExtendedFinals=false}={}){
  if(!/^[A-Z]{2,4}$/.test(opp)||!/^[-]?\d+(?:\.\d+)?$/.test(v))return reject('stat_or_opponent_shape');
  // In the retrospective layout-only matcher a final dot on Jr./Sr. is formatting,
  // never a license to remove the suffix. Preserve ambiguity across both variants.
- const ids=r.sport==='nba'&&allowNbaExtendedFinals?nbaNameIds(index,norm(r.player)):index.names.get(key([r.sport,norm(r.player)]));if(ids?.size!==1)return reject('native_identity_ambiguous');
- const id=[...ids][0],matches=(index.byPlayer.get(key([r.sport,id]))||[]).filter(g=>(g.gameDate?g.gameDate<f.observedAt.slice(0,10):dt(g.start)<dt(f.observedAt))&&g.opp===opp&&g.dates.some(d=>date?d===date:d.endsWith(suffix)));
+ const alias=allowNbaExtendedFinals?reviewedLayoutAlias(r,index):undefined;
+ if(alias===null)return reject('native_identity_ambiguous');
+ const ids=alias?new Set([alias.id]):r.sport==='nba'&&allowNbaExtendedFinals?nbaNameIds(index,norm(r.player)):index.names.get(key([r.sport,norm(r.player)]));if(ids?.size!==1)return reject('native_identity_ambiguous');
+ const id=[...ids][0],matches=(index.byPlayer.get(key([r.sport,id]))||[]).filter(g=>(g.gameDate?g.gameDate<f.observedAt.slice(0,10):dt(g.start)<dt(f.observedAt))&&g.opp===opp&&(!alias||g.team===alias.team)&&g.dates.some(d=>date?d===date:d.endsWith(suffix)));
  if(matches.length!==1)return reject(matches.length?'ambiguous_native_game':'no_matching_native_game');
  const g=matches[0],data=extra?index.extendedNba?.get(key([id,g.event])):g,evidence=extra?data?.metricEvidence[m]:g;
  if(!evidence)return reject('missing_native_stat_details');

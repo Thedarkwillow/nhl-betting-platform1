@@ -15,7 +15,10 @@ function parsePage(html) {
    const stats = player.statistics;
    if (!stats) return null;
    if (!stats.minutes && player.comment && stats.points === 0) continue;
-   const match = /^(\d{1,2}):([0-5]\d)$/.exec(stats.minutes);
+   // Some older official game pages embed the CDN ISO-duration form instead
+   // of the site display form. Both must still pass appearance and score checks.
+   const match = /^(\d{1,2}):([0-5]\d)$/.exec(stats.minutes) ??
+    /^PT(\d{1,2})M([0-5]?\d(?:\.\d{1,3})?)S$/.exec(stats.minutes);
    if (!match || player.comment || !['points','reboundsTotal','assists','threePointersMade','steals','blocks','turnovers'].every(k=>Number.isSafeInteger(stats[k]) && stats[k]>=0)) return null;
    if (Number(match[1])===0 && Number(match[2])===0 && stats.points!==0) return null;
    points += stats.points;

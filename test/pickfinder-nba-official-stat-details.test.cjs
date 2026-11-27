@@ -74,6 +74,26 @@ test('retrospective recovery normalizes suffix punctuation only with one native 
  index.names.set('["nba","athlete jr."]',new Set(['2']));
  assert.equal(m(rec,{allowNbaExtendedFinals:true}).reason,'native_identity_ambiguous');
 });
+test('official shortened name is scoped to one retrospective provider profile and team',()=>{
+ const profile={sport:'nba',market:'player_turnovers',player:'Robert Williams',status:'sampled',truncated:false,
+  coverageVersion:VERSION, detailId:'/players/nba/drgx5hfd7wpqhff?prop=x'};
+ const obs={origin:'profile',tab:'Player overview',metric:'row 1',scope:'Date | Opponent | Min | TOV',
+  observedAt:'2026-11-25T23:00:00Z',value:JSON.stringify(['11/24','NYK','20','1'].map(value=>({value})))};
+ const game={event:'22600055',start:'2026-11-25T00:00:00Z',gameDate:'2026-11-24',dates:['2026-11-24'],
+  team:'POR',opp:'NYK',stats:{turnovers:1},digest:f,first};
+ const other={...game,event:'22600056',gameDate:'2026-11-23',dates:['2026-11-23']};
+ const index={names:new Map([['["nba","robert williams iii"]',new Set(['1629057'])]]),
+  byPlayer:new Map([['["nba","1629057"]',[game,other]]])};
+ const replay=r=>matchRow(r,obs,index,first,{allowNbaExtendedFinals:true});
+ assert.equal(matchRow(profile,obs,index,first).reason,'native_identity_ambiguous');
+ assert.equal(replay(profile).candidate.playerId,'1629057');
+ assert.equal(replay(profile).candidate.providerIdentityReviewed,false);
+ assert.equal(replay({...profile,detailId:'/players/nba/unrelated?prop=x'}).reason,'native_identity_ambiguous');
+ index.byPlayer.set('["nba","1629057"]',[{...game,team:'BOS'},other,{...other,event:'22600057'}]);
+ assert.equal(replay(profile).reason,'no_matching_native_game');
+ index.names.set('["nba","robert williams"]',new Set(['99']));
+ assert.equal(replay(profile).reason,'native_identity_ambiguous');
+});
 
 test('dunks require complete official made-shot accounting and retain per-market provenance',()=>{
  const box=fixture();

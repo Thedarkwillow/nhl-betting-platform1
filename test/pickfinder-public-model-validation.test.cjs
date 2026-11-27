@@ -84,6 +84,11 @@ t('official game page box score verifies both point totals and excludes DNPs',()
  const g={gameId:22600001,status:3,home:'BOS',away:'TOR',startAt:game.gameTimeUTC};
  assert.equal(url(g),'https://www.nba.com/game/tor-vs-bos-0022600001/box-score');
  assert.equal(finalHistory(parsePage(html()),g,'2026-11-22T00:00:00Z','a'.repeat(64)).rows.length,10);
+ game.homeTeam.players[0].statistics.minutes='PT25M30.00S';
+ assert.equal(finalHistory(parsePage(html()),g,'2026-11-22T00:00:00Z','a'.repeat(64)).rows[0].minutes,25.5);
+ game.homeTeam.players[0].statistics.minutes='PT25M60S';
+ assert.equal(parsePage(html()),null);
+ game.homeTeam.players[0].statistics.minutes='PT25M30S';
  assert.equal(parsePage(html()+html()),null);
  game.homeTeam.score++;
  assert.equal(parsePage(html()),null);

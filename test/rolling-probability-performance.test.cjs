@@ -7,3 +7,19 @@ t('cumulative scoring separates revision, Pacific slate, tier and compares const
 t('post-start freezes and mismatched forecast hashes are excluded',()=>{const f=frame(),g=grade(f);a.equal(audit([{...f,first:'2026-11-26T03:00:00Z'}],[g],clock).decided,0);a.equal(audit([f],[grade(f,{forecastDigest:'e'.repeat(64)})],clock).decided,0);});
 t('conflicting or logically wrong grades quarantine; pushes are not losses',()=>{const f=frame(),g=grade(f);a.equal(audit([f],[g,grade(f,{actual:19,result:'incorrect'})],clock).conflictingGradesExcluded,1);a.equal(audit([f],[g,grade(f,{actual:19,result:'correct'})],clock).decided,0);const q=frame({line:22});const r=audit([q],[grade(q,{result:'push'})],clock);a.equal(r.pushes,1);a.equal(r.decided,0);});
 t('game-equal Brier separates correlated volume and empty cases',()=>{const r=score([{p:.9,y:1,side:'Higher',gameId:1,slate:'a'},{p:.9,y:1,side:'Higher',gameId:1,slate:'a'},{p:.9,y:0,side:'Lower',gameId:2,slate:'b'}]);a.ok(Math.abs(r.gameEqualBrier-.41)<1e-12);a.equal(r.distinctGames,2);a.equal(score([]).brier,null);});
+t('NBA paired comparisons only use linked official outcomes and immutable original feature estimates',()=>{
+ const {verifiedComparisonRows,pairedStats}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const pair={revision:require('../src/native-workload-matchup-challenger.cjs').revision,
+  metric:'points',incumbent:.7,priorEmpirical:.5,workload:.8,modelApproved:false,sourceDigests:[official],
+  latestArchiveKnownAt:'2026-11-25T18:00:00Z'};
+ const f=frame({baselineSelectedEstimate:.6,nativeContextPair:pair});
+ const valid={officialSource:'nba.com official game box score'};
+ const fake=grade(f,{...valid,baselineEstimate:.99,nativeContextPair:{...pair,workload:.01}});
+ const rows=verifiedComparisonRows([f],[fake],clock);
+ a.equal(rows.length,1);a.equal(rows[0].baselineEstimate,.6);a.equal(rows[0].nativeContextPair.workload,.8);
+ a.equal(pairedStats(rows).points.nativeContextFeatureComparison.workload.decisions,1);
+ a.deepEqual(verifiedComparisonRows([f],[grade(f,{...valid,forecastDigest:'e'.repeat(64)})],clock),[]);
+ a.deepEqual(verifiedComparisonRows([f],[grade(f,{officialSource:'provider guess'})],clock),[]);
+ const late=frame({nativeContextPair:{...pair,latestArchiveKnownAt:'2026-11-25T19:59:01Z'}});
+ a.equal(verifiedComparisonRows([late],[grade(late,valid)],clock)[0].nativeContextPair,null);
+});

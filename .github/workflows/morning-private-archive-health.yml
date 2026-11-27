@@ -18,7 +18,11 @@ on:
   schedule:
     - cron: '20 7 * * *'
       timezone: America/Los_Angeles
+    - cron: '47 7 * * *'
+      timezone: America/Los_Angeles
     - cron: '20 10 * * *'
+      timezone: America/Los_Angeles
+    - cron: '47 10 * * *'
       timezone: America/Los_Angeles
 permissions:
   contents: read
@@ -43,7 +47,7 @@ jobs:
       - name: Verify public immutable morning evidence
         env:
           GH_TOKEN: ${{ github.token }}
-          SLOT: ${{ github.event.schedule == '20 10 * * *' && '09:00' || inputs.slot || '06:00' }}
+          SLOT: ${{ (github.event.schedule == '20 10 * * *' || github.event.schedule == '47 10 * * *') && '09:00' || inputs.slot || '06:00' }}
           AUDIT_DAY: ${{ inputs.day }}
           AUDIT_CRON: ${{ github.event.schedule }}
           AUDIT_OUTPUT: ${{ runner.temp }}/pickfinder-morning-audit.json

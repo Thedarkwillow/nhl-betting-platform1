@@ -39,7 +39,7 @@ test('all unrelated hosted jobs defer before checkout and credentials in protect
 });
 test('the hosted workflow serializes both actual-time gates and the archive-checked fallback',()=>{
  const workflow=fs.readFileSync(new URL('../.github/workflows/pickfinder-premium-hosted.yml','file://'+__filename),'utf8');
- assert.deepEqual([...workflow.matchAll(/cron: '([^']+)'/g)].map(m=>m[1]),['7 6 * * *','7 9 * * *','29 6 * * *','29 9 * * *','7 12 * * *','7 16 * * *']);
+ assert.deepEqual([...workflow.matchAll(/cron: '([^']+)'/g)].map(m=>m[1]),['7 6 * * *','7 9 * * *','29 6 * * *','29 9 * * *','41 6 * * *','41 9 * * *','7 12 * * *','7 16 * * *']);
  assert.match(workflow,/id: opening_clock[\s\S]*?if: steps\.opening_clock\.outputs\.proceed == 'true'[\s\S]*?path: public-archive/);
  assert.match(workflow,/id: backup_archive[\s\S]*?Install pinned browser\n\s+if: steps\.backup_archive\.outputs\.proceed == 'true'/);
  assert.match(workflow,/id: closing_clock[\s\S]*?Authorized public-only sporting evidence collection\n\s+if: steps\.closing_clock\.outputs\.proceed == 'true'/);
@@ -109,7 +109,7 @@ test('morning watchdog uploads the audit result even when source verification fa
  const workflow=fs.readFileSync(new URL('../.github/workflows/morning-private-archive-health.yml','file://'+__filename),'utf8');
  assert.match(workflow,/AUDIT_OUTPUT: .*runner\.temp.*\/pickfinder-morning-audit\.json/);
  assert.match(workflow,/Preserve read-only morning evidence[^\n]*\n\s*if: \$\{\{ always\(\) \}\}\n\s*uses: actions\/upload-artifact@v4/);
- assert.deepEqual([...workflow.matchAll(/cron: '([^']+)'/g)].map(m=>m[1]),['20 7 * * *','20 10 * * *']);
+ assert.deepEqual([...workflow.matchAll(/cron: '([^']+)'/g)].map(m=>m[1]),['20 7 * * *','47 7 * * *','20 10 * * *','47 10 * * *']);
 });
 test('audit pins one archive revision and emits exact scheduled immutable receipt',async t=>{
  const os=require('node:os'),path=require('node:path'),{execFileSync}=require('node:child_process');
@@ -143,4 +143,39 @@ test('audit pins one archive revision and emits exact scheduled immutable receip
   firstCommitAt:git('show','-s','--format=%cI',revision),runId:'123456',runAttempt:'1',cron:'7 9 * * *',
   runStartedAt:data.run_started_at,firstObservedAt:doc.firstObservedAt,lastObservedAt:doc.lastObservedAt,
   archiveState:'verified_empty_or_disabled',pagesTraversed:0,pagesDisplayed:null,offers:0,unresolvedRows:0}]);
+});
+
+test('last-chance fallback respects its own minute, missing boards and the collection cutoff',()=>{
+ const env={GITHUB_EVENT_NAME:'schedule',GITHUB_EVENT_SCHEDULE:'41 6 * * *'};
+ const noLookup=()=>assert.fail('out-of-window attempt must not consult archive');
+ assert.equal(backupPreflight('archive',env,'2026-11-27T14:40:59Z',noLookup).state,'before_backup_minute');
+ const at='2026-11-27T14:41:00Z';
+ assert.equal(backupPreflight('archive',env,at,()=>[]).proceed,false);
+ assert.deepEqual(backupPreflight('archive',env,at,()=>['nhl/prizepicks']).missingPartitions,['nhl/prizepicks']);
+ assert.equal(backupPreflight('archive',env,'2026-11-27T14:55:00Z',noLookup).state,'board_collection_cutoff');
+ assert.equal(backupPreflight('archive',env,'2026-11-27T17:41:00Z',noLookup).proceed,false);
+});
+test('dispatch readback differentiates no recorded dispatch, late start, missing archives and unknown API',async()=>{
+ const {dispatchReadback,scheduledRunMatches}=require('../scripts/pickfinder-public-morning-audit.cjs');
+ const repo='Thedarkwillow/nhl-betting-platform1',state='public_pickfinder_morning_audit',path='.github/workflows/pickfinder-premium-hosted.yml';
+ const report={state,day:'2026-11-27',slot:'06:00',scheduledCorePartitionsVerified:false};
+ const row={id:12345,event:'schedule',head_branch:'main',repository:{full_name:repo},path,status:'completed',
+  conclusion:'success',created_at:'2026-11-27T14:41:10Z',run_started_at:'2026-11-27T14:42:10Z',head_sha:'a'.repeat(40),run_attempt:1};
+ const read=(rows,start='2026-11-27T14',total=rows.length)=>async url=>{
+  const parsed=new URL(url);
+  assert.equal(parsed.searchParams.get('event'),'schedule');
+  assert.equal(parsed.searchParams.get('created'),start+':00:00.000Z..'+start+':59:59.999Z');
+  return {ok:true,json:async()=>({total_count:total,workflow_runs:rows})};
+ };
+ assert.equal((await dispatchReadback(report,{},read([]))).state,'no_scheduled_dispatch_recorded_in_slot');
+ assert.equal((await dispatchReadback({...report,day:'2026-07-01'},{},read([],'2026-07-01T13'))).state,'no_scheduled_dispatch_recorded_in_slot');
+ assert.equal((await dispatchReadback(report,{},read([{...row,run_started_at:'2026-11-27T15:00:00Z'}]))).state,'scheduled_dispatch_seen_no_in_slot_start');
+ assert.equal((await dispatchReadback(report,{},read([row]))).state,'scheduled_start_seen_missing_core_archives');
+ assert.equal((await dispatchReadback({...report,scheduledCorePartitionsVerified:true},{},read([row]))).state,'scheduled_core_archived');
+ assert.equal((await dispatchReadback(report,{},read([{...row,event:'workflow_dispatch'}]))).state,'capture_dispatch_history_unavailable');
+ assert.equal((await dispatchReadback(report,{},read([],undefined,101))).state,'capture_dispatch_history_unavailable');
+ assert.equal((await dispatchReadback(report,{},async()=>({ok:false}))).state,'capture_dispatch_history_unavailable');
+ const origin={event:'schedule',runId:'12345',attempt:'1',revision:row.head_sha,cron:'41 6 * * *'};
+ assert.equal(scheduledRunMatches(origin,row,report.day,report.slot,'2026-11-27T14:43:10Z'),true);
+ assert.equal(scheduledRunMatches(origin,{...row,run_started_at:'2026-11-27T14:40:00Z'},report.day,report.slot,'2026-11-27T14:43:10Z'),false);
 });

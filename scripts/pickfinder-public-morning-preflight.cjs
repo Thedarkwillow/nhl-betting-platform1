@@ -1,7 +1,9 @@
 'use strict';
 const fs=require('node:fs');
 const {decide,pacific}=require('./pacific-morning-capture-gate.cjs');
-const isBackup=env=>env.GITHUB_EVENT_NAME==='schedule'&&/^29 [69] \* \* \*$/.test(env.GITHUB_EVENT_SCHEDULE||'');
+const PUBLIC_MORNING_MINUTES=Object.freeze([7,29,41]);
+const backupMinute=env=>env.GITHUB_EVENT_NAME==='schedule'?Number(/^(29|41) [69] \* \* \*$/.exec(env.GITHUB_EVENT_SCHEDULE||'')?.[1])||null:null;
+const isBackup=env=>backupMinute(env)!==null;
 const protectedMorningClock=clock=>[5,6,8,9].includes(clock.hour);
 
 function preflight(env=process.env,now=new Date()){
@@ -14,7 +16,7 @@ function preflight(env=process.env,now=new Date()){
   return {proceed:true,state:'not_a_morning_capture'};
  }
  const gate=decide({eventName,mode,schedule,now});
- const earlyBackup=isBackup(env)&&gate.clock.minute<29;
+ const earlyBackup=isBackup(env)&&gate.clock.minute<backupMinute(env);
  const proceed=gate.allowed&&!earlyBackup&&gate.clock.minute<55; // The existing board loop stops before :55.
  return {proceed,state:gate.allowed&&!proceed?(earlyBackup?'before_backup_minute':'board_collection_cutoff'):gate.state,
   expected:gate.expected,clock:gate.clock,providerRequests:0,originalSixToNineCaptureClaim:false};
@@ -36,4 +38,4 @@ if(require.main===module){
   :`No ${response.expected} Pacific capture from this attempt. The actual clock was ${response.clock.day} ${response.clock.hour}:${String(response.clock.minute).padStart(2,'0')} Pacific. No provider requests.\n`);
  console.log(JSON.stringify(response));
 }
-module.exports={preflight,backupPreflight,isBackup,protectedMorningClock};
+module.exports={preflight,backupPreflight,isBackup,protectedMorningClock,PUBLIC_MORNING_MINUTES};

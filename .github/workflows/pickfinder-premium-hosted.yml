@@ -14,11 +14,15 @@ on:
       timezone: America/Los_Angeles
     - cron: '7 9 * * *'
       timezone: America/Los_Angeles
-    # In-window fallback for delayed primary dispatch. Same serialized run group.
+    # Two in-window fallback opportunities in the same serialized run group.
     # Reuse verified archive evidence before any provider/browser access.
     - cron: '29 6 * * *'
       timezone: America/Los_Angeles
     - cron: '29 9 * * *'
+      timezone: America/Los_Angeles
+    - cron: '41 6 * * *'
+      timezone: America/Los_Angeles
+    - cron: '41 9 * * *'
       timezone: America/Los_Angeles
     - cron: '7 12 * * *'
       timezone: America/Los_Angeles

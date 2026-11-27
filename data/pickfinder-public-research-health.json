@@ -1,6 +1,6 @@
 {
   "schema": "pickfinder_public_research_health_v1",
-  "generatedAt": "2026-11-27T01:16:34.254Z",
+  "generatedAt": "2026-11-27T01:49:44.374Z",
   "archiveManifests": 112,
   "invalidManifests": 0,
   "latestPartitions": 28,
@@ -567,6 +567,7 @@
     "modelApproved": false,
     "forecastsWithStatus": 0
   },
+  "nbaReviewedHistoryShadowRows": 0,
   "nbaWorkloadShadowRows": 0,
   "nbaMatchupShadowRows": 0,
   "nbaShadowRows": 0,
@@ -586,6 +587,16 @@
   },
   "prospectiveComparisons": {
     "steals": {
+      "reviewedHistoryFeatureComparison": {
+        "revision": "nba_independently_reviewed_history_prior20_v1",
+        "decided": 0,
+        "modelBrier": null,
+        "baselineBrier": null,
+        "modelLogLoss": null,
+        "baselineLogLoss": null,
+        "evenBrier": null,
+        "evenLogLoss": null
+      },
       "workloadFeatureComparison": {
         "revision": "nba_native_minutes_low_count_v1",
         "decided": 0,
@@ -1042,9 +1053,9 @@
     "NBA": {
       "status": "ok",
       "source": "espn:basketball/nba",
-      "observedAt": "2026-11-27T01:18:33.240Z",
-      "coverageUntil": "2026-11-29T01:18:33.240Z",
-      "upcoming": 15,
+      "observedAt": "2026-11-27T01:51:50.734Z",
+      "coverageUntil": "2026-11-29T01:51:50.734Z",
+      "upcoming": 16,
       "complete": false,
       "daysSucceeded": 3,
       "daysFailed": 0,
@@ -1053,8 +1064,8 @@
     "NHL": {
       "status": "ok",
       "source": "espn:hockey/nhl",
-      "observedAt": "2026-11-27T01:18:33.240Z",
-      "coverageUntil": "2026-11-29T01:18:33.240Z",
+      "observedAt": "2026-11-27T01:51:50.734Z",
+      "coverageUntil": "2026-11-29T01:51:50.734Z",
       "upcoming": 25,
       "complete": false,
       "daysSucceeded": 3,
@@ -1064,8 +1075,8 @@
     "NFL": {
       "status": "ok",
       "source": "espn:football/nfl",
-      "observedAt": "2026-11-27T01:18:33.240Z",
-      "coverageUntil": "2026-11-29T01:18:33.240Z",
+      "observedAt": "2026-11-27T01:51:50.734Z",
+      "coverageUntil": "2026-11-29T01:51:50.734Z",
       "upcoming": 1,
       "complete": false,
       "daysSucceeded": 3,
@@ -1075,48 +1086,48 @@
     "CS2": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-27T01:18:33.240Z",
-      "coverageUntil": "2026-11-29T01:18:33.240Z",
+      "observedAt": "2026-11-27T01:51:50.734Z",
+      "coverageUntil": "2026-11-29T01:51:50.734Z",
       "upcoming": 0,
       "complete": false
     },
     "DOTA2": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-27T01:18:33.240Z",
-      "coverageUntil": "2026-11-29T01:18:33.240Z",
+      "observedAt": "2026-11-27T01:51:50.734Z",
+      "coverageUntil": "2026-11-29T01:51:50.734Z",
       "upcoming": 0,
       "complete": false
     },
     "VAL": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-27T01:18:33.240Z",
-      "coverageUntil": "2026-11-29T01:18:33.240Z",
+      "observedAt": "2026-11-27T01:51:50.734Z",
+      "coverageUntil": "2026-11-29T01:51:50.734Z",
       "upcoming": 0,
       "complete": false
     },
     "LOL": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-27T01:18:33.240Z",
-      "coverageUntil": "2026-11-29T01:18:33.240Z",
+      "observedAt": "2026-11-27T01:51:50.734Z",
+      "coverageUntil": "2026-11-29T01:51:50.734Z",
       "upcoming": 0,
       "complete": false
     },
     "COD": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-27T01:18:33.240Z",
-      "coverageUntil": "2026-11-29T01:18:33.240Z",
+      "observedAt": "2026-11-27T01:51:50.734Z",
+      "coverageUntil": "2026-11-29T01:51:50.734Z",
       "upcoming": 0,
       "complete": false
     },
     "MLB": {
       "status": "ok",
       "source": "espn:baseball/mlb",
-      "observedAt": "2026-11-27T01:18:33.240Z",
-      "coverageUntil": "2026-11-29T01:18:33.240Z",
+      "observedAt": "2026-11-27T01:51:50.734Z",
+      "coverageUntil": "2026-11-29T01:51:50.734Z",
       "upcoming": 0,
       "complete": false,
       "daysSucceeded": 3,
@@ -1126,8 +1137,8 @@
     "WNBA": {
       "status": "ok",
       "source": "espn:basketball/wnba",
-      "observedAt": "2026-11-27T01:18:33.240Z",
-      "coverageUntil": "2026-11-29T01:18:33.240Z",
+      "observedAt": "2026-11-27T01:51:50.734Z",
+      "coverageUntil": "2026-11-29T01:51:50.734Z",
       "upcoming": 0,
       "complete": false,
       "daysSucceeded": 3,
@@ -1137,8 +1148,8 @@
     "CFB": {
       "status": "ok",
       "source": "espn:football/college-football",
-      "observedAt": "2026-11-27T01:18:33.240Z",
-      "coverageUntil": "2026-11-29T01:18:33.240Z",
+      "observedAt": "2026-11-27T01:51:50.734Z",
+      "coverageUntil": "2026-11-29T01:51:50.734Z",
       "upcoming": 60,
       "complete": false,
       "daysSucceeded": 3,
@@ -1148,9 +1159,9 @@
     "CBB": {
       "status": "ok",
       "source": "espn:basketball/mens-college-basketball",
-      "observedAt": "2026-11-27T01:18:33.240Z",
-      "coverageUntil": "2026-11-29T01:18:33.240Z",
-      "upcoming": 81,
+      "observedAt": "2026-11-27T01:51:50.734Z",
+      "coverageUntil": "2026-11-29T01:51:50.734Z",
+      "upcoming": 83,
       "complete": false,
       "daysSucceeded": 3,
       "daysFailed": 0,
@@ -1159,8 +1170,8 @@
     "TENNIS": {
       "status": "ok",
       "source": "espn:tennis/atp",
-      "observedAt": "2026-11-27T01:18:33.240Z",
-      "coverageUntil": "2026-11-29T01:18:33.240Z",
+      "observedAt": "2026-11-27T01:51:50.734Z",
+      "coverageUntil": "2026-11-29T01:51:50.734Z",
       "upcoming": 0,
       "complete": false,
       "daysSucceeded": 3,
@@ -1170,8 +1181,8 @@
     "SOCCER": {
       "status": "ok",
       "source": "espn:soccer/eng.1",
-      "observedAt": "2026-11-27T01:18:33.240Z",
-      "coverageUntil": "2026-11-29T01:18:33.240Z",
+      "observedAt": "2026-11-27T01:51:50.734Z",
+      "coverageUntil": "2026-11-29T01:51:50.734Z",
       "upcoming": 4,
       "complete": false,
       "daysSucceeded": 3,

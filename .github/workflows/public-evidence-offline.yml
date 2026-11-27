@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'data/public-multi-sport-sprint.json'
+      - 'data/pickfinder-public-research-*.json'
+      - 'scripts/*pickfinder-public-research-*'
       - 'assets/public-multi-sport-sprint.js'
       - 'assets/lineup-workspace.js'
       - 'src/**'
@@ -58,5 +60,9 @@ jobs:
           python3 -m unittest discover -s test -p test_esports_context_models.py
           python3 -m unittest discover -s test -p test_nba_dated_injury_cohort.py
           node --check src/nhl-standard-forward-scoreboard.cjs
+      - name: Verify published PickFinder public-reference table scope
+        run: |
+          node scripts/validate-pickfinder-public-research-tables.cjs
+          python3 -m unittest discover -s test -p test_pickfinder_public_research_directory.py
       - name: Inventory private-dependent workflows without checking out private source
         run: node scripts/public-workflow-migration-inventory.cjs

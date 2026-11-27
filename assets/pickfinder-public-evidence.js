@@ -206,6 +206,14 @@
   for(const x of dirs){const li=add(list,'li','');const link=add(li,'a',x.league+' · '+n(x.distinctPlayerLinks)+' player links');link.href=x.sourceUrl;}
  }catch{add(mount,'p','Public PickFinder research directory inventory is unavailable.');}
  try{
+  const res=await fetch('./data/pickfinder-public-research-tables-index.json',{cache:'no-store'});
+  if(!res.ok)throw Error();
+  const d=await res.json();
+  if(d.kind!=='pickfinder_public_research_tables_index_v1'||d.modelInputsApproved!==false||
+     ![d.sources,d.tables,d.rows].every(Number.isSafeInteger))throw Error();
+  add(mount,'p',n(d.rows)+' reference rows across '+n(d.tables)+' structured tables and '+n(d.sources)+' linked research views. These publisher reference values are not authenticated live offers or model-qualified inputs.');
+ }catch{add(mount,'p','Public PickFinder reference table inventory is unavailable.');}
+ try{
   const res=await fetch('./data/prizepicks-model-rankings.json',{cache:'no-store'});if(!res.ok)throw Error();
   const m=await res.json();if(m.kind!=='public_prizepicks_model_ranking_v1'||m.researchOnly!==true||m.modelApproved!==false)throw Error();
   const now=Date.now(),at=Date.parse(m.generatedAt);

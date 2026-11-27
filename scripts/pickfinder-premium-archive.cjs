@@ -45,7 +45,7 @@ function normalize(input,{now=new Date()}={}){
    const observed=instant(row.observedAt);
    if(observed<first||observed>last)throw Error("row outside attempt");
    links.add(row.detailId);
-   for(const q of extractQuotes(row)){const k=JSON.stringify([q.detailId,q.eventId,q.market,q.bookLabel,q.side,q.quoteLine,q.price,q.observedAt]);sportsbookQuotes.set(k,q);}
+   for(const q of extractQuotes(row)){const k=JSON.stringify([q.detailId,q.eventId,q.market,q.bookLabel,q.side,q.quoteLine,q.price,q.observedAt,q.sourceQuoteDateTime??null]);sportsbookQuotes.set(k,q);}
    for(const field of scopedResearch(row.research,first,last,input.sport))researchObservations.push({...field,detailId:row.detailId,player:row.player,market:row.market,eventId:text(row.eventId)?row.eventId:null,boardBook:input.book,startAt:row.startAt?instant(row.startAt).toISOString():null});
    if(input.slot!=="manual"&&!inSlot(observed,input.localDay,input.slot))crossHourRows++;
    // A visible book/tier/line is useful research even when the side and price are absent.

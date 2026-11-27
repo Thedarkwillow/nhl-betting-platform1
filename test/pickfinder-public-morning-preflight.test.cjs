@@ -111,3 +111,36 @@ test('morning watchdog uploads the audit result even when source verification fa
  assert.match(workflow,/Preserve read-only morning evidence[^\n]*\n\s*if: \$\{\{ always\(\) \}\}\n\s*uses: actions\/upload-artifact@v4/);
  assert.deepEqual([...workflow.matchAll(/cron: '([^']+)'/g)].map(m=>m[1]),['20 7 * * *','20 10 * * *']);
 });
+test('audit pins one archive revision and emits exact scheduled immutable receipt',async t=>{
+ const os=require('node:os'),path=require('node:path'),{execFileSync}=require('node:child_process');
+ const {ROOT,sha}=require('../scripts/pickfinder-public-archive.cjs');
+ const {run,verifyScheduled}=require('../scripts/pickfinder-public-morning-audit.cjs');
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'pf-morning-receipt-'));
+ t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const at='2026-11-26T17:12:00Z',day='2026-11-26',slot='09:00';
+ const git=(...args)=>execFileSync('git',args,{cwd:root,stdio:['ignore','pipe','pipe'],env:{...process.env,
+  GIT_AUTHOR_DATE:at,GIT_COMMITTER_DATE:at}}).toString().trim();
+ git('init');git('config','user.name','Fixture');git('config','user.email','fixture@example.test');
+ const dir=path.join(root,ROOT,'boards');fs.mkdirSync(dir,{recursive:true});
+ const origin={event:'schedule',runId:'123456',attempt:'1',revision:'a'.repeat(40),cron:'7 9 * * *'};
+ const doc={schema:'pickfinder-public-normalized-v1',localDay:day,slot,sport:'nba',book:'prizepicks',
+  authenticated:true,withinSlot:true,partDigests:[],firstObservedAt:'2026-11-26T17:08:00Z',
+  lastObservedAt:'2026-11-26T17:09:00Z',boardState:'empty',explicitEmpty:true,captureOrigin:origin,
+  health:{pages:0,distinctOfferKeys:0,researchFields:0,unpricedTierObservations:0,sportsbookQuoteObservations:0,unresolvedRows:0}};
+ const bytes=JSON.stringify(doc),digest=sha(bytes),file=path.join(dir,digest+'.json');fs.writeFileSync(file,bytes);
+ git('add','.');git('commit','-m','fixture manifest');
+ const revision=git('rev-parse','HEAD'),raw=run(root,day,slot,new Date('2026-11-26T18:30:00Z'));
+ assert.equal(raw.archiveRevision,revision);assert.equal(raw.archiveMissingCorePartitions.length,5);
+ fs.rmSync(file);git('add','-A');git('commit','-m','advance to a different archive tree');
+ assert.notEqual(git('rev-parse','HEAD'),revision);
+ const data={id:123456,run_attempt:1,event:'schedule',head_sha:origin.revision,head_branch:'main',repository:{full_name:'Thedarkwillow/nhl-betting-platform1'},path:'.github/workflows/pickfinder-premium-hosted.yml',status:'completed',conclusion:'success',run_started_at:'2026-11-26T17:07:00Z'};
+ const checked=await verifyScheduled(root,raw,{},async url=>{
+  assert.match(url,/123456\/attempts\/1$/);return {ok:true,json:async()=>data};
+ });
+ assert.equal(checked.scheduledMissingCorePartitions.length,5);
+ assert.equal(checked.scheduledCorePartitionsVerified,false);
+ assert.deepEqual(checked.scheduledReceipts,[{partition:'nba/prizepicks',manifestDigest:digest,firstCommit:revision,
+  firstCommitAt:git('show','-s','--format=%cI',revision),runId:'123456',runAttempt:'1',cron:'7 9 * * *',
+  runStartedAt:data.run_started_at,firstObservedAt:doc.firstObservedAt,lastObservedAt:doc.lastObservedAt,
+  archiveState:'verified_empty_or_disabled',pagesTraversed:0,pagesDisplayed:null,offers:0,unresolvedRows:0}]);
+});

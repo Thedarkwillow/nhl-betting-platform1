@@ -45,3 +45,49 @@ test("paper portfolios use frozen marginal ranking before outcomes and exclude r
  assert.equal(res2.bySize[2].allCorrect,1);assert.equal(res2.bySize[3].notAllCorrect,1);assert.equal(res2.payoutVerified,false);
  const res3=paperAudit({batch:[{...a,outcome:"Push"},b]});assert.equal(res3.bySize[2].pushOrVoidUnresolved,1);
 });
+test("prospective context arms compare the exact frozen candidate and incumbent on the same final",()=>{
+ const model=require("../src/esports-research-v1.cjs");
+ for(const [title,def] of Object.entries(model.TITLES)){
+  const receipt={independentEvidenceVerified:true,sourceDocumentSha256:"c".repeat(64),
+   sourceUrl:"https://example.test/game-report",knownAt:"2026-11-30T00:00:00Z",
+   mapNames:["verified-map"],role:"verified-role",patch:"verified-patch",rosterId:"verified-roster",
+   lan:true,opponentTier:"verified-tier",expectedExposure:30,exposureUnit:def.unit,independentPregameForecast:true};
+  const o={...offer,title,context:receipt,mode:"Hardpoint",edition:"BO7"};
+  const original={...obs,offer:o};
+  const armMap=r=>({...r,title,mode:o.mode,edition:o.edition,exposureUnit:def.unit,mapName:receipt.mapNames[0],
+   role:receipt.role,patch:receipt.patch,rosterId:receipt.rosterId,lan:receipt.lan,opponentTier:receipt.opponentTier,
+   overtimeIncluded:true,participationThresholdVerified:true});
+  const maps=collectMaps([{...file,doc:{...file.doc,rows:file.doc.rows.map(armMap)}}]);
+  const a=build([original],maps,[],"2026-12-01T00:05:00Z",rev),f={doc:a,first:"2026-12-01T00:06:00Z"};
+  assert.equal(a.rows.length,1);
+  assert.deepEqual(grade([f],maps,[original]).contextMatched,{});
+  const final=armMap({...row(13),seriesId:"future",startAt:"2026-12-01T01:00:00Z",endAt:"2026-12-01T01:30:00Z",observedAt:"2026-12-01T02:00:00Z"});
+  const assertResult=r=>{
+   assert.equal(r.counts.decided,1);assert.equal(Object.keys(r.contextMatched).length,5);
+   for(const [k,g] of Object.entries(r.contextMatched)){
+    assert.ok(k.includes(title));
+    if(title==="COD")assert.ok(k.includes("Hardpoint")&&k.includes("BO7"));
+    assert.equal(g.n,1);assert.equal(g.distinctSeries,1);assert.equal(g.seriesEqualBrier.neutral50,.25);
+    assert.equal(g.seriesEqualLogLoss.neutral50,Math.log(2));assert.equal(g.evidenceMinimumMet,false);
+    assert.equal(g.approved,false);
+   }
+  };
+  const proof=collectMaps([{...file,first:"2026-12-01T02:01:00Z",doc:{...file.doc,rows:[final]}}]);
+  assertResult(grade([f],[...maps,...proof],[original]));
+  const copiedSource=grade([f],[...maps,...proof],[{...original,sourceResponseSha256:receipt.sourceDocumentSha256}]);
+  assert.equal(Object.keys(copiedSource.contextMatched).length,1);
+  const originalNoReview={...original,offer:{...o,context:{...receipt,independentEvidenceVerified:false}}};
+  const unreviewed=build([originalNoReview],maps,[],"2026-12-01T00:05:00Z",rev);
+  const noReview=grade([{...f,doc:unreviewed}],[...maps,...proof],[originalNoReview]);
+  assert.equal(Object.keys(noReview.contextMatched).length,1); // original reviewed offer supplies its exact opponent
+  assert.ok(Object.keys(noReview.contextMatched)[0].includes("opponent"));
+  a.rows[0].forecast.contextChallengers.mapPool={...a.rows[0].forecast.contextChallengers.mapPool,projection:999};
+  assert.equal(Object.keys(grade([f],[...maps,...proof],[original]).contextMatched).length,4);
+ }
+});
+test("copies that disagree on map identities or any graded context are quarantined",()=>{
+ const variation=(fields)=>({...file,doc:{...file.doc,rows:[{...row(0),...fields}]}});
+ for(const fields of [{mapId:"replacement"},{mapName:"alternate"},{role:"changed"},{lan:true}]){
+  assert.equal(collectMaps([file,variation(fields)]).length,11);
+ }
+});

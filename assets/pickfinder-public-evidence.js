@@ -179,6 +179,8 @@
    for(const v of [name,n(s.dataSnapshots),n(s.explicitEmptySnapshots),n(s.unverifiedSnapshots),n(s.withExplicitPage),n(s.verifiedSequences)])add(tr,'td',v);
   }
   add(mount,'p','A complete page sequence applies only to its captured selection. Empty is not evidence of offseason or full filter coverage.');
+  const f=coverage.verifiedFilterScopes;
+  if(f)add(mount,'p',n(f.native)+' native-only · '+n(f.custom)+' custom-only · '+n(f.mixed)+' mixed filter selections read back during capture. Selection verification alone does not establish pagination.');
  }
  const slots=Object.values(d.bySport||{}).flatMap(x=>Object.values(x.boards||{}));
  add(mount,'p','Latest manual board partitions: '+n(slots.filter(b=>b.slot==='manual').length)+' / '+n(slots.length)+'. A capture-slot label alone does not certify scheduled morning execution.');
@@ -203,8 +205,8 @@
    const list=rows.filter(x=>x.tier===tier);if(!list.length)continue;
    add(mount,'h4',tier);
    const table=add(mount,'table',''),head=add(table,'thead',''),hr=add(head,'tr','');
-   for(const h of ['Rank','Player','Selection','Projection','Raw estimate','Market benchmark'])add(hr,'th',h);
-   const body=add(table,'tbody','');for(const x of list){const tr=add(body,'tr','');for(const v of [x.rankWithinTier,x.player,x.side+' '+x.line+' '+x.market,Number(x.projection).toFixed(2),(100*x.rawConditionalEstimate).toFixed(1)+'%',x.marketEstimate===null?'Unavailable':(100*x.marketEstimate).toFixed(1)+'%'])add(tr,'td',v);}
+   for(const h of ['Rank','Player','Selection','Projection','Raw estimate','Source-clock no-vig benchmark'])add(hr,'th',h);
+   const body=add(table,'tbody','');for(const x of list){const tr=add(body,'tr','');for(const v of [x.rankWithinTier,x.player,x.side+' '+x.line+' '+x.market,Number(x.projection).toFixed(2),(100*x.rawConditionalEstimate).toFixed(1)+'%',x.marketBenchmarkSourceClockVerified!==true||!Number.isFinite(x.marketEstimate)?'Unavailable':(100*x.marketEstimate).toFixed(1)+'%'])add(tr,'td',v);}
   }
  }catch{add(mount,'p','Fresh model ranking report unavailable; no stale ranking displayed.');}
 

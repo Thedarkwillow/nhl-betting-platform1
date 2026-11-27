@@ -84,3 +84,56 @@ test('public website renders archive limitations and quote clocks in an offline 
  assert.ok(findAll(mount,'p').some(x=>x.textContent.includes('not evidence of offseason or full filter coverage')));
  assert.deepEqual(findAll(mount,'tbody').at(-1).children[0].children.map(x=>x.textContent),['Games','6','0','4','0','0']);
 });
+test('dashboard walks native and custom filters as a joint scope, blocking a selection reset before archiving',async()=>{
+ let sport='nba',venue='Home',expanded=false;
+ const filter={label:'Home/Away',id:'venue-filter',role:'button',disabled:false};
+ const page={
+  url:()=> 'https://www.pickfinder.app/games',
+  evaluate:async fn=>{
+   if(fn.name==='nativeInventory')return [{index:0,label:'Sport',value:sport,
+    options:[{value:'nba',label:'NBA'},{value:'nfl',label:'NFL'}]}];
+   if(fn.name==='readControls')return [filter];
+   if(fn.name==='readOptions')return expanded?{multiple:false,options:['Home','Away'].map(label=>({label,selected:label===venue}))}:null;
+   return {tables:[],cards:[{text:sport+' '+venue}],pagination:[{page:1,total:1}]};
+  },
+  locator:selector=>{
+   if(selector==='main select')return {nth:()=>({selectOption:async ({value})=>{sport=value;venue='Home';}})};
+   if(selector.startsWith('main [aria-controls'))return {
+    count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true,getAttribute:async()=>String(expanded),
+    click:async()=>{expanded=true;},press:async()=>{expanded=false;}
+   };
+   return {getByRole:(_,{name})=>({
+    count:async()=>1,isVisible:async()=>true,isEnabled:async()=>true,
+    click:async()=>{venue=name;expanded=false;if(sport==='nfl'&&venue==='Away')sport='nba';}
+   })};
+  }
+ };
+ const pages=new Map(),proofs=[];
+ const result=await traverseDashboardFilters(page,'Games',{
+  onSnapshot:x=>{const d={schema:'pickfinder-public-dashboard-v1',...x},id=digest(d);pages.set(id,d);return id;},
+  onSequence:r=>{proofs.push(r);}
+ });
+ assert.equal(result.filtersExhausted,false);
+ assert.deepEqual(result.selectionStats,{mixedSnapshots:3,nativeSnapshots:0,customSnapshots:0,unverifiedSelections:1});
+ assert.ok(result.customFilterAudit.issues.includes('filter_selection_changed'));
+ assert.equal(proofs.length,4);
+ assert.deepEqual([...pages.values()].filter(x=>x.filterSelectionVerified).map(x=>x.filterSelection.map(y=>y.value??y.display)),
+  [['nba','Home'],['nba','Away'],['nfl','Home']]);
+ for(const r of proofs)assert.equal(verifyDashboardSequence(r,pages),true);
+ const filtered=proofs[1],id=filtered.pageDigests[0],bad=new Map(pages);bad.set(id,{...pages.get(id),filterSelectionVerified:false});
+ assert.equal(verifyDashboardSequence(filtered,bad),false);
+});
+
+test('archive coverage counts distinct read-back filter states, never legacy unverified filter labels',()=>{
+ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'pf-filters-'));
+ try{
+  const dir=path.join(tmp,ROOT,'dashboards');fs.mkdirSync(dir,{recursive:true});
+  const add=data=>{const raw=JSON.stringify(data);fs.writeFileSync(path.join(dir,sha(raw)+'.json'),raw);};
+  const one=[{label:'sport',value:'nba',display:'NBA'}];
+  const two=[{label:'home/away',values:['Home'],kind:'aria_listbox',display:'Home'}];
+  for(const [i,filterSelection] of [[1,one],[2,one],[3,two],[4,[...one,...two]],[5,[...one,...one]]])
+   add({...quotedPage(i,i),filterSelection,filterSelectionVerified:true});
+  add({...quotedPage(6,6),filterSelection:[{label:'sport',value:'nfl'}]});
+  assert.deepEqual(coverage(tmp).verifiedFilterScopes,{native:1,custom:1,mixed:1});
+ }finally{fs.rmSync(tmp,{recursive:true,force:true});}
+});

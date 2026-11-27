@@ -54,8 +54,17 @@ async function traverseCustomFilters(page,{shouldContinue=()=>true,onState=async
    const live=approvedControls(await read());
    if(live.some(x=>!controls.some(y=>norm(y.label)===norm(x.label))))issues.add('dynamic_control');
    // Re-read each selected control: an upstream filter may reset a downstream selection.
-   for(const s of selection){const x=live.find(y=>norm(y.label)===s.label);if(!x){issues.add('selection_changed');return;}let p;try{p=await inspect(x);await closeFn(x);}catch{issues.add('selection_unverified');return;}if(!same(selected(p),s.values)){issues.add('selection_changed');return;}}
-   const key=JSON.stringify(selection);if(seen.has(key))return;await onState(selection);seen.add(key);states++;return;
+   const verify=async()=>{
+    const current=approvedControls(await read());
+    for(const s of selection){const x=current.find(y=>norm(y.label)===s.label);
+     if(!x)return false;
+     let p;try{p=await inspect(x);}catch{return false;}finally{await closeFn(x);}
+     if(!same(selected(p),s.values))return false;
+    }
+    return true;
+   };
+   if(!await verify()){issues.add('selection_unverified');return;}
+   const key=JSON.stringify(selection);if(seen.has(key))return;await onState(selection,verify);seen.add(key);states++;return;
   }
   const originalControl=controls[i];const x=approvedControls(await read()).find(y=>norm(y.label)===norm(originalControl.label));
   if(!x){issues.add('dynamic_control');return;}

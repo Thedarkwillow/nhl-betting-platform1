@@ -60,6 +60,14 @@ function readBoard({book, code, sport, observedAt}) {
       // A fantasy offer line, unlabeled number, or another book's tooltip is not evidence.
       const isolated=isolatedGroup&&!['prizepicks','underdog'].includes(id);
       if(isolated){
+        // The price clock must be separately identified inside the same visible
+        // sportsbook block as two literal odds at one literal line. Game, local
+        // observation, tooltip-only, and generic or multiple clocks do not qualify.
+        const quoteTimes=[...group.querySelectorAll('time[datetime]')].filter(t=>t.getClientRects().length);
+        const quoteTime=quoteTimes.length===1&&/^(?:sportsbook )?quote (?:time|updated at)$/i.test(
+          (quoteTimes[0].getAttribute('aria-label')||quoteTimes[0].getAttribute('title')||'').trim())?
+          quoteTimes[0].getAttribute('datetime'):null;
+        const inlinePair=prices.length===2&&prices[0].side!==prices[1].side&&prices[0].quoteLine!==null&&prices[0].quoteLine===prices[1].quoteLine;
         const local=[group,...group.querySelectorAll('[aria-label],[title],[aria-describedby]')];
         // Only a visible tooltip explicitly associated with this isolated book
         // and explicitly naming it may contribute. Never use the fantasy line,
@@ -80,6 +88,8 @@ function readBoard({book, code, sport, observedAt}) {
           if(!prices.some(p=>p.side===side&&p.price===price&&p.quoteLine===quoteLine))prices.push({side,price,quoteLine});
         }
         if(explicit!==null&&prices.every(p=>p.quoteLine===null||p.quoteLine===explicit))for(const p of prices)if(p.quoteLine===null)p.quoteLine=explicit;
+        if(quoteTime&&inlinePair&&prices.length===2&&thresholds.size<=1&&(explicit===null||explicit===prices[0].quoteLine))
+          for(const p of prices)Object.assign(p,{sourceQuoteDateTime:quoteTime,sourceQuoteTimeBasis:'provider_quote_time_element'});
       }
       sportsbookEvidence.push({book:supported.has(id)?id:null,displayedBookLabel:label,unclassifiedBookBadge:!supported.has(id),display,prices,quoteLine:null,originalPlatformVerified:false,modelInputsApproved:false});
     }
@@ -97,9 +107,11 @@ function readBoard({book, code, sport, observedAt}) {
       for(const [metric,value] of [['Team',matchups[0][1]],['Opponent',matchups[0][3]]])
         research.push({origin:'board',tab:'Props',metric,value,scope:'displayed prop',observedAt});
     }
-    const eventTimes=[...new Set([...(tr.querySelectorAll?.('time[datetime]')||[])].map(t=>t.getAttribute('datetime')).filter(t=>typeof t==='string'&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(t)&&Number.isFinite(Date.parse(t))))];
+    // Sportsbook clocks live in the Apps cell and cannot establish or block the game clock.
+    const times=[...(tr.querySelectorAll?.('time[datetime]')||[])].filter(t=>!cell||t.closest('td')!==cell);
+    const eventTimes=[...new Set(times.map(t=>t.getAttribute('datetime')).filter(t=>typeof t==='string'&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(t)&&Number.isFinite(Date.parse(t))))];
     // A single explicitly labeled game/start time only; never infer a clock from event ID.
-    const labeledTimes=[...(tr.querySelectorAll?.('time[datetime]')||[])].filter(t=>/^(?:game|match|event|scheduled)\s*(?:start|time)/i.test(t.getAttribute('aria-label')||t.getAttribute('title')||'')||/^(?:Game|Match|Event|Scheduled) (?:Start|Time|Start Time)$/i.test(headers[t.closest('td')?.cellIndex]||''));
+    const labeledTimes=times.filter(t=>/^(?:game|match|event|scheduled)\s*(?:start|time)/i.test(t.getAttribute('aria-label')||t.getAttribute('title')||'')||/^(?:Game|Match|Event|Scheduled) (?:Start|Time|Start Time)$/i.test(headers[t.closest('td')?.cellIndex]||''));
     const startAt=eventTimes.length===1&&labeledTimes.some(t=>t.getAttribute('datetime')===eventTimes[0])?eventTimes[0]:null;
     rows.push({startAt,sport:rawSport===code.toLowerCase()||code==='DOTA2'&&['dota-2','dota_2'].includes(rawSport)?sport:rawSport,player:a.querySelector('p')?.innerText,
       market,eventId:parts[2],detailId:u.pathname+'?'+u.search.slice(1).split('&').filter(part=>part.startsWith('prop=')).join('&'),

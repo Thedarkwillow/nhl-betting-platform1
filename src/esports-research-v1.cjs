@@ -48,16 +48,22 @@ function uniqueMaps(raw){
  for(const k of bad)m.delete(k);
  return {rows:[...m.values()],invalid,ambiguous:bad.size};
 }
+function exactMapSequence(rows,maps){
+ if(rows.length!==maps.length||new Set(rows.map(r=>r.mapId)).size!==maps.length||
+  new Set(rows.map(r=>r.opponentId)).size!==1)return false;
+ const ordered=[...rows].sort((a,b)=>a.mapIndex-b.mapIndex);
+ return ordered.every((r,i)=>r.mapIndex===maps[i]&&(i===0||at(ordered[i-1].endAt)<=at(r.startAt)));
+}
 function historicalSamples(o,rows){
  const groups=new Map();
  for(const r of rows){
-  if(r.title!==o.title||r.playerId!==o.playerId||r.teamId!==o.teamId||r.ruleset!==o.ruleset
+  if(!validMap(r)||r.title!==o.title||r.playerId!==o.playerId||r.teamId!==o.teamId||r.ruleset!==o.ruleset
    ||r.seriesId===o.seriesId||at(r.observedAt)>at(o.capturedAt)||at(r.endAt)>=at(o.capturedAt)
    ||!o.maps.includes(r.mapIndex)||stat(r,o.market)===null
    ||(o.title==="COD"&&(r.edition!==o.edition||r.mode!==o.mode)))continue;
   if(!groups.has(r.seriesId))groups.set(r.seriesId,[]);groups.get(r.seriesId).push(r);
  }
- return [...groups.values()].filter(a=>a.length===o.maps.length&&new Set(a.map(x=>x.mapIndex)).size===o.maps.length)
+ return [...groups.values()].filter(a=>exactMapSequence(a,o.maps))
  .map(a=>({seriesId:a[0].seriesId,end:Math.max(...a.map(x=>at(x.endAt))),total:a.reduce((s,r)=>s+stat(r,o.market),0),
   exposure:a.reduce((s,r)=>s+r.exposure,0),maps:a})).sort((a,b)=>b.end-a.end).slice(0,40);
 }
@@ -88,10 +94,10 @@ function predict(o,rows){
 }
 function grade(o,rows){
  if(!validOffer(o))return {status:"invalid_offer"};
- const a=rows.filter(r=>r.title===o.title&&r.seriesId===o.seriesId&&r.playerId===o.playerId&&r.teamId===o.teamId
+ const a=rows.filter(r=>validMap(r)&&r.title===o.title&&r.seriesId===o.seriesId&&r.playerId===o.playerId&&r.teamId===o.teamId
   &&r.opponentId===o.opponentId&&r.ruleset===o.ruleset&&o.maps.includes(r.mapIndex)&&at(r.startAt)>=at(o.seriesStartAt)
   &&(o.title!=="COD"||(r.edition===o.edition&&r.mode===o.mode)));
- if(a.length!==o.maps.length||new Set(a.map(r=>r.mapIndex)).size!==o.maps.length||a.some(r=>stat(r,o.market)===null))
+ if(!exactMapSequence(a,o.maps)||a.some(r=>stat(r,o.market)===null))
   return {status:"unresolved_missing_map_or_stat"};
  const actual=a.reduce((s,r)=>s+stat(r,o.market),0);
  return {status:"statistical_result_only",actual,outcome:actual>o.line?"Higher":actual<o.line?"Lower":"Push",officialPlatformSettlementVerified:false};

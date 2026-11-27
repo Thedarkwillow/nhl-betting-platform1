@@ -96,6 +96,20 @@ test('quote threshold requires an isolated sportsbook and its own visible descri
   assert.deepEqual(read(),[{side:'Higher',price:'-110',quoteLine:6.5},{side:'Lower',price:'+105',quoteLine:6.5}]);
   tooltip.getClientRects=()=>[];assert.ok(read().every(p=>p.quoteLine===null));
   tooltip.getClientRects=()=>[{}];tooltip.innerText='FanDuel Line 6.5';assert.ok(read().every(p=>p.quoteLine===null));
+  const quoteTime='2026-11-26T19:58:00Z',gameTime='2026-11-26T21:00:00Z';
+  const qtime={getAttribute:attr({'aria-label':'Sportsbook Quote Time',datetime:quoteTime}),getClientRects:()=>[{}],closest:()=>cell};
+  const gtime={getAttribute:attr({'aria-label':'Game Start',datetime:gameTime}),closest:()=>null};
+  tr.querySelectorAll=()=>[qtime,gtime];
+  group.querySelectorAll=s=>s==='img[alt]'?[icon]:s==='time[datetime]'?[qtime]:[];
+  group.innerText='Over 6.5 −110; Under 6.5 +105';
+  assert.ok(read().every(p=>p.sourceQuoteDateTime===quoteTime&&p.sourceQuoteTimeBasis==='provider_quote_time_element'));
+  assert.equal(readBoard(args).rows[0].startAt,gameTime);
+  // A tooltip-only line or a clock merely labeling an update can't bind both prices.
+  group.innerText='Over −110; Under +105';tooltip.innerText='DraftKings Line 6.5';
+  assert.ok(read().every(p=>p.quoteLine===6.5&&!p.sourceQuoteDateTime));
+  group.innerText='Over 6.5 −110; Under 6.5 +105';
+  qtime.getAttribute=attr({'aria-label':'Updated',datetime:quoteTime});
+  assert.ok(read().every(p=>!p.sourceQuoteDateTime));
   // When a badge sits in a multi-book cell with no separate quote group, do not reuse its price text.
   icon.parentElement=cell;other.parentElement=cell;cell.querySelectorAll=s=>s==='img[alt]'?[icon,other]:[];
   assert.deepEqual(read(),[]);

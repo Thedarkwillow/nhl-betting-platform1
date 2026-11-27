@@ -3,7 +3,7 @@
 const fs=require('node:fs'),path=require('node:path');
 const {ROOT,sha,iterate,archiveRevision}=require('./pickfinder-public-archive.cjs');
 const {createLayoutAudit}=require('./pickfinder-nba-layout-recovery.cjs');
-const {load,quotes,features,scope,git}=require('./pickfinder-public-evidence-audit.cjs');
+const {walkBoards,quotes,features,scope,git}=require('./pickfinder-public-evidence-audit.cjs');
 const {candidate}=require('./pickfinder-public-history-cache.cjs');
 const nativeHistory=require('./pickfinder-native-history-reconciliation.cjs');
 const {reconcileSeries}=require('./pickfinder-esports-series-review.cjs');
@@ -69,8 +69,8 @@ function esportsScope(o){
  if(!require('../src/esports-research-v1.cjs').TITLES[title].stats.includes(market)||title==='COD'&&!o.gameMode)return null;
  return {title,maps,market,identityReviewed:false,mapScopeReviewed:false,modelApproved:false};
 }
-function auditBoards(archive,clock){
- const bySport={},history=new Map();let observations=0,quoteMatches=0,featureMatches=0;const quoteEvidence={},esportsEvidence={};
+function auditBoards(archive,clock,{esportsHistoryOnly=false}={}){
+ const bySport={},history=new Map(),allKeys=esportsHistoryOnly?new Set():null;let observations=0,quoteMatches=0,featureMatches=0;const quoteEvidence={},esportsEvidence={};
  for(const b of archive.manifests){
   if(!valid(b.first)||dt(b.first)>dt(clock))continue;
   const a=bySport[b.m.sport]??={offers:0,quotes:0,features:0,explicitPregame:0};
@@ -90,10 +90,11 @@ function auditBoards(archive,clock){
    const pregame=valid(o.startAt)&&dt(cut)+900000<dt(o.startAt);
    if(pregame)a.explicitPregame++;
    const k=key([scope(o),o.book,o.side,o.tier??null,o.line,o.observedAt]);
-   if(!history.has(k))history.set(k,{offer:o,manifestDigest:b.digest,archiveFirst:cut,features:fs,quotes:bs,explicitPregame:pregame,originalPlatformVerified:false,modelApproved:false});
+   if(allKeys)allKeys.add(sha(k));
+   if((!esportsHistoryOnly||['cs2','valorant','dota2','lol','cod'].includes(o.sport))&&!history.has(k))history.set(k,{offer:o,manifestDigest:b.digest,archiveFirst:cut,features:fs,quotes:bs,explicitPregame:pregame,originalPlatformVerified:false,modelApproved:false});
   }
  }
- return {summary:{observations,distinctObservations:history.size,quoteMatches,featureMatches,bySport,quoteEvidence,esportsEvidence},history};
+ return {summary:{observations,distinctObservations:allKeys?.size??history.size,quoteMatches,featureMatches,bySport,quoteEvidence,esportsEvidence},history};
 }
 function* committedProfiles(root){
  const dir=ROOT+'/profiles';
@@ -164,9 +165,26 @@ function shadowHistoryJoin(index,scopes,clock){
  }
  return out;
 }
-function run(root,clock=new Date().toISOString(),{packetPath=null}={}){
+function run(root,clock=new Date().toISOString(),{packetPath=null,onBoard=null}={}){
  const index=nativeHistory.indexFromArchive(root,clock);
- const p=auditProfiles(committedProfiles(root),clock),archive=load(root),b=auditBoards(archive,clock),h=nativeHistory.fromArchive(root,committedProfiles(root),clock,index);
+ const p=auditProfiles(committedProfiles(root),clock);
+ const model=require('./pickfinder-reviewed-history-model.cjs'),archive={manifests:[],latest:[],invalid:[]};
+ function* inputs(){
+  for(const {entry,invalidDigest} of walkBoards(root)){
+   if(!entry){archive.invalid.push(invalidDigest);continue;}
+   if(onBoard)onBoard(entry);
+   const offers=model.pregameBoardOffers(entry);
+   // This replay needs only source-clock-eligible offers and their exact metadata.
+   // Keep no rows from unrelated board partitions in the working set.
+   if(offers.length&&dt(entry.first)<=dt(clock)){
+    const keys=new Set(offers.map(o=>key([o.detailId,o.observedAt])));
+    const {digest,m,first}=entry;
+    archive.manifests.push({digest,m,first,offers,researchObservations:entry.researchObservations.filter(r=>keys.has(key([r.detailId,r.observedAt])))});
+   }
+   yield entry;
+  }
+ }
+ const b=auditBoards({manifests:inputs()},clock,{esportsHistoryOnly:true}),h=nativeHistory.fromArchive(root,committedProfiles(root),clock,index);
  const modelJoin=h.reviewedCache.size?shadowHistoryJoin(h.reviewedCache,require('./prizepicks-native-context-readiness.cjs').fromArchive(root,clock,git(root,['rev-parse','HEAD']),archive).scopes,clock):shadowHistoryJoin(h.reviewedCache,[],clock);
  const series=reconcileSeries(esportsReviewQueue(b.history),clock);
  let nbaLegacyLayoutRecovery;
@@ -179,7 +197,7 @@ function run(root,clock=new Date().toISOString(),{packetPath=null}={}){
    nbaLegacyLayoutRecovery:{...nbaLegacyLayoutRecovery,independentStatMatches:recovery.rows}},null,2)+'\n',{flag:'wx'});
  }
 
- const reviewedHistoryModel=require('./pickfinder-reviewed-history-model.cjs').replay(root,archive,h.reviewedCache,index,clock,git(root,['rev-parse','HEAD']));
+ const reviewedHistoryModel=model.replay(root,archive,h.reviewedCache,index,clock,git(root,['rev-parse','HEAD']));
  return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,esportsSeriesReview:series.summary,nbaLegacyLayoutRecovery,nativeHistory:h.summary,shadowHistoryJoin:modelJoin,reviewedHistoryModel,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
 }
 module.exports={classify,auditProfiles,auditBoards,quoteInventory,esportsScope,committedProfiles,reviewPacket,esportsReviewQueue,shadowHistoryJoin,run};

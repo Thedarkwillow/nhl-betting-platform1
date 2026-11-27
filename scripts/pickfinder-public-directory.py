@@ -7,20 +7,30 @@ from urllib.parse import urlsplit,urljoin,parse_qs,urlencode
 M=runpy.run_path(str(Path(__file__).with_name("pickfinder-free-research.py")))
 BASE=M["BASE"]
 SPORTS={"nba","nhl","nfl","cs2","valorant","dota-2","league-of-legends","lol","call-of-duty","cod"}
+ALLOWLIST_VERSION=2
+CLASSIC_ROUTES={"defense-vs-position","soft-spots","team-rankings"}
+ADDITIONAL_RESEARCH={
+    "college-basketball":CLASSIC_ROUTES, "college-football":CLASSIC_ROUTES, "wnba":CLASSIC_ROUTES,
+    "soccer":{"defense-vs-position","goalie-saves","match-environment","players","prop-results","shot-ladder","tackles-and-fouls"},
+    "tennis":{"ace-matchups","court-speed","market-beaters","players","prop-line-record","serve-return-map","total-games"},
+}
+ROLE_SPORTS={"dota-2","league-of-legends","lol"}
 RESEARCH={"defense-vs-position","soft-spots","team-rankings","fragger-board","kill-environment","map-pool","map-pool-matrix","headshot-board","headshots","lan-lift","bloodiest-teams","champions","assist-board","assists","agents","first-bloods","heroes","map-and-mode-matrix","map-mode-matrix","mode-splits","players"}
 def safe(href):
     u=urlsplit(urljoin(BASE,href))
     if u.scheme!="https" or u.netloc!=urlsplit(BASE).netloc or u.fragment:return None
     if u.path=="/free-research" and not u.query:return u.path
     p=u.path.strip("/").split("/")
-    if len(p)<2 or p[0]!="leagues" or p[1] not in SPORTS or not all(re.fullmatch(r"[A-Za-z0-9_-]{1,160}",x) for x in p):return None
+    if len(p)<2 or p[0]!="leagues" or p[1] not in SPORTS and p[1] not in ADDITIONAL_RESEARCH or not all(re.fullmatch(r"[A-Za-z0-9_-]{1,160}",x) for x in p):return None
+    allowed=ADDITIONAL_RESEARCH.get(p[1],RESEARCH)
+    if p[1] in ROLE_SPORTS:allowed=allowed|{"defense-vs-role"}
     if len(p)==2 and not u.query:return u.path
-    if len(p)==3 and not u.query and p[2] in RESEARCH:return u.path
-    if len(p)==3 and p[2]=="players":
+    if len(p)==3 and not u.query and p[2] in allowed:return u.path
+    if len(p)==3 and p[2]=="players" and "players" in allowed:
         q=parse_qs(u.query)
         if set(q)=={"page"} and len(q["page"])==1 and re.fullmatch(r"[1-9][0-9]{0,5}",q["page"][0]):return u.path+"?"+urlencode({"page":q["page"][0]})
-    if len(p)==4 and p[2] in RESEARCH and p[3] in ("all-events","top-tier") and not u.query:return u.path
-    if len(p)==4 and p[2]=="players" and not u.query:return u.path
+    if len(p)==4 and p[2] in allowed and p[1] not in ADDITIONAL_RESEARCH and p[3] in ("all-events","top-tier") and not u.query:return u.path
+    if len(p)==4 and p[2]=="players" and "players" in allowed and not u.query:return u.path
     return None
 def priority(p):
     bits=p.split("?")[0].strip("/").split("/")
@@ -49,6 +59,13 @@ def fetch(rel):
         raw=resp.read(8_000_001)
         if len(raw)>8_000_000:raise ValueError("size")
     return raw
+def due_route(p,existing,now):
+    if p not in existing:return True
+    observed,doc=existing[p]
+    # An expanded allowlist needs a fresh official root even inside the daily TTL.
+    if p=="/free-research" and doc.get("routeAllowlistVersion")!=ALLOWLIST_VERSION:return True
+    return (now-observed).total_seconds()>=(86400 if priority(p)<2 else 7*86400)
+
 def main(root,budget=80):
     public=os.getenv('PICKFINDER_PUBLIC_DATA_AUTHORIZED')=='1'
     if public:
@@ -69,10 +86,7 @@ def main(root,budget=80):
     for _,d in existing.values():known.update(p for p in d.get("links",[]) if safe(p)==p)
     attempted=set();counts=defaultdict(lambda:{"pages":0,"tables":0,"rows":0,"playerLinks":0});failed=0;stopped=False;visited=defaultdict(int)
     def due(p):
-        if p not in existing:return True
-        # Directory and rankings refreshed daily, player details weekly. Resume unseen profiles first.
-        age=(now-existing[p][0]).total_seconds()
-        return age>=(86400 if priority(p)<2 else 7*86400)
+        return due_route(p,existing,now)
     while len(attempted)<budget:
         pending=[p for p in known if p not in attempted and due(p)]
         if not pending:break
@@ -81,7 +95,7 @@ def main(root,budget=80):
         attempted.add(rel)
         try:
             raw=fetch(rel);d=extract(raw.decode("utf-8"),rel)
-            d.update(schema="pickfinder_public_directory_v2",observedAt=datetime.now(timezone.utc).isoformat(),responseSha256=hashlib.sha256(raw).hexdigest(),modelInputsApproved=False)
+            d.update(schema="pickfinder_public_directory_v2",routeAllowlistVersion=ALLOWLIST_VERSION,observedAt=datetime.now(timezone.utc).isoformat(),responseSha256=hashlib.sha256(raw).hexdigest(),modelInputsApproved=False)
             payload=json.dumps(d,sort_keys=True,separators=(",",":")).encode()
             if public and re.search(rb'[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|\b(?:Bearer\s+\S+|github_pat_[A-Za-z0-9_]+|gh[pousr]_[A-Za-z0-9]+|eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)',payload,re.I):raise ValueError('sensitive text')
             with (dest/(hashlib.sha256(payload).hexdigest()+".json")).open("xb") as f:f.write(payload);f.flush();os.fsync(f.fileno())
@@ -105,6 +119,17 @@ def test():
     assert safe("https://evil.example/leagues/cs2/players") is None
     assert safe("/leagues/cs2/headshots/all-events")=="/leagues/cs2/headshots/all-events"
     assert safe("/leagues/cs2/players/fixture")=="/leagues/cs2/players/fixture"
+    index=json.loads((Path(__file__).resolve().parent.parent/"data"/"pickfinder-public-research-directory.json").read_text())
+    assert index["kind"]=="pickfinder_public_research_directory_v1"
+    assert all(safe(route)==route for route in index["researchRoutes"])
+    assert safe("/leagues/nba/prop-line-record") is None
+    assert safe("/leagues/college-football/players?foo=1") is None
+    assert safe("/leagues/soccer/prop-results?token=1") is None
+    assert safe("/leagues/tennis/players?page=2")=="/leagues/tennis/players?page=2"
+    assert safe("/leagues/dota-2/defense-vs-role")=="/leagues/dota-2/defense-vs-role"
+    now=datetime.now(timezone.utc)
+    assert due_route("/free-research",{"/free-research":(now,{})},now)
+    assert not due_route("/free-research",{"/free-research":(now,{"routeAllowlistVersion":ALLOWLIST_VERSION})},now)
     d=extract('<a href="/leagues/cs2/players/fixture">Player</a><a href="/account">Account</a><table><tr><th>Stat</th></tr><tr><td>2</td></tr></table>',"/leagues/cs2/players")
     assert d["links"]==["/leagues/cs2/players/fixture"] and d["summary"]["rows"]==2
 if __name__=="__main__":

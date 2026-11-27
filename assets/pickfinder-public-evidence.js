@@ -25,9 +25,25 @@
   const response=await fetch('./data/pickfinder-public-activity.json',{cache:'no-store'});if(!response.ok)throw Error();
   const activity=await response.json();if(activity.kind!=='public_pickfinder_activity_readiness_v1'||activity.modelApproved!==false)throw Error();
   add(mount,'h3','PickFinder activity center');
-  add(mount,'p','Observed board activity, not native PickFinder alerts. Report as of '+new Date(activity.generatedAt).toLocaleString()+'. Discord and native mobile delivery unverified.');
+  const at=Date.parse(activity.generatedAt);
+  add(mount,'p','Observed board activity, not native PickFinder alerts.'+(Number.isFinite(at)?' Report as of '+new Date(at).toLocaleString()+'.':' Report time unavailable.')+' Native push delivery is not verified here.');
+  const delivery=add(mount,'p','Project Discord runs separately from native PickFinder notifications. ');
+  const sender=add(delivery,'a','View project Discord delivery runs');
+  sender.setAttribute('href','https://github.com/Thedarkwillow/nhl-betting-platform1/actions/workflows/project-discord-line-alerts.yml');
   const list=add(mount,'ul','');
-  for(const e of (activity.events||[]).slice(0,12)){if(e.kind!=='board_observation'||e.nativeNotificationVerified!==false)continue;add(list,'li',e.sport.toUpperCase()+' · '+e.book+' · '+e.state+' · '+n(e.offers)+' observed offers · '+new Date(e.observedAt).toLocaleString());}
+  const slotNames={'06:00':'6 a.m. Pacific slot label','09:00':'9 a.m. Pacific slot label',manual:'manual capture',unknown:'capture slot unknown'};
+  for(const e of (activity.events||[]).slice(0,12)){
+   if(e.kind!=='board_observation'||e.nativeNotificationVerified!==false||
+      typeof e.sport!=='string'||!['prizepicks','underdog'].includes(e.book)||
+      !Number.isFinite(Date.parse(e.observedAt)))continue;
+   const row=add(list,'li',e.sport.toUpperCase()+' · '+e.book+' · '+e.state+' · '+n(e.offers)+' observed offers · '+new Date(e.observedAt).toLocaleString()+' · '+(slotNames[e.slot]||slotNames.unknown));
+   if(/^[a-f0-9]{64}$/.test(e.manifestDigest||'')){
+    add(row,'span',' · ');
+    const link=add(row,'a','Archive evidence');
+    link.setAttribute('href','https://github.com/Thedarkwillow/nhl-betting-platform1/blob/main/research/pickfinder-public-v1/boards/'+e.manifestDigest+'.json');
+   }
+  }
+  add(mount,'p','A slot label is not proof of scheduled execution. Archive observations do not verify first-party offers or model suggestions.');
   const c=activity.cache||{},g=activity.grading||{};
   add(mount,'p','Historical cache: '+n(c.nonconflictingKeys)+' nonconflicting fact keys; '+n(c.conflictedKeys)+' conflicts; collection requests skipped: '+n(c.requestsSkipped)+'.');
   add(mount,'p','Independent grading queue: '+n(g.dueForIndependentGrade)+' due, '+n(g.pendingNotDue)+' not due, '+n(g.alreadyGraded)+' already graded.');

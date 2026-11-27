@@ -64,7 +64,7 @@ test('public website renders archive limitations and quote clocks in an offline 
  class Item {
   constructor(tag){this.tag=tag;this.children=[];this.style={};this.value='all';}
   append(item){this.children.push(item);}
-  setAttribute(){}
+  setAttribute(key,value){this[key]=value;}
   addEventListener(){}
  }
  const mount=new Item('div'),stats={dataSnapshots:6,explicitEmptySnapshots:0,unverifiedSnapshots:4,withExplicitPage:0,verifiedSequences:0};
@@ -73,6 +73,8 @@ test('public website renders archive limitations and quote clocks in an offline 
   './data/pickfinder-public-research-health.json':{schema:'pickfinder_public_research_health_v1',generatedAt:'2026-11-27T21:00:04Z',
    researchCoverage:{allFiltersVerified:false,dashboardEvidence:{Games:stats}}},
   './data/pickfinder-public-activity.json':{kind:'public_pickfinder_activity_readiness_v1',modelApproved:false,
+   events:[{kind:'board_observation',sport:'nhl',book:'prizepicks',nativeNotificationVerified:false,manifestDigest:'a'.repeat(64),observedAt:'2026-11-27T20:00:00Z',offers:22,state:'populated',slot:'manual'},
+    {kind:'board_observation',sport:'nhl',book:'underdog',nativeNotificationVerified:false,manifestDigest:'javascript:bad',observedAt:'2026-11-27T20:05:00Z',offers:21,state:'populated',slot:'06:00'}],
    profileMarketEvidence:{historicalRows:52,distinctUnconflictedPairedGroups:44,unzonedPairedGroups:44,offsetBoundNoVigPairedGroups:0}}
  };
  await runInNewContext(source,{
@@ -82,6 +84,10 @@ test('public website renders archive limitations and quote clocks in an offline 
  const findAll=(x,tag)=>[...(x.tag===tag?[x]:[]),...x.children.flatMap(c=>findAll(c,tag))];
  assert.ok(findAll(mount,'p').some(x=>x.textContent.includes('44 unzoned pairs withheld')&&x.textContent.includes('0 offset-backed')));
  assert.ok(findAll(mount,'p').some(x=>x.textContent.includes('not evidence of offseason or full filter coverage')));
+ assert.equal(findAll(mount,'a').filter(x=>x.textContent==='Archive evidence').length,1);
+ assert.ok(findAll(mount,'li').some(x=>x.textContent.endsWith('manual capture')));
+ assert.ok(findAll(mount,'p').some(x=>x.textContent.includes('not proof of scheduled execution')));
+ assert.ok(findAll(mount,'a').some(x=>x.href?.endsWith('project-discord-line-alerts.yml')));
  assert.deepEqual(findAll(mount,'tbody').at(-1).children[0].children.map(x=>x.textContent),['Games','6','0','4','0','0']);
 });
 test('dashboard walks native and custom filters as a joint scope, blocking a selection reset before archiving',async()=>{

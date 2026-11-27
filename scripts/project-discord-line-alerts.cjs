@@ -21,6 +21,13 @@ function complete(b){
   m.boardState==='populated'&&m.pageTraversalComplete===true&&m.lastPageReached===true||
   m.boardState==='empty'&&m.explicitEmpty===true&&m.health?.pages===0&&b.offers.length===0);
 }
+// A walked but shifting paginated board can still prove individual positive
+// observations. It cannot prove that a missing line was absent.
+function absenceCoverage(b){
+ const m=b.m,h=m.health;
+ return complete(b)&&(m.boardState==='empty'||h.repeatOrUnresolvedLinks===0&&
+  Array.isArray(h.reasons)&&!h.reasons.includes('possible_display_cap_requires_partition_reconciliation'));
+}
 function slot(b,now){
  const map=new Map();
  for(const o of b.offers){
@@ -122,6 +129,7 @@ function exactMembership(b){
 function releaseBaseline(b,old,now,windowMs,membership){
  if(!old)return 'missing_prior_board';
  if(!complete(b)||!complete(old))return 'incomplete_board';
+ if(!absenceCoverage(b)||!absenceCoverage(old))return 'unproven_page_membership';
  if(old.m.health.unresolvedRows!==0&&!(membership(old)&&membership(b)))return 'prior_unresolved_rows';
  if(dt(old.m.lastObservedAt)>=dt(b.m.firstObservedAt))return 'overlapping_observations';
  if(now-dt(b.m.lastObservedAt)>windowMs)return 'outside_release_window';
@@ -142,7 +150,7 @@ function additions(history,now,context,windowMs,membership){
   const oldEvents=new Set([...prior.values()].map(g=>g.row.eventId));
   const oldPlayers=new Set([...prior.values()].map(g=>JSON.stringify([g.row.eventId,g.path])));
   const earlier=history[i+2],reposts=earlier&&complete(earlier)&&dt(earlier.m.lastObservedAt)<dt(old.m.firstObservedAt)?observedLines(earlier,now,{retainStarted:true}):new Map();
-  const newer=i>0&&complete(history[0])&&history[0].m.health.unresolvedRows===0?observedLines(history[0],now):null;
+  const newer=i>0&&absenceCoverage(history[0])&&history[0].m.health.unresolvedRows===0?observedLines(history[0],now):null;
   for(const g of current.values()){
    if(prior.has(g.key)||seen.has(g.key)||newer&&!newer.has(g.key))continue;
    // Single-threshold replacements continue to be line changes, not releases.
@@ -208,7 +216,7 @@ function compare(chunks,now,{registry,windowMs=240*M}={}){
 
   }
   // Incomplete row interpretation cannot certify absence. Require an actual future start.
-  if(current.m.health.unresolvedRows===0)for(const [k,range] of prior.rows){
+  if(absenceCoverage(current)&&current.m.health.unresolvedRows===0)for(const [k,range] of prior.rows){
    if(latest.blocked.has(k))continue;
    const n=rows.get(k);
    if(range.size===1&&n?.size===1)continue;

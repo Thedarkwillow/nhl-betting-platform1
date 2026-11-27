@@ -6,7 +6,7 @@ const {dispatch,gitLedger}=require('../scripts/send-project-discord-alerts.cjs')
 const time=Date.parse('2026-11-27T17:20:00Z'),iso=t=>new Date(t).toISOString();
 function board(book,minute,entries,overrides={}){
  const t=iso(time-minute*60000), m={book,sport:'nba',lastObservedAt:t,firstObservedAt:t,authenticated:true,
-  lastPageReached:true,pageTraversalComplete:true,boardState:'populated',health:{wrongSport:0,priceConflictKeys:0,unresolvedRows:0},...overrides};
+  lastPageReached:true,pageTraversalComplete:true,boardState:'populated',health:{wrongSport:0,priceConflictKeys:0,unresolvedRows:0,repeatOrUnresolvedLinks:0,reasons:[]},...overrides};
  return {entry:{m,digest:book+minute,first:t,offers:entries.map(([p,line,tier='standard',period=null])=>({sport:'nba',book,player:p,market:'points',eventId:'ev',
   detailId:'/players/nba/'+encodeURIComponent(p)+'?prop='+encodeURIComponent('id:points:ev:'+line),tier,period,line,side:'Higher',displayedPrice:'-110',observedAt:t,startAt:iso(time+3600000)}))}};
 }
@@ -214,7 +214,7 @@ test('delivery window retains recent release with older independent baseline but
 
 test('release diagnostics distinguish unresolved prior evidence from an eligible unchanged board',()=>{
  const fresh=board('prizepicks',3,[['A',14.5]]);
- const blocked=board('prizepicks',120,[['A',14.5]],{health:{wrongSport:0,priceConflictKeys:0,unresolvedRows:7935}});
+ const blocked=board('prizepicks',120,[['A',14.5]],{health:{wrongSport:0,priceConflictKeys:0,unresolvedRows:7935,repeatOrUnresolvedLinks:0,reasons:[]}});
  const r=compare([fresh,blocked],time);
  a.equal(r.events.length,0);
  a.deepEqual(r.releaseBaselines['nba/prizepicks'],{latest:'prior_unresolved_rows',counts:{prior_unresolved_rows:1,missing_prior_board:1},releaseCandidates:0});
@@ -266,7 +266,9 @@ test('a missing, repeated, conflicting or mismatched card cannot establish an ab
   const p=withTileMembership(board('prizepicks',80,[['Alice',2.5]]),[['SeenGoblin',1.5]]);
   const n=withTileMembership(board('prizepicks',2,[['Alice',2.5],['NewPlayer',3.5]]));
   mutate(p.entry);
-  a.equal(compare([p,n],time).releaseBaselines['nba/prizepicks'].latest,'prior_unresolved_rows');
+  const h=p.entry.m.health;
+  const reason=h.repeatOrUnresolvedLinks||h.reasons.length?'unproven_page_membership':'prior_unresolved_rows';
+  a.equal(compare([p,n],time).releaseBaselines['nba/prizepicks'].latest,reason);
   a.equal(compare([p,n],time).events.some(x=>x.kind==='new_prop'),false);
  }
 });
@@ -274,4 +276,23 @@ test('a previously displayed line with a passed game start is not a new release 
  const p=board('prizepicks',90,[['Alice',2.5]]),n=board('prizepicks',2,[['Alice',2.5]]);
  p.entry.offers[0].startAt=iso(time-5*60000);n.entry.offers[0].startAt=null;
  a.deepEqual(compare([p,n],time).events,[]);
+});
+
+
+test('repeated links, missing counters and display caps do not establish absence',()=>{
+ const old=board('prizepicks',100,[['Alice',2.5],['Bob',5.5]]);
+ const current=board('prizepicks',2,[['Alice',3.5],['New',6.5]]);
+ const h=current.entry.m.health;
+ for(const patch of [{repeatOrUnresolvedLinks:1},{repeatOrUnresolvedLinks:undefined},
+  {reasons:['possible_display_cap_requires_partition_reconciliation']}]){
+  current.entry.m.health={...h,...patch};
+  const result=compare([old,current],time);
+  a.deepEqual(result.events.map(e=>e.kind),['line_change']);
+  a.equal(result.releaseBaselines['nba/prizepicks'].latest,'unproven_page_membership');
+ }
+ current.entry.m.health=h;
+ old.entry.m.health.repeatOrUnresolvedLinks=1;
+ const result=compare([old,current],time);
+ a.equal(result.events.some(e=>['new_prop','alternate_tier','reposted_prop'].includes(e.kind)),false);
+ a.equal(result.releaseBaselines['nba/prizepicks'].latest,'unproven_page_membership');
 });

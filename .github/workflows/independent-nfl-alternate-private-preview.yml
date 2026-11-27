@@ -22,22 +22,63 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          path: public
+          persist-credentials: false
+      - name: Protect morning quota from delayed alternate schedule
+        id: window
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs'),{shouldCapture}=require('./public/scripts/nfl-standard-capture-window.cjs');
+          const capture=shouldCapture({event:process.env.EVENT,now:Date.now()});
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'capture='+capture+'\n');
+          console.log('Alternate NFL capture window open: '+capture+' (late schedules skip provider requests)');
+          NODE
+      - uses: actions/checkout@v4
+        if: steps.window.outputs.capture == 'true'
+        with:
           repository: Thedarkwillow/nhl-betting-platform
           ref: main
           path: private
           token: ${{ secrets.PRIVATE_RESEARCH_REPO_TOKEN }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
+        if: steps.window.outputs.capture == 'true'
         with:
           node-version: '22'
+      - name: Recheck capture window and avoid duplicate tier collection
+        if: steps.window.outputs.capture == 'true'
+        id: recovery
+        working-directory: private
+        env:
+          EVENT: ${{ github.event_name }}
+          NFL_REQUESTED_TIER: ${{ matrix.tier }}
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs'),{shouldCapture}=require('../public/scripts/nfl-standard-capture-window.cjs');
+          const tier=process.env.NFL_REQUESTED_TIER,now=Date.now();
+          if(!['goblin','demon'].includes(tier))throw Error('invalid tier');
+          let freshArchive=false;
+          try{
+            const b=JSON.parse(fs.readFileSync('outputs/nfl/independent-source/alternates/'+tier+'/latest.json','utf8'));
+            const t=Date.parse(b.generatedAt);
+            freshArchive=b.requestedTier===tier&&b.completePagination===true&&Number.isFinite(t)&&t<=now&&now-t<3600000;
+          }catch{}
+          const capture=shouldCapture({event:process.env.EVENT,now,freshArchive});
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'capture='+capture+'\n');
+          console.log('Alternate NFL scoped capture needed: '+capture);
+          NODE
       - name: Test independent NFL identity and immutable source gates
+        if: steps.recovery.outputs.capture == 'true'
         working-directory: private
         run: |
           set -euo pipefail
           umask 077
           log="$(mktemp)"; trap 'rm -f "$log"' EXIT
           if ! node --test test/nfl-independent-source-preview.test.cjs test/prizepicksapi-asof-board.test.cjs >"$log" 2>&1; then echo '::error::Offline tests failed; no provider requests.'; exit 1; fi
-      - name: Capture only the Standard-filtered NFL scope under legacy quota and build private preview
+      - name: Capture only the requested NFL alternate tier under legacy quota
+        if: steps.recovery.outputs.capture == 'true'
         working-directory: private
         env:
           NFL_REQUESTED_TIER: ${{ matrix.tier }}
@@ -125,6 +166,7 @@ jobs:
           fi
           grep -E '^\{"phase":"private_nfl_preview","scopedOffers":[0-9]+,"matchedRows":[0-9]+,"pages":[0-9]+,"requests":[0-9]+,"credits":0,"fullBoard":false,"publicRelease":false,"calibrated":false\}$' "$log"
       - name: Archive only to private Git
+        if: steps.recovery.outputs.capture == 'true'
         working-directory: private
         run: |
           set -euo pipefail

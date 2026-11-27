@@ -188,7 +188,7 @@ test('notification menu follows only explicit same-origin allowlisted link',asyn
 test('named navigation can reference its visible control label by ID',async()=>{
  const {navigationButton}=require('../scripts/pickfinder-tool-schema.cjs');
  const attributes={'aria-labelledby':'tool title'};
- const element={getAttribute:k=>attributes[k],ownerDocument:{getElementById:id=>({textContent:id==='tool'?'Pick':'Builder'})},querySelector:()=>null,closest:()=>null,getClientRects:()=>[{}]};
+ const element={matches:()=>true,getAttribute:k=>attributes[k],ownerDocument:{getElementById:id=>({textContent:id==='tool'?'Pick':'Builder'})},querySelector:()=>null,closest:()=>null,getClientRects:()=>[{}]};
  const button={isEnabled:async()=>true,isVisible:async()=>true};
  const page={locator:()=>({evaluateAll:async(fn,names)=>fn([element],names),nth:()=>button})};
  assert.equal(await navigationButton(page,['Pick Builder']),button);
@@ -228,4 +228,22 @@ test('reads an already visible Pick Builder sidebar without opening or saving a 
   assert.equal(result.state,controls.length===1?'panel_only_observed':'read_only_schema_observed');
   assert.equal(result.method,'visible_panel');assert.equal(result.mutations,0);assert.equal(result.submissionVerified,false);
  }
+});
+
+
+test('floating popup launcher requires unique explicit opening intent and excludes mutable controls',async()=>{
+ const {navigationButton}=require('../scripts/pickfinder-tool-schema.cjs');
+ const allowed=['Alerts','Open Notifications'];
+ const button={isVisible:async()=>true,isEnabled:async()=>true};
+ const candidate=(label,popup,extra={})=>{
+  const attributes={'aria-label':label,'aria-haspopup':popup,...extra};
+  return {matches:()=>false,getAttribute:k=>attributes[k],hasAttribute:k=>Object.hasOwn(attributes,k),
+   getClientRects:()=>[{}],querySelector:()=>null,closest:()=>null};
+ };
+ const find=async elements=>navigationButton({locator:()=>({evaluateAll:(fn,args)=>fn(elements,args),nth:()=>button})},allowed);
+ assert.equal(await find([candidate('Open Notifications','dialog')]),button);
+ for(const rejected of [candidate('Enable notifications','dialog'),candidate('Alerts','true'),
+   candidate('Open Notifications','false'),candidate('Open Notifications','menu',{'aria-pressed':'false'}),
+   candidate('Open Notifications','dialog',{type:'submit'})])assert.equal(await find([rejected]),null);
+ assert.equal(await find([candidate('Open Notifications','dialog'),candidate('Open Notifications','menu')]),null);
 });

@@ -30,6 +30,55 @@ function finalIndex(receipts,clock){
  return refs;
 }
 
+// Historical native facts are separate from line-derived features and grading.
+ // Require the recorded PickFinder player path on the independently reviewed
+ // event AND the exact official result-site player on both completed maps.
+function reconciledStats(receipts,clock,{review=require('../config/esports/pickfinder-series-review-2026-11-27.json'),
+ update=require('../config/esports/pickfinder-series-review-remainder-2026-11-27.json')}={}){
+ const finals=finalIndex(receipts,clock),out=new Map(),blocked=new Set();
+ const goodUrl=x=>{try{const u=new URL(x);return u.origin==='https://www.vlr.gg'?u.pathname.replace(/\/$/,''):null;}catch{return null;}};
+ const roots=new Map((review.series||[]).filter(x=>x.sport==='valorant').map(x=>[x.sourceEventId,x]));
+ const updates=new Map((update.series||[]).filter(x=>x.sport==='valorant').map(x=>[x.sourceEventId,x]));
+ for(const [eventId,{series,digest}] of finals){
+  const base=roots.get(eventId),extra=updates.get(eventId);
+  if(!base||!goodUrl(series.resultUrl)||goodUrl(series.resultUrl)!==goodUrl(base.seriesUrl)||
+    !/^\d{4}-\d{2}-\d{2}$/.test(base.reportedDate||'')||!Number.isFinite(dt(base.reportedDate+'T00:00:00Z'))||
+    Math.abs(dt(series.listedStartAt)-dt(base.reportedDate+'T00:00:00Z'))>=48*3600000)continue;
+  const persons=[...base.roster||[],...extra?.additionalRoster||[]];
+  const candidates=[...new Map(persons.filter(x=>typeof x.label==='string'&&/^\/players\/val\/[A-Za-z0-9_-]+$/.test(x.pickfinderProfilePath))
+   .map(x=>[key(x.label,x.pickfinderProfilePath),x])).values()];
+  const evidence=reconcileSeries(candidates.map(x=>({sport:'valorant',sourceEventId:eventId,sourcePlayer:x.label,profilePath:x.pickfinderProfilePath,maps:[1,2]})),clock,
+   review,update).rows;
+  for(const e of evidence){
+   const p=e.independentSeriesEvidence;
+   if(p.status!=='roster_and_map_corroborated'||!hash.test(series.responseSha256??'')||
+     JSON.stringify(p.firstTwoMapNames)!==JSON.stringify(series.maps.map(x=>x.name))||
+     p.firstTwoResultSiteMapIds&&JSON.stringify(p.firstTwoResultSiteMapIds)!==JSON.stringify(series.maps.map(x=>x.mapId))||
+     p.scheduleDisposition?.disposition==='relisted_no_final_maps')continue;
+   const native=/^\/player\/(\d+)\/[a-z0-9_-]+$/i.exec(goodUrl(p.independentPlayerProfile)||'')?.[1];
+   if(!native)continue;
+   const lines=series.maps.map(m=>m.players[native]);
+   if(lines.some(x=>!x||['kills','deaths','assists'].some(k=>!Number.isSafeInteger(x[k])||x[k]<0)))continue;
+   for(let ordinal=0;ordinal<lines.length;ordinal++){
+    const m=series.maps[ordinal],raw=lines[ordinal];
+    const counters={...Object.fromEntries(['kills','deaths','assists'].map(k=>[k,raw[k]])),killsPlusAssists:raw.kills+raw.assists};
+    for(const [market,value] of Object.entries(counters)){
+     const keyId=key(eventId,m.mapId,native,market),prior=out.get(keyId);
+     if(prior&&(prior.playerPath!==e.profilePath||prior.value!==value)){blocked.add(keyId);continue;}
+     out.set(keyId,{sourceEventId:eventId,playerPath:e.profilePath,nativePlayerId:native,sourceMapId:m.mapId,mapOrdinal:ordinal+1,map:m.name,
+      market,value,nativeDigest:digest,modelApproved:false,platformSettlementVerified:false,prospective:false});
+    }
+   }
+  }
+ }
+ for(const k of blocked)out.delete(k);
+ const facts=[...out.values()],byMarket={};
+ for(const f of facts)byMarket[f.market]=(byMarket[f.market]||0)+1;
+ return {facts,summary:{kind:'pickfinder_valorant_reconciled_map_facts_v1',qualifiedHistoricalStats:facts.length,
+  joinedEvents:new Set(facts.map(x=>x.sourceEventId)).size,joinedPlayers:new Set(facts.map(x=>x.nativePlayerId)).size,
+  byMarket,conflicts:blocked.size,modelApproved:false,platformSettlementVerified:false,prospective:false,paidRequests:0}};
+}
+
 function scopedFeatures(offer,observations){
  // Legacy board research columns omitted mapRange. Require the same observed
  // offer URL, exact encoded map slug, player, book and timestamp before recovery.
@@ -123,13 +172,15 @@ function run(root,clock=new Date().toISOString()){
  const archive=load(root,'valorant');
  if(archive.invalid.length)throw Error('invalid Valorant archive');
  const observations=new Map(archive.manifests.map(b=>[b.digest,b.researchObservations||[]]));
- const {examples,skip,conflicts}=samples(auditBoards(archive,clock).history,history(root,'../pickfinder-public-identity-v1/valorant-map-finals'),clock,observations);
+ const finals=history(root,'../pickfinder-public-identity-v1/valorant-map-finals');
+ const historicalMapFacts=reconciledStats(finals,clock).summary;
+ const {examples,skip,conflicts}=samples(auditBoards(archive,clock).history,finals,clock,observations);
  const scores=rows=>({examples:rows.length,series:new Set(rows.map(x=>x.event)).size,even:score(rows,()=>.5),
   l10:score(rows,x=>x.l10),l5:score(rows,x=>x.l5),l5L10Blend:score(rows,x=>(x.l5+x.l10)/2),
   seriesEqual:seriesStress(rows)});
  return {kind:'pickfinder_valorant_matched_retrospective_v1',generatedAt:clock,...scores(examples),
   byMarket:Object.fromEntries([...new Set(examples.map(x=>x.market))].map(m=>[m,scores(examples.filter(x=>x.market===m))])),
-  skip,conflicts,modelApproved:false,paidRequests:0,prospective:false,platformSettlementVerified:false,frozenModelsChanged:false};
+  skip,conflicts,historicalMapFacts,modelApproved:false,paidRequests:0,prospective:false,platformSettlementVerified:false,frozenModelsChanged:false};
 }
 if(require.main===module)console.log(JSON.stringify(run(process.argv[2]||'.')));
-module.exports={run,samples,score,finalIndex,scopedFeatures,seriesStress};
+module.exports={run,samples,score,finalIndex,scopedFeatures,seriesStress,reconciledStats};

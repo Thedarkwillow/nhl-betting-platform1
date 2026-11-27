@@ -3,10 +3,20 @@ const {readSections}=require('./pickfinder-player-research.cjs');
 const {profileMarketEvidence}=require('./pickfinder-profile-market-evidence.cjs');
 const ZONES=['UTC','America/Los_Angeles'];
 const fingerprint=r=>JSON.stringify([r.book,r.quoteLine,r.higher,r.lower]);
+function profileLabels(sport,player){
+ if(typeof player!=='string'||!player.trim())return [];
+ const exact=player.trim(),base=sport==='tennis'&&/^(.+?)\s+\(#[1-9]\d{0,5}\)$/.exec(exact)?.[1].trim();
+ return base?[exact,base]:[exact];
+}
 
 function select(receipts,at,prior=[]){
  const cutoff=Date.parse(at),groups=new Map();
- const attempted=new Set(probeRecords(prior,cutoff).flatMap(record=>record.observations.map(o=>o.detailId)));
+ const attempted=new Set(probeRecords(prior,cutoff).flatMap(record=>{
+  // Retry only the known ranked-label mismatch, once. Do not repeat a sampled table.
+  const retryable=profileLabels(record.sport,record.player).length===2&&record.observations.length>0&&
+   record.observations.every(o=>o.phase==='player_not_visible'&&o.profileLabelStrategy!==2&&o.sampled!==true&&!o.rows?.length);
+  return retryable?[]:record.observations.map(o=>o.detailId);
+ }));
  for(const {doc,first,digest} of receipts){
   if(doc.schema!=='pickfinder_profile_historical_sportsbook_recovery_v1'||!Number.isFinite(Date.parse(first))||Date.parse(first)>cutoff)continue;
   for(const r of doc.rows||[]){
@@ -134,7 +144,8 @@ async function observe({targets,open,alive,write,premium,origin,prior=[]}){
       continue;
      }
      phase='player_not_visible';
-     if(await page.getByText(target.player,{exact:true}).first().waitFor({state:'visible',timeout:5000}).then(()=>true,()=>false)){
+     const labels=profileLabels(target.sport,target.player);
+     if((await Promise.all(labels.map(text=>page.getByText(text,{exact:true}).first().waitFor({state:'visible',timeout:5000}).then(()=>true,()=>false)))).some(Boolean)){
       const button=page.getByRole('button',{name:'Line Movement',exact:true});
       phase='movement_button_unavailable';
       if(await button.count()===1){
@@ -150,7 +161,7 @@ async function observe({targets,open,alive,write,premium,origin,prior=[]}){
       }
      }
     }catch{if(!await premium(page).catch(()=>false))throw Error('session unavailable');}
-    byTarget[i].push({detailId,zone,browserZone,observedAt,sampled,rows,phase});
+    byTarget[i].push({detailId,zone,browserZone,observedAt,sampled,rows,phase,profileLabelStrategy:2});
    }
   }finally{await context.close();}
  }
@@ -163,4 +174,4 @@ async function observe({targets,open,alive,write,premium,origin,prior=[]}){
   providerDisplayZoneVerified:false,modelInputsApproved:false});
  return {targets:targets.length,observations:byTarget.flat().length,states:records.map(x=>x.state),summary,recentComparison};
 }
-module.exports={select,compare,aggregate,combineProbeReceipts,observe};
+module.exports={select,compare,aggregate,combineProbeReceipts,observe,profileLabels};

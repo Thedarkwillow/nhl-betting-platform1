@@ -63,6 +63,8 @@ function run(root,clock=new Date().toISOString()){
  report.profileMarketEvidence=audit.profiles.profileMarketEvidence;
  report.reviewedHistoryModel=audit.reviewedHistoryModel;
  report.valorantRetrospective=require('./pickfinder-valorant-retrospective.cjs').run(root,clock);
+ report.dota2HistoricalMapFacts=require('./pickfinder-dota-map-finals.cjs').reconcile(
+  history(root,'../pickfinder-public-identity-v1/dota-match-receipts'),clock).summary;
  report.esportsOriginalOfferReadiness=require('./pickfinder-esports-original-offer-readiness.cjs')
   .report(audit,report.valorantRetrospective);
  fs.writeFileSync(path.join(root,'data/pickfinder-public-activity.json'),JSON.stringify(report,null,2)+'\n');

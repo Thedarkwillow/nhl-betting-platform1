@@ -65,3 +65,23 @@ test('a later finish does not silently turn the original-date offer into a resch
  assert.equal(run({...candidate,startAt:'2026-11-26T22:00:00Z'}).rescheduledOfferNotReissued,1);
  assert.equal(run({...candidate,startAt:moved}).unprovedMapScope,1);
 });
+
+test('historical map facts require both maps, exact unique identity and independent result scope',()=>{
+ const {reconciledStats}=require('../scripts/pickfinder-valorant-retrospective.cjs');
+ const receipt=structuredClone(raw);for(const map of receipt.doc.series[0].maps)Object.assign(map.players['3169'],{deaths:10,assists:3});
+ const e=receipt.doc.series[0],at='2026-11-27T23:30:00Z',review={reviewedAt:at,series:[{
+  sport:'valorant',sourceEventId:e.sourceEventId,seriesUrl:e.resultUrl,reportedDate:e.listedStartAt.slice(0,10),
+  firstTwoMapNames:e.maps.map(x=>x.name),roster:[{label:'Fixture',pickfinderProfilePath:'/players/val/sportsfixture',profileUrl:'https://www.vlr.gg/player/3169/sportsfixture'}]
+ }]};
+ const update={series:[]};
+ const r=reconciledStats([receipt],at,{review,update});
+ assert.deepEqual(r.summary.byMarket,{kills:2,deaths:2,assists:2,killsPlusAssists:2});
+ assert.ok(r.facts.every(x=>x.prospective===false&&x.platformSettlementVerified===false&&x.modelApproved===false));
+ const wrong=structuredClone(review);
+ wrong.series[0].firstTwoMapNames.reverse();
+ assert.equal(reconciledStats([receipt],at,{review:wrong,update}).facts.length,0);
+ const notPlayed=structuredClone(receipt);
+ const last=notPlayed.doc.series[0].maps[1].players;
+ last['9999']=last['3169'];delete last['3169'];
+ assert.equal(reconciledStats([notPlayed],at,{review,update}).facts.length,0);
+});

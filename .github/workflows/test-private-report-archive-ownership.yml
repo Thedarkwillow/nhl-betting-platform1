@@ -1,0 +1,30 @@
+name: Verify private report archive ownership
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/private-advanced-component-evidence.yml'
+      - '.github/workflows/private-seven-priority-nov16-research.yml'
+      - '.github/workflows/private-nhl-validation-paper-audit.yml'
+      - '.github/workflows/test-private-report-archive-ownership.yml'
+      - 'test/private-research-archive-ownership.test.cjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/private-advanced-component-evidence.yml'
+      - '.github/workflows/private-seven-priority-nov16-research.yml'
+      - '.github/workflows/private-nhl-validation-paper-audit.yml'
+      - '.github/workflows/test-private-report-archive-ownership.yml'
+      - 'test/private-research-archive-ownership.test.cjs'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/private-research-archive-ownership.test.cjs

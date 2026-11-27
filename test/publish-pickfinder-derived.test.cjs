@@ -94,3 +94,20 @@ t('racing a new main commit retries without reverting it, then never overwrites 
   a.equal(after.status,'already_current_or_newer');a.equal(git(remote,'show','main:'+file),ranking('2026-11-27T07:58:00Z'));
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+t('NBA shadow statistics can publish only with the matching committed independent schedule and roster crosswalk',()=>{
+ const digest='a'.repeat(64),registryFile='data/pickfinder-current-identity-registry.json';
+ const row={sport:'nba',playerId:'123',evidenceKind:'verified_current_identity_and_independent_final_stat',
+  productionModelEligible:false,shadowResearchEligible:true,operatorOfferVerified:false,settlementVerified:false,
+  nativeDigest:digest,profileDigest:digest,identityReceiptDigest:digest,crosswalkReceiptDigest:digest,timezoneReceiptDigests:[],
+  availableAt:'2026-11-27T07:50:00Z',value:0};
+ const crosswalk={sport:'nba',namespace:'nba:official',evidenceKind:'independent_nba_schedule_and_roster_review',
+  crosswalkReceiptDigest:digest,nativeReceiptDigest:digest,playerId:'123',proofAvailableAt:'2026-11-27T07:00:00Z',startAt:'2026-11-27T09:00:00Z'};
+ const doc={kind:'pickfinder_current_identity_registry_v1',generatedAt:'2026-11-27T07:55:00Z',
+  paidRequests:0,modelApproved:false,originalPlatformVerified:false,rows:[],registry:[],archiveRevision:'f'.repeat(40),
+  statisticalCrosswalks:[crosswalk],qualifiedShadowStatistics:[row]};
+ a.doesNotThrow(()=>validate(JSON.stringify(doc),registryFile,at));
+ for(const revision of [{statisticalCrosswalks:[]},{statisticalCrosswalks:[{...crosswalk,playerId:'456'}]},
+  {qualifiedShadowStatistics:[{...row,settlementVerified:true}]},{qualifiedShadowStatistics:[{...row,sport:'nfl'}]}])
+  a.throws(()=>validate(JSON.stringify({...doc,...revision}),registryFile,at),/shadow statistic evidence contract/);
+});

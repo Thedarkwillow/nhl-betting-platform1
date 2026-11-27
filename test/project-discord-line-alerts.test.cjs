@@ -196,8 +196,18 @@ test('limits defer overflow, not mark it delivered, and new props outrank price 
  const make=(i,kind,sport)=>({id:String(i).repeat(64),kind,sport,text:'Fixture '+i,observedAt:iso(time)});
  const stream=[make(1,'price_change','nba'),make(2,'new_prop','cs2'),make(3,'new_prop','cs2'),make(4,'reposted_prop','cs2'),make(5,'alternate_tier','nba')];
  const opts={env:config,mode:'deliver',now:time,ledger,client};
- const first=await dispatch(stream,opts); a.equal(first.delivered,3);a.equal(first.remaining,2);
+ const first=await dispatch(stream,opts); a.equal(first.delivered,3);a.equal(first.remaining,2);a.deepEqual(first.remainingCategories,{price_change:1,reposted_prop:1});
  a.equal(sent.length,2);a.ok(sent.every(([,text])=>!text.includes('Price change')));
  const second=await dispatch(stream,opts);a.equal(second.delivered,2);a.equal(sent.length,4);
  a.equal((await dispatch(stream,opts)).status,'already_claimed');
+});
+
+test('delivery window retains recent release with older independent baseline but never across a long capture gap',()=>{
+ const old=board('prizepicks',14*60,[]);
+ const next=board('prizepicks',3*60,[['Alice',4.5]]);
+ a.equal(compare([old,next],time).events.filter(e=>e.kind==='new_prop').length,1);
+ a.equal(compare([board('prizepicks',16*60,[]),next],time).events.filter(e=>e.kind==='new_prop').length,0);
+ a.equal(compare([old,next],time,{windowMs:120*60000}).events.filter(e=>e.kind==='new_prop').length,0);
+ const {batchConfig}=require('../scripts/send-project-discord-alerts.cjs');
+ a.deepEqual(batchConfig(),{itemsPerMessage:6,messagesPerChannel:8,messagesPerRun:12,newPropLookbackMinutes:240});
 });

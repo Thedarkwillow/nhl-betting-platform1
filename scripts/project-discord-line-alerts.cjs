@@ -13,7 +13,7 @@ const names={line_change:'Line change',price_change:'Price change',new_prop:'ðŸ†
 const plain=s=>String(s).replace(/[^\p{L}\p{M}\p{N} .,'()+/&-]/gu,' ').replace(/\s+/g,' ').trim().slice(0,70);
 function acceptable(b,now){
  const t=dt(b.m.lastObservedAt), git=dt(b.first);
- return sports.has(b.m.sport)&&books.has(b.m.book)&&Number.isFinite(t)&&t<=now&&Number.isFinite(git)&&git<=now&&t<=git+999&&now-t<=previous;
+ return sports.has(b.m.sport)&&books.has(b.m.book)&&Number.isFinite(t)&&t<=now&&Number.isFinite(git)&&git<=now&&t<=git+999&&now-t<=previous+480*M;
 }
 function complete(b){
  const m=b.m;
@@ -82,7 +82,7 @@ function additions(history,now,context,windowMs){
  for(let i=0;i<history.length-1;i++){
   const b=history[i],old=history[i+1];
   if(!complete(b)||!complete(old)||old.m.health.unresolvedRows!==0||
-    dt(old.m.lastObservedAt)>=dt(b.m.firstObservedAt)||now-dt(b.m.lastObservedAt)>windowMs)continue;
+    dt(old.m.lastObservedAt)>=dt(b.m.firstObservedAt)||now-dt(b.m.lastObservedAt)>windowMs||dt(b.m.lastObservedAt)-dt(old.m.lastObservedAt)>previous)continue;
   // No inference of absence across a partial partition or a missing baseline.
   const current=observedLines(b,now),prior=observedLines(old,now);
   const replacement=new Map(),sizes=new Map();
@@ -117,7 +117,7 @@ function additions(history,now,context,windowMs){
  }
  return result;
 }
-function compare(chunks,now,{registry,windowMs=120*M}={}){
+function compare(chunks,now,{registry,windowMs=240*M}={}){
  const partitions=new Map(), invalid={count:0};
  for(const {entry:b} of chunks){
   if(!b){invalid.count++;continue;}
@@ -132,7 +132,7 @@ function compare(chunks,now,{registry,windowMs=120*M}={}){
   if(!complete(current)||now-dt(current.m.lastObservedAt)>fresh||old&&dt(old.m.lastObservedAt)===dt(current.m.lastObservedAt))continue;
   const latest=slot(current,now),{rows}=latest;
   usable.set(key,{current,old,...latest});
-  if(!old||!complete(old)||dt(old.m.lastObservedAt)>=dt(current.m.lastObservedAt))continue;
+  if(!old||!complete(old)||dt(old.m.lastObservedAt)>=dt(current.m.lastObservedAt)||now-dt(old.m.lastObservedAt)>previous)continue;
   const prior=slot(old,now),before=old.digest,after=current.digest;
   const keyDate=k=>JSON.stringify([k,before,after]);
   for(const [k,range] of rows){

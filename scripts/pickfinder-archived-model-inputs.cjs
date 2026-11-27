@@ -1,7 +1,8 @@
 'use strict';
 // Offline, point-in-time research input extraction. No provider calls or model promotion.
 const fs=require('node:fs'),path=require('node:path');
-const {ROOT,sha}=require('./pickfinder-public-archive.cjs');
+const {ROOT,sha,iterate,archiveRevision}=require('./pickfinder-public-archive.cjs');
+const {createLayoutAudit}=require('./pickfinder-nba-layout-recovery.cjs');
 const {load,quotes,features,scope,git}=require('./pickfinder-public-evidence-audit.cjs');
 const {candidate}=require('./pickfinder-public-history-cache.cjs');
 const nativeHistory=require('./pickfinder-native-history-reconciliation.cjs');
@@ -164,11 +165,22 @@ function shadowHistoryJoin(index,scopes,clock){
  return out;
 }
 function run(root,clock=new Date().toISOString(),{packetPath=null}={}){
- const p=auditProfiles(committedProfiles(root),clock),b=auditBoards(load(root),clock),h=nativeHistory.fromArchive(root,committedProfiles(root),clock);
- const modelJoin=h.reviewedCache.size?shadowHistoryJoin(h.reviewedCache,require('./prizepicks-native-context-readiness.cjs').fromArchive(root,clock,git(root,['rev-parse','HEAD'])).scopes,clock):shadowHistoryJoin(h.reviewedCache,[],clock);
+ const index=nativeHistory.indexFromArchive(root,clock);
+ const p=auditProfiles(committedProfiles(root),clock),archive=load(root),b=auditBoards(archive,clock),h=nativeHistory.fromArchive(root,committedProfiles(root),clock,index);
+ const modelJoin=h.reviewedCache.size?shadowHistoryJoin(h.reviewedCache,require('./prizepicks-native-context-readiness.cjs').fromArchive(root,clock,git(root,['rev-parse','HEAD']),archive).scopes,clock):shadowHistoryJoin(h.reviewedCache,[],clock);
  const series=reconcileSeries(esportsReviewQueue(b.history),clock);
- if(packetPath)fs.writeFileSync(packetPath,JSON.stringify({...reviewPacket(h,clock,b,series),profileMarketEvidence:[...p.profileEvidence.values()]},null,2)+'\n',{flag:'wx'});
- return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,esportsSeriesReview:series.summary,nativeHistory:h.summary,shadowHistoryJoin:modelJoin,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
+ let nbaLegacyLayoutRecovery;
+ if(packetPath){
+  const revision=archiveRevision(root),historyAudit=createLayoutAudit(clock);
+  require('./pickfinder-public-runner.cjs').queue([],iterate(root,'profiles',revision,{includeDigest:true}),{historyAudit});
+  const recovery=historyAudit.run(index);
+  nbaLegacyLayoutRecovery={archiveRevision:revision,...recovery.summary};
+  fs.writeFileSync(packetPath,JSON.stringify({...reviewPacket(h,clock,b,series),profileMarketEvidence:[...p.profileEvidence.values()],
+   nbaLegacyLayoutRecovery:{...nbaLegacyLayoutRecovery,independentStatMatches:recovery.rows}},null,2)+'\n',{flag:'wx'});
+ }
+
+ const reviewedHistoryModel=require('./pickfinder-reviewed-history-model.cjs').replay(root,archive,h.reviewedCache,index,clock,git(root,['rev-parse','HEAD']));
+ return {kind:'pickfinder_archived_model_input_audit_v1',generatedAt:clock,profiles:p.summary,boards:b.summary,esportsSeriesReview:series.summary,nbaLegacyLayoutRecovery,nativeHistory:h.summary,shadowHistoryJoin:modelJoin,reviewedHistoryModel,modelApproved:false,paidRequests:0,requestsSkipped:0,rawRowsPublished:0};
 }
 module.exports={classify,auditProfiles,auditBoards,quoteInventory,esportsScope,committedProfiles,reviewPacket,esportsReviewQueue,shadowHistoryJoin,run};
 if(require.main===module)console.log(JSON.stringify(run(process.cwd(),new Date().toISOString(),{packetPath:process.argv[2]||null})));

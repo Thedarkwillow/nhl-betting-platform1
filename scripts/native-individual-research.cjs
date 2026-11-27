@@ -105,7 +105,7 @@ function clockOfferContext(o,clockRows,at){
  if(prop?.length!==4||Number(prop[3])!==o.line)return null;
  return {...r,startAt:r.nativeStartAt};
 }
-function generate(ctx,receipts=[]){
+function generate(ctx,receipts=[],reviewedHistory=null){
  const reconciliation=reconcileArchive(ctx,receipts);
  const clockRecovery=clockRepair.recover(ctx,receipts);
  reconciliation.clockRecovery=clockRecovery.summary;
@@ -149,10 +149,17 @@ function generate(ctx,receipts=[]){
    if(!p){reject('model_scope');const k=JSON.stringify([o.sport,o.market,o.period??null,result.reason]);modelScopeByMarket[k]=(modelScopeByMarket[k]||0)+1;continue;}
    const key=JSON.stringify([b.digest,o.detailId,o.eventId,o.market,o.period,o.line,side,tier]);if(seen.has(key))continue;seen.add(key);
    const q=p.probabilities;
-   rows.push({sport:s.sport,book:b.m.book,player:s.name,playerId:s.playerId,gameId:s.gameId,team:s.team,opponent:s.opponent,startAt:s.startAt,market:p.metric,line:o.line,side,tier,sourceTier:o.tier,platformTierVerified:false,projection:p.projection,probability:q?q[side.toLowerCase()]:null,pushProbability:q?.push??null,priorObservations:p.prior,method:p.method,sourceObservedAt:o.observedAt,contextObservedAt:recovered?.observedAt??null,clockCorroborated:!!corroborated,sourceClockVerified:false,researchOnly:true,forecastAt:clock,manifestDigest:b.digest,sourceEventId:o.eventId,sourceDetailId:o.detailId,historyDigests:s.historyDigests,modelRevision:ctx.revision,offerFresh:at-Date.parse(o.observedAt)<=300000,originalPlatformVerified:false,calibrated:false,modelApproved:false,expectedValue:null});
+   const reviewedHistoryPair=reviewedHistory?require('./pickfinder-reviewed-history-model.cjs').compareOffer({...o,side},s,reviewedHistory,clock,b.first,p):null;
+   rows.push({sport:s.sport,book:b.m.book,player:s.name,playerId:s.playerId,gameId:s.gameId,team:s.team,opponent:s.opponent,startAt:s.startAt,market:p.metric,line:o.line,side,tier,sourceTier:o.tier,platformTierVerified:false,projection:p.projection,probability:q?q[side.toLowerCase()]:null,pushProbability:q?.push??null,priorObservations:p.prior,method:p.method,sourceObservedAt:o.observedAt,contextObservedAt:recovered?.observedAt??null,clockCorroborated:!!corroborated,sourceClockVerified:false,researchOnly:true,forecastAt:clock,manifestDigest:b.digest,sourceEventId:o.eventId,sourceDetailId:o.detailId,...(reviewedHistoryPair&&{reviewedHistoryPair}),historyDigests:s.historyDigests,modelRevision:ctx.revision,offerFresh:at-Date.parse(o.observedAt)<=300000,originalPlatformVerified:false,calibrated:false,modelApproved:false,expectedValue:null});
   }
  }
  return {kind:'native_individual_research_v1',generatedAt:clock,modelRevision:ctx.revision,native,rows,excluded,modelScopeByMarket,reconciliation,candidateOffers:candidateOffers(ctx,reconciliation),paidRequests:0,modelApproved:false};
 }
 module.exports={generate,researchTier,reconcileLocal,reconcileArchive,candidateOffers,reconcileIdentityOnly,clockAudit,clockOfferContext};
-if(require.main===module){const root=process.cwd(),clock=new Date().toISOString(),out=generate(fromArchive(root,clock,git(root,['rev-parse','HEAD'])),read(root,'directory'));fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,candidateOfferReferences:out.candidateOffers.length,excluded:out.excluded,modelScopeByMarket:out.modelScopeByMarket,reconciliation:{...out.reconciliation,rows:undefined,identityOnlyRows:undefined,clockRecoveredRows:undefined}}));}
+if(require.main===module){
+ const root=process.cwd(),clock=new Date().toISOString(),revision=git(root,['rev-parse','HEAD']);
+ const {committedProfiles}=require('./pickfinder-archived-model-inputs.cjs');
+ const {fromArchive:reviewedFromArchive}=require('./pickfinder-native-history-reconciliation.cjs');
+ const reviewedHistory=reviewedFromArchive(root,committedProfiles(root),clock).reviewedCache;
+ const out=generate(fromArchive(root,clock,revision),read(root,'directory'),reviewedHistory);
+fs.mkdirSync('individual-research',{recursive:true});fs.writeFileSync('individual-research/forecasts.json',JSON.stringify(out,null,2));console.log(JSON.stringify({native:out.native.length,offers:out.rows.length,reviewedHistoryComparisons:out.rows.filter(r=>r.reviewedHistoryPair).length,candidateOfferReferences:out.candidateOffers.length,excluded:out.excluded,modelScopeByMarket:out.modelScopeByMarket,reconciliation:{...out.reconciliation,rows:undefined,identityOnlyRows:undefined,clockRecoveredRows:undefined}}));}

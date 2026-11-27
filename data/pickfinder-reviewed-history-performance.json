@@ -1,0 +1,18 @@
+{
+  "kind": "pickfinder_nhlnfl_reviewed_history_performance_v1",
+  "policy": "reviewed-history-jeffreys-half-blend-v1",
+  "generatedAt": "2026-11-27T03:27:45.150Z",
+  "explicitCurrentOfferReferences": 0,
+  "pregameCommitted": 0,
+  "newlyStagedForecasts": 0,
+  "independentCommittedGrades": 0,
+  "newlyStagedGrades": 0,
+  "bySport": {
+    "NHL": {},
+    "NFL": {}
+  },
+  "retrospective": false,
+  "productionChanged": false,
+  "modelApproved": false,
+  "paidRequests": 0
+}

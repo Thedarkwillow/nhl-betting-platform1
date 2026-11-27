@@ -15,6 +15,7 @@ on:
       - 'Validate Accuracy And Platform Evidence Dashboard'
       - 'Public PrizePicks model ranking research'
       - 'Public PickFinder activity readiness'
+      - 'PickFinder archived model input processing'
     types: [completed]
   push:
     branches: [main]
@@ -32,6 +33,7 @@ on:
       - 'data/public-multi-sport-sprint.json'
       - 'data/prizepicks-model-rankings.json'
       - 'data/pickfinder-public-activity.json'
+      - 'data/pickfinder-reviewed-history-performance.json'
       - 'nhl-games.json'
       - '.github/workflows/publish.yml'
 permissions:

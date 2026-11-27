@@ -1,6 +1,6 @@
 {
   "kind": "public_nba_alternate_history_audit_v1",
-  "generatedAt": "2026-11-26T22:39:33.806893+00:00",
+  "generatedAt": "2026-11-27T01:50:09.144100+00:00",
   "seasons": {
     "2024": {
       "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/nba_stats_player_game_logs/player_game_logs_2024.parquet",
@@ -61,13 +61,13 @@
     "sha256": "a827433d775c5f764342285fc4c3e978e875f955f659240612fad31450ca4c20",
     "sourceRows": 509,
     "status": "observed",
-    "espnRosterPlayers": 494,
-    "nativeIdentityCandidates": 448,
+    "espnRosterPlayers": 512,
+    "nativeIdentityCandidates": 462,
     "pickfinderIdentityVerified": false
   },
   "nflNativeCrosswalk": {
-    "matchedEvents": 12,
-    "candidateRows": 237,
+    "matchedEvents": 1,
+    "candidateRows": 62,
     "pickfinderIdentityVerified": false
   },
   "modelEvaluation": {
@@ -2360,12 +2360,13 @@
   },
   "prospectiveBridge": {
     "kind": "nba_mirror_prospective_bridge_v1",
-    "generatedAt": "2026-11-26T22:39:19.882Z",
+    "generatedAt": "2026-11-27T01:49:54.885Z",
     "reviewedCrosswalkRows": 0,
     "explicitCrosswalkRows": 0,
     "reviewedReceiptScopes": 0,
     "immutableGameReviewReceipts": 1,
     "newForecastRows": 0,
+    "reviewedHistoryShadowRows": 0,
     "reason": "no_fresh_committed_official_schedule",
     "forecastDigest": null,
     "earliestGameStartAt": null,

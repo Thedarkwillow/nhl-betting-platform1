@@ -40,9 +40,9 @@ function sharedScope(s){
  if(u.origin!==ORIGIN||!u.pathname.startsWith('/players/')||u.searchParams.getAll('prop').length!==1||[...u.searchParams.keys()].some(k=>k!=='prop'))return null;
  return {sport,player,market,eventId,detailId:u.pathname+'?'+u.searchParams.toString(),period:s.period??null,mapRange:s.mapRange??null,gameMode:s.gameMode??null};
 }
-function queue(boards,profiles){
+function queue(boards,profiles,{historyAudit}={}){
  const done=new Set(),attempted=new Map(),repairs=new Map(),aligned=new Map(),lastAligned=new Map();
- for(const b of profiles)for(const r of b.records||[]){
+ for(const b of profiles)for(const r of (historyAudit?b.doc:b).records||[]){
   const scope=sharedScope(r);if(!scope)continue;
   const key=sha(JSON.stringify(scope));attempted.set(key,(attempted.get(key)||0)+1);
   if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&r.research?.length)done.add(key);
@@ -58,12 +58,13 @@ function queue(boards,profiles){
    const header=String(f.scope),rowKey=JSON.stringify([contentKey,header,f.metric]);
    if(n!==cells.length||header.endsWith('[header truncated]')){
     const old=repairs.get(rowKey);
-    if(!old||old.at<at)repairs.set(rowKey,{key,contentKey,header,metric:f.metric,at});
+    if(!old||old.at<at)repairs.set(rowKey,{key,contentKey,header,metric:f.metric,at,...(historyAudit?{source:historyAudit.pin(r,f,b.digest,cells.length)}:{})});
    }else if(r.status==='sampled'&&r.coverageVersion===VERSION&&r.truncated===false&&(f.headerLayout==='span-grid-v1'||header.length>500)){
     const rows=aligned.get(contentKey)||new Map(),id=JSON.stringify([header,f.metric]);
     if(!rows.has(id)||rows.get(id).at<at)rows.set(id,{at,header,metric:f.metric});
     aligned.set(contentKey,rows);
     lastAligned.set(key,Math.max(lastAligned.get(key)||0,at));
+    historyAudit?.observe(r,f,b.digest,cells.length);
    }
   }
  }
@@ -85,6 +86,7 @@ function queue(boards,profiles){
   const oldUnique=oldPositions.get(JSON.stringify([x.contentKey,x.header])).size===1;
   if(hasSingleLayout&&(matching.some(y=>y.metric===x.metric)||oldUnique&&matching.length===1))continue;
   unresolvedHistoryRows++;
+  if(historyAudit)historyAudit.gaps.push(x.source);
   repairKeys.add(x.key);latestGap.set(x.key,Math.max(latestGap.get(x.key)||0,x.at));
  }
  // Replaying the same completed extraction cannot certify a missing old row.
@@ -122,7 +124,7 @@ async function waitPremium(page,check=premium){
 async function main(root,env=process.env){
  assertDestination(root);const p=invocation(env);if(!p.allowed){console.log(JSON.stringify(p));return;}
  const {chromium}=require('playwright');
- if(p.timezoneOnly){const probe=require('./pickfinder-controlled-clock.cjs'),until=Date.now()+8*60000;const alive=()=>Date.now()<until&&pacific(new Date()).day===p.clock.day&&![5,6,8,9].includes(pacific(new Date()).hour);const targets=probe.select(load(root),new Date().toISOString());const result=await probe.observe({targets,open:zone=>openHostedBoard(chromium,env,zone),alive,write:data=>persist(root,'directory',data),premium,origin:ORIGIN});console.log(JSON.stringify({state:'controlled_clock_experiment',...result}));return;}
+ if(p.timezoneOnly){const probe=require('./pickfinder-movement-clock-probe.cjs'),until=Date.now()+8*60000;const alive=()=>Date.now()<until&&pacific(new Date()).day===p.clock.day&&![5,6,8,9].includes(pacific(new Date()).hour);const prior=read(root,'directory');const targets=probe.select(require('./pickfinder-public-model-validation.cjs').history(root,'profile-market-evidence'),new Date().toISOString(),prior);const result=await probe.observe({targets,prior,open:zone=>openHostedBoard(chromium,env,zone),alive,write:data=>persist(root,'directory',data),premium,origin:ORIGIN});console.log(JSON.stringify({state:'movement_clock_experiment',...result}));return;}
  const {page,context}=await openHostedBoard(chromium,env);
  const started=Date.now(),deadline=started+(p.expected==='manual'?40:45)*60000,alive=()=>{const c=pacific(new Date());return Date.now()<deadline&&c.day===p.clock.day&&(p.expected==='manual'?!(p.featuresOnly||p.boardsOnly||p.contextOnly||p.historyRepair?[5,6,8,9]:[6,9]).includes(c.hour):c.hour===p.clock.hour&&c.minute<55);};
  let boards=0,profiles=0,archiveMs=0,transactions=0,profileMs=0,errors=0;const write=async(kind,data)=>{const t=Date.now();const receipt=await persist(root,kind,data);archiveMs+=Date.now()-t;transactions++;return receipt;};
@@ -201,7 +203,7 @@ async function main(root,env=process.env){
    try{
     await page.goto(ORIGIN+'/props',{timeout:15000});
     if(!await waitPremium(page))throw Error('session unavailable');
-    const result=await inspectTool(page,kind,waitPremium);
+    const result=await inspectTool(page,kind,premium);
     const receipt=await write('capabilities',{schema:'pickfinder-public-tool-schema-v1',kind,observedAt:new Date().toISOString(),captureOrigin:captureOrigin(env,p),...result});
     if(result.state!=='read_only_schema_observed')errors++;
     console.log(JSON.stringify({state:result.state==='read_only_schema_observed'?'public_tool_schema_pass':'public_tool_schema_pending',kind,result:result.state,archiveDigest:receipt.digest,mutations:0}));

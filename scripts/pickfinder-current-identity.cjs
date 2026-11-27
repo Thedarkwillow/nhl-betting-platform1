@@ -103,6 +103,29 @@ function knownIdentityIndex(receipts,clock){
  }
  return out;
 }
+function discoveryCandidates(directory,tables,facts){
+ const profiles=new Map(),add=(sport,label,id)=>{
+  const n=norm(label);if(!n||!id)return;
+  const k=key(sport,n),ids=profiles.get(k)||new Set();
+  ids.add(id);profiles.set(k,ids);
+ };
+ const league=x=>({'dota-2':'dota2','league-of-legends':'lol','call-of-duty':'cod'}[x]||x);
+ for(const {doc:d} of facts)for(const r of d.roster||[])
+  for(const label of [r.name,...(r.aliases||[])])add(d.sport,label,d.source+':'+r.playerId);
+ const listing={scanned:0,oneNameCandidate:0,ambiguousNameCandidates:0,noNameCandidate:0};
+ const reference={scanned:0,playerNamedRows:0,oneNameCandidate:0,ambiguousNameCandidates:0,noNameCandidate:0};
+ const discover=(o,sport,label)=>{
+  const found=profiles.get(key(sport,norm(label)))?.size||0;
+  o[found===1?'oneNameCandidate':found>1?'ambiguousNameCandidates':'noNameCandidate']++;
+ };
+ for(const d of directory.directories)for(const label of d.playerSlugs||[]){listing.scanned++;discover(listing,league(d.league),label);}
+ for(const d of tables.sources)for(const t of d.tables){
+  const cols=t.columns||[],c=cols.findIndex(x=>/^player(?: name)?$/i.test(x));
+  for(const r of t.rows){reference.scanned++;if(c>=0&&norm(r[c])){reference.playerNamedRows++;discover(reference,league(d.league),r[c]);}}
+ }
+ return {directoryLinks:listing.scanned,referenceRows:reference.scanned,directory:listing,reference,
+  directoryStatus:'names_and_links_only',referenceStatus:'no_event_bound_native_identity'};
+}
 function build(profiles,facts,reviews,directory,tables,{clock,revision,finals=[],known=[]}){
  const cached=knownIdentityIndex(known,clock),reviewed=indexReviews(reviews.map(x=>x.doc),clock),rows=[],players=new Map(),bySport={};
  for(const {record,digest} of profiles){
@@ -148,13 +171,10 @@ function build(profiles,facts,reviews,directory,tables,{clock,revision,finals=[]
   else for(const r of rows)if(r.sport===sport&&r.sourcePlayerPath===sourcePlayerPath&&r.match?.namespace===namespace){r.status='needs_review';r.match=null;}
  }
  for(const r of rows){r.officialStatistics=verifiedStats(r.match,finals,clock);const s=bySport[r.sport];if(r.match)s.confirmed++;else if(r.status==='needs_review')s.needsReview++;else s.missingEvidence++;}
- // These publisher datasets do not attest an independent event or roster ID.
- const directoryLinks=directory.directories.reduce((n,d)=>n+(d.playerSlugs||[]).length,0);
- const referenceRows=tables.sources.reduce((n,s)=>n+s.tables.reduce((a,t)=>a+t.rows.length,0),0);
  return {kind:'pickfinder_current_identity_registry_v1',generatedAt:clock,archiveRevision:revision,
   profiles:rows.length,scopesWithReusedPlayerId:rows.filter(r=>r.cachedIdentity).length,players:new Set(rows.map(r=>key(r.sport,r.sourcePlayerPath||r.sourcePlayer))).size,
   fields:Object.values(bySport).reduce((n,s)=>n+s.fields,0),bySport,rows,registry,
-  discovery:{directoryLinks,referenceRows,directoryStatus:'names_and_links_only',referenceStatus:'no_event_bound_native_identity'},
+  discovery:discoveryCandidates(directory,tables,facts),
   originalPlatformVerified:false,modelApproved:false,paidRequests:0};
 }
 function run(root,clock=new Date().toISOString()){
@@ -183,5 +203,5 @@ function run(root,clock=new Date().toISOString()){
  console.log(JSON.stringify({scopes:result.profiles,players:result.players,fields:result.fields,registry:result.registry.length,discovery:result.discovery,bySport:result.bySport}));
  return result;
 }
-module.exports={build,verifiedStats,candidates,captureProfileContext,sourceScope,readVisible:profiler.readVisible,run};
+module.exports={build,discoveryCandidates,verifiedStats,candidates,captureProfileContext,sourceScope,readVisible:profiler.readVisible,run};
 if(require.main===module)run(process.cwd());

@@ -40,6 +40,7 @@ function reconcileSeries(scopes, clock, evidence = review, updates = evidence ==
       if (!fixture || schedules.has(key) || record.disposition !== 'relisted_no_final_maps' ||
           !Number.isFinite(prior) || !Number.isFinite(current) || prior >= current ||
           record.sport !== fixture.sport ||
+          (record.corroboratingListing&&!/^https:\/\/www\.thespike\.gg\/match\/[a-z0-9-]+\/\d+$/.test(record.corroboratingListing)) ||
           !/^https:\/\//.test(record.historicalListing)) {
         throw Error('Invalid independent esports schedule review');
       }
@@ -51,6 +52,7 @@ function reconcileSeries(scopes, clock, evidence = review, updates = evidence ==
       const exact = conflicts.filter(x => x.label === record.pregameLabel &&
         x.resultSiteLabel === record.actualMapParticipant);
       if (index.get(key)?.sport !== record.sport || exact.length !== 1 || rosterExclusions.has(key) || record.platformSettlement !== 'unverified' ||
+          (record.corroboratingPregameOfferReference&&!/^https:\/\/flashodds\.live\/cs2\/matches\/ud-\d+$/.test(record.corroboratingPregameOfferReference)) ||
           !Array.isArray(record.resultReferences) || new Set(record.resultReferences).size !== 2 ||
           record.resultReferences.length !== 2 || record.resultReferences.some(x =>
             !/^https:\/\/www\.hltv\.org\/stats\/matches\/mapstatsid\/\d+\/[a-z0-9-]+$/.test(x))) {

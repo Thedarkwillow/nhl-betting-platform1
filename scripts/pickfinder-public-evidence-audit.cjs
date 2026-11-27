@@ -1,6 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('node:child_process'),{ROOT,sha}=require('./pickfinder-public-archive.cjs');
 const {VERSION}=require('./pickfinder-research-coverage.cjs');
+const {dashboardRoutes,dashboardState,pageMarker,verifyDashboardSequence,dashboardSequenceSchema}=require('./pickfinder-dashboard-research.cjs');
 const dt=Date.parse, key=x=>JSON.stringify(x), valid=x=>Number.isFinite(dt(x));
 const fields={offers:'distinctOfferKeys',researchObservations:'researchFields',unpricedTierObservations:'unpricedTierObservations',sportsbookQuotes:'sportsbookQuoteObservations'};
 const git=(root,args)=>execFileSync('git',['-C',root,...args],{stdio:['ignore','pipe','pipe'],timeout:120000,maxBuffer:128e6}).toString().trim();
@@ -116,9 +117,14 @@ function coverage(root){
  for(const d of list(root,'profiles'))for(const r of read(root,'profiles',d).records||[]){
   profileAttempts++;if(r.status==='sampled'&&r.coverageVersion===VERSION&&!r.truncated&&r.research?.length)done.add(r.key);
  }
- const dashboards=list(root,'dashboards').map(d=>read(root,'dashboards',d));
- const byDashboard={},gameDialogBySport={};let gameDialogReceipts=0,gameDialogObservations=0,namedDashboardSnapshots=0,unclassifiedDashboardFiles=0;
- for(const d of dashboards){
+ const dashboards=new Map(list(root,'dashboards').map(d=>[d,read(root,'dashboards',d)]));
+ const byDashboard={},dashboardEvidence={},gameDialogBySport={},pages=new Map(),sequences=[];
+ let gameDialogReceipts=0,gameDialogObservations=0,namedDashboardSnapshots=0,unclassifiedDashboardFiles=0;
+ let verifiedDashboardSequences=0,unverifiedDashboardSequences=0;
+ const names=['Games','Discrepancies','Popular'];
+ for(const name of names)dashboardEvidence[name]={dataSnapshots:0,explicitEmptySnapshots:0,unverifiedSnapshots:0,withExplicitPage:0,verifiedSequences:0};
+ for(const [digest,d] of dashboards){
+  if(d.schema===dashboardSequenceSchema){sequences.push(d);continue;}
   if(d.schema==='pickfinder-public-game-dialog-v1'&&Array.isArray(d.records)){gameDialogReceipts++;for(const r of d.records){
    if(typeof r.sport!=='string'||!r.sport)continue;
    let eventId=r.eventId;
@@ -126,8 +132,27 @@ function coverage(root){
    if(typeof eventId!=='string'||!/^[\w-]{1,80}$/.test(eventId))continue;
    gameDialogObservations++;gameDialogBySport[r.sport]=(gameDialogBySport[r.sport]||0)+1;
   }continue;}
-  if(['Games','Discrepancies','Popular'].includes(d.name)){namedDashboardSnapshots++;byDashboard[d.name]=(byDashboard[d.name]||0)+1;}else unclassifiedDashboardFiles++;
+  if(!names.includes(d.name)){unclassifiedDashboardFiles++;continue;}
+  namedDashboardSnapshots++;byDashboard[d.name]=(byDashboard[d.name]||0)+1;
+  const stats=dashboardEvidence[d.name],marker=pageMarker(d);
+  if(d.schema!=='pickfinder-public-dashboard-v1'||!dashboardRoutes(d.name).includes(d.path)||!valid(d.observedAt)){
+   stats.unverifiedSnapshots++;continue;
+  }
+  pages.set(digest,d);
+  if(marker)stats.withExplicitPage++;
+  const state=dashboardState(d);
+  if(state==='data_observed'&&(!d.dataState||d.dataState===state))stats.dataSnapshots++;
+  else if(state==='explicit_empty'&&(!d.dataState||d.dataState===state)&&(!d.pagination?.length||marker?.page===1&&marker.total===1))stats.explicitEmptySnapshots++;
+  else stats.unverifiedSnapshots++;
  }
- return {profileAttempts,uniqueCompletedCurrentVersion:done.size,dashboardSnapshots:dashboards.length,namedDashboardSnapshots,byDashboard,gameDialogReceipts,gameDialogObservations,gameDialogBySport,unclassifiedDashboardFiles,allFiltersVerified:false};
+ const seen=new Set();
+ for(const d of sequences){
+  if(!verifyDashboardSequence(d,pages)){unverifiedDashboardSequences++;continue;}
+  const signature=key(d.pageDigests);if(seen.has(signature))continue;
+  seen.add(signature);verifiedDashboardSequences++;dashboardEvidence[d.name].verifiedSequences++;
+ }
+ return {profileAttempts,uniqueCompletedCurrentVersion:done.size,dashboardSnapshots:dashboards.size-sequences.length,
+  namedDashboardSnapshots,byDashboard,dashboardEvidence,verifiedDashboardSequences,unverifiedDashboardSequences,
+  gameDialogReceipts,gameDialogObservations,gameDialogBySport,unclassifiedDashboardFiles,allFiltersVerified:false};
 }
 module.exports={load,walkBoards,analyze,coverage,features,matchupSample,quotes,scope,read,list,git};

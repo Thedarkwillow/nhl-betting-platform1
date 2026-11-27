@@ -19,8 +19,23 @@ test('the same gate rejects a start aged out during browser setup without affect
  assert.equal(preflight(env,'2026-07-01T16:54:59Z').proceed,true);
  assert.equal(preflight(env,'2026-07-01T16:55:00Z').state,'board_collection_cutoff');
  assert.equal(preflight(env,'2026-07-01T16:55:00Z').proceed,false);
- assert.deepEqual(preflight({...env,REQUESTED_MODE:'timezone_validation'},'2026-07-01T15:59:00Z'),
+ assert.deepEqual(preflight({...env,REQUESTED_MODE:'timezone_validation'},'2026-07-01T14:59:00Z'),
   {proceed:true,state:'not_a_morning_capture'});
+});
+test('all unrelated hosted jobs defer before checkout and credentials in protected Pacific hours',()=>{
+ const manual={GITHUB_EVENT_NAME:'workflow_dispatch'};
+ const scheduled={GITHUB_EVENT_NAME:'schedule',GITHUB_EVENT_SCHEDULE:'7 12 * * *'};
+ const unrelated=[scheduled,...['board_and_deep','deep_research_now','probe_now','timezone_validation','features_only','boards_only','nba_context_only','nba_history_repair']
+  .map(REQUESTED_MODE=>({...manual,REQUESTED_MODE}))];
+ for(const env of unrelated)for(const hour of [5,6,8,9]){
+  const r=preflight(env,`2026-07-01T${String(hour+7).padStart(2,'0')}:13:00Z`);
+  assert.equal(r.proceed,false);
+  assert.equal(r.state,'protect_morning_hour');
+  assert.equal(r.providerRequests,0);
+ }
+ assert.equal(preflight({...manual,REQUESTED_MODE:'capture_0600'},'2026-07-01T13:07:00Z').proceed,true);
+ assert.equal(preflight({...scheduled,GITHUB_EVENT_SCHEDULE:'29 9 * * *'},'2026-07-01T16:29:00Z').proceed,true);
+ assert.equal(preflight(scheduled,'2026-07-01T17:00:00Z').proceed,true);
 });
 test('the hosted workflow serializes both actual-time gates and the archive-checked fallback',()=>{
  const workflow=fs.readFileSync(new URL('../.github/workflows/pickfinder-premium-hosted.yml','file://'+__filename),'utf8');

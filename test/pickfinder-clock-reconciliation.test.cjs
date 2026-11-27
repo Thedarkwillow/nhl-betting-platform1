@@ -29,3 +29,12 @@ test('archived profile header reuses verified event clock proof, not a standalon
  a.equal(rows[0].sourceClockVerified,false);a.equal(rows[0].modelApproved,false);
  a.equal(profileContexts([{...immutable,first:'2026-11-25T23:00:00Z'}],ctx.preparedAt).records.length,0);
 });
+
+test('known source-specific team codes join the same independently verified team without cross-sport alias guesses',()=>{
+ const {nativeMatches}=require('../scripts/pickfinder-clock-reconciliation.cjs');
+ const x={...scope,team:'DEN',opponent:'UTAH'};
+ const y={...sample[0],team:'DEN',opponent:'UTA'};
+ a.equal(nativeMatches(y,[x],Date.parse(ctx.preparedAt)).length,1);
+ a.equal(nativeMatches({...y,sport:'nhl'},[{...x,sport:'NHL'}],Date.parse(ctx.preparedAt)).length,0);
+ a.equal(nativeMatches({...y,opponent:'PHX'},[x],Date.parse(ctx.preparedAt)).length,0);
+});

@@ -183,8 +183,9 @@ function currentProfileQueue(archive,profiles,now=Date.now()){
   if(k&&!frontPaths.has(k)&&missingSaveLog(x)&&!tries.has(x.key)){frontPaths.add(k);targeted.push(x);}
   else back.push(x);
  }
+ const movementTargets=new Set(front.filter(x=>x.sport==='nhl'&&!x.period&&!x.mapRange&&!x.gameMode).slice(0,4).map(x=>x.key));
  const pendingOrdered=[...targeted,...front,...back];
- return {pending:pendingOrdered,distinctNewPlayersQueued:front.length,distinctSeenGoaliesWithNewSavesScope:targeted.length,
+ return {pending:pendingOrdered.map(x=>movementTargets.has(x.key)?{...x,probeSportsbookMovement:true}:x),distinctNewPlayersQueued:front.length,distinctSeenGoaliesWithNewSavesScope:targeted.length,
   savesScopesInFirstBatch:pendingOrdered.slice(0,96).filter(missingSaveLog).length,total:targets.size,reused,expired,eligiblePartitions,reason:eligiblePartitions?'current_exact_board_scopes':'no_recent_complete_partition'};
 }
 // Overview game logs often stay visible as unrelated dialogs open. Collapse
@@ -430,7 +431,7 @@ async function main(root,env=process.env){
     const items=q.pending.slice(i,i+workers);
     const results=await Promise.allSettled(items.map(async(item,n)=>{
      const detail=pages[n],row={...item,research:[]},t=Date.now();attemptedProfiles++;
-     try{await enrich(detail,row,{expanded:true,fullSportingHeaders:true,maxFields:Infinity,includePropHistory:!p.currentProfiles,shouldContinue:profileAlive,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(!await premium(detail))throw Error('session');
+     try{await enrich(detail,row,{expanded:true,fullSportingHeaders:true,maxFields:Infinity,includePropHistory:!p.currentProfiles,probeSportsbookMovement:p.currentProfiles&&item.probeSportsbookMovement===true,shouldContinue:profileAlive,navigate:async url=>{await detail.goto(url,{timeout:10000});await detail.getByRole('button',{name:'Open user menu'}).waitFor({timeout:10000});if(!await premium(detail))throw Error('session');
        const snap=await detail.evaluate(currentIdentity.readVisible,{player:row.player,detailId:row.detailId}).catch(()=>null);row.independentReconciliationContext=currentIdentity.captureProfileContext(row,snap,new Date().toISOString());}});}catch{row.profileCollection={truncated:true};}
      const record={...publicProfile(row),independentReconciliationContext:row.independentReconciliationContext??null};
      return {record:p.currentProfiles?compactCurrentProfile({...record,currentProfileAttemptedAt:new Date().toISOString()}):record,elapsed:Date.now()-t,authenticated:await premium(detail).catch(()=>false)};

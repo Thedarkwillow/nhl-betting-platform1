@@ -29,9 +29,15 @@ jobs:
           node-version: '22'
       - name: Public source and scheduling contract tests without archive access
         run: node --test scripts/test-pacific-morning-capture-gate.cjs scripts/test-public-capture-schedule.cjs scripts/test-audit-private-morning-archives.cjs test/nhl-nfl-partner-direct-collection.test.cjs test/daily-nhl-nfl-cross-day-line-movement.test.cjs test/partner-prizepicks-board.test.cjs
+      - name: Record blocked private-source status, not morning capture success
+        run: |
+          echo '::warning::Private original-source audit paused by owner; public contracts only. Neither private morning slot is verified by this job.'
+          echo 'Private original-source audit: BLOCKED (owner-directed pause). Public contract tests only; no actual morning archive validation or provider requests.' >> "$GITHUB_STEP_SUMMARY"
   verify-original-board:
     needs: public-contracts
-    if: github.event_name != 'pull_request'
+    # Owner-directed public-only pause. Public contract tests are not live capture evidence.
+    # The public PickFinder morning evidence watchdog remains independent and active.
+    if: ${{ false && github.event_name != 'pull_request' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

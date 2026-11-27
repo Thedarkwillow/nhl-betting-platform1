@@ -18,3 +18,16 @@ test("public historical progress excludes private lines and cannot claim settlem
  assert.doesNotMatch(y,/ODDS_API_KEY|UNDERDOG_API_KEY|PRIZEPICKS_API_KEY/);
  assert.match(y,/persist-credentials: false/);
 });
+
+test("private-dependent jobs remain paused while their producers are owner-paused",()=>{
+ const workflow=n=>fs.readFileSync(".github/workflows/"+n+".yml","utf8");
+ assert.match(workflow("private-source-readiness-refresh"),/refresh:\s+# Owner-directed private pause\.\s+if: \$\{\{ false \}\}/);
+ assert.match(workflow("public-private-nhl-nfl-0900"),/collect:\s+# Owner-directed private pause\.\s+if: \$\{\{ false \}\}/);
+ assert.match(y,/counts-only:[\s\S]*?if: \$\{\{ false &&/);
+ assert.match(workflow("freeze-private-nhl-nfl-pregame-now"),/freeze-both:[\s\S]*?if: \$\{\{ false &&/);
+ const audit=workflow("test-nhl-nfl-morning-capture-reliability");
+ assert.match(audit,/verify-original-board:[\s\S]*?if: \$\{\{ false &&/);
+ assert.match(audit,/Neither private morning slot is verified/);
+ assert.match(workflow("morning-private-archive-health"),/Verify public immutable morning evidence/);
+ assert.match(y,/age>24\*60\*60000/);
+});

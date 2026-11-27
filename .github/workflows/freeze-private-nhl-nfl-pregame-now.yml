@@ -23,7 +23,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   freeze-both:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    # Owner-directed public-only pause: original private capture producer is paused.
+    # No private credentials, old captures, or retroactive forecasts while paused.
+    if: ${{ false && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 18
     steps:

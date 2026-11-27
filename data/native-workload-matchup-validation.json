@@ -1,0 +1,562 @@
+{
+  "kind": "native_workload_matchup_research_v1",
+  "revision": "native-workload-matchup-shadow-v1",
+  "sourceCommit": "3926d7b4bf92a33808047eb8589b98aa802bba5e",
+  "retrospective": true,
+  "thresholds": "synthetic_incumbent_projection_floor_plus_half",
+  "scoredFrom": "2026-07-01",
+  "chronoRule": "earlier final-game chronologies only, at least 24h/48h start separation and previous weeks for NFL; archives were reconstructed later",
+  "population": "current appearance conditional; no official pregame availability or depth chart asserted",
+  "originalOffersVerified": 0,
+  "appSettlementVerified": false,
+  "prospective": false,
+  "untouchedHoldout": false,
+  "modelPromoted": false,
+  "rawRowsPublished": 0,
+  "paidRequests": 0,
+  "bySport": {
+    "NHL": {
+      "source": "NHL official game finals",
+      "archivedEvents": 270,
+      "archivedPlayerAppearances": 6480,
+      "incompatibleEventCopies": 0,
+      "incompleteEvents": 42,
+      "comparison": {
+        "sog": {
+          "workload": {
+            "decisions": 2881,
+            "distinctEvents": 157,
+            "distinctDates": 29,
+            "brierImprovement": -0.000048359576209010216,
+            "approximateEventClusterInterval": [
+              -0.0003539267644492701,
+              0.00025720761203124965
+            ],
+            "scores": {
+              "incumbent": {
+                "brier": 0.24186954348712253,
+                "logLoss": 0.6776483756372729
+              },
+              "priorEmpirical": {
+                "brier": 0.2401364656262979,
+                "logLoss": 0.6740001198474769
+              },
+              "neutral": {
+                "brier": 0.25,
+                "logLoss": 0.6931471805599049
+              },
+              "candidate": {
+                "brier": 0.24191790306333155,
+                "logLoss": 0.6777674260975601
+              }
+            }
+          },
+          "defense": {
+            "decisions": 2832,
+            "distinctEvents": 152,
+            "distinctDates": 29,
+            "brierImprovement": 0,
+            "approximateEventClusterInterval": [
+              -2.2803592136264103e-18,
+              2.2803592136264103e-18
+            ],
+            "scores": {
+              "incumbent": {
+                "brier": 0.2422422327212924,
+                "logLoss": 0.6784519703243708
+              },
+              "priorEmpirical": {
+                "brier": 0.24039375923156123,
+                "logLoss": 0.6745582344285268
+              },
+              "neutral": {
+                "brier": 0.25,
+                "logLoss": 0.6931471805599051
+              },
+              "candidate": {
+                "brier": 0.2422422327212924,
+                "logLoss": 0.6784519703243707
+              }
+            }
+          },
+          "workloadDefense": {
+            "decisions": 2832,
+            "distinctEvents": 152,
+            "distinctDates": 29,
+            "brierImprovement": 0.000039290168709576804,
+            "approximateEventClusterInterval": [
+              -0.000037639055001019286,
+              0.00011621939242017289
+            ],
+            "scores": {
+              "incumbent": {
+                "brier": 0.2422422327212924,
+                "logLoss": 0.6784519703243708
+              },
+              "priorEmpirical": {
+                "brier": 0.24039375923156123,
+                "logLoss": 0.6745582344285268
+              },
+              "neutral": {
+                "brier": 0.25,
+                "logLoss": 0.6931471805599051
+              },
+              "candidate": {
+                "brier": 0.24220294255258282,
+                "logLoss": 0.6783728287632051
+              }
+            }
+          },
+          "matchup": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          }
+        },
+        "points": {
+          "workload": {
+            "decisions": 2881,
+            "distinctEvents": 157,
+            "distinctDates": 29,
+            "brierImprovement": 3.946089473155711e-17,
+            "approximateEventClusterInterval": [
+              3.306303011862946e-17,
+              4.5858759344484755e-17
+            ],
+            "scores": {
+              "incumbent": {
+                "brier": 0.22811019807976396,
+                "logLoss": 0.6813436920691586
+              },
+              "priorEmpirical": {
+                "brier": 0.2259982182720809,
+                "logLoss": 0.6463817269570077
+              },
+              "neutral": {
+                "brier": 0.25,
+                "logLoss": 0.6931471805599049
+              },
+              "candidate": {
+                "brier": 0.22811019807976393,
+                "logLoss": 0.6813436920691588
+              }
+            }
+          },
+          "defense": {
+            "decisions": 2832,
+            "distinctEvents": 152,
+            "distinctDates": 29,
+            "brierImprovement": 4.014365738757628e-17,
+            "approximateEventClusterInterval": [
+              3.3553567648648157e-17,
+              4.6733747126504406e-17
+            ],
+            "scores": {
+              "incumbent": {
+                "brier": 0.228244882666702,
+                "logLoss": 0.681858739158511
+              },
+              "priorEmpirical": {
+                "brier": 0.2260739586544531,
+                "logLoss": 0.6464147599795762
+              },
+              "neutral": {
+                "brier": 0.25,
+                "logLoss": 0.6931471805599051
+              },
+              "candidate": {
+                "brier": 0.22824488266670198,
+                "logLoss": 0.6818587391585113
+              }
+            }
+          },
+          "workloadDefense": {
+            "decisions": 2832,
+            "distinctEvents": 152,
+            "distinctDates": 29,
+            "brierImprovement": 4.014365738757628e-17,
+            "approximateEventClusterInterval": [
+              3.3553567648648157e-17,
+              4.6733747126504406e-17
+            ],
+            "scores": {
+              "incumbent": {
+                "brier": 0.228244882666702,
+                "logLoss": 0.681858739158511
+              },
+              "priorEmpirical": {
+                "brier": 0.2260739586544531,
+                "logLoss": 0.6464147599795762
+              },
+              "neutral": {
+                "brier": 0.25,
+                "logLoss": 0.6931471805599051
+              },
+              "candidate": {
+                "brier": 0.22824488266670198,
+                "logLoss": 0.6818587391585113
+              }
+            }
+          },
+          "matchup": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          }
+        }
+      }
+    },
+    "NFL": {
+      "source": "nflverse contributors (CC BY 4.0 regular-season stats and schedule)",
+      "archivedEvents": 696,
+      "archivedPlayerAppearances": 47200,
+      "incompatibleEventCopies": 0,
+      "incompleteEvents": 13,
+      "comparison": {
+        "receiving_yards": {
+          "workload": {
+            "decisions": 1234,
+            "distinctEvents": 161,
+            "distinctDates": 46,
+            "brierImprovement": -0.00011970455346171529,
+            "approximateEventClusterInterval": [
+              -0.006089684090912074,
+              0.005850274983988642
+            ],
+            "scores": {
+              "incumbent": {
+                "brier": 0.24302388445304027,
+                "logLoss": 0.679945841713406
+              },
+              "priorEmpirical": {
+                "brier": 0.24167148521264986,
+                "logLoss": 0.6771157386552517
+              },
+              "neutral": {
+                "brier": 0.25,
+                "logLoss": 0.6931471805599242
+              },
+              "candidate": {
+                "brier": 0.243143589006502,
+                "logLoss": 0.6794284261905708
+              }
+            }
+          },
+          "defense": {
+            "decisions": 1244,
+            "distinctEvents": 161,
+            "distinctDates": 46,
+            "brierImprovement": 0.0007420513570134313,
+            "approximateEventClusterInterval": [
+              -0.0004395231100885642,
+              0.0019236258241154267
+            ],
+            "scores": {
+              "incumbent": {
+                "brier": 0.2441088641644174,
+                "logLoss": 0.6828859544061833
+              },
+              "priorEmpirical": {
+                "brier": 0.2428410407764865,
+                "logLoss": 0.6802437492618525
+              },
+              "neutral": {
+                "brier": 0.25,
+                "logLoss": 0.693147180559924
+              },
+              "candidate": {
+                "brier": 0.24336681280740396,
+                "logLoss": 0.6813776982963405
+              }
+            }
+          },
+          "workloadDefense": {
+            "decisions": 1234,
+            "distinctEvents": 161,
+            "distinctDates": 46,
+            "brierImprovement": 0.0006999304257122013,
+            "approximateEventClusterInterval": [
+              -0.00503355014447196,
+              0.006433410995896362
+            ],
+            "scores": {
+              "incumbent": {
+                "brier": 0.24302388445304027,
+                "logLoss": 0.679945841713406
+              },
+              "priorEmpirical": {
+                "brier": 0.24167148521264986,
+                "logLoss": 0.6771157386552517
+              },
+              "neutral": {
+                "brier": 0.25,
+                "logLoss": 0.6931471805599242
+              },
+              "candidate": {
+                "brier": 0.24232395402732806,
+                "logLoss": 0.6776600451399963
+              }
+            }
+          },
+          "matchup": {
+            "decisions": 222,
+            "distinctEvents": 48,
+            "distinctDates": 20,
+            "brierImprovement": -0.0022589885333938278,
+            "approximateEventClusterInterval": [
+              -0.006700818974332123,
+              0.0021828419075444667
+            ],
+            "scores": {
+              "incumbent": {
+                "brier": 0.23949473783110511,
+                "logLoss": 0.6730556870207857
+              },
+              "priorEmpirical": {
+                "brier": 0.23952905566902832,
+                "logLoss": 0.6727096398796929
+              },
+              "neutral": {
+                "brier": 0.25,
+                "logLoss": 0.6931471805599465
+              },
+              "candidate": {
+                "brier": 0.24175372636449893,
+                "logLoss": 0.6781245137356318
+              }
+            }
+          }
+        },
+        "receptions": {
+          "workload": {
+            "decisions": 1234,
+            "distinctEvents": 161,
+            "distinctDates": 46,
+            "brierImprovement": 0.00011763867634262224,
+            "approximateEventClusterInterval": [
+              -0.008601769730602797,
+              0.008837047083288042
+            ],
+            "scores": {
+              "incumbent": {
+                "brier": 0.25027193968603667,
+                "logLoss": 0.6953318702348165
+              },
+              "priorEmpirical": {
+                "brier": 0.250563420724904,
+                "logLoss": 0.6959151603968202
+              },
+              "neutral": {
+                "brier": 0.25,
+                "logLoss": 0.6931471805599242
+              },
+              "candidate": {
+                "brier": 0.25015430100969405,
+                "logLoss": 0.6968750473002367
+              }
+            }
+          },
+          "defense": {
+            "decisions": 1244,
+            "distinctEvents": 161,
+            "distinctDates": 46,
+            "brierImprovement": 4.569406660836657e-17,
+            "approximateEventClusterInterval": [
+              3.833410015571305e-17,
+              5.305403306102009e-17
+            ],
+            "scores": {
+              "incumbent": {
+                "brier": 0.2508426303501524,
+                "logLoss": 0.696929884504262
+              },
+              "priorEmpirical": {
+                "brier": 0.2511670941077588,
+                "logLoss": 0.6976070407598931
+              },
+              "neutral": {
+                "brier": 0.25,
+                "logLoss": 0.693147180559924
+              },
+              "candidate": {
+                "brier": 0.2508426303501524,
+                "logLoss": 0.696929884504262
+              }
+            }
+          },
+          "workloadDefense": {
+            "decisions": 1234,
+            "distinctEvents": 161,
+            "distinctDates": 46,
+            "brierImprovement": 0.0017486979719288523,
+            "approximateEventClusterInterval": [
+              -0.007064250928683477,
+              0.01056164687254118
+            ],
+            "scores": {
+              "incumbent": {
+                "brier": 0.25027193968603667,
+                "logLoss": 0.6953318702348165
+              },
+              "priorEmpirical": {
+                "brier": 0.250563420724904,
+                "logLoss": 0.6959151603968202
+              },
+              "neutral": {
+                "brier": 0.25,
+                "logLoss": 0.6931471805599242
+              },
+              "candidate": {
+                "brier": 0.24852324171410783,
+                "logLoss": 0.6934470043003906
+              }
+            }
+          },
+          "matchup": {
+            "decisions": 222,
+            "distinctEvents": 48,
+            "distinctDates": 20,
+            "brierImprovement": -0.005322786722779515,
+            "approximateEventClusterInterval": [
+              -0.009473402957222769,
+              -0.001172170488336263
+            ],
+            "scores": {
+              "incumbent": {
+                "brier": 0.2528668837356868,
+                "logLoss": 0.7033135828501378
+              },
+              "priorEmpirical": {
+                "brier": 0.2549231756888848,
+                "logLoss": 0.7072623879665547
+              },
+              "neutral": {
+                "brier": 0.25,
+                "logLoss": 0.6931471805599465
+              },
+              "candidate": {
+                "brier": 0.2581896704584663,
+                "logLoss": 0.7154342223159675
+              }
+            }
+          }
+        }
+      }
+    },
+    "NBA": {
+      "source": "NBA official final box scores",
+      "archivedEvents": 36,
+      "archivedPlayerAppearances": 798,
+      "incompatibleEventCopies": 0,
+      "incompleteEvents": 0,
+      "comparison": {
+        "points": {
+          "workload": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          },
+          "defense": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          },
+          "workloadDefense": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          },
+          "matchup": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          }
+        },
+        "rebounds": {
+          "workload": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          },
+          "defense": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          },
+          "workloadDefense": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          },
+          "matchup": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          }
+        },
+        "assists": {
+          "workload": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          },
+          "defense": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          },
+          "workloadDefense": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          },
+          "matchup": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          }
+        },
+        "threePointersMade": {
+          "workload": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          },
+          "defense": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          },
+          "workloadDefense": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          },
+          "matchup": {
+            "decisions": 0,
+            "distinctEvents": 0,
+            "distinctDates": 0,
+            "scores": null
+          }
+        }
+      }
+    }
+  }
+}

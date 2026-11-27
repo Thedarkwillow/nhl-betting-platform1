@@ -1,6 +1,17 @@
 name: Validate Public NHL Dashboard
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'assets/daily-ranking-readiness.js'
+      - 'scripts/test-daily-ranking-readiness.cjs'
+      - 'index.html'
+      - 'assets/native-context-performance.js'
+      - 'data/native-workload-matchup-validation.json'
+      - 'src/native-workload-matchup-challenger.cjs'
+      - 'scripts/report-native-workload-matchup.cjs'
+      - 'test/native-workload-matchup-challenger.test.cjs'
+      - '.github/workflows/validate-dashboard.yml'
   push:
     branches: [main, 'feature/**', 'fix/**', 'feat/**', 'research/**']
     paths:
@@ -63,6 +74,8 @@ jobs:
         run: node scripts/test-lineup-workspace.cjs
       - name: Verify independent board captures never imply publicly approved picks
         run: node --test scripts/test-daily-ranking-readiness.cjs
+      - name: Verify native matchup and workload replay and public display boundaries
+        run: node --test test/native-workload-matchup-challenger.test.cjs
       - name: Test seven-area public status, freshness and comparison safety
         run: node scripts/test-research-status.cjs
       - name: Test phone-ready six-roadmap evidence, freshness and unverified payout safeguards

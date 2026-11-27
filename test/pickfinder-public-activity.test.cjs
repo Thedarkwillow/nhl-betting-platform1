@@ -5,3 +5,11 @@ const board={digest:d,first:'2026-11-25T17:56:00Z',m:{sport:'nba',book:'prizepic
 t('fresh board evidence is not a native alert or qualified prediction',()=>{const x=build({manifests:[board,board],invalid:[]},now);a.equal(x.events.length,1);a.equal(x.events[0].nativeNotificationVerified,false);a.equal(x.readiness['nba/prizepicks'].freshClockScopedOffers,1);a.equal(x.delivery.discord,'destination_not_configured');a.equal(x.modelApproved,false);});
 t('stale partial or invalid observations never qualify',()=>{for(const b of [{...board,m:{...board.m,pageTraversalComplete:false}},{...board,m:{...board.m,lastObservedAt:'2026-11-25T15:00:00Z'}},{...board,offers:[{...o,startAt:null}]}])a.equal(build({manifests:[b],invalid:[]},now).readiness['nba/prizepicks'].freshClockScopedOffers,0);const x=build({manifests:[board],invalid:['bad']},now);a.equal(x.events.length,0);a.equal(x.readiness['nba/prizepicks'].reason,'invalid_archive');});
 t('no future archive or event clock confusion',()=>{const x=build({manifests:[{...board,first:'2026-11-25T18:01:00Z'}],invalid:[]},now);a.equal(x.events.length,0);});
+t('streamed board summary preserves current and historical counts and fail-closed readiness',()=>{
+ const {summarizeBoard}=require('../scripts/pickfinder-public-activity.cjs');
+ const dated=[board,{...board,digest:'b'.repeat(64),m:{...board.m,lastObservedAt:'2026-11-25T16:00:00Z'},offers:[{...o,startAt:null},o]},
+  {...board,digest:'c'.repeat(64),m:{...board.m,lastObservedAt:'2026-11-25T18:01:00Z'},first:'2026-11-25T18:01:00Z'}];
+ const counts=dated.map(b=>summarizeBoard(b,now));
+ a.ok(counts.every(b=>!Object.hasOwn(b,'offers')));
+ for(const invalid of [[],['bad']])a.deepEqual(build({manifests:counts,invalid},now),build({manifests:dated,invalid},now));
+});

@@ -58,6 +58,12 @@ function compareOffer(offer,scope,reviewedCache,clock,sourceFirst,baseline=pickf
   reviewDigests:[...new Set(matches.map(f=>f.reviewDigest))].sort(),modelApproved:false};
 }
 
+function pregameBoardOffers(b){
+ const cut=dt(b.first),sport=b.m.sport;
+ if(!markets[sport]||!hash(b.digest)||!Number.isFinite(cut))return [];
+ return b.offers.filter(o=>o.sport===sport&&Number.isFinite(dt(o.startAt))&&dt(o.startAt)>cut+900000&&
+  Number.isFinite(dt(o.observedAt))&&dt(o.observedAt)<=cut&&cut-dt(o.observedAt)<=300000);
+}
 function eligibleBoards(archive,reviewedCache,clock){
  const sourceClockBySport={nhl:0,nfl:0},boards=[];
  const availability=new Map();
@@ -69,8 +75,7 @@ function eligibleBoards(archive,reviewedCache,clock){
  for(const b of archive.manifests){
   const sport=b.m.sport,cut=dt(b.first);
   if(!markets[sport]||!hash(b.digest)||!Number.isFinite(cut)||cut>dt(clock))continue;
-  const offers=b.offers.filter(o=>o.sport===sport&&Number.isFinite(dt(o.startAt))&&dt(o.startAt)>cut+900000&&
-   Number.isFinite(dt(o.observedAt))&&dt(o.observedAt)<=cut&&cut-dt(o.observedAt)<=300000);
+  const offers=pregameBoardOffers(b);
   sourceClockBySport[sport]+=offers.length;
   if(offers.length&&cut>=(availability.get(sport)??Infinity))boards.push({...b,offers});
  }
@@ -131,4 +136,4 @@ function replay(root,archive,reviewedCache,nativeIndex,clock,revision){
   bySport:scorePairs(rows,nativeIndex,clock),retrospective:true,productionChanged:false,modelApproved:false,paidRequests:0};
 }
 
-module.exports={compareOffer,eligibleBoards,scorePairs,replay,finalFor,policy};
+module.exports={compareOffer,pregameBoardOffers,eligibleBoards,scorePairs,replay,finalFor,policy};

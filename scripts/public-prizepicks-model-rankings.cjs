@@ -51,7 +51,7 @@ function build({archive,forecasts,grades=[],clock}){
  return {kind:'public_prizepicks_model_ranking_v1',generatedAt:clock,rows,bySport,excluded,archivedForecastFrames:forecasts.length,archivedGradeFrames:grades.length,modelApproved:false,calibrated:false,originalPlatformVerified:false,paidRequests:0,privateRepoUsed:false,source:'authorized PickFinder sporting evidence + existing frozen NBA model receipts',researchOnly:true};
 }
 function run(root,clock=new Date().toISOString()){
- const result=build({archive:load(root),forecasts:history(root,'nba-forecasts'),grades:history(root,'nba-grades'),clock});
+ const result=build({archive:load(root,null,{latestOnly:true}),forecasts:history(root,'nba-forecasts'),grades:history(root,'nba-grades'),clock});
  fs.writeFileSync(path.join(root,'data/prizepicks-model-rankings.json'),JSON.stringify(result,null,2)+'\n');
  console.log(JSON.stringify({kind:result.kind,rankedRows:result.rows.length,bySport:result.bySport,excluded:result.excluded,archivedForecastFrames:result.archivedForecastFrames,archivedGradeFrames:result.archivedGradeFrames,paidRequests:0,privateRepoUsed:false}));
  return result;

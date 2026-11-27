@@ -14,8 +14,7 @@ function list(root,kind){
  const d=path.join(root,ROOT,kind);if(!fs.existsSync(d))return [];
  return fs.readdirSync(d).filter(n=>/^[a-f0-9]{64}\.json$/.test(n)).map(n=>n.slice(0,-5));
 }
-function load(root,sport=null){
- const manifests=[],invalid=[],latest=new Map();
+function* walkBoards(root,sport=null){
  for(const digest of list(root,'boards'))try{
   const m=read(root,'boards',digest);
   if(sport&&m.sport!==sport)continue;
@@ -25,9 +24,16 @@ function load(root,sport=null){
   for(const [f,k] of Object.entries(fields))if(rows[f].length!==m.health?.[k])throw Error('count');
   const rel=ROOT+'/boards/'+digest+'.json',commits=git(root,['log','--format=%H','--',rel]).split('\n');if(commits.length!==1||!/^[a-f0-9]{40}$/.test(commits[0]))throw Error('immutable manifest');
   const first=git(root,['show','-s','--format=%cI',commits[0]]);if(!valid(first)||dt(first)+999<dt(m.lastObservedAt))throw Error('archive clock');
-  const entry={digest,m,first,...rows};manifests.push(entry);
-  const k=m.sport+'/'+m.book,old=latest.get(k);if(!old||dt(old.m.lastObservedAt)<dt(m.lastObservedAt))latest.set(k,entry);
- }catch{invalid.push(digest);}
+  yield {entry:{digest,m,first,...rows}};
+ }catch{yield {invalidDigest:digest};}
+}
+function load(root,sport=null,{latestOnly=false}={}){
+ const manifests=[],invalid=[],latest=new Map();
+ for(const {entry,invalidDigest} of walkBoards(root,sport)){
+  if(!entry){invalid.push(invalidDigest);continue;}
+  if(!latestOnly)manifests.push(entry);const k=entry.m.sport+'/'+entry.m.book,old=latest.get(k);
+  if(!old||dt(old.m.lastObservedAt)<dt(entry.m.lastObservedAt))latest.set(k,entry);
+ }
  return {manifests,latest:[...latest.values()],invalid};
 }
 function scope(r){return key([r.sport,r.detailId,r.eventId,r.market,r.period??null,r.mapRange??null,r.gameMode??null]);}
@@ -106,8 +112,11 @@ function analyze(archive,now=new Date().toISOString()){
  return {summary:{schema:'pickfinder_public_research_health_v1',generatedAt:now,archiveManifests:archive.manifests.length,invalidManifests:archive.invalid.length,latestPartitions:archive.latest.length,offerRefs,exactComparisons,bySport,originalPlatformVerified:false,modelApproved:false,paidRequests:0,privateRepoUsed:false},featureRows,events:[...events.values()].map(e=>({...e,players:[...e.players]}))};
 }
 function coverage(root){
- const profiles=list(root,'profiles').flatMap(d=>read(root,'profiles',d).records||[]),dashboards=list(root,'dashboards').map(d=>read(root,'dashboards',d));
- const done=new Set(profiles.filter(r=>r.status==='sampled'&&r.coverageVersion===VERSION&&!r.truncated&&r.research?.length).map(r=>r.key));
+ const done=new Set();let profileAttempts=0;
+ for(const d of list(root,'profiles'))for(const r of read(root,'profiles',d).records||[]){
+  profileAttempts++;if(r.status==='sampled'&&r.coverageVersion===VERSION&&!r.truncated&&r.research?.length)done.add(r.key);
+ }
+ const dashboards=list(root,'dashboards').map(d=>read(root,'dashboards',d));
  const byDashboard={},gameDialogBySport={};let gameDialogReceipts=0,gameDialogObservations=0,namedDashboardSnapshots=0,unclassifiedDashboardFiles=0;
  for(const d of dashboards){
   if(d.schema==='pickfinder-public-game-dialog-v1'&&Array.isArray(d.records)){gameDialogReceipts++;for(const r of d.records){
@@ -119,6 +128,6 @@ function coverage(root){
   }continue;}
   if(['Games','Discrepancies','Popular'].includes(d.name)){namedDashboardSnapshots++;byDashboard[d.name]=(byDashboard[d.name]||0)+1;}else unclassifiedDashboardFiles++;
  }
- return {profileAttempts:profiles.length,uniqueCompletedCurrentVersion:done.size,dashboardSnapshots:dashboards.length,namedDashboardSnapshots,byDashboard,gameDialogReceipts,gameDialogObservations,gameDialogBySport,unclassifiedDashboardFiles,allFiltersVerified:false};
+ return {profileAttempts,uniqueCompletedCurrentVersion:done.size,dashboardSnapshots:dashboards.length,namedDashboardSnapshots,byDashboard,gameDialogReceipts,gameDialogObservations,gameDialogBySport,unclassifiedDashboardFiles,allFiltersVerified:false};
 }
-module.exports={load,analyze,coverage,features,matchupSample,quotes,scope,read,list,git};
+module.exports={load,walkBoards,analyze,coverage,features,matchupSample,quotes,scope,read,list,git};

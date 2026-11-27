@@ -1,0 +1,75 @@
+{
+  "kind": "pickfinder_public_research_tables_index_v1",
+  "sources": 54,
+  "tables": 180,
+  "rows": 5859,
+  "perLeague": {
+    "call-of-duty": {
+      "sources": 5,
+      "tables": 7,
+      "rows": 204
+    },
+    "college-basketball": {
+      "sources": 3,
+      "tables": 17,
+      "rows": 1360
+    },
+    "college-football": {
+      "sources": 3,
+      "tables": 18,
+      "rows": 712
+    },
+    "cs2": {
+      "sources": 5,
+      "tables": 8,
+      "rows": 258
+    },
+    "dota-2": {
+      "sources": 5,
+      "tables": 6,
+      "rows": 259
+    },
+    "league-of-legends": {
+      "sources": 5,
+      "tables": 6,
+      "rows": 226
+    },
+    "nba": {
+      "sources": 3,
+      "tables": 18,
+      "rows": 388
+    },
+    "nfl": {
+      "sources": 3,
+      "tables": 19,
+      "rows": 440
+    },
+    "nhl": {
+      "sources": 3,
+      "tables": 18,
+      "rows": 408
+    },
+    "soccer": {
+      "sources": 6,
+      "tables": 22,
+      "rows": 448
+    },
+    "tennis": {
+      "sources": 6,
+      "tables": 18,
+      "rows": 720
+    },
+    "valorant": {
+      "sources": 4,
+      "tables": 5,
+      "rows": 198
+    },
+    "wnba": {
+      "sources": 3,
+      "tables": 18,
+      "rows": 238
+    }
+  },
+  "modelInputsApproved": false,
+  "paidApiRequests": 0
+}

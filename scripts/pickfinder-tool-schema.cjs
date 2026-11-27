@@ -13,7 +13,8 @@ async function navigationButton(page,names){
  const indices=await buttons.evaluateAll((els,names)=>els.flatMap((e,i)=>{
   const norm=x=>String(x||'').trim().replace(/\s+/g,' ').toLowerCase();
   const allowed=names.map(norm);
-  const candidates=[e.getAttribute('aria-label'),e.innerText,e.getAttribute('title'),e.querySelector('svg title')?.textContent].map(norm).filter(Boolean);
+  const labelledBy=(e.getAttribute('aria-labelledby')||'').split(/\s+/).filter(Boolean).map(id=>e.ownerDocument.getElementById(id)?.textContent||'').join(' ');
+  const candidates=[e.getAttribute('aria-label'),labelledBy,e.innerText,e.getAttribute('title'),e.querySelector('svg title')?.textContent].map(norm).filter(Boolean);
   return e.getClientRects().length&&!e.disabled&&e.getAttribute('aria-disabled')!=='true'&&!e.closest('form')&&e.getAttribute('type')!=='submit'&&candidates.some(x=>allowed.includes(x))?[i]:[];
  }),names);
  if(indices.length!==1)return null;
@@ -35,6 +36,21 @@ async function featureNavigationHints(page,kind){
    else counts.visibleNamedOther++;
   }return counts;
  },{kind});}catch{return null;}
+}
+async function readToolSchema(page,kind,names,panel){
+ return page.evaluate(({pattern,flags,names,panel})=>{
+  const wanted=new RegExp(pattern,flags),visible=e=>e.getClientRects().length>0;
+  const norm=s=>String(s||'').trim().replace(/\s+/g,' ').toLowerCase();
+  const namesSet=new Set(names.map(norm));
+  const roots=panel?[...document.querySelectorAll('[role=dialog],aside,[role=region],[role=tabpanel]')].filter(e=>visible(e)&&[e.getAttribute('aria-label'),document.getElementById(e.getAttribute('aria-labelledby')||'')?.innerText,...Array.from(e.querySelectorAll('h1,h2,h3,[role=heading]')).map(h=>h.innerText)].some(t=>namesSet.has(norm(t)))):[...document.querySelectorAll('main')].filter(visible);
+  if(roots.length!==1)return {verified:false,controls:[]};
+  const controls=[...roots[0].querySelectorAll('button,label,[role=tab],h1,h2,h3,input,select,[role=switch]')].filter(visible).flatMap(e=>{
+   const raw=(e.getAttribute('aria-label')||[...e.labels||[]].map(l=>l.innerText).join(' ')||e.innerText||e.getAttribute('title')||'').trim();
+   if(!wanted.test(raw))return [];
+   return [{label:raw,kind:e.tagName.toLowerCase(),disabled:!!e.disabled||e.getAttribute('aria-disabled')==='true',inputType:e.tagName==='INPUT'?e.type:null}];
+  });
+  return {verified:true,controls};
+ },{pattern:labels[kind].source,flags:labels[kind].flags,names,panel});
 }
 async function inspectTool(page,kind,premium){
  if(!routes[kind])throw Error('unknown capability');
@@ -62,7 +78,19 @@ async function inspectTool(page,kind,premium){
    }
   }
   if(method!=='user_menu_link'){
-  if(!button)return {state:'navigation_not_verified',navigationHints:await featureNavigationHints(page,kind),mutations:0};
+  if(!button){
+   // The documented Pick Builder can already be open in the board sidebar.
+   // Inspect only an explicitly named panel; adding a selection changes account state.
+   if(kind==='builder'&&page.url?.()==='https://www.pickfinder.app/props'){
+    const schema=await readToolSchema(page,kind,['Pick Builder','Lineup Builder'],true);
+    if(schema.verified){
+     const controls=schema.controls;
+     const actionable=controls.some(control=>['button','input','select'].includes(control.kind));
+     return {state:actionable?'read_only_schema_observed':'panel_only_observed',route:'/props',method:'visible_panel',controls,mutations:0,submissionVerified:false};
+    }
+   }
+   return {state:'navigation_not_verified',navigationHints:await featureNavigationHints(page,kind),mutations:0};
+  }
   // Opening the named navigation control is read-only. Do not submit or change settings.
   await button.click({timeout:3000});method='navigation_button';
   try{await page.waitForFunction(({names,paths})=>{
@@ -77,19 +105,7 @@ async function inspectTool(page,kind,premium){
   if(method!=='navigation_button'||url.pathname!=='/props')return {state:'session_or_route_unverified',mutations:0};
   panel=true;
  }
- const schema=await page.evaluate(({pattern,flags,names,panel})=>{
-  const wanted=new RegExp(pattern,flags),visible=e=>e.getClientRects().length>0;
-  const norm=s=>String(s||'').trim().replace(/\s+/g,' ').toLowerCase();
-  const namesSet=new Set(names.map(norm));
-  const roots=panel?[...document.querySelectorAll('[role=dialog],aside,[role=region],[role=tabpanel]')].filter(e=>visible(e)&&[e.getAttribute('aria-label'),document.getElementById(e.getAttribute('aria-labelledby')||'')?.innerText,...Array.from(e.querySelectorAll('h1,h2,h3,[role=heading]')).map(h=>h.innerText)].some(t=>namesSet.has(norm(t)))):[...document.querySelectorAll('main')].filter(visible);
-  if(roots.length!==1)return {verified:false,controls:[]};
-  const controls=[...roots[0].querySelectorAll('button,label,[role=tab],h1,h2,h3,input,select,[role=switch]')].filter(visible).flatMap(e=>{
-   const raw=(e.getAttribute('aria-label')||[...e.labels||[]].map(l=>l.innerText).join(' ')||e.innerText||e.getAttribute('title')||'').trim();
-   if(!wanted.test(raw))return [];
-   return [{label:raw,kind:e.tagName.toLowerCase(),disabled:!!e.disabled||e.getAttribute('aria-disabled')==='true',inputType:e.tagName==='INPUT'?e.type:null}];
-  });
-  return {verified:true,controls};
- },{pattern:labels[kind].source,flags:labels[kind].flags,names,panel});
+ const schema=await readToolSchema(page,kind,names,panel);
  if(!schema.verified)return {state:'panel_or_route_unverified',method,mutations:0};
  return {state:schema.controls.length?'read_only_schema_observed':panel?'panel_only_observed':'route_only_observed',route:url.pathname,method,controls:schema.controls,mutations:0,submissionVerified:false};
 }

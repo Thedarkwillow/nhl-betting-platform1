@@ -1,5 +1,5 @@
 'use strict';
-const fs=require('node:fs'),path=require('node:path'),{normalize}=require('./pickfinder-premium-archive.cjs'),{collect,ORIGIN}=require('./pickfinder-browser.cjs'),{enrich}=require('./pickfinder-player-research.cjs'),{VERSION}=require('./pickfinder-research-coverage.cjs'),{checkpointBuffer}=require('./pickfinder-checkpoint-buffer.cjs'),{pacific,decide}=require('./pacific-morning-capture-gate.cjs'),{prioritySports,registry}=require('./season-aware-collection.cjs'),{discover}=require('./season-aware-discovery.cjs'),{openHostedBoard}=require('./pickfinder-unattended-runner.cjs'),{persist,read,safe,sha,assertDestination}=require('./pickfinder-public-archive.cjs');
+const fs=require('node:fs'),path=require('node:path'),{normalize}=require('./pickfinder-premium-archive.cjs'),{collect,ORIGIN}=require('./pickfinder-browser.cjs'),{enrich}=require('./pickfinder-player-research.cjs'),{VERSION}=require('./pickfinder-research-coverage.cjs'),{checkpointBuffer}=require('./pickfinder-checkpoint-buffer.cjs'),{pacific,decide}=require('./pacific-morning-capture-gate.cjs'),{prioritySports,registry}=require('./season-aware-collection.cjs'),{discover}=require('./season-aware-discovery.cjs'),{openHostedBoard}=require('./pickfinder-unattended-runner.cjs'),{persist,read,iterate,archiveRevision,safe,sha,assertDestination}=require('./pickfinder-public-archive.cjs');
 const {dashboardRoutes,captureGameDialogs,verifiedNavigation,traverseDashboardFilters,inspectCapabilities}=require('./pickfinder-dashboard-research.cjs');
 const {inspectTool}=require('./pickfinder-tool-schema.cjs');
 const gameContext=require('./pickfinder-public-nba-context.cjs'),{load}=require('./pickfinder-public-evidence-audit.cjs');
@@ -163,7 +163,7 @@ async function main(root,env=process.env){
   // Reserve bounded feature discovery before the long player-profile queue.
   // Morning capture has already returned; context-only passes remain isolated.
   if(!p.historyRepair&&alive()){
-   try{await page.goto(ORIGIN+'/props',{timeout:15000});if(await waitPremium(page)){const labels=await inspectCapabilities(page);await write('capabilities',{schema:'pickfinder-public-capabilities-v1',labels,observedAt:new Date().toISOString(),accountMutations:0});}}catch{errors++;console.log(JSON.stringify({state:'public_capability_probe_pending'}));}
+   try{await page.goto(ORIGIN+'/props',{timeout:15000});if(await waitPremium(page)){const labels=await inspectCapabilities(page);await write('capabilities',{schema:'pickfinder-public-capabilities-v1',labels,observedAt:new Date().toISOString(),captureOrigin:captureOrigin(env,p),accountMutations:0});}}catch{errors++;console.log(JSON.stringify({state:'public_capability_probe_pending'}));}
   }
   // Existing tool inspector was imported but never invoked by the public runner.
   for(const kind of p.historyRepair?[]:['builder','alerts']){
@@ -172,9 +172,9 @@ async function main(root,env=process.env){
     await page.goto(ORIGIN+'/props',{timeout:15000});
     if(!await waitPremium(page))throw Error('session unavailable');
     const result=await inspectTool(page,kind,waitPremium);
-    await write('capabilities',{schema:'pickfinder-public-tool-schema-v1',kind,observedAt:new Date().toISOString(),...result});
+    const receipt=await write('capabilities',{schema:'pickfinder-public-tool-schema-v1',kind,observedAt:new Date().toISOString(),captureOrigin:captureOrigin(env,p),...result});
     if(result.state!=='read_only_schema_observed')errors++;
-    console.log(JSON.stringify({state:result.state==='read_only_schema_observed'?'public_tool_schema_pass':'public_tool_schema_pending',kind,result:result.state,mutations:0}));
+    console.log(JSON.stringify({state:result.state==='read_only_schema_observed'?'public_tool_schema_pass':'public_tool_schema_pending',kind,result:result.state,archiveDigest:receipt.digest,mutations:0}));
    }catch{errors++;console.log(JSON.stringify({state:'public_tool_schema_pending',kind}));}
   }
   for(const name of p.historyRepair?[]:['Games','Discrepancies','Popular']){
@@ -190,7 +190,8 @@ async function main(root,env=process.env){
    }catch{errors++;console.log(JSON.stringify({state:'public_dashboard_pending',name}));}
   }
   if(p.featuresOnly)return;
-  const q=queue(read(root,'board-parts'),read(root,'profiles'));if(p.historyRepair)q.pending=q.repairPending;console.log(JSON.stringify({state:'public_deep_queue',total:q.total,completed:q.done,remaining:q.pending.length,malformedHistoryPending:q.malformedHistoryPending,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
+  const revision=archiveRevision(root);
+  const q=queue(iterate(root,'board-parts',revision),iterate(root,'profiles',revision));if(p.historyRepair)q.pending=q.repairPending;console.log(JSON.stringify({state:'public_deep_queue',archiveRevision:revision,total:q.total,completed:q.done,remaining:q.pending.length,malformedHistoryPending:q.malformedHistoryPending,offerReferences:q.offerReferences,sharedAcrossBooks:q.sharedAcrossBooks,legacyPrivateHistoryImported:false}));
   // Explicit manual deep runs alone trial two isolated tabs; all archives remain serialized.
   // Never increase parallelism in the protected morning board or scheduled collection paths.
   const workers=profileWorkers(env,p),pages=[];

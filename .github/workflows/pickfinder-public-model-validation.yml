@@ -1,10 +1,10 @@
 name: Public-only PickFinder research validation
 on:
   pull_request:
-    paths: ['scripts/nba-bounded-official-final.cjs','test/nba-bounded-official-final.test.cjs','scripts/pickfinder-public-evidence-audit.cjs','scripts/pickfinder-public-model-validation.cjs','scripts/rolling-probability-performance.cjs','test/rolling-probability-performance.test.cjs','test/pickfinder-public-model-validation.test.cjs','.github/workflows/pickfinder-public-model-validation.yml']
+    paths: ['scripts/nba-official-web-boxscore.cjs','scripts/nba-bounded-official-final.cjs','test/nba-bounded-official-final.test.cjs','scripts/pickfinder-public-evidence-audit.cjs','scripts/pickfinder-public-model-validation.cjs','scripts/rolling-probability-performance.cjs','test/rolling-probability-performance.test.cjs','test/pickfinder-public-model-validation.test.cjs','.github/workflows/pickfinder-public-model-validation.yml']
   push:
     branches: [main]
-    paths: ['scripts/nba-bounded-official-final.cjs','test/nba-bounded-official-final.test.cjs','scripts/pickfinder-public-evidence-audit.cjs','scripts/pickfinder-public-model-validation.cjs','scripts/rolling-probability-performance.cjs','test/rolling-probability-performance.test.cjs','.github/workflows/pickfinder-public-model-validation.yml']
+    paths: ['scripts/nba-official-web-boxscore.cjs','scripts/nba-bounded-official-final.cjs','test/nba-bounded-official-final.test.cjs','scripts/pickfinder-public-evidence-audit.cjs','scripts/pickfinder-public-model-validation.cjs','scripts/rolling-probability-performance.cjs','test/rolling-probability-performance.test.cjs','.github/workflows/pickfinder-public-model-validation.yml']
   schedule:
     - cron: '35 5,7,10,13,17,23 * * *'
       timezone: America/Los_Angeles

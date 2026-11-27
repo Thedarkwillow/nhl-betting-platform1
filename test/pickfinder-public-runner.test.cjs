@@ -104,7 +104,7 @@ test('feature inspector opens only a unique named navigation control and verifie
  const b={isVisible:async()=>true,isEnabled:async()=>true,click:async()=>calls.push('open')};
  const page={url:()=> 'https://www.pickfinder.app/props',locator:()=>({evaluateAll:async()=>[0],nth:()=>b}),waitForFunction:async()=>{},evaluate:async(fn,args)=>args.allowed?[]:{verified:true,controls:[{label:'Pick Builder',kind:'h2',disabled:false,inputType:null}]}};
  const x=await inspectTool(page,'builder',async()=>true);assert.equal(x.state,'read_only_schema_observed');assert.equal(x.method,'navigation_button');assert.equal(x.mutations,0);assert.deepEqual(calls,['open']);
- const ambiguous={...page,locator:()=>({evaluateAll:async()=>[0,1]})};
+ const ambiguous={...page,locator:()=>({evaluateAll:async()=>[0,1]}),evaluate:async(fn,args)=>args.allowed?[]:{verified:false,controls:[]}};
  assert.equal((await inspectTool(ambiguous,'builder',async()=>true)).state,'navigation_not_verified');
  const missing={...page,waitForFunction:async()=>{throw Error('missing panel')}};
  assert.equal((await inspectTool(missing,'alerts',async()=>true)).state,'panel_or_route_unverified');
@@ -183,4 +183,49 @@ test('notification menu follows only explicit same-origin allowlisted link',asyn
  const x=await inspectTool(page,'alerts',async()=>true);
  assert.equal(x.state,'read_only_schema_observed');assert.equal(x.method,'user_menu_link');assert.equal(x.mutations,0);
  assert.deepEqual(visits,['https://www.pickfinder.app/settings/notifications']);
+});
+
+test('named navigation can reference its visible control label by ID',async()=>{
+ const {navigationButton}=require('../scripts/pickfinder-tool-schema.cjs');
+ const attributes={'aria-labelledby':'tool title'};
+ const element={getAttribute:k=>attributes[k],ownerDocument:{getElementById:id=>({textContent:id==='tool'?'Pick':'Builder'})},querySelector:()=>null,closest:()=>null,getClientRects:()=>[{}]};
+ const button={isEnabled:async()=>true,isVisible:async()=>true};
+ const page={locator:()=>({evaluateAll:async(fn,names)=>fn([element],names),nth:()=>button})};
+ assert.equal(await navigationButton(page,['Pick Builder']),button);
+ assert.equal(await navigationButton(page,['Alerts']),null);
+});
+
+test('archived queue inputs stay pinned when a later commit adds a bad digest',t=>{
+ const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+ const {execFileSync}=require('node:child_process');
+ const {iterate,archiveRevision,ROOT,sha}=require('../scripts/pickfinder-public-archive.cjs');
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'pf-iterate-'));
+ t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const git=(...args)=>execFileSync('git',['-C',root,'-c','user.name=Test','-c','user.email=test@example.invalid',...args],{stdio:'pipe'});
+ git('init','-q');
+ const dir=path.join(root,ROOT,'profiles'),raw=JSON.stringify({records:[]});
+ fs.mkdirSync(dir,{recursive:true});
+ fs.writeFileSync(path.join(dir,sha(raw)+'.json'),raw);
+ git('add','.');git('commit','-qm','first');
+ const revision=archiveRevision(root);
+ fs.writeFileSync(path.join(dir,'a'.repeat(64)+'.json'),raw);
+ git('add','.');git('commit','-qm','second');
+ assert.deepEqual([...iterate(root,'profiles',revision)],[{records:[]}]);
+ assert.throws(()=>[...iterate(root,'profiles')],/archive digest mismatch/);
+});
+
+test('reads an already visible Pick Builder sidebar without opening or saving a pick',async()=>{
+ const {inspectTool}=require('../scripts/pickfinder-tool-schema.cjs');
+ const heading={kind:'h2',label:'Pick Builder'},button={kind:'button',label:'Export'};
+ for(const controls of [[heading],[heading,button]]){
+  const page={url:()=>'https://www.pickfinder.app/props',locator:()=>({evaluateAll:async()=>[]}),
+   evaluate:async(fn,args)=>{
+    if(args.allowed)return [];
+    assert.equal(args.panel,true);assert.deepEqual(args.names,['Pick Builder','Lineup Builder']);
+    return {verified:true,controls};
+   }};
+  const result=await inspectTool(page,'builder',async()=>true);
+  assert.equal(result.state,controls.length===1?'panel_only_observed':'read_only_schema_observed');
+  assert.equal(result.method,'visible_panel');assert.equal(result.mutations,0);assert.equal(result.submissionVerified,false);
+ }
 });

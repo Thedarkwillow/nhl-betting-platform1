@@ -33,3 +33,57 @@ t('dated final fallback requires explicit ESPN final and unique official NBA gam
  const r=await recentFinalSchedule('2026-11-26T01:00:00Z',async url=>url.includes('www.nba.com')?new Response(html):new Response(JSON.stringify({events:[event]})));
  assert.equal(r.calls,4);assert.equal(r.games.length,1);assert.match(r.games[0].routeResponseSha256,/^[a-f0-9]{64}$/);
 });
+
+t('frozen pregame baseline uses identical independently decided rows for both scores',()=>{
+ const {pairedStats}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const hit={id:'one',market:'points',actual:8,result:'correct',modelEstimate:.75,baselineEstimate:.5};
+ const stats=pairedStats([hit,hit,{...hit,id:'two',baselineEstimate:null},{...hit,id:'three',result:'push'}]).points;
+ assert.equal(stats.decided,2);
+ assert.deepEqual(stats.frozenBaselineComparison,{decided:1,modelBrier:.0625,baselineBrier:.25,modelLogLoss:-Math.log(.75),baselineLogLoss:-Math.log(.5)});
+ assert.equal(pairedStats([{...hit,baselineEstimate:2}]).points.frozenBaselineComparison.modelBrier,null);
+});
+
+t('matchup features require matching archived period, map range and game mode',()=>{
+ const offer={...o,period:'series',mapRange:'maps_1_2',gameMode:'search'};
+ const row={...offer,origin:'board',metric:'H2H',value:'70%'};
+ assert.equal(features(offer,[row]).H2H,.7);
+ for(const field of ['period','mapRange','gameMode']){
+  assert.deepEqual(features(offer,[{...row,[field]:null}]),{});
+  assert.deepEqual(features(offer,[{...row,[field]:'conflicting'}]),{});
+ }
+});
+
+t('frozen low-count feature on/off pair shares the link and grades identical decisions',()=>{
+ const {lowCountPair,pairedStats}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const pair=lowCountPair('steals',0.5,'Lower',1,3);
+ assert.equal(pair.featureOff,Math.exp(-1));
+ assert.equal(pair.featureOn,Math.exp(-2));
+ assert.equal(lowCountPair('blocks',1,'Higher',2,1),null);
+ assert.equal(lowCountPair('steals',0.5,'Higher',1,null),null);
+ const r={market:'steals',id:'x',result:'correct',actual:0,modelEstimate:.6,lowCountPair:pair};
+ const score=pairedStats([r,r,{...r,id:'legacy',lowCountPair:null},{...r,id:'p',result:'push'}]).steals.lowCountFeatureComparison;
+ assert.equal(score.decided,1);
+ assert.equal(score.modelLogLoss,2);
+ assert.equal(score.baselineLogLoss,1);
+});
+
+t('official game page box score verifies both point totals and excludes DNPs',()=>{
+ const {parsePage,url}=require('../scripts/nba-official-web-boxscore.cjs');
+ const {finalHistory}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const game={gameId:'0022600001',gameStatus:3,gameStatusText:'Final',gameTimeUTC:'2026-11-20T23:00:00Z'};
+ for(const [side,abbr,offset,points] of [['homeTeam','BOS',10,12],['awayTeam','TOR',20,9]]){
+  const players=Array.from({length:5},(_,i)=>({personId:offset+i,firstName:'Player',familyName:String(offset+i),comment:'',statistics:{minutes:'48:00',points,reboundsTotal:1,assists:2,threePointersMade:0,steals:1,blocks:0,turnovers:1}}));
+  players.push({personId:offset+5,comment:'DNP - Coach’s Decision',statistics:{minutes:'',points:0}});
+  game[side]={teamTricode:abbr,score:5*points,players};
+ }
+ const html=()=>'<script type="application/json" id="__NEXT_DATA__">'+JSON.stringify({props:{pageProps:{game}}})+'</script>';
+ const g={gameId:22600001,status:3,home:'BOS',away:'TOR',startAt:game.gameTimeUTC};
+ assert.equal(url(g),'https://www.nba.com/game/tor-vs-bos-0022600001/box-score');
+ assert.equal(finalHistory(parsePage(html()),g,'2026-11-22T00:00:00Z','a'.repeat(64)).rows.length,10);
+ assert.equal(parsePage(html()+html()),null);
+ game.homeTeam.score++;
+ assert.equal(parsePage(html()),null);
+ game.homeTeam.score--;
+ game.awayTeam.players[0].personId=10;
+ assert.equal(parsePage(html()),null);
+});

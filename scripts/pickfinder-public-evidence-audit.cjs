@@ -44,7 +44,7 @@ function quotes(offer,rows,cut,maxAge=300000){
 }
 function features(offer,rows){
  const out={},conflicts=new Set();for(const r of rows){
-  if(scope({...r,period:offer.period,mapRange:offer.mapRange,gameMode:offer.gameMode})!==scope(offer)||r.origin!=='board'||r.observedAt!==offer.observedAt)continue;
+  if(scope(r)!==scope(offer)||r.origin!=='board'||r.observedAt!==offer.observedAt)continue;
   const name=r.metric;if(!['L5','L10','L15','SZN','H2H','Avg L10'].includes(name)||typeof r.value!=='string')continue;
   const m=name==='Avg L10'?r.value.match(/^\d+(?:\.\d+)?$/):r.value.match(/^(\d+(?:\.\d+)?)%(?:\n(\d+)\/(\d+))?$/);if(!m)continue;
   const value=Number(m[1]??m[0])/(name==='Avg L10'?1:100);if(!Number.isFinite(value)||value<0||name!=='Avg L10'&&value>1)continue;

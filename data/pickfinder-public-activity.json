@@ -1,6 +1,6 @@
 {
   "kind": "public_pickfinder_activity_readiness_v1",
-  "generatedAt": "2026-11-27T01:32:32.654Z",
+  "generatedAt": "2026-11-27T01:49:38.614Z",
   "archiveInvalid": 0,
   "events": [
     {
@@ -1307,7 +1307,7 @@
   "readiness": {
     "nba/prizepicks": {
       "observedAt": "2026-11-26T08:08:37.191Z",
-      "ageMs": 62635463,
+      "ageMs": 63661423,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 808,
@@ -1316,7 +1316,7 @@
     },
     "nba/underdog": {
       "observedAt": "2026-11-26T08:09:09.081Z",
-      "ageMs": 62603573,
+      "ageMs": 63629533,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 884,
@@ -1325,7 +1325,7 @@
     },
     "nhl/prizepicks": {
       "observedAt": "2026-11-26T08:09:20.730Z",
-      "ageMs": 62591924,
+      "ageMs": 63617884,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -1334,7 +1334,7 @@
     },
     "nhl/underdog": {
       "observedAt": "2026-11-26T08:09:29.495Z",
-      "ageMs": 62583159,
+      "ageMs": 63609119,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 604,
@@ -1343,7 +1343,7 @@
     },
     "nfl/prizepicks": {
       "observedAt": "2026-11-26T08:12:28.013Z",
-      "ageMs": 62404641,
+      "ageMs": 63430601,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 3049,
@@ -1352,7 +1352,7 @@
     },
     "nfl/underdog": {
       "observedAt": "2026-11-26T08:14:36.047Z",
-      "ageMs": 62276607,
+      "ageMs": 63302567,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 5835,
@@ -1361,7 +1361,7 @@
     },
     "cs2/prizepicks": {
       "observedAt": "2026-11-26T08:21:21.233Z",
-      "ageMs": 61871421,
+      "ageMs": 62897381,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 140,
@@ -1370,7 +1370,7 @@
     },
     "cs2/underdog": {
       "observedAt": "2026-11-26T08:21:31.738Z",
-      "ageMs": 61860916,
+      "ageMs": 62886876,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 260,
@@ -1379,7 +1379,7 @@
     },
     "dota2/prizepicks": {
       "observedAt": "2026-11-26T08:25:43.384Z",
-      "ageMs": 61609270,
+      "ageMs": 62635230,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 40,
@@ -1388,7 +1388,7 @@
     },
     "dota2/underdog": {
       "observedAt": "2026-11-26T08:25:51.456Z",
-      "ageMs": 61601198,
+      "ageMs": 62627158,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 52,
@@ -1397,7 +1397,7 @@
     },
     "valorant/prizepicks": {
       "observedAt": "2026-11-26T08:26:00.084Z",
-      "ageMs": 61592570,
+      "ageMs": 62618530,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -1406,7 +1406,7 @@
     },
     "valorant/underdog": {
       "observedAt": "2026-11-26T08:26:03.053Z",
-      "ageMs": 61589601,
+      "ageMs": 62615561,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "observedOffers": 18,
@@ -1415,7 +1415,7 @@
     },
     "lol/prizepicks": {
       "observedAt": "2026-11-26T08:26:11.866Z",
-      "ageMs": 61580788,
+      "ageMs": 62606748,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -1424,7 +1424,7 @@
     },
     "lol/underdog": {
       "observedAt": "2026-11-26T08:26:15.237Z",
-      "ageMs": 61577417,
+      "ageMs": 62603377,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -1433,7 +1433,7 @@
     },
     "cod/prizepicks": {
       "observedAt": "2026-11-26T08:26:18.832Z",
-      "ageMs": 61573822,
+      "ageMs": 62599782,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -1442,7 +1442,7 @@
     },
     "cod/underdog": {
       "observedAt": "2026-11-26T08:26:22.468Z",
-      "ageMs": 61570186,
+      "ageMs": 62596146,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "observedOffers": 0,
@@ -1452,7 +1452,7 @@
   },
   "cache": {
     "state": "historical_cache_shadow_audit",
-    "generatedAt": "2026-11-27T01:32:32.654Z",
+    "generatedAt": "2026-11-27T01:49:38.614Z",
     "profiles": 1704,
     "fields": 977100,
     "candidates": 0,
@@ -1502,17 +1502,17 @@
   "originalPlatformVerified": false,
   "modelApproved": false,
   "historicalRecovery": {
-    "generatedAt": "2026-11-27T01:32:32.654Z",
+    "generatedAt": "2026-11-27T01:49:38.614Z",
     "fields": 977100,
-    "candidates": 14192,
-    "cacheRecords": 1322,
+    "candidates": 14379,
+    "cacheRecords": 1336,
     "identityCandidates": 111,
     "reviewedIdentities": 110,
     "qualifiedCache": 1296,
     "qualifiedModelInputs": 0,
     "bySport": {
       "nba": {
-        "candidates": 1966
+        "candidates": 2153
       },
       "nhl": {
         "candidates": 9130
@@ -1737,5 +1737,75 @@
     },
     "conflictingMovementGroups": 0,
     "distinctUnconflictedPairedGroups": 43
+  },
+  "reviewedHistoryModel": {
+    "policy": "reviewed-history-jeffreys-half-blend-v1",
+    "sourceClockBySport": {
+      "nhl": 0,
+      "nfl": 0
+    },
+    "eligibleBoardSnapshots": 0,
+    "bySport": {
+      "nhl": {},
+      "nfl": {}
+    },
+    "retrospective": true,
+    "productionChanged": false,
+    "modelApproved": false,
+    "paidRequests": 0
+  },
+  "valorantRetrospective": {
+    "kind": "pickfinder_valorant_matched_retrospective_v1",
+    "generatedAt": "2026-11-27T01:49:38.614Z",
+    "examples": 10,
+    "series": 2,
+    "even": {
+      "brier": 0.25,
+      "logLoss": 0.6931471805599453
+    },
+    "l10": {
+      "brier": 0.18500000000000005,
+      "logLoss": 0.5456734414394461
+    },
+    "l5": {
+      "brier": 0.144,
+      "logLoss": 0.3993666994468656
+    },
+    "l5L10Blend": {
+      "brier": 0.15725,
+      "logLoss": 0.4595488919794918
+    },
+    "byMarket": {
+      "kills": {
+        "examples": 10,
+        "series": 2,
+        "even": {
+          "brier": 0.25,
+          "logLoss": 0.6931471805599453
+        },
+        "l10": {
+          "brier": 0.18500000000000005,
+          "logLoss": 0.5456734414394461
+        },
+        "l5": {
+          "brier": 0.144,
+          "logLoss": 0.3993666994468656
+        },
+        "l5L10Blend": {
+          "brier": 0.15725,
+          "logLoss": 0.4595488919794918
+        }
+      }
+    },
+    "skip": {
+      "missingFinal": 23,
+      "unprovedPregame": 61
+    },
+    "conflicts": 0,
+    "modelApproved": false,
+    "paidRequests": 0,
+    "prospective": false,
+    "platformSettlementVerified": false,
+    "frozenModelsChanged": false
   }
 }

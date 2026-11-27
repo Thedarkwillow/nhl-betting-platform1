@@ -12,6 +12,7 @@ function invocation(env,now=new Date()){
  if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&['capture_0600','capture_0900'].includes(env.REQUESTED_MODE))return decide({eventName:'workflow_dispatch',mode:env.REQUESTED_MODE,now});
  const clock=pacific(now),mode=env.REQUESTED_MODE||'board_and_deep';
  if(mode==='nba_history_repair'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual repair only');return {allowed:!protectedMorningClock(clock),expected:'manual',clock,deep:true,historyRepair:true,state:'nba_history_repair_gate'};}
+ if(mode==='game_timezone_validation'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual game clock experiment only');return {allowed:!protectedMorningClock(clock),expected:'manual',clock,gameTimezoneOnly:true,state:'game_timezone_experiment_gate'};}
  if(mode==='timezone_validation'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual experiment only');return {allowed:!protectedMorningClock(clock),expected:'manual',clock,timezoneOnly:true,state:'timezone_experiment_gate'};}
  if(['current_profiles','clock_audit'].includes(mode)&&env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual bounded pass only');
  if(!['current_profiles','clock_audit','board_and_deep','deep_research_now','probe_now','nba_context_only','features_only','boards_only'].includes(mode))throw Error('mode');
@@ -228,6 +229,14 @@ async function main(root,env=process.env){
  const current=p.currentProfiles?currentProfileQueue(load(root,null,{latestOnly:true}),iterate(root,'profiles')):null;
  if(current){const {pending,...counts}=current;console.log(JSON.stringify({state:'current_profile_plan',...counts,pending:pending.length,legacyRepair:false,paidApiRequests:0}));if(!pending.length)return;}
  const {chromium}=require('playwright');
+ if(p.gameTimezoneOnly){
+  const probe=require('./pickfinder-controlled-clock.cjs'),until=Date.now()+6*60000;
+  const alive=()=>{const c=pacific(new Date());return Date.now()<until&&c.day===p.clock.day&&!protectedMorningClock(c);};
+  const targets=probe.selectProfiles(iterate(root,'profiles'),read(root,'directory'),new Date().toISOString());
+  const result=targets.length?await probe.observe({targets,open:zone=>openHostedBoard(chromium,env,zone),alive,
+   write:data=>persist(root,'directory',data),premium,origin:ORIGIN}):{targets:0,attempts:0,expected:0,providerDisplayZoneVerified:false};
+  console.log(JSON.stringify({state:'public_game_timezone_experiment',...result,paidApiRequests:0}));return;
+ }
  if(p.timezoneOnly){const probe=require('./pickfinder-movement-clock-probe.cjs'),until=Date.now()+8*60000;const alive=()=>{const c=pacific(new Date());return Date.now()<until&&c.day===p.clock.day&&!protectedMorningClock(c);};const prior=read(root,'directory');const targets=probe.select(require('./pickfinder-public-model-validation.cjs').history(root,'profile-market-evidence'),new Date().toISOString(),prior);const result=await probe.observe({targets,prior,open:zone=>openHostedBoard(chromium,env,zone),alive,write:data=>persist(root,'directory',data),premium,origin:ORIGIN});console.log(JSON.stringify({state:'movement_clock_experiment',...result}));return;}
  const {page,context}=await openHostedBoard(chromium,env);
  const started=Date.now(),deadline=started+(p.clockAudit?8:p.expected==='manual'?40:45)*60000,alive=()=>{const c=pacific(new Date());return Date.now()<deadline&&(p.currentProfiles||c.day===p.clock.day)&&(p.expected==='manual'?!protectedMorningClock(c):c.hour===p.clock.hour&&c.minute<55);};

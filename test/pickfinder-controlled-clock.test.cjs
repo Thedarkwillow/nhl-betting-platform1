@@ -35,3 +35,15 @@ test('observation archives each requested zone separately and never qualifies',a
  const r=await observe({targets,alive:()=>true,origin:'https://www.pickfinder.app',premium:async()=>true,write:async x=>out.push(x),open:async zone=>{opened.push(zone);return {context:{close:async()=>closed.push(zone)},page:{goto:async()=>{},getByRole:()=>({waitFor:async()=>{}}),getByText:()=>({first:()=>({waitFor:async()=>{}})}),evaluate:async()=>({routeVerified:true,playerLabelVerified:true,browserClock:{zone,offsetMinutes:0},entries:[],clocks:[]})}}}});
  a.deepEqual(opened,ZONES);a.deepEqual(closed,ZONES);a.equal(out.length,3);a.equal(r.fullDesign,false);a.ok(out.every(x=>!x.modelInputsApproved&&!x.providerDisplayZoneVerified));
 });
+
+test('game-clock targets are recent exact profiles, at most one event per supported sport, and skip complete experiments',()=>{
+ const {selectProfiles,ZONES}=require('../scripts/pickfinder-controlled-clock.cjs');
+ const at='2026-11-27T08:20:00Z',observedAt='2026-11-27T08:15:00Z';
+ const row=(sport,eventId)=>({sport,eventId,player:'Fixture',market:'points',
+  detailId:`/players/${sport}/fixture?prop=x:points:${eventId}:2`,
+  independentReconciliationContext:{observedAt,displayedMatchupLabel:'BOS @ NYK • Fri @ 5:00PM',displayedLocalMatchup:{team:'BOS',opponent:'NYK'}}});
+ const old={...row('nfl','older'),independentReconciliationContext:{...row('nfl','older').independentReconciliationContext,observedAt:'2026-11-26T19:00:00Z'}};
+ const prior=[{schema:'pickfinder-controlled-clock-v1',records:ZONES.map(requestedZone=>({sport:'nba',eventId:'already',requestedZone,
+  browserClock:{zone:requestedZone},routeVerified:true,playerLabelVerified:true,localMatchup:{},observedAt}))}];
+ a.deepEqual(selectProfiles([{records:[old,row('nba','already'),row('nba','a'),row('nba','b'),row('nhl','c'),row('cs2','d')]}],prior,at).map(x=>x.eventId),['a','c']);
+});

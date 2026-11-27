@@ -34,3 +34,12 @@ test('conflicting observations cannot certify a pair or combine isolated sides',
  assert.equal(summarize([r,{...r,higher:'-145'}]).distinctUnconflictedPairedGroups,0);
  assert.equal(summarize([{...r,higher:null},{...r,lower:null}]).distinctUnconflictedPairedGroups,0);
 });
+test('matchup table keeps its named season, L10 and L5 ranks with unresolved team and positional filter',()=>{
+ const f={origin:'profile',scope:'STAT | SZN | L10 | L5 | STRENGTH',metric:'row 1',tab:'Defense',observedAt:time};
+ const cells=['RA\n4.9 allowed/g','2nd','9th','20th','TOUGH'].map(t=>cell(t));
+ const [r]=extract(f,cells);
+ assert.deepEqual(r.displayedRanks,{SZN:2,L10:9,L5:20});assert.equal(r.defendingTeamVerified,false);
+ assert.equal(r.positionFilterVerified,false);assert.equal(r.displayedAllowedPerGame,4.9);
+ assert.deepEqual(extract(f,[cells[0],cell('31st'),...cells.slice(2)]),[]);
+ assert.deepEqual(extract({...f,tab:'Injuries'},cells),[]);
+});

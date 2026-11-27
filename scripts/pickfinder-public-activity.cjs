@@ -47,6 +47,7 @@ function run(root,clock=new Date().toISOString()){
  report.historicalRecovery={generatedAt:audit.generatedAt,fields:audit.profiles.fields,candidates:audit.nativeHistory.candidates,cacheRecords:audit.nativeHistory.reusableResearchCandidates,identityCandidates:audit.nativeHistory.identityEvidence.multipleGameCandidates,reviewedIdentities:audit.nativeHistory.independentlyReviewedProviderIdentities,qualifiedCache:audit.nativeHistory.qualifiedCacheEntries,qualifiedModelInputs:audit.nativeHistory.qualifiedModelInputs,bySport:Object.fromEntries(Object.entries(audit.nativeHistory.bySport).map(([k,v])=>[k,{candidates:v.candidates}]))};
  report.esportsScopeRecovery=audit.boards.esportsEvidence;
  report.sportsbookThresholdEvidence=audit.boards.quoteEvidence;
+ report.profileMarketEvidence=audit.profiles.profileMarketEvidence;
  fs.writeFileSync(path.join(root,'data/pickfinder-public-activity.json'),JSON.stringify(report,null,2)+'\n');
  console.log(JSON.stringify({kind:report.kind,events:report.events.length,archiveInvalid:report.archiveInvalid,readiness:report.readiness,cache:report.cache,coverage:report.coverage,grading:report.grading,paidRequests:0}));
  return report;

@@ -67,11 +67,22 @@ async function recentFinalSchedule(clock,client=fetch){
  }catch{failures.push(date);}}
  return {games,calls,failedDates:failures};
 }
-async function recoverFinalHistory(root,schedule,clock,fetchBox=get){
+async function recoverFinalHistory(root,schedule,clock,fetchBox=get,fetchPage=require('./nba-official-web-boxscore.cjs').read){
  const prior=history(root,'nba-final-history'),done=new Set(prior.map(x=>x.doc.gameId));
  const candidates=(schedule?.games||[]).filter(g=>g.status===3&&et(g.startAt)<et(clock)&&dt(clock)-dt(g.startAt)<45*86400000&&!done.has(g.gameId)).sort((a,b)=>dt(b.startAt)-dt(a.startAt)).slice(0,12);
  let calls=0,archived=0,rows=0;
- for(const g of candidates)try{calls++;const d=await fetchBox('https://cdn.nba.com/static/json/liveData/boxscore/boxscore_'+String(g.gameId).padStart(10,'0')+'.json'),x=finalHistory(d.doc,g,now(),d.digest);if(x){if(g.routeResponseSha256&&g.independentResponseSha256)x.scheduleEvidence={source:g.source,routeResponseSha256:g.routeResponseSha256,independentResponseSha256:g.independentResponseSha256};save(root,'nba-final-history',x);archived++;rows+=x.rows.length;}}catch{}
+ for(const g of candidates)try{
+  calls++;
+  const dated=g.source==='NBA dated game route plus ESPN final'&&[g.routeResponseSha256,g.independentResponseSha256].every(d=>/^[a-f0-9]{64}$/.test(d));
+  const d=dated?await fetchPage(g):await fetchBox('https://cdn.nba.com/static/json/liveData/boxscore/boxscore_'+String(g.gameId).padStart(10,'0')+'.json');
+  const x=finalHistory(d.doc,g,now(),d.digest);
+  if(!x)continue;
+  if(dated){
+   x.kind='nba_official_web_final_history_v1';x.source='nba.com official game box score';x.sourceUrl=d.sourceUrl;
+   x.scheduleEvidence={source:g.source,routeResponseSha256:g.routeResponseSha256,independentResponseSha256:g.independentResponseSha256};
+  }
+  save(root,'nba-final-history',x);archived++;rows+=x.rows.length;
+ }catch{}
  return {calls,archived,rows,seasonCompletenessVerified:false};
 }
 function candidates(events,h,schedule,clock){
@@ -128,7 +139,17 @@ function gradingQueue(frames,prior,clock){
 async function grade(root,clock){
  const frames=history(root,'nba-forecasts'),prior=new Set(history(root,'nba-grades').flatMap(x=>(x.doc.rows||[]).map(y=>y.id)));
  const {games,selected,archived,pendingNotDue,alreadyGraded,invalid}=gradingQueue(frames,prior,clock);
- const finals=new Map(),sourceFailures={},sourceRoutes={};let calls=0;for(const [id,start] of [...games].slice(0,12)){const adapter=require('./nba-bounded-official-final.cjs'),a=await adapter.fetchFinal(id,start,clock);calls+=a.calls;for(const [k,n] of Object.entries(a.failures))sourceFailures[k]=(sourceFailures[k]||0)+n;if(!a.final)continue;const f=a.final,rows=adapter.parse(f.bytes,id,start,f.observedAt);if(rows){sourceRoutes[f.source]=(sourceRoutes[f.source]||0)+1;finals.set(id,{rows,observedAt:f.observedAt,digest:sha(f.bytes),source:f.source});}}
+ const finals=new Map(),sourceFailures={},sourceRoutes={};let calls=0;
+ const archivedFinals=history(root,'nba-final-history');
+ for(const [id,start] of [...games].slice(0,12)){
+  const cached=archivedFinals.filter(({doc,first})=>doc.kind==='nba_official_web_final_history_v1'&&doc.source==='nba.com official game box score'&&doc.gameId===id&&dt(doc.startAt)===dt(start)&&doc.officialFinalClockVerified===true&&dt(doc.capturedAt)>dt(start)&&dt(doc.capturedAt)<=dt(first)+999&&dt(first)<=dt(clock)&&/^[a-f0-9]{64}$/.test(doc.sourceResponseSha256));
+  if(cached.length===1){
+   const doc=cached[0].doc;
+   const entries=doc.rows.filter(p=>p.gameId===id&&p.officialGameFinalVerified===true&&p.identityVerified===true&&p.appeared===true).map(p=>[p.playerId,p]);
+   const rows=new Map(entries);
+   if(rows.size===entries.length&&rows.size>=10){finals.set(id,{rows,observedAt:doc.capturedAt,digest:doc.sourceResponseSha256,source:doc.source});sourceRoutes.archived_official_web=(sourceRoutes.archived_official_web||0)+1;continue;}
+  }
+  const adapter=require('./nba-bounded-official-final.cjs'),a=await adapter.fetchFinal(id,start,clock);calls+=a.calls;for(const [k,n] of Object.entries(a.failures))sourceFailures[k]=(sourceFailures[k]||0)+n;if(!a.final)continue;const f=a.final,rows=adapter.parse(f.bytes,id,start,f.observedAt);if(rows){sourceRoutes[f.source]=(sourceRoutes[f.source]||0)+1;finals.set(id,{rows,observedAt:f.observedAt,digest:sha(f.bytes),source:f.source});}}
  const rows=[],seen=new Set();for(const x of selected){if(seen.has(x.id))continue;seen.add(x.id);const p=x.p,f=finals.get(p.gameId),stat=f?.rows.get(p.playerId);if(!stat||stat.team!==p.team)continue;const result=nba.gradePaper(p,stat);if(result==='pending')continue;rows.push({id:x.id,forecastDigest:x.forecastDigest,gameId:p.gameId,playerId:p.playerId,market:p.market,actual:stat[p.market],result,modelEstimate:p.rawSelectedEstimate,...(p.lowCountPair?{lowCountPair:p.lowCountPair}:{}),baselineEstimate:p.baselineSelectedEstimate??null,modelProjection:p.projection,pickfinderAverage:Number.isFinite(p.features?.['Avg L10'])?p.features['Avg L10']:null,quoteBenchmarks:p.quoteBenchmarks||[],side:p.offeredSide,officialResponseSha256:f.digest,officialObservedAt:f.observedAt,officialSource:f.source});}
  if(rows.length)save(root,'nba-grades',{kind:'pickfinder_public_nba_independent_grades_v1',generatedAt:now(),rows,appSettlementVerified:false});return {registered:selected.length,archivedPregameRows:archived,pendingNotDue,alreadyGraded,invalidPregameRows:invalid,dueForGrade:selected.length,pendingDueAfterRun:selected.length-rows.length,newGrades:rows.length,finalGames:finals.size,calls,sourceFailures,sourceRoutes};
 }
@@ -178,5 +199,5 @@ async function main(root){
  fs.mkdirSync(path.join(root,'data'),{recursive:true});fs.writeFileSync(path.join(root,'data/pickfinder-public-research-health.json'),JSON.stringify(a.summary,null,2)+'\n');
  console.log(JSON.stringify({state:'public_research_validation',manifests:a.summary.archiveManifests,invalid:a.summary.invalidManifests,offerRefs:a.summary.offerRefs,exactComparisons:a.summary.exactComparisons,nbaShadowRows:rows.length,nbaSources:a.summary.nbaOfficialSources,independentGrading:a.summary.independentGrading,paidRequests:0,privateRepoUsed:false}));
 }
-module.exports={lowCountPair,candidates,modelRows,aliases,pairedStats,reviewed,history,save,gradingQueue,finalHistory,recoverFinalHistory,datedFinalGames,recentFinalSchedule};
+module.exports={grade,lowCountPair,candidates,modelRows,aliases,pairedStats,reviewed,history,save,gradingQueue,finalHistory,recoverFinalHistory,datedFinalGames,recentFinalSchedule};
 if(require.main===module)main(fs.realpathSync(process.argv[2]||'.')).catch(()=>{console.error('Public research validation failed closed');process.exitCode=1;});

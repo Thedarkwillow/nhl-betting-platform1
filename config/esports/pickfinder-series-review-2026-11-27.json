@@ -1,0 +1,1483 @@
+{
+  "kind": "pickfinder_independent_series_review_v1",
+  "researchOnly": true,
+  "series": [
+    {
+      "sport": "cs2",
+      "sourceEventId": "20261125D8DAC33A",
+      "reportedDate": "2026-11-25",
+      "seriesUrl": "https://www.hltv.org/matches/2400800/nordic-partners-vs-donstu-cct-2026-europe-series-16-closed-qualifier",
+      "firstTwoMapNames": [
+        "Cache",
+        "Nuke"
+      ],
+      "roster": [
+        {
+          "label": "Due1yant",
+          "profileUrl": "https://www.hltv.org/player/20946/due1yant",
+          "pickfinderProfilePath": "/players/cs2/f1ubl7fg43g50yz"
+        },
+        {
+          "label": "Marix",
+          "profileUrl": "https://www.hltv.org/player/20110/marix",
+          "pickfinderProfilePath": "/players/cs2/cmvv1cs8x2buwav"
+        },
+        {
+          "label": "Muciek",
+          "profileUrl": "https://www.hltv.org/player/25585/muciek",
+          "pickfinderProfilePath": "/players/cs2/cr98yld48k1ftta"
+        },
+        {
+          "label": "NeoLife",
+          "profileUrl": "https://www.hltv.org/player/21350/neolife",
+          "pickfinderProfilePath": "/players/cs2/nai9r0qsrnsf3iw"
+        },
+        {
+          "label": "bavar1n",
+          "profileUrl": "https://www.hltv.org/player/25896/bavar1n",
+          "pickfinderProfilePath": "/players/cs2/g9ox33sjsuuzpp2"
+        },
+        {
+          "label": "gleb86rus",
+          "profileUrl": "https://www.hltv.org/player/25167/gleb86rus",
+          "pickfinderProfilePath": "/players/cs2/nuf4oqkgxc4gm5p"
+        },
+        {
+          "label": "k1to",
+          "profileUrl": "https://www.hltv.org/player/12781/k1to",
+          "pickfinderProfilePath": "/players/cs2/j5gu2ldmxkh3du8"
+        },
+        {
+          "label": "phorate",
+          "profileUrl": "https://www.hltv.org/player/26413/phorate",
+          "pickfinderProfilePath": "/players/cs2/n7a1uviu11am7ml"
+        }
+      ]
+    },
+    {
+      "sport": "cs2",
+      "sourceEventId": "2026112650362690",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://www.hltv.org/matches/2400657/forze-reload-vs-drama-cct-2026-europe-series-15",
+      "firstTwoMapNames": [
+        "Ancient",
+        "Mirage"
+      ],
+      "roster": [
+        {
+          "label": "Chill",
+          "profileUrl": "https://www.hltv.org/player/19812/chill",
+          "pickfinderProfilePath": "/players/cs2/oz4syt5lt2e0yp2"
+        },
+        {
+          "label": "DEPRESHN",
+          "profileUrl": "https://www.hltv.org/player/19786/depreshn",
+          "pickfinderProfilePath": "/players/cs2/9z0zg3u1pcq9zwh"
+        },
+        {
+          "label": "Frip",
+          "profileUrl": "https://www.hltv.org/player/19566/frip",
+          "pickfinderProfilePath": "/players/cs2/lvtz72h9gqlmcvj"
+        },
+        {
+          "label": "HeCkBNk",
+          "profileUrl": "https://www.hltv.org/player/25609/heckbnk",
+          "pickfinderProfilePath": "/players/cs2/012uwaetq7hevsp"
+        },
+        {
+          "label": "KusMe",
+          "profileUrl": "https://www.hltv.org/player/23628/kusme",
+          "pickfinderProfilePath": "/players/cs2/2s3qwqpg7uefnn7"
+        },
+        {
+          "label": "Lack1",
+          "profileUrl": "https://www.hltv.org/player/13240/lack1",
+          "pickfinderProfilePath": "/players/cs2/798yw8my6zycp2s"
+        },
+        {
+          "label": "YumsaN",
+          "profileUrl": "https://www.hltv.org/player/20504/yumsan",
+          "pickfinderProfilePath": "/players/cs2/fcekd28mes5c7xs"
+        },
+        {
+          "label": "andr1x",
+          "profileUrl": "https://www.hltv.org/player/14244/andr1x",
+          "pickfinderProfilePath": "/players/cs2/eedw6qcgs15wa8v"
+        },
+        {
+          "label": "choiv7",
+          "profileUrl": "https://www.hltv.org/player/20685/choiv7",
+          "pickfinderProfilePath": "/players/cs2/cwmlz52zewigob1"
+        }
+      ]
+    },
+    {
+      "sport": "cs2",
+      "sourceEventId": "2026112670E5F104",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://www.hltv.org/matches/2400576/100-thieves-vs-9z-pgl-major-singapore-2026-stage-1",
+      "firstTwoMapNames": [
+        "Nuke",
+        "Dust 2"
+      ],
+      "roster": [
+        {
+          "label": "Gizmy",
+          "profileUrl": "https://www.hltv.org/player/21816/gizmy",
+          "pickfinderProfilePath": "/players/cs2/acphdzip9ah477u"
+        },
+        {
+          "label": "HUASOPEEK",
+          "profileUrl": "https://www.hltv.org/player/22613/huasopeek",
+          "pickfinderProfilePath": "/players/cs2/fg52qcdy7yej5d9"
+        },
+        {
+          "label": "device",
+          "profileUrl": "https://www.hltv.org/player/7592/device",
+          "pickfinderProfilePath": "/players/cs2/yoqtwbv6uc6leni"
+        },
+        {
+          "label": "dgt",
+          "profileUrl": "https://www.hltv.org/player/14736/dgt",
+          "pickfinderProfilePath": "/players/cs2/id2uf5ot80ms5oo"
+        },
+        {
+          "label": "history",
+          "profileUrl": "https://www.hltv.org/player/20939/history",
+          "pickfinderProfilePath": "/players/cs2/n50igevl9ardbnm"
+        },
+        {
+          "label": "luchov",
+          "profileUrl": "https://www.hltv.org/player/20394/luchov",
+          "pickfinderProfilePath": "/players/cs2/uf3pcvx03g3k6xm"
+        },
+        {
+          "label": "max",
+          "profileUrl": "https://www.hltv.org/player/12092/max",
+          "pickfinderProfilePath": "/players/cs2/2l8hxj94mm620bg"
+        },
+        {
+          "label": "poiii",
+          "profileUrl": "https://www.hltv.org/player/23397/poiii",
+          "pickfinderProfilePath": "/players/cs2/irrertmif0zjlof"
+        },
+        {
+          "label": "rain",
+          "profileUrl": "https://www.hltv.org/player/8183/rain",
+          "pickfinderProfilePath": "/players/cs2/cy7qneakzvjx5w7"
+        },
+        {
+          "label": "sirah",
+          "profileUrl": "https://www.hltv.org/player/22695/sirah",
+          "pickfinderProfilePath": "/players/cs2/v1kk02jq1q269h8"
+        }
+      ]
+    },
+    {
+      "sport": "cs2",
+      "sourceEventId": "2026112684FBC7CB",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://www.hltv.org/matches/2400659/baks-vs-nordic-partners-cct-2026-europe-series-15",
+      "firstTwoMapNames": [
+        "Nuke",
+        "Cache"
+      ],
+      "roster": [
+        {
+          "label": "AdrieN",
+          "profileUrl": "https://www.hltv.org/player/23767/adrien",
+          "pickfinderProfilePath": "/players/cs2/pkq7xcvmh697t15"
+        },
+        {
+          "label": "Marix",
+          "profileUrl": "https://www.hltv.org/player/20110/marix",
+          "pickfinderProfilePath": "/players/cs2/cmvv1cs8x2buwav"
+        },
+        {
+          "label": "Muciek",
+          "profileUrl": "https://www.hltv.org/player/25585/muciek",
+          "pickfinderProfilePath": "/players/cs2/cr98yld48k1ftta"
+        },
+        {
+          "label": "Norwi",
+          "profileUrl": "https://www.hltv.org/player/19882/norwi",
+          "pickfinderProfilePath": "/players/cs2/7l3tqqkajt09yav"
+        },
+        {
+          "label": "bavar1n",
+          "profileUrl": "https://www.hltv.org/player/25896/bavar1n",
+          "pickfinderProfilePath": "/players/cs2/g9ox33sjsuuzpp2"
+        },
+        {
+          "label": "danistzz",
+          "profileUrl": "https://www.hltv.org/player/22039/danistzz",
+          "pickfinderProfilePath": "/players/cs2/ykn34dyf6wph38a"
+        },
+        {
+          "label": "glowiing",
+          "profileUrl": "https://www.hltv.org/player/17508/glowiing",
+          "pickfinderProfilePath": "/players/cs2/4sgo1ktz4ru4oaw"
+        },
+        {
+          "label": "k1to",
+          "profileUrl": "https://www.hltv.org/player/12781/k1to",
+          "pickfinderProfilePath": "/players/cs2/j5gu2ldmxkh3du8"
+        },
+        {
+          "label": "turbo",
+          "profileUrl": "https://www.hltv.org/player/25509/turbo",
+          "pickfinderProfilePath": "/players/cs2/dopxkgs84jbakre"
+        },
+        {
+          "label": "whisper",
+          "profileUrl": "https://www.hltv.org/player/24316/whisper",
+          "pickfinderProfilePath": "/players/cs2/m6ownkgxoyg2j7k"
+        }
+      ]
+    },
+    {
+      "sport": "cs2",
+      "sourceEventId": "20261126A90BC5DE",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://www.hltv.org/matches/2400873/elusive-vs-villainous-crossfire-season-7",
+      "firstTwoMapNames": [
+        "Inferno",
+        "Anubis"
+      ],
+      "roster": [
+        {
+          "label": "Austin",
+          "profileUrl": "https://www.hltv.org/player/20793/austin",
+          "pickfinderProfilePath": "/players/cs2/uz3i3ochrbwx7sf"
+        },
+        {
+          "label": "Burglar",
+          "profileUrl": "https://www.hltv.org/player/25874/burglar",
+          "pickfinderProfilePath": "/players/cs2/y1ynqxzjmql7ch6"
+        },
+        {
+          "label": "DYLAN",
+          "profileUrl": "https://www.hltv.org/player/23672/dylan",
+          "pickfinderProfilePath": "/players/cs2/di5rm35pnox01sj"
+        },
+        {
+          "label": "FRIZZY",
+          "profileUrl": "https://www.hltv.org/player/18442/frizzy",
+          "pickfinderProfilePath": "/players/cs2/kkdwzh9mm12bhlo"
+        },
+        {
+          "label": "Jonji",
+          "profileUrl": "https://www.hltv.org/player/12113/jonji",
+          "pickfinderProfilePath": "/players/cs2/yahk5pzzu69dm0g"
+        },
+        {
+          "label": "LittleBEER",
+          "profileUrl": "https://www.hltv.org/player/22133/littlebeer",
+          "pickfinderProfilePath": "/players/cs2/a5501ykzv4crbji"
+        },
+        {
+          "label": "Sunk",
+          "pickfinderProfilePath": "/players/cs2/7fovpzaejecoi7g"
+        },
+        {
+          "label": "Treehen",
+          "profileUrl": "https://www.hltv.org/player/25352/treehen",
+          "pickfinderProfilePath": "/players/cs2/2ayjb526xhyw9cp"
+        },
+        {
+          "label": "brett",
+          "profileUrl": "https://www.hltv.org/player/14799/brett",
+          "pickfinderProfilePath": "/players/cs2/k8wk3kmk08ail4z"
+        },
+        {
+          "label": "bright",
+          "profileUrl": "https://www.hltv.org/player/25646/bright",
+          "pickfinderProfilePath": "/players/cs2/bl9vuxpdserlo8q"
+        }
+      ]
+    },
+    {
+      "sport": "cs2",
+      "sourceEventId": "20261126B19CEEEB",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://www.hltv.org/matches/2400658/hype-tech-vs-xmeta-cct-2026-europe-series-15",
+      "firstTwoMapNames": [
+        "Mirage",
+        "Cache"
+      ],
+      "roster": [
+        {
+          "label": "Cjoffo",
+          "profileUrl": "https://www.hltv.org/player/21302/cjoffo",
+          "pickfinderProfilePath": "/players/cs2/d6v44v47iaaxl4u"
+        },
+        {
+          "label": "Dragon",
+          "profileUrl": "https://www.hltv.org/player/20253/dragon",
+          "pickfinderProfilePath": "/players/cs2/18bzv7vv29baltw"
+        },
+        {
+          "label": "Kind0",
+          "profileUrl": "https://www.hltv.org/player/20252/kind0",
+          "pickfinderProfilePath": "/players/cs2/xhd0lixldtopz3u"
+        },
+        {
+          "label": "Something",
+          "profileUrl": "https://www.hltv.org/player/22327/something",
+          "pickfinderProfilePath": "/players/cs2/1vymn4pqmbk102q"
+        },
+        {
+          "label": "Temny Prince",
+          "profileUrl": "https://www.hltv.org/player/25322/temny-prince",
+          "pickfinderProfilePath": "/players/cs2/exze6aodcabozc4"
+        },
+        {
+          "label": "VLDN",
+          "profileUrl": "https://www.hltv.org/player/20813/vldn",
+          "pickfinderProfilePath": "/players/cs2/y8l1unrp1ftzetr"
+        },
+        {
+          "label": "brutmonster",
+          "profileUrl": "https://www.hltv.org/player/21783/brutmonster",
+          "pickfinderProfilePath": "/players/cs2/evcnha2i6pw2hdf"
+        },
+        {
+          "label": "h1te",
+          "profileUrl": "https://www.hltv.org/player/19231/h1te",
+          "pickfinderProfilePath": "/players/cs2/2yituh9kz036114"
+        },
+        {
+          "label": "sm3t",
+          "profileUrl": "https://www.hltv.org/player/20600/sm3t",
+          "pickfinderProfilePath": "/players/cs2/zr7757kmqobs70i"
+        },
+        {
+          "label": "sstiNiX",
+          "profileUrl": "https://www.hltv.org/player/21431/sstinix",
+          "pickfinderProfilePath": "/players/cs2/lkdwvf4yd9ujqme"
+        }
+      ]
+    },
+    {
+      "sport": "cs2",
+      "sourceEventId": "20261126C82D3672",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://www.hltv.org/matches/2400573/m80-vs-eternal-fire-pgl-major-singapore-2026-stage-1",
+      "firstTwoMapNames": [
+        "Dust 2",
+        "Anubis"
+      ],
+      "roster": [
+        {
+          "label": "JBa",
+          "profileUrl": "https://www.hltv.org/player/21665/jba",
+          "pickfinderProfilePath": "/players/cs2/m3f2o2swc5dkjfz"
+        },
+        {
+          "label": "Kvem",
+          "profileUrl": "https://www.hltv.org/player/21452/kvem",
+          "pickfinderProfilePath": "/players/cs2/t2lttsuygcwlbxl"
+        },
+        {
+          "label": "Lake",
+          "profileUrl": "https://www.hltv.org/player/22921/lake",
+          "pickfinderProfilePath": "/players/cs2/wbb9gnarrmdqoxn"
+        },
+        {
+          "label": "MisteM",
+          "profileUrl": "https://www.hltv.org/player/16811/mistem",
+          "pickfinderProfilePath": "/players/cs2/mp3vrg2adugpxjt"
+        },
+        {
+          "label": "Swisher",
+          "profileUrl": "https://www.hltv.org/player/16599/swisher",
+          "pickfinderProfilePath": "/players/cs2/yv5ldt2gbg74aq8"
+        },
+        {
+          "label": "jottAAA",
+          "profileUrl": "https://www.hltv.org/player/22361/jottaaa",
+          "pickfinderProfilePath": "/players/cs2/rfuts2r0t85cd95"
+        },
+        {
+          "label": "regali",
+          "profileUrl": "https://www.hltv.org/player/20123/regali",
+          "pickfinderProfilePath": "/players/cs2/v15ff2btfwe796g"
+        },
+        {
+          "label": "s1n",
+          "profileUrl": "https://www.hltv.org/player/20104/s1n",
+          "pickfinderProfilePath": "/players/cs2/lclu2l05ja2yo2i"
+        },
+        {
+          "label": "slaxz-",
+          "profileUrl": "https://www.hltv.org/player/15370/slaxz",
+          "pickfinderProfilePath": "/players/cs2/i6pos5qhfgdetgz"
+        },
+        {
+          "label": "soulfly",
+          "profileUrl": "https://www.hltv.org/player/20968/soulfly",
+          "pickfinderProfilePath": "/players/cs2/agwfljw0nydsug9"
+        }
+      ]
+    },
+    {
+      "sport": "cs2",
+      "sourceEventId": "20261126C91E677F",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://www.hltv.org/matches/2400578/wildcard-vs-chinggis-warriors-pgl-major-singapore-2026-stage-1",
+      "firstTwoMapNames": [
+        "Dust 2",
+        "Cache"
+      ],
+      "roster": [
+        {
+          "label": "Cxzi",
+          "profileUrl": "https://www.hltv.org/player/17353/cxzi",
+          "pickfinderProfilePath": "/players/cs2/ecck3cmjdl2164u"
+        },
+        {
+          "label": "HexT",
+          "profileUrl": "https://www.hltv.org/player/18838/hext",
+          "pickfinderProfilePath": "/players/cs2/fhamzz46twpwi72"
+        },
+        {
+          "label": "ROUX",
+          "profileUrl": "https://www.hltv.org/player/19229/roux",
+          "pickfinderProfilePath": "/players/cs2/dej8s1vqjzwduum"
+        },
+        {
+          "label": "cool4st",
+          "profileUrl": "https://www.hltv.org/player/19537/cool4st",
+          "pickfinderProfilePath": "/players/cs2/iap89heay6xynnx"
+        },
+        {
+          "label": "fr3nd",
+          "profileUrl": "https://www.hltv.org/player/20018/fr3nd",
+          "pickfinderProfilePath": "/players/cs2/buwrr6y0b95egzm"
+        },
+        {
+          "label": "fury5k",
+          "profileUrl": "https://www.hltv.org/player/21428/fury5k",
+          "pickfinderProfilePath": "/players/cs2/k92tb6u4q5ltl4t"
+        },
+        {
+          "label": "nEMANHA",
+          "profileUrl": "https://www.hltv.org/player/8311/nemanha",
+          "pickfinderProfilePath": "/players/cs2/v16zlx7jgusjems"
+        },
+        {
+          "label": "reck",
+          "profileUrl": "https://www.hltv.org/player/17378/reck",
+          "pickfinderProfilePath": "/players/cs2/awiv4qz95g43bja"
+        },
+        {
+          "label": "sk0R",
+          "profileUrl": "https://www.hltv.org/player/18638/sk0r",
+          "pickfinderProfilePath": "/players/cs2/pmtbgqzydv4awpw"
+        },
+        {
+          "label": "tikuak",
+          "profileUrl": "https://www.hltv.org/player/25510/tikuak",
+          "pickfinderProfilePath": "/players/cs2/rlo5qno45d3fjc5"
+        }
+      ]
+    },
+    {
+      "sport": "cs2",
+      "sourceEventId": "20261126CA4E0585",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://www.hltv.org/matches/2400577/imperial-vs-liquid-pgl-major-singapore-2026-stage-1",
+      "firstTwoMapNames": [
+        "Anubis",
+        "Cache"
+      ],
+      "roster": [
+        {
+          "label": "EliGE",
+          "profileUrl": "https://www.hltv.org/player/8738/elige",
+          "pickfinderProfilePath": "/players/cs2/we8rbjpf65bc2tn"
+        },
+        {
+          "label": "JT",
+          "profileUrl": "https://www.hltv.org/player/11630/jt",
+          "pickfinderProfilePath": "/players/cs2/j4y4z5p4stvkatz"
+        },
+        {
+          "label": "Jorko",
+          "profileUrl": "https://www.hltv.org/player/24203/jorko",
+          "pickfinderProfilePath": "/players/cs2/eb7cqiuc8bqx4zr"
+        },
+        {
+          "label": "NAF",
+          "profileUrl": "https://www.hltv.org/player/8520/naf",
+          "pickfinderProfilePath": "/players/cs2/as14gj4lvoykr11"
+        },
+        {
+          "label": "VINI",
+          "profileUrl": "https://www.hltv.org/player/12822/vini",
+          "pickfinderProfilePath": "/players/cs2/va7b4jf5lrole7e"
+        },
+        {
+          "label": "chelo",
+          "profileUrl": "https://www.hltv.org/player/10566/chelo",
+          "pickfinderProfilePath": "/players/cs2/0hdnbwjjlyhmkbu"
+        },
+        {
+          "label": "decenty",
+          "profileUrl": "https://www.hltv.org/player/20183/decenty",
+          "pickfinderProfilePath": "/players/cs2/zskm3i3mjaiolhs"
+        },
+        {
+          "label": "malbsMd",
+          "profileUrl": "https://www.hltv.org/player/11617/malbsmd",
+          "pickfinderProfilePath": "/players/cs2/30ba4vwtbgb75sn"
+        },
+        {
+          "label": "noway",
+          "profileUrl": "https://www.hltv.org/player/22564/noway",
+          "pickfinderProfilePath": "/players/cs2/1x6qoslk4q9gtuw"
+        },
+        {
+          "label": "saadzin",
+          "profileUrl": "https://www.hltv.org/player/22965/saadzin",
+          "pickfinderProfilePath": "/players/cs2/247nk4skqmst67l"
+        }
+      ]
+    },
+    {
+      "sport": "cs2",
+      "sourceEventId": "20261126CB98D490",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://www.hltv.org/matches/2400575/lynn-vision-vs-parivision-pgl-major-singapore-2026-stage-1",
+      "firstTwoMapNames": [
+        "Ancient",
+        "Dust 2"
+      ],
+      "roster": [
+        {
+          "label": "C4LLM3SU3",
+          "profileUrl": "https://www.hltv.org/player/23100/c4llm3su3",
+          "pickfinderProfilePath": "/players/cs2/n0ur3sjdk85otjb"
+        },
+        {
+          "label": "EmiliaQAQ",
+          "profileUrl": "https://www.hltv.org/player/22922/emiliaqaq",
+          "pickfinderProfilePath": "/players/cs2/ym7g64zzovn6x55"
+        },
+        {
+          "label": "FL1T",
+          "profileUrl": "https://www.hltv.org/player/12732/fl1t",
+          "pickfinderProfilePath": "/players/cs2/a3gx8x64bsz5lau"
+        },
+        {
+          "label": "HObbit",
+          "profileUrl": "https://www.hltv.org/player/8528/hobbit",
+          "pickfinderProfilePath": "/players/cs2/p8559s3zjqtcahr"
+        },
+        {
+          "label": "Jame",
+          "profileUrl": "https://www.hltv.org/player/13776/jame",
+          "pickfinderProfilePath": "/players/cs2/cydchkok64imq1a"
+        },
+        {
+          "label": "Starry",
+          "profileUrl": "https://www.hltv.org/player/20254/starry",
+          "pickfinderProfilePath": "/players/cs2/5vb0xhysi18link"
+        },
+        {
+          "label": "Westmelon",
+          "profileUrl": "https://www.hltv.org/player/16551/westmelon",
+          "pickfinderProfilePath": "/players/cs2/0wn55q590lcm7yj"
+        },
+        {
+          "label": "xiELO",
+          "profileUrl": "https://www.hltv.org/player/22471/xielo",
+          "pickfinderProfilePath": "/players/cs2/bqc9xefllzsykyn"
+        },
+        {
+          "label": "z4KR",
+          "profileUrl": "https://www.hltv.org/player/18744/z4kr",
+          "pickfinderProfilePath": "/players/cs2/6s0aftu1fmpymlq"
+        },
+        {
+          "label": "zweih",
+          "profileUrl": "https://www.hltv.org/player/23685/zweih",
+          "pickfinderProfilePath": "/players/cs2/yx4766zs82zoa4m"
+        }
+      ]
+    },
+    {
+      "sport": "cs2",
+      "sourceEventId": "20261126FFC8EDED",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://www.hltv.org/matches/2400574/heroic-vs-faze-pgl-major-singapore-2026-stage-1",
+      "firstTwoMapNames": [
+        "Mirage",
+        "Ancient"
+      ],
+      "roster": [
+        {
+          "label": "Brollan",
+          "profileUrl": "https://www.hltv.org/player/13666/brollan",
+          "pickfinderProfilePath": "/players/cs2/wtlsowfl6o5b5pg"
+        },
+        {
+          "label": "Chr1zN",
+          "profileUrl": "https://www.hltv.org/player/21983/chr1zn",
+          "pickfinderProfilePath": "/players/cs2/4neyyyoi8995r0v"
+        },
+        {
+          "label": "JBOEN",
+          "profileUrl": "https://www.hltv.org/player/22866/jboen",
+          "pickfinderProfilePath": "/players/cs2/3i7rtlh9c02jvmx"
+        },
+        {
+          "label": "Neityu",
+          "profileUrl": "https://www.hltv.org/player/21972/neityu",
+          "pickfinderProfilePath": "/players/cs2/42o4a4l388ybjjn"
+        },
+        {
+          "label": "Twistzz",
+          "profileUrl": "https://www.hltv.org/player/10394/twistzz",
+          "pickfinderProfilePath": "/players/cs2/fyrdqmky6zw6rl0"
+        },
+        {
+          "label": "frozen",
+          "profileUrl": "https://www.hltv.org/player/9960/frozen",
+          "pickfinderProfilePath": "/players/cs2/w36zabyloy9xbbl"
+        },
+        {
+          "label": "jcobbb",
+          "profileUrl": "https://www.hltv.org/player/22383/jcobbb",
+          "pickfinderProfilePath": "/players/cs2/vdo0jykqczuyswb"
+        },
+        {
+          "label": "nilo",
+          "profileUrl": "https://www.hltv.org/player/20119/nilo",
+          "pickfinderProfilePath": "/players/cs2/zk657eunk3op4kx"
+        },
+        {
+          "label": "susp",
+          "profileUrl": "https://www.hltv.org/player/21163/susp",
+          "pickfinderProfilePath": "/players/cs2/u12f792swgv1x5z"
+        },
+        {
+          "label": "Martinez",
+          "resultSiteLabel": "MartinezSa",
+          "pickfinderProfilePath": "/players/cs2/6abl2drrh6zq9lw",
+          "profileUrl": "https://www.hltv.org/player/21239/martinezsa",
+          "aliasSource": "https://liquipedia.net/counterstrike/Martinez"
+        }
+      ]
+    },
+    {
+      "sport": "dota2",
+      "sourceEventId": "20261125350D805F",
+      "reportedDate": "2026-11-25",
+      "seriesUrl": "https://dotascore.org/matches/puckchamp-vs-inner-circle-european-pro-league-season-41-2026-11-25-4978",
+      "firstTwoValveMatchIds": [
+        "9105492177",
+        "9105561912"
+      ],
+      "roster": [
+        {
+          "label": "Ethereal",
+          "profileUrl": "https://dotascore.org/players/ethereal",
+          "pickfinderProfilePath": "/players/dota2/fvyjj388w41c45n"
+        },
+        {
+          "label": "Fernans",
+          "profileUrl": "https://dotascore.org/players/fernans",
+          "pickfinderProfilePath": "/players/dota2/lldx1m62jehn30j"
+        },
+        {
+          "label": "Norma",
+          "profileUrl": "https://dotascore.org/players/norma",
+          "pickfinderProfilePath": "/players/dota2/8zzalnzmrpc5qv7"
+        },
+        {
+          "label": "onLiTaL",
+          "pickfinderProfilePath": "/players/dota2/g27atax4j67h42p"
+        },
+        {
+          "label": "yowaai",
+          "profileUrl": "https://dotascore.org/players/yowaai",
+          "pickfinderProfilePath": "/players/dota2/zqqalqeu1e1lsur"
+        }
+      ]
+    },
+    {
+      "sport": "dota2",
+      "sourceEventId": "2026112556AC1CE4",
+      "reportedDate": "2026-11-25",
+      "seriesUrl": "https://dotascore.org/matches/team-spirit-academy-vs-angry-birds-european-pro-league-season-41-2026-11-25-4977",
+      "firstTwoValveMatchIds": [
+        "9105221789",
+        "9105321255"
+      ],
+      "roster": [
+        {
+          "label": "86",
+          "profileUrl": "https://dotascore.org/players/86",
+          "pickfinderProfilePath": "/players/dota2/26mnjnpf6nou5hi"
+        },
+        {
+          "label": "Aidar",
+          "pickfinderProfilePath": "/players/dota2/d7flw5l6pvdzdny"
+        },
+        {
+          "label": "Ankou",
+          "profileUrl": "https://dotascore.org/players/ankou",
+          "pickfinderProfilePath": "/players/dota2/u63nb8knohwk5fz"
+        },
+        {
+          "label": "Mirele",
+          "profileUrl": "https://dotascore.org/players/mirele",
+          "pickfinderProfilePath": "/players/dota2/k2oem9wxzzamnay"
+        },
+        {
+          "label": "ssnovv1",
+          "profileUrl": "https://dotascore.org/players/ssnovv1",
+          "pickfinderProfilePath": "/players/dota2/3dpm81bp6s98q3q"
+        },
+        {
+          "label": "waveformn",
+          "profileUrl": "https://dotascore.org/players/waveformn",
+          "pickfinderProfilePath": "/players/dota2/t1zu7ewwlkukscv"
+        }
+      ]
+    },
+    {
+      "sport": "dota2",
+      "sourceEventId": "20261126889AC86E",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://dotascore.org/matches/1w-team-vs-team-liquid-blast-slam-ix-2026-11-26-5004",
+      "firstTwoValveMatchIds": [
+        "9106185090",
+        "9106299101"
+      ],
+      "roster": [
+        {
+          "label": "33",
+          "profileUrl": "https://dotascore.org/players/33",
+          "pickfinderProfilePath": "/players/dota2/87bg9h826gapyba"
+        },
+        {
+          "label": "Ari",
+          "profileUrl": "https://dotascore.org/players/ari",
+          "pickfinderProfilePath": "/players/dota2/9qvp3ug5kdx7fn3"
+        },
+        {
+          "label": "Boxi",
+          "profileUrl": "https://dotascore.org/players/boxi",
+          "pickfinderProfilePath": "/players/dota2/6fh3v4zhup45apx"
+        },
+        {
+          "label": "Malr1ne",
+          "profileUrl": "https://dotascore.org/players/malr1ne",
+          "pickfinderProfilePath": "/players/dota2/okwa876y1o8h4ow"
+        },
+        {
+          "label": "Pure",
+          "profileUrl": "https://dotascore.org/players/pure",
+          "pickfinderProfilePath": "/players/dota2/5yokl0wo9za11sw"
+        },
+        {
+          "label": "Whitemon",
+          "profileUrl": "https://dotascore.org/players/whitemon",
+          "pickfinderProfilePath": "/players/dota2/e685fr8xlwo3fj9"
+        },
+        {
+          "label": "Wisper",
+          "profileUrl": "https://dotascore.org/players/wisper",
+          "pickfinderProfilePath": "/players/dota2/yfzz8fis0ra5e8p"
+        },
+        {
+          "label": "bzm",
+          "profileUrl": "https://dotascore.org/players/bzm",
+          "pickfinderProfilePath": "/players/dota2/2pxb4pwzxip4jee"
+        },
+        {
+          "label": "tOfu",
+          "profileUrl": "https://dotascore.org/players/tofu",
+          "pickfinderProfilePath": "/players/dota2/27h10ey3h2ra0ol"
+        },
+        {
+          "label": "miCKe",
+          "resultSiteLabel": "m1CKe",
+          "pickfinderProfilePath": "/players/dota2/m59p9wlox0y2f5p",
+          "profileUrl": "https://dotascore.org/players/m1cke",
+          "aliasSource": "https://liquipedia.net/dota2/MiCKe"
+        }
+      ]
+    },
+    {
+      "sport": "dota2",
+      "sourceEventId": "20261126BD07BB8C",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://dotascore.org/matches/angry-birds-vs-power-rangers-european-pro-league-season-41-2026-11-26-4983",
+      "firstTwoValveMatchIds": [
+        "9106314149",
+        "9106451252"
+      ],
+      "roster": [
+        {
+          "label": "Ankou",
+          "profileUrl": "https://dotascore.org/players/ankou",
+          "pickfinderProfilePath": "/players/dota2/u63nb8knohwk5fz"
+        },
+        {
+          "label": "Immersion",
+          "profileUrl": "https://dotascore.org/players/immersion",
+          "pickfinderProfilePath": "/players/dota2/uzr4fzkej52ov4h"
+        },
+        {
+          "label": "Mirele",
+          "profileUrl": "https://dotascore.org/players/mirele",
+          "pickfinderProfilePath": "/players/dota2/k2oem9wxzzamnay"
+        },
+        {
+          "label": "Nicky`Cool",
+          "profileUrl": "https://dotascore.org/players/nicky-cool",
+          "pickfinderProfilePath": "/players/dota2/ajf8zcp66tro8zc"
+        },
+        {
+          "label": "alberkaaa",
+          "profileUrl": "https://dotascore.org/players/alberkaaa",
+          "pickfinderProfilePath": "/players/dota2/rzgg5mugw70yjl2"
+        },
+        {
+          "label": "asdekor_r",
+          "profileUrl": "https://dotascore.org/players/asdekor-r",
+          "pickfinderProfilePath": "/players/dota2/1k5rduo92vftwaf"
+        },
+        {
+          "label": "ssnovv1",
+          "profileUrl": "https://dotascore.org/players/ssnovv1",
+          "pickfinderProfilePath": "/players/dota2/3dpm81bp6s98q3q"
+        },
+        {
+          "label": "waveformn",
+          "profileUrl": "https://dotascore.org/players/waveformn",
+          "pickfinderProfilePath": "/players/dota2/t1zu7ewwlkukscv"
+        }
+      ]
+    },
+    {
+      "sport": "dota2",
+      "sourceEventId": "20261126BEDF7B21",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://dotascore.org/matches/gamerlegion-vs-aurora-gaming-blast-slam-ix-2026-11-26-5003",
+      "firstTwoValveMatchIds": [
+        "9106031971",
+        "9106095670"
+      ],
+      "roster": [
+        {
+          "label": "Bignum",
+          "profileUrl": "https://dotascore.org/players/bignum",
+          "pickfinderProfilePath": "/players/dota2/qviujqdmb4jzi0q"
+        },
+        {
+          "label": "Fayde",
+          "profileUrl": "https://dotascore.org/players/fayde",
+          "pickfinderProfilePath": "/players/dota2/7f340lwfa48ats4"
+        },
+        {
+          "label": "Mikoto",
+          "profileUrl": "https://dotascore.org/players/mikoto",
+          "pickfinderProfilePath": "/players/dota2/ufjahixl91yry88"
+        },
+        {
+          "label": "Mira",
+          "profileUrl": "https://dotascore.org/players/mira",
+          "pickfinderProfilePath": "/players/dota2/5aeyafn245cs7zm"
+        },
+        {
+          "label": "RCY",
+          "profileUrl": "https://dotascore.org/players/rcy",
+          "pickfinderProfilePath": "/players/dota2/3zaze8op521xnc4"
+        },
+        {
+          "label": "Speeed",
+          "profileUrl": "https://dotascore.org/players/speeed",
+          "pickfinderProfilePath": "/players/dota2/t3b3k5ym37f128b"
+        },
+        {
+          "label": "Ws",
+          "profileUrl": "https://dotascore.org/players/ws",
+          "pickfinderProfilePath": "/players/dota2/9uh789tmr3w4bin"
+        },
+        {
+          "label": "Yuma",
+          "profileUrl": "https://dotascore.org/players/yuma",
+          "pickfinderProfilePath": "/players/dota2/388xfoz6m2jbt95"
+        },
+        {
+          "label": "kaori",
+          "profileUrl": "https://dotascore.org/players/kaori",
+          "pickfinderProfilePath": "/players/dota2/nftl0u429wve7gw"
+        },
+        {
+          "label": "skiter",
+          "profileUrl": "https://dotascore.org/players/skiter",
+          "pickfinderProfilePath": "/players/dota2/fqcuunvxm93u3wi"
+        }
+      ]
+    },
+    {
+      "sport": "dota2",
+      "sourceEventId": "20261126F3FBDB15",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://dotascore.org/matches/team-spirit-academy-vs-inner-circle-european-pro-league-season-41-2026-11-26-4979",
+      "firstTwoValveMatchIds": [
+        "9106691128",
+        "9106783006"
+      ],
+      "roster": [
+        {
+          "label": "86",
+          "profileUrl": "https://dotascore.org/players/86",
+          "pickfinderProfilePath": "/players/dota2/26mnjnpf6nou5hi"
+        },
+        {
+          "label": "Aidar",
+          "pickfinderProfilePath": "/players/dota2/d7flw5l6pvdzdny"
+        },
+        {
+          "label": "Ethereal",
+          "profileUrl": "https://dotascore.org/players/ethereal",
+          "pickfinderProfilePath": "/players/dota2/fvyjj388w41c45n"
+        },
+        {
+          "label": "Fernans",
+          "profileUrl": "https://dotascore.org/players/fernans",
+          "pickfinderProfilePath": "/players/dota2/lldx1m62jehn30j"
+        },
+        {
+          "label": "Norma",
+          "profileUrl": "https://dotascore.org/players/norma",
+          "pickfinderProfilePath": "/players/dota2/8zzalnzmrpc5qv7"
+        },
+        {
+          "label": "yowaai",
+          "profileUrl": "https://dotascore.org/players/yowaai",
+          "pickfinderProfilePath": "/players/dota2/zqqalqeu1e1lsur"
+        }
+      ]
+    },
+    {
+      "sport": "valorant",
+      "sourceEventId": "20261125049B9384",
+      "reportedDate": "2026-11-25",
+      "seriesUrl": "https://www.vlr.gg/794018/mandatory-vs-bar-a-esports-vct-2027-emea-kickoff-europe-qualifier-playoffs-swiss-stage-r1-0-0/",
+      "dateSource": "https://www.valoranttracker.net/esports/matches/794018/mandatory-vs-barca-esports-2026-11-25",
+      "firstTwoMapNames": [
+        "Corrode",
+        "Lotus"
+      ],
+      "roster": [
+        {
+          "label": "Fit1nho",
+          "profileUrl": "https://www.vlr.gg/player/292/fit1nho",
+          "pickfinderProfilePath": "/players/val/xfoj4rbbfi5vlqy"
+        },
+        {
+          "label": "Kicks",
+          "profileUrl": "https://www.vlr.gg/player/11134/kicks",
+          "pickfinderProfilePath": "/players/val/ck93ti6dqnr6aa0"
+        },
+        {
+          "label": "MONSTEERR",
+          "profileUrl": "https://www.vlr.gg/player/3127/monsteerr",
+          "pickfinderProfilePath": "/players/val/aih4a1mfd0eelh3"
+        },
+        {
+          "label": "MiniBoo",
+          "profileUrl": "https://www.vlr.gg/player/18350/miniboo",
+          "pickfinderProfilePath": "/players/val/8g41m2iru3py15d"
+        },
+        {
+          "label": "Pa1ze",
+          "profileUrl": "https://www.vlr.gg/player/24424/pa1ze",
+          "pickfinderProfilePath": "/players/val/vqfmoa9hy8cmsv7"
+        },
+        {
+          "label": "Proxh",
+          "profileUrl": "https://www.vlr.gg/player/45494/proxh",
+          "pickfinderProfilePath": "/players/val/rx6q29a8njq6e65"
+        },
+        {
+          "label": "Veqaj",
+          "profileUrl": "https://www.vlr.gg/player/12928/veqaj",
+          "pickfinderProfilePath": "/players/val/vuvks4t446bgep0"
+        },
+        {
+          "label": "purp0",
+          "profileUrl": "https://www.vlr.gg/player/1885/purp0",
+          "pickfinderProfilePath": "/players/val/7r4ee8g0wr3gsuw"
+        },
+        {
+          "label": "runneR",
+          "profileUrl": "https://www.vlr.gg/player/21610/runner",
+          "pickfinderProfilePath": "/players/val/j3nglhjp39q3ucl"
+        },
+        {
+          "label": "starxo",
+          "profileUrl": "https://www.vlr.gg/player/565/starxo",
+          "pickfinderProfilePath": "/players/val/zj6zvponhgrsohn"
+        }
+      ]
+    },
+    {
+      "sport": "valorant",
+      "sourceEventId": "202611251F9E6763",
+      "reportedDate": "2026-11-25",
+      "seriesUrl": "https://www.vlr.gg/794016/ucam-esports-club-vs-cgn-esports-vct-2027-emea-kickoff-europe-qualifier-playoffs-swiss-stage-r1-0-0/?game=298461",
+      "firstTwoMapNames": [
+        "Sunset",
+        "Lotus"
+      ],
+      "roster": [
+        {
+          "label": "Buld",
+          "profileUrl": "https://www.vlr.gg/player/1155/buld",
+          "pickfinderProfilePath": "/players/val/tra2iyaxvygjmyv"
+        },
+        {
+          "label": "Serial",
+          "profileUrl": "https://www.vlr.gg/player/18162/serial",
+          "pickfinderProfilePath": "/players/val/ldafhicukqukpzf"
+        },
+        {
+          "label": "Vince",
+          "profileUrl": "https://www.vlr.gg/player/4329/vince",
+          "pickfinderProfilePath": "/players/val/diq9tji1ta4pp0i"
+        },
+        {
+          "label": "Wolfen",
+          "profileUrl": "https://www.vlr.gg/player/9558/wolfen",
+          "pickfinderProfilePath": "/players/val/dgxx5o57pls79fh"
+        },
+        {
+          "label": "kamyk",
+          "profileUrl": "https://www.vlr.gg/player/1475/kamyk",
+          "pickfinderProfilePath": "/players/val/ozumu0e14qupaqg"
+        },
+        {
+          "label": "samed",
+          "profileUrl": "https://www.vlr.gg/player/35513/samed",
+          "pickfinderProfilePath": "/players/val/cqt85onc7wzj44e"
+        },
+        {
+          "label": "shinnok",
+          "profileUrl": "https://www.vlr.gg/player/33358/shinnok",
+          "pickfinderProfilePath": "/players/val/no1hzee0jygjufd"
+        },
+        {
+          "label": "waddle",
+          "profileUrl": "https://www.vlr.gg/player/8226/waddle",
+          "pickfinderProfilePath": "/players/val/4rvab4mciwppm1q"
+        }
+      ]
+    },
+    {
+      "sport": "valorant",
+      "sourceEventId": "202611253AE353A1",
+      "reportedDate": "2026-11-25",
+      "seriesUrl": "https://www.valoranttracker.net/esports/matches/794019/giantx-vs-pixel-lumina-2026-11-25",
+      "firstTwoMapNames": [
+        "Lotus",
+        "Sunset"
+      ],
+      "roster": [
+        {
+          "label": "Chadi",
+          "profileUrl": "https://www.valoranttracker.net/esports/players/6925/chadi",
+          "pickfinderProfilePath": "/players/val/rgzp0b62s119jbb"
+        },
+        {
+          "label": "Kamisseq",
+          "profileUrl": "https://www.valoranttracker.net/esports/players/4519/kamisseq",
+          "pickfinderProfilePath": "/players/val/1b258xyvnj45mjn"
+        },
+        {
+          "label": "Saiz",
+          "profileUrl": "https://www.valoranttracker.net/esports/players/7220/saiz",
+          "pickfinderProfilePath": "/players/val/gsof73pftve2frr"
+        },
+        {
+          "label": "Vitie",
+          "profileUrl": "https://www.valoranttracker.net/esports/players/22617/vitie",
+          "pickfinderProfilePath": "/players/val/7wkof05ue0566db"
+        },
+        {
+          "label": "ZachKappa",
+          "profileUrl": "https://www.valoranttracker.net/esports/players/38424/zachkappa",
+          "pickfinderProfilePath": "/players/val/d03plnj5p31o0ao"
+        },
+        {
+          "label": "globeX",
+          "profileUrl": "https://www.valoranttracker.net/esports/players/40004/globex",
+          "pickfinderProfilePath": "/players/val/iphk4rvoww3u8ug"
+        },
+        {
+          "label": "sickrey",
+          "profileUrl": "https://www.valoranttracker.net/esports/players/5795/sickrey",
+          "pickfinderProfilePath": "/players/val/xu96albjpnpkaqx"
+        }
+      ]
+    },
+    {
+      "sport": "valorant",
+      "sourceEventId": "20261125641E98F8",
+      "reportedDate": "2026-11-25",
+      "seriesUrl": "https://www.vlr.gg/793639/be-ikta-esports-vs-galatasaray-esports-vct-2027-emea-kickoff-t-rkiye-qualifier-playoffs-opening-b",
+      "firstTwoMapNames": [
+        "Bind",
+        "Sunset"
+      ],
+      "roster": [
+        {
+          "label": "MrFaliN",
+          "profileUrl": "https://www.vlr.gg/player/8044/mrfalin",
+          "pickfinderProfilePath": "/players/val/ffwi2cr3927m2v1"
+        },
+        {
+          "label": "Padisah",
+          "profileUrl": "https://www.vlr.gg/player/10152/padisah",
+          "pickfinderProfilePath": "/players/val/0lv05jebpxw7ua1"
+        },
+        {
+          "label": "Slaughter",
+          "profileUrl": "https://www.vlr.gg/player/33551/slaughter",
+          "pickfinderProfilePath": "/players/val/78u7t80pnxh07uq"
+        },
+        {
+          "label": "WerlasS",
+          "profileUrl": "https://www.vlr.gg/player/13545/werlass",
+          "pickfinderProfilePath": "/players/val/ezelvcoaoeryvyo"
+        },
+        {
+          "label": "Yigox",
+          "profileUrl": "https://www.vlr.gg/player/31307/yigox",
+          "pickfinderProfilePath": "/players/val/wetj32hv2o4y1im"
+        },
+        {
+          "label": "Zeask",
+          "profileUrl": "https://www.vlr.gg/player/13557/zeask",
+          "pickfinderProfilePath": "/players/val/4bg21rrq4kf6lux"
+        },
+        {
+          "label": "audaz",
+          "profileUrl": "https://www.vlr.gg/player/40843/audaz",
+          "pickfinderProfilePath": "/players/val/rztg1vn6tkhufvu"
+        },
+        {
+          "label": "influx",
+          "profileUrl": "https://www.vlr.gg/player/50776/influx",
+          "pickfinderProfilePath": "/players/val/2zxf58r1y693eqw"
+        },
+        {
+          "label": "nekky",
+          "profileUrl": "https://www.vlr.gg/player/12670/nekky",
+          "pickfinderProfilePath": "/players/val/p9u9uy1s0h63xky"
+        },
+        {
+          "label": "wezzy",
+          "profileUrl": "https://www.vlr.gg/player/39351/wezzy",
+          "pickfinderProfilePath": "/players/val/hbvzha9r6ntuvfg"
+        }
+      ]
+    },
+    {
+      "sport": "valorant",
+      "sourceEventId": "20261125845543C4",
+      "reportedDate": "2026-11-25",
+      "seriesUrl": "https://www.vlr.gg/794023/joblife-vs-wip-esports-vct-2027-emea-kickoff-europe-qualifier-playoffs-swiss-stage-r1-0-0/",
+      "firstTwoMapNames": [
+        "Sunset",
+        "Haven"
+      ],
+      "roster": [
+        {
+          "label": "Sevire",
+          "profileUrl": "https://www.vlr.gg/player/11322/sevire",
+          "pickfinderProfilePath": "/players/val/ukgvil2b7ul8v7r"
+        },
+        {
+          "label": "TakaS",
+          "profileUrl": "https://www.vlr.gg/player/301/takas",
+          "pickfinderProfilePath": "/players/val/h34cgj9yvkaan2i"
+        },
+        {
+          "label": "Vorwenn",
+          "profileUrl": "https://www.vlr.gg/player/20271/vorwenn",
+          "pickfinderProfilePath": "/players/val/sdkyb2hf6lcmcxh"
+        },
+        {
+          "label": "WanZeru",
+          "profileUrl": "https://www.vlr.gg/player/39682/wanzeru",
+          "pickfinderProfilePath": "/players/val/ai3qgfkxa99if31"
+        },
+        {
+          "label": "al0rante",
+          "profileUrl": "https://www.vlr.gg/player/5292/al0rante",
+          "pickfinderProfilePath": "/players/val/v4le02fd30lv1dk"
+        },
+        {
+          "label": "mepeezy",
+          "profileUrl": "https://www.vlr.gg/player/41719/mepeezy",
+          "pickfinderProfilePath": "/players/val/ayu2ewrse8p3kg1"
+        },
+        {
+          "label": "westside",
+          "profileUrl": "https://www.vlr.gg/player/34684/westside",
+          "pickfinderProfilePath": "/players/val/5rz2fty4qvek4pj"
+        },
+        {
+          "label": "wtex",
+          "profileUrl": "https://www.vlr.gg/player/33527/wtex",
+          "pickfinderProfilePath": "/players/val/bqvujtgmd2k4w27"
+        }
+      ]
+    },
+    {
+      "sport": "valorant",
+      "sourceEventId": "2026112589A49620",
+      "reportedDate": "2026-11-25",
+      "seriesUrl": "https://www.vlr.gg/794022/mir-vs-la-masia-vct-2027-emea-kickoff-europe-qualifier-playoffs-swiss-stage-r1-0-0",
+      "firstTwoMapNames": [
+        "Abyss",
+        "Lotus"
+      ],
+      "roster": [
+        {
+          "label": "Bishepss",
+          "profileUrl": "https://www.vlr.gg/player/31059/bishepss",
+          "pickfinderProfilePath": "/players/val/ubfp694uhvd19c4"
+        },
+        {
+          "label": "innersavage",
+          "profileUrl": "https://www.vlr.gg/player/58631/innersavage",
+          "pickfinderProfilePath": "/players/val/tl3mz8fiqqfm702"
+        },
+        {
+          "label": "kospa1n",
+          "profileUrl": "https://www.vlr.gg/player/57920/kospa1n",
+          "pickfinderProfilePath": "/players/val/7v9opj2fwja1wd6"
+        }
+      ]
+    },
+    {
+      "sport": "valorant",
+      "sourceEventId": "20261125B6F6A422",
+      "reportedDate": "2026-11-25",
+      "seriesUrl": "https://www.vlr.gg/794017/natus-vincere-junior-vs-aurora-gaming-vct-2027-emea-kickoff-europe-qualifier-playoffs-swiss-stage-r1-0-0/",
+      "firstTwoMapNames": [
+        "Bind",
+        "Lotus"
+      ],
+      "roster": [
+        {
+          "label": "Boo",
+          "profileUrl": "https://www.vlr.gg/player/1144/boo",
+          "pickfinderProfilePath": "/players/val/6wlmbfzdg7ab3vb"
+        },
+        {
+          "label": "Derke",
+          "profileUrl": "https://www.vlr.gg/player/5022/derke",
+          "pickfinderProfilePath": "/players/val/3425cmled3cxlhw"
+        },
+        {
+          "label": "Javelin",
+          "profileUrl": "https://www.vlr.gg/player/29559/javelin",
+          "pickfinderProfilePath": "/players/val/6l6cxgzh5ojibbi"
+        },
+        {
+          "label": "Kolosha",
+          "profileUrl": "https://www.vlr.gg/player/37925/kolosha",
+          "pickfinderProfilePath": "/players/val/hu96y008nn83g09"
+        },
+        {
+          "label": "avey",
+          "profileUrl": "https://www.vlr.gg/player/42651/avey",
+          "pickfinderProfilePath": "/players/val/hrgsgmvwyixblfq"
+        },
+        {
+          "label": "chiwa",
+          "profileUrl": "https://www.vlr.gg/player/321/chiwa",
+          "pickfinderProfilePath": "/players/val/2552l8shv4s1kut"
+        },
+        {
+          "label": "trexx",
+          "profileUrl": "https://www.vlr.gg/player/2168/trexx",
+          "pickfinderProfilePath": "/players/val/yf60fg4d1ufbwyj"
+        }
+      ]
+    },
+    {
+      "sport": "valorant",
+      "sourceEventId": "20261125D2B5D87B",
+      "reportedDate": "2026-11-25",
+      "seriesUrl": "https://www.vlr.gg/793638/pcific-esports-vs-team-apanthe-vct-2027-emea-kickoff-t-rkiye-qualifier-playoffs-opening-b/",
+      "firstTwoMapNames": [
+        "Lotus",
+        "Abyss"
+      ],
+      "roster": [
+        {
+          "label": "Gloomy",
+          "profileUrl": "https://www.vlr.gg/player/16483/gloomy",
+          "pickfinderProfilePath": "/players/val/g77ahek6mdnmu65"
+        }
+      ]
+    },
+    {
+      "sport": "valorant",
+      "sourceEventId": "2026112600B7ED27",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://www.vlr.gg/794180/leones-vs-contra-vct-2027-america-kickoff-latam-north-qualifier-playoffs-ubsf",
+      "firstTwoMapNames": [],
+      "roster": [
+        {
+          "label": "CRUNCH",
+          "profileUrl": "https://www.vlr.gg/player/21428/crunch",
+          "pickfinderProfilePath": "/players/val/5ifjk86l21szept"
+        },
+        {
+          "label": "Dragon",
+          "profileUrl": "https://www.vlr.gg/player/48802/dragon",
+          "pickfinderProfilePath": "/players/val/5rhlyy67z8i45l8"
+        },
+        {
+          "label": "Fresht",
+          "profileUrl": "https://www.vlr.gg/player/593/fresht",
+          "pickfinderProfilePath": "/players/val/3i4ccxnyy5fjvqz"
+        },
+        {
+          "label": "Mited",
+          "profileUrl": "https://www.vlr.gg/player/8056/mited",
+          "pickfinderProfilePath": "/players/val/o8gyprda4vfba73"
+        },
+        {
+          "label": "Tastyy",
+          "profileUrl": "https://www.vlr.gg/player/24210/tastyy",
+          "pickfinderProfilePath": "/players/val/7sv3qhvg9cvuq3r"
+        },
+        {
+          "label": "Virtyy",
+          "profileUrl": "https://www.vlr.gg/player/3983/virtyy",
+          "pickfinderProfilePath": "/players/val/tyuuqfnhp50u40q"
+        },
+        {
+          "label": "theory",
+          "profileUrl": "https://www.vlr.gg/player/7618/theory",
+          "pickfinderProfilePath": "/players/val/lra5e783srs1ck1"
+        },
+        {
+          "label": "Mephisto05",
+          "resultSiteLabel": "Mephisto",
+          "pickfinderProfilePath": "/players/val/6izhn7jxskvm3nk",
+          "profileUrl": "https://www.vlr.gg/player/31476/mephisto",
+          "aliasSource": "https://www.vlr.gg/player/31476/mephisto"
+        }
+      ]
+    },
+    {
+      "sport": "valorant",
+      "sourceEventId": "20261126889E98FA",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://www.vlr.gg/792043/fluxo-w7m-vs-elevate-vct-2027-america-kickoff-brazil-qualifier-playoffs-ubqf",
+      "firstTwoMapNames": [],
+      "roster": [
+        {
+          "label": "Palla",
+          "profileUrl": "https://www.vlr.gg/player/15681/palla",
+          "pickfinderProfilePath": "/players/val/saob0psda104612"
+        },
+        {
+          "label": "Zap",
+          "profileUrl": "https://www.vlr.gg/player/3169/zap",
+          "pickfinderProfilePath": "/players/val/2y5lrc9frzttg3v"
+        },
+        {
+          "label": "jzz",
+          "profileUrl": "https://www.vlr.gg/player/13093/jzz",
+          "pickfinderProfilePath": "/players/val/nqb0xrziqoooi7w"
+        },
+        {
+          "label": "kon4n",
+          "profileUrl": "https://www.vlr.gg/player/1671/kon4n",
+          "pickfinderProfilePath": "/players/val/fr9286y2wz3yn1s"
+        },
+        {
+          "label": "maestr0",
+          "profileUrl": "https://www.vlr.gg/player/32717/maestr0",
+          "pickfinderProfilePath": "/players/val/ntk99v9d0zz0qh0"
+        },
+        {
+          "label": "mazin",
+          "profileUrl": "https://www.vlr.gg/player/8872/mazin",
+          "pickfinderProfilePath": "/players/val/v50r7gd42pxfvyp"
+        },
+        {
+          "label": "tuyz",
+          "profileUrl": "https://www.vlr.gg/player/2408/tuyz",
+          "pickfinderProfilePath": "/players/val/sens7oxhbdqpb7a"
+        }
+      ]
+    },
+    {
+      "sport": "valorant",
+      "sourceEventId": "20261126B5B1398A",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://www.vlr.gg/793635/eternal-fire-vs-trigon-titans-vct-2027-emea-kickoff-t-rkiye-qualifier-playoffs-winners-a",
+      "dateSource": "https://www.vlr.gg/event/3177/vct-2027-emea-kickoff-t-rkiye-qualifier/playoffs",
+      "firstTwoMapNames": [
+        "Sunset",
+        "Summit"
+      ],
+      "roster": [
+        {
+          "label": "KROSTALY",
+          "profileUrl": "https://www.vlr.gg/player/15735/krostaly",
+          "pickfinderProfilePath": "/players/val/0k2x4wfohda09wu"
+        },
+        {
+          "label": "echo",
+          "profileUrl": "https://www.vlr.gg/player/49346/echo",
+          "pickfinderProfilePath": "/players/val/sg7tfklib9szgsl"
+        },
+        {
+          "label": "s0pp",
+          "profileUrl": "https://www.vlr.gg/player/39357/s0pp",
+          "pickfinderProfilePath": "/players/val/6rsc7hn9ikrvrhi"
+        }
+      ]
+    },
+    {
+      "sport": "valorant",
+      "sourceEventId": "20261126EDB4C149",
+      "reportedDate": "2026-11-26",
+      "seriesUrl": "https://www.vlr.gg/790436/troopers-vs-finishers-vct-2027-pacific-kickoff-oceania-qualifier-lr1/",
+      "firstTwoMapNames": [
+        "Sunset",
+        "Bind"
+      ],
+      "roster": [
+        {
+          "label": "benguin",
+          "profileUrl": "https://www.vlr.gg/player/51425/benguin",
+          "pickfinderProfilePath": "/players/val/6sa81vigkucuoiy"
+        },
+        {
+          "label": "onob",
+          "profileUrl": "https://www.vlr.gg/player/43101/onob",
+          "pickfinderProfilePath": "/players/val/fb7ec2isdbowb6j"
+        }
+      ]
+    }
+  ],
+  "reviewedAt": "2026-11-27T00:25:30Z"
+}

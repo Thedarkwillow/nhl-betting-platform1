@@ -206,3 +206,23 @@ test('esports review queue does not assert native identity from parsed scope',()
  const q=esportsReviewQueue(new Map([['a',x],['b',x]]));
  assert.equal(q.length,1);assert.deepEqual(q[0].maps,[1,2]);assert.equal(q[0].offerObservations,2);assert.equal(q[0].independentReviewVerified,false);
 });
+
+test('series review cross-checks exact event, profile, roster label and ordinal without retroactive approval', () => {
+ const {reconcileSeries} = require('../scripts/pickfinder-esports-series-review.cjs');
+ const evidence = require('../config/esports/pickfinder-series-review-2026-11-27.json');
+ const fixture = evidence.series.find(x => x.sport === 'dota2' && x.sourceEventId === '20261126889AC86E');
+ const player = fixture.roster.find(x => x.label === 'Boxi');
+ const scope = {sport:fixture.sport, sourceEventId:fixture.sourceEventId, sourcePlayer:player.label,
+                profilePath:player.pickfinderProfilePath, maps:[1,2]};
+ const review = x => reconcileSeries([x], evidence.reviewedAt).rows[0];
+ const row = review(scope);
+ assert.equal(row.independentSeriesEvidence.status, 'roster_and_map_corroborated');
+ assert.deepEqual(row.independentSeriesEvidence.firstTwoValveMatchIds, ['9106185090','9106299101']);
+ assert.equal(row.independentReviewVerified,false);
+ assert.equal(row.modelApproved,false);
+ assert.equal(review({...scope,profilePath:'/players/dota2/wrong'}).independentSeriesEvidence.status,'player_unresolved');
+ assert.equal(review({...scope,sourcePlayer:'other'}).independentSeriesEvidence.status,'player_unresolved');
+ assert.equal(review({...scope,maps:[2,3]}).independentSeriesEvidence.status,'map_scope_unresolved');
+ assert.equal(review({...scope,sport:'cs2'}).independentSeriesEvidence.status,'series_unreviewed');
+ assert.equal(reconcileSeries([scope],'2026-11-26T00:00:00Z').rows[0].independentSeriesEvidence.status,'series_unreviewed');
+});

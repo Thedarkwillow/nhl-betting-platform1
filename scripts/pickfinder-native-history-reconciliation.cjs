@@ -52,7 +52,7 @@ function nativeIndex({facts,nhlFinals,nflSeasons,nbaHistories=[],nbaFinalHistori
   }
  }
  for(const h of nbaFinalHistories){
-  const d=h.doc;if(d.kind!=='nba_official_cdn_final_history_v1'||d.source!=='cdn.nba.com final boxscore'||d.officialFinalClockVerified!==true||!hash(d.sourceResponseSha256)||!hash(h.digest)||!Number.isFinite(dt(d.capturedAt))||!Number.isFinite(dt(h.first))||dt(d.capturedAt)>dt(h.first)+999||dt(h.first)>at)continue;
+  const d=h.doc;if(!(d.kind==='nba_official_cdn_final_history_v1'&&d.source==='cdn.nba.com final boxscore'||d.kind==='nba_official_web_final_history_v1'&&d.source==='nba.com official game box score')||d.officialFinalClockVerified!==true||!hash(d.sourceResponseSha256)||!hash(h.digest)||!Number.isFinite(dt(d.capturedAt))||!Number.isFinite(dt(h.first))||dt(d.capturedAt)>dt(h.first)+999||dt(h.first)>at)continue;
   for(const p of d.rows||[]){if(p.officialGameFinalVerified!==true||p.identityVerified!==true||p.appeared!==true||p.gameId!==d.gameId||!day(p.gameDate)||!p.player||!Number.isSafeInteger(p.playerId)||!['W','L'].includes(p.wl))continue;
    addName('nba',p.player,p.playerId);
    const stats=Object.fromEntries([...new Set(Object.values(nbaMetrics))].filter(m=>Number.isFinite(p[m])).map(m=>[m,p[m]]));

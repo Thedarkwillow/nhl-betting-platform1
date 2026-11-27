@@ -66,3 +66,24 @@ t('frozen low-count feature on/off pair shares the link and grades identical dec
  assert.equal(score.modelLogLoss,2);
  assert.equal(score.baselineLogLoss,1);
 });
+
+t('official game page box score verifies both point totals and excludes DNPs',()=>{
+ const {parsePage,url}=require('../scripts/nba-official-web-boxscore.cjs');
+ const {finalHistory}=require('../scripts/pickfinder-public-model-validation.cjs');
+ const game={gameId:'0022600001',gameStatus:3,gameStatusText:'Final',gameTimeUTC:'2026-11-20T23:00:00Z'};
+ for(const [side,abbr,offset,points] of [['homeTeam','BOS',10,12],['awayTeam','TOR',20,9]]){
+  const players=Array.from({length:5},(_,i)=>({personId:offset+i,firstName:'Player',familyName:String(offset+i),comment:'',statistics:{minutes:'48:00',points,reboundsTotal:1,assists:2,threePointersMade:0,steals:1,blocks:0,turnovers:1}}));
+  players.push({personId:offset+5,comment:'DNP - Coach’s Decision',statistics:{minutes:'',points:0}});
+  game[side]={teamTricode:abbr,score:5*points,players};
+ }
+ const html=()=>'<script type="application/json" id="__NEXT_DATA__">'+JSON.stringify({props:{pageProps:{game}}})+'</script>';
+ const g={gameId:22600001,status:3,home:'BOS',away:'TOR',startAt:game.gameTimeUTC};
+ assert.equal(url(g),'https://www.nba.com/game/tor-vs-bos-0022600001/box-score');
+ assert.equal(finalHistory(parsePage(html()),g,'2026-11-22T00:00:00Z','a'.repeat(64)).rows.length,10);
+ assert.equal(parsePage(html()+html()),null);
+ game.homeTeam.score++;
+ assert.equal(parsePage(html()),null);
+ game.homeTeam.score--;
+ game.awayTeam.players[0].personId=10;
+ assert.equal(parsePage(html()),null);
+});

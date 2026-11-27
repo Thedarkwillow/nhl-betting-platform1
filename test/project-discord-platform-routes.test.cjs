@@ -57,18 +57,18 @@ test('automatic delivery keeps all six prop events on the correct platform and q
  }
  a.equal((await dispatch(feed,{...f,env,now,mode:'deliver'})).delivered,0);
 });
-test('refuses incomplete and reused routes, independently tests all destinations and keeps legacy usable until setup',async()=>{
+test('refuses incomplete and reused routes, independently tests the four platform destinations and keeps legacy usable until setup',async()=>{
  const f=fixture(),bad=fixture({bad:'prizepicks-props'}),options={...f,env,mode:'test_routes',runKey:'121',now};
  a.equal((await dispatch([],{...options,env:legacy})).status,'routes_unconfigured');a.equal(f.requests.length,0);
  a.equal((await dispatch([event('new_prop','prizepicks')],{...options,env:{...legacy,PROJECT_DISCORD_PLATFORM_ROUTING_ENABLED:'1'},mode:'deliver'})).status,'routes_unconfigured');
  await a.rejects(dispatch([],{...options,env:{...env,PROJECT_DISCORD_PLATFORM_ROUTES:JSON.stringify({'underdog-props':platform['underdog-props']})}}),/invalid platform route configuration/);
  await a.rejects(dispatch([],{...options,env:{...env,PROJECT_DISCORD_PLATFORM_ROUTES:JSON.stringify({...platform,'underdog-props':platform['prizepicks-props']})}}),/invalid platform route/);
  const good=await dispatch([],{...options,env:{...env,PROJECT_DISCORD_PLATFORM_ROUTING_ENABLED:'0',PROJECT_DISCORD_BATCH_CONFIG:'{"messagesPerRun":1}'}});
- a.equal(good.delivered,5);a.deepEqual(Object.keys(good.results),routes);
+ a.equal(good.delivered,4);a.deepEqual(Object.keys(good.results),routes.slice(1));
  a.ok(f.posted.every(({text})=>text.includes('No live offer or prediction')));
  a.equal((await dispatch([] ,options)).delivered,0);
  const failure=await dispatch([],{...options,...bad});
- a.equal(failure.delivered,4);a.equal(failure.results['prizepicks-props'],'unconfirmed');
+ a.equal(failure.delivered,3);a.equal(failure.results['prizepicks-props'],'unconfirmed');
  a.equal(bad.posted.some(p=>p.route==='prizepicks-props'),false);
  const s=buildSuggestions(report([modelRow()]),now);
  a.equal((await dispatch(s,{...options,env:legacy,mode:'deliver'})).delivered,0);
@@ -120,4 +120,15 @@ test('bad setup exposes only fixed diagnostic codes and known route names, never
  await check(JSON.stringify({'not-a-known-route':platform['underdog-props']}),'missing_route','prizepicks-props');
  a.equal(f.requests.length,0);
  a.equal(configDiagnostic(Error('secret example')),null);
+});
+
+test('platform-only setup sends neither tests nor operations to general',async()=>{
+ const f=fixture(),platformOnly={...env,PROJECT_DISCORD_GENERAL_ENABLED:'0'};
+ const opts={...f,env:platformOnly,now,runKey:'14'};
+ const probe=await dispatch([],{...opts,mode:'test_routes'});a.equal(probe.delivered,4);
+ a.equal((await dispatch([],{...opts,mode:'test'})).status,'general_disabled');
+ const r=await dispatch([event('new_prop','prizepicks'),event('research_update'),event('collection_status')],{...opts,mode:'deliver'});
+ a.equal(r.delivered,1);a.deepEqual(r.deliveredRoutes,{'prizepicks-props':1});a.equal(r.remaining,undefined);
+ a.equal((await dispatch([event('new_prop','underdog')],{...opts,env:{...platformOnly,PROJECT_DISCORD_PLATFORM_ROUTING_ENABLED:'0'},mode:'deliver'})).status,'general_disabled');
+ a.ok(f.requests.every(r=>r.route!=='general'));
 });

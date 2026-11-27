@@ -6,12 +6,12 @@
 | `#prizepicks-suggestions` | Qualified individual PrizePicks prop research only |
 | `#underdog-props` | Underdog new, moved, repriced, removed and reposted props, plus alternate tiers |
 | `#underdog-suggestions` | Qualified individual Underdog prop research only |
-| `#general` | Collection status, verified availability updates and model-research performance summaries |
+| `#general` (optional) | Collection status, verified availability updates and model-research performance summaries |
 
 ## Set up on your phone
 
 1. In Discord, make four text channels with the exact names above. Turn on **Settings → Advanced → Developer Mode**. Press and hold each channel and tap **Copy Channel ID**.
-2. In **Server Settings → Integrations → Webhooks**, create one webhook for each new channel. Pick the matching channel in the webhook settings, save, and tap **Copy Webhook URL**. If the app doesn't show Webhooks, try Discord in a browser with **Desktop site** enabled. You need permission to manage webhooks. Keep the existing `#general` webhook.
+2. In **Server Settings → Integrations → Webhooks**, create one webhook for each new channel. Pick the matching channel in the webhook settings, save, and tap **Copy Webhook URL**. If the app doesn't show Webhooks, try Discord in a browser with **Desktop site** enabled. You need permission to manage webhooks. No `#general` webhook is required.
 3. Open [GitHub Actions secrets](https://github.com/Thedarkwillow/nhl-betting-platform1/settings/secrets/actions) in your phone browser. Tap **New repository secret** and name it `PROJECT_DISCORD_PLATFORM_ROUTES`. Paste the template below into the secret field and replace all placeholders there. Never paste actual webhook URLs into chat, Git files, or GitHub variables.
 
 ```json
@@ -23,10 +23,10 @@
 }
 ```
 
-4. Open [Project Discord research alerts](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/workflows/project-discord-line-alerts.yml). Tap **Run workflow**, stay on `main`, select `test_routes`, and run. Look for one clearly labeled test in each of the five channels. The run reports only each route name and confirmation status. A pass confirms test delivery, not delivery of a new prop or a qualified suggestion.
-5. After all five tests pass, add the repository **variable** `PROJECT_DISCORD_PLATFORM_ROUTING_ENABLED` with value `1` on the **Variables** tab next to [Actions secrets](https://github.com/Thedarkwillow/nhl-betting-platform1/settings/secrets/actions). Leave `PROJECT_DISCORD_ALERTS_ENABLED` at its existing value of `1`. Verify a subsequent automatic run shows `deliveredRoutes` for genuine routed alerts. A quiet board or a lack of qualified suggestions can legitimately produce zero sends.
+4. Open [Project Discord research alerts](https://github.com/Thedarkwillow/nhl-betting-platform1/actions/workflows/project-discord-line-alerts.yml). Tap **Run workflow**, stay on `main`, select `test_routes`, and run. Look for one clearly labeled test in each of the four platform channels. The run reports only each route name and confirmation status. A pass confirms test delivery, not delivery of a new prop or a qualified suggestion.
+5. After all four tests pass, add the repository **variable** `PROJECT_DISCORD_PLATFORM_ROUTING_ENABLED` with value `1` on the **Variables** tab next to [Actions secrets](https://github.com/Thedarkwillow/nhl-betting-platform1/settings/secrets/actions). Leave `PROJECT_DISCORD_ALERTS_ENABLED` at its existing value of `1`. Verify a subsequent automatic run shows `deliveredRoutes` for genuine routed alerts. A quiet board or a lack of qualified suggestions can legitimately produce zero sends.
 
-The existing alert routing stays in place until step 5. In split mode the existing sport, platform, tier and category filters still apply, and the platform/category destination replaces sport-specific webhook overrides. No market event or suggestion falls back to `#general`. Cross-platform discrepancy summaries are not delivered in split mode. A wrong server/channel is rejected before delivery and ambiguous sends are never retried automatically. New, alternate and reposted props still take precedence over ordinary price changes. To roll back to the old routing, remove the cutover variable.
+Platform-only delivery is the workflow default. To opt in to general delivery, set `PROJECT_DISCORD_GENERAL_ENABLED` to `1` and configure the general channel ID and webhook. The guild ID is still required to verify every destination. Operational summaries are withheld when there is no general channel. If general delivery is explicitly enabled, it keeps its prior routing until step 5 and can be tested separately with `test`. In split mode the existing sport, platform, tier and category filters still apply, and the platform/category destination replaces sport-specific webhook overrides. No market event or suggestion falls back to `#general`. Cross-platform discrepancy summaries are not delivered in split mode. A wrong server/channel is rejected before delivery and ambiguous sends are never retried automatically. New, alternate and reposted props still take precedence over ordinary price changes. To roll back to the old routing, remove the cutover variable.
 
 ## Suggestion eligibility and verification
 

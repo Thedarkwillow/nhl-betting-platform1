@@ -1,6 +1,6 @@
 # PickFinder closeout queue
 
-Snapshot for Nov 27, 2026 Pacific. The master roadmap is the source of truth. This queue lists the 24 open IDs at the start of the sprint. Each ID stays open until its stated acceptance evidence is recorded. No paid calls, native iPhone pushes, raw member messages, backdated forecasts, or model promotion are part of this scope.
+Queue rechecked Nov 28, 2026 Pacific. The master roadmap is the source of truth. This queue lists the 24 open IDs at the start of the sprint. Each ID stays open until its stated acceptance evidence is recorded. No paid calls, native iPhone pushes, raw member messages, backdated forecasts, or model promotion are part of this scope.
 
 ## Collection and independent validation
 
@@ -18,14 +18,14 @@ Snapshot for Nov 27, 2026 Pacific. The master roadmap is the source of truth. Th
 | PF-14 | Verify current operator rule versions against actual offers and settlement evidence. Do not inherit a standard or alternate payout or stat rule across platforms. |
 | PF-17 | Wire only independently qualified inputs into website research. Show source, age and scope on historical views and keep unavailable fields explicit. |
 | PF-18 | Demonstrate independent cache reuse and invalidation for final facts, roster, current offer, quote and versioned rules. Historical cache hits cannot prove freshness. |
-| PF-28 | Resolve known unresolved esports scopes only when a new independently valid event/map/roster reference exists. Unresolved observations are not training samples. |
+| PF-28 | Eight CS2 observations still have roster conflicts. The relisted Valorant fixture had no final maps at the Nov 28 morning readback. Reuse the existing follow-up for those eight observations and keep unresolved observations out of training. |
 
 ## Operational proof
 
 | ID | Next evidence that can move it forward |
 | --- | --- |
-| PF-16 | Link real workflow and archive receipts by feature and record exactly which stages are observed, collected, validated and integrated. This queue records acceptance conditions, not feature completion. |
-| PF-22 | Identify why one two-tab profile read lost two fields and show repeatable field parity on comparable scope. Keep scheduled worker counts unchanged while this is unresolved. |
+| PF-16 | Nov 28: no in-slot public PickFinder scheduler dispatch and 0/6 archived core pairs for each hour. Verify actual 06:00 and 09:00 dispatches and immutable receipts before closing. Continue stage-by-stage coverage reporting. |
+| PF-22 | Read back a manual paired trial with the new aggregate missing/extra counts by panel family. Explain the two-field gap and show repeatable parity on comparable scope. Keep scheduled worker counts unchanged while this is unresolved. |
 
 ## Alerts and access
 

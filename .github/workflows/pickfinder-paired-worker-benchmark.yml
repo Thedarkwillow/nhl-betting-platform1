@@ -2,6 +2,9 @@ name: PickFinder paired worker benchmark
 on:
   pull_request:
     paths: ['scripts/pickfinder-paired-worker-benchmark.cjs','test/pickfinder-paired-worker-benchmark.test.cjs','.github/workflows/pickfinder-paired-worker-benchmark.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/pickfinder-paired-worker-benchmark.cjs','test/pickfinder-paired-worker-benchmark.test.cjs','.github/workflows/pickfinder-paired-worker-benchmark.yml']
   workflow_dispatch:
     inputs:
       board_digest:

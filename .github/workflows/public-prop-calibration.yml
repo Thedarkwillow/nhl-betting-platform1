@@ -1,0 +1,62 @@
+name: Public three-sport prop calibration research
+on:
+  pull_request:
+    paths: ['scripts/public-prop-calibration.cjs','src/past-only-calibration-research.cjs','scripts/rolling-probability-performance.cjs','test/public-prop-calibration.test.cjs','.github/workflows/public-prop-calibration.yml']
+  push:
+    branches: [main]
+    paths: ['scripts/public-prop-calibration.cjs','src/past-only-calibration-research.cjs','.github/workflows/public-prop-calibration.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '46 10 * * *'
+      timezone: America/Los_Angeles
+permissions:
+  contents: read
+jobs:
+  test:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/public-prop-calibration.test.cjs test/rolling-probability-performance.test.cjs test/past-only-calibration-research.test.cjs
+  report:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    concurrency:
+      group: public-prop-calibration-main
+      cancel-in-progress: false
+    timeout-minutes: 12
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/public-prop-calibration.cjs
+      - name: Save only aggregates and append-only fit records
+        run: |
+          set -euo pipefail
+          git add -f data/public-prop-calibration.json
+          fits=research/pickfinder-public-validation-v1/prop-calibration-fits
+          if test -d "$fits"; then
+            git add -f "$fits"
+            test -z "$(git diff --cached --name-only --diff-filter=CDMRTUXB -- "$fits")"
+          fi
+          git diff --cached --quiet && exit 0
+          git -c user.name='Public calibration research' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -qm 'Publish prospective prop calibration readiness'
+          for i in 1 2 3; do
+            git fetch --quiet origin main
+            git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }
+            if git push --quiet origin HEAD:main; then
+              git fetch --quiet origin main
+              git merge-base --is-ancestor HEAD FETCH_HEAD
+              exit 0
+            fi
+            sleep "$i"
+          done
+          exit 1

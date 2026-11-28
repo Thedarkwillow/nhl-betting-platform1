@@ -27,6 +27,53 @@ function select(archive){
  return out;
 }
 
+// Report only fixed code-owned labels, never a provider field name or selector.
+const PROFILE_GROUPS=new Map([
+ ['Player overview','overview'],['Matchup','matchup'],['Defense','defense'],
+ ['Shooting','shooting'],['Player Stats','player_stats'],
+ ['Splits','splits'],['Season','season'],['Injuries','availability'],
+ ['Depth Chart','availability'],['Lineups','availability']
+]);
+const GROUPS=[...new Set(PROFILE_GROUPS.values()),'other_profile','line_movement','prop_history'];
+function fieldShapes(fields){
+ const byGroup=Object.fromEntries(GROUPS.map(group=>[group,[]]));
+ for(const f of fields){
+  const group=f.origin==='profile'?PROFILE_GROUPS.get(f.tab)??'other_profile':f.origin;
+  if(!Object.hasOwn(byGroup,group))continue;
+  byGroup[group].push(JSON.stringify([f.origin,f.tab,f.scope,f.metric,f.period,f.mapRange,f.gameMode,f.window,f.filterSelection]));
+ }
+ return byGroup;
+}
+function difference(reference,candidate){
+ if(!reference||!candidate||GROUPS.some(origin=>!Array.isArray(reference[origin])||!Array.isArray(candidate[origin])))return null;
+ return Object.fromEntries(GROUPS.map(origin=>{
+  const counts=new Map();
+  for(const [direction,shapes] of [[1,reference[origin]],[-1,candidate[origin]]]){
+   for(const shape of shapes)counts.set(shape,(counts.get(shape)??0)+direction);
+  }
+  const totals={missing:0,extra:0};
+  for(const n of counts.values())if(n>0)totals.missing+=n;else totals.extra-=n;
+  return [origin,totals];
+ }));
+}
+function compareReadShapes(reference,profiles){
+ const totals=Object.fromEntries(GROUPS.map(origin=>[origin,{missing:0,extra:0}]));
+ let mismatchedReads=0;
+ for(let i=0;i<reference.length;i++){
+  const diff=difference(reference[i].shapesByGroup,profiles[i].shapesByGroup);
+  if(!diff)return null;
+  if(GROUPS.some(origin=>diff[origin].missing||diff[origin].extra))mismatchedReads++;
+  for(const origin of GROUPS){
+   totals[origin].missing+=diff[origin].missing;
+   totals[origin].extra+=diff[origin].extra;
+  }
+ }
+ return {mismatchedReads,byGroup:totals};
+}
+function publicArm(result){
+ return {...result,profileResults:result.profileResults.map(({shapesByGroup,...summary})=>summary)};
+}
+
 function compare(arms,digest){
  if(!hash(digest)||arms.length!==ORDER.length)return {status:'incomplete_trial',parallelRecommended:false};
  const complete=arms.every((a,i)=>a.workers===ORDER[i]&&a.cohortDigest===digest&&a.profileResults?.length===SIZE&&
@@ -38,6 +85,7 @@ function compare(arms,digest){
  const gain=1-means[2]/means[1];
  return {status:parity?'matched_abba_evidence':'field_parity_not_met',parity,meanByWorkerMs:means,gain,
   bothPairedRunsFaster:arms[1].wallMs<arms[0].wallMs&&arms[2].wallMs<arms[3].wallMs,
+  shapeDiagnostics:arms.slice(1).map((a,i)=>({ordinal:i+2,workers:a.workers,counts:compareReadShapes(reference,a.profileResults)})),
   parallelRecommended:false,measurementOnly:true,productionConcurrencyChanged:false};
 }
 
@@ -74,10 +122,10 @@ async function probe(page,item,alive){
     if(!route)throw Error('route');
    }finally{navMs=performance.now()-start;}}});
  }catch{row.profileCollection={truncated:true};}
- const safe=publicProfile(row),shape=safe.research.map(f=>JSON.stringify([f.origin,f.tab,f.scope,f.metric,f.period,f.mapRange,f.gameMode,f.window,f.filterSelection])).sort();
+ const safe=publicProfile(row),shapesByGroup=fieldShapes(safe.research),shape=Object.values(shapesByGroup).flat().sort();
  return {authenticated,complete:route&&safe.truncated===false&&safe.status==='sampled',fields:shape.length,
   fieldShape:shape.length?sha(JSON.stringify(shape)):null,navMs:Math.round(navMs),readMs:Math.round(Math.max(0,performance.now()-t-navMs)),
-  bytes:Buffer.byteLength(JSON.stringify(safe))};
+  bytes:Buffer.byteLength(JSON.stringify(safe)),shapesByGroup};
 }
 async function main(root,env){
  if(env.GITHUB_EVENT_NAME!=='workflow_dispatch'||env.GITHUB_REF!=='refs/heads/main'||env.PICKFINDER_AUTOMATION_AUTHORIZED!=='1'||!hash(env.BOARD_DIGEST))throw Error('manual-only');
@@ -100,7 +148,7 @@ async function main(root,env){
    const at=performance.now();
    const proof=await persist(root,'capabilities',{schema:'pickfinder-worker-benchmark-arm-v1',
     runId:env.GITHUB_RUN_ID??null,ordinal:arms.length,observedAt:new Date().toISOString(),scope,
-    fixtureBoardDigest:env.BOARD_DIGEST,...result,profileRowsPublished:false,accountMutations:0,paidApiRequests:0});
+    fixtureBoardDigest:env.BOARD_DIGEST,...publicArm(result),profileRowsPublished:false,accountMutations:0,paidApiRequests:0});
    checkpoints.push({digest:proof.digest,archiveMs:Math.round(performance.now()-at)});
    if(result.profileResults.length!==SIZE||result.profileResults.some(r=>!r.authenticated))break;
   }
@@ -113,7 +161,7 @@ async function main(root,env){
  const ref=await persist(root,'capabilities',report);
  return {...report,digest:ref.digest};
 }
-module.exports={select,executeArm,compare,ORDER,SIZE};
+module.exports={select,executeArm,compare,fieldShapes,publicArm,ORDER,SIZE};
 if(require.main===module)main(process.cwd(),process.env).then(r=>console.log(JSON.stringify(r))).catch(()=>{
  console.error('PickFinder manual worker benchmark withheld without a verified capture or checkpoint');process.exitCode=1;
 });

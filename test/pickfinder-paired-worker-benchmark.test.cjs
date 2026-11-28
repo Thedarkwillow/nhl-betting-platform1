@@ -1,6 +1,6 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict');
-const {select,executeArm,compare,ORDER}=require('../scripts/pickfinder-paired-worker-benchmark.cjs');
+const {select,executeArm,compare,fieldShapes,publicArm,ORDER}=require('../scripts/pickfinder-paired-worker-benchmark.cjs');
 const digest='a'.repeat(64),fieldShape='b'.repeat(64);
 function o(i){return {sport:'nba',book:'prizepicks',player:'Player '+i,market:'player_points',
  eventId:'event'+i,detailId:'/players/nba/player'+i+'?prop=id%3Aplayer_points%3Aevent'+i+'%3A15.5',line:15.5};}
@@ -29,4 +29,27 @@ test('uses a separate tab per concurrent worker, retains order and closes tabs',
  probe:async (page,item)=>{rec.push([page.id,item.player]);return {authenticated:true,complete:true,fields:3,fieldShape,navMs:5,readMs:3,bytes:40}}});
  assert.equal(count,2);assert.equal(closed,2);assert.deepEqual(rec.map(x=>x[0]),[1,2,1,2]);
  assert.deepEqual(rec.map(x=>x[1]),cohort.map(x=>x.player));assert.equal(result.navigationAggregateMs,20);
+});
+test('explains dropped duplicates and equal-count replacements without publishing field labels',()=>{
+ const counter=(...metrics)=>fieldShapes(metrics.map(([origin,metric,tab])=>({origin,metric,tab})));
+ const ref=counter(['profile','Sample A','Player Stats'],['profile','Sample A','Player Stats'],['profile','Sample B','Defense'],['line_movement','Clock']);
+ const candidate=counter(['profile','Sample A','Player Stats'],['profile','Sample C','Defense'],['line_movement','Clock']);
+ const reverse=counter(['profile','Sample A','Player Stats'],['profile','Sample A','Player Stats'],['profile','Sample A','Player Stats'],['line_movement','Quote']);
+ const field=(shapesByGroup,fields,shape=fieldShape)=>({authenticated:true,complete:true,fields,fieldShape:shape,shapesByGroup});
+ const arms=ORDER.map((workers,i)=>({workers,cohortDigest:digest,wallMs:100,
+  profileResults:Array.from({length:4},()=>field(ref,4))}));
+ arms[1].profileResults[0]=field(candidate,3,'c'.repeat(64));
+ arms[1].profileResults[1]=field(reverse,4,'d'.repeat(64));
+ const result=compare(arms,digest),[change,unchanged]=result.shapeDiagnostics;
+ assert.equal(result.status,'field_parity_not_met');
+ assert.equal(change.ordinal,2);assert.equal(change.workers,2);assert.equal(change.counts.mismatchedReads,2);
+ assert.deepEqual(change.counts.byGroup.player_stats,{missing:1,extra:1});
+ assert.deepEqual(change.counts.byGroup.defense,{missing:2,extra:1});
+ assert.deepEqual(change.counts.byGroup.line_movement,{missing:1,extra:1});
+ assert.deepEqual(change.counts.byGroup.other_profile,{missing:0,extra:0});
+ assert.equal(unchanged.counts.mismatchedReads,0);
+ assert.doesNotMatch(JSON.stringify([result,publicArm(arms[1])]),/Sample [ABC]|Clock|Quote|shapesByGroup/);
+ assert.ok(arms[1].profileResults[0].shapesByGroup);
+ delete arms[2].profileResults[0].shapesByGroup;
+ assert.equal(compare(arms,digest).shapeDiagnostics[1].counts,null);
 });

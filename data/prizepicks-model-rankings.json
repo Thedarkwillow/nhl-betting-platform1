@@ -1,13 +1,13 @@
 {
   "kind": "public_prizepicks_model_ranking_v1",
-  "generatedAt": "2026-11-28T00:37:32.681Z",
+  "generatedAt": "2026-11-28T09:28:06.415Z",
   "rows": [],
   "bySport": {
     "nba": {
       "freshOffers": 0,
       "archivedModelRows": 0,
       "rankedRows": 0,
-      "reason": "no_fresh_clock_verified_offers"
+      "reason": "no_current_complete_partition"
     },
     "nhl": {
       "freshOffers": 0,

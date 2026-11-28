@@ -147,7 +147,7 @@ test('NBA history repair is manual and protects both morning capture windows',()
 
 test('NBA history-only runner excludes unrelated context and discovery prepasses',()=>{
  const fs=require('node:fs'),src=fs.readFileSync(require.resolve('../scripts/pickfinder-public-runner.cjs'),'utf8');
- assert.ok(src.includes('const evidence=p.historyRepair||p.currentProfiles||p.clockAudit||fallback?null:await discover({env});'));
+ assert.ok(src.includes('const evidence=p.historyRepair||p.currentProfiles||p.clockAudit||p.partitions||fallback?null:await discover({env});'));
  assert.ok(src.includes('if(!p.historyRepair&&!p.currentProfiles&&alive()){\n   const until=Date.now()+90000,gameAlive='));
  assert.ok(src.includes('if(!p.historyRepair&&!p.currentProfiles&&alive()&&!p.featuresOnly){'));
 });
@@ -431,4 +431,16 @@ test('profile timing cohorts bind exact ordered scope, selected book and movemen
   assert.notEqual(profileBenchmarkScope(rows,how).cohortDigest,d.cohortDigest);
  assert.equal(profileBenchmarkScope([a,a],opts).cohortDigest,null);
  assert.equal(profileBenchmarkScope([{...a,detailId:'https://example.com/players/nba/a?prop=x'}],opts).cohortDigest,null);
+});
+
+test('explicit partition recovery only targets validated manual scopes and protects morning runs',()=>{
+ const {recoveryPartitions,invocation,boardTargets}=require('../scripts/pickfinder-public-runner.cjs');
+ const stamp=new Date('2026-11-28T00:00:00Z');
+ const env={PICKFINDER_AUTOMATION_AUTHORIZED:'1',PICKFINDER_PUBLIC_DATA_AUTHORIZED:'1',GITHUB_EVENT_NAME:'workflow_dispatch',REQUESTED_MODE:'recover_partitions',REQUESTED_PARTITIONS:'DOTA2/prizepicks, tennis/prizepicks'};
+ const p=invocation(env,stamp);
+ assert.equal(p.allowed,true);assert.equal(p.boardsOnly,true);
+ assert.deepEqual(boardTargets(null,p.partitions).map(x=>x.code.toLowerCase()+'/'+x.book).sort(),['dota2/prizepicks','tennis/prizepicks']);
+ assert.equal(invocation(env,new Date('2026-11-27T17:10:00Z')).allowed,false);
+ assert.throws(()=>invocation({...env,GITHUB_EVENT_NAME:'schedule'},stamp));
+ for(const x of ['','nhl/prizepicks,','mlb/bad','nhl/prizepicks,nhl/prizepicks','nhl/prizepicks,nfl/underdog,nba/prizepicks,cs2/underdog,tennis/prizepicks'])assert.throws(()=>recoveryPartitions(x));
 });

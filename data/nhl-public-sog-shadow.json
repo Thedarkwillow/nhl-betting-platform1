@@ -1,6 +1,6 @@
 {
   "kind": "nhl_public_sog_shadow_status_v1",
-  "generatedAt": "2026-11-28T02:43:25.093Z",
+  "generatedAt": "2026-11-28T07:45:05.814Z",
   "lastRun": {
     "mode": "capture",
     "candidateOffers": 0,
@@ -9,7 +9,7 @@
     "partnerRequests": 0,
     "partnerObservedRows": null,
     "excluded": {
-      "missing_exact_pickfinder_start": 28
+      "missing_exact_pickfinder_start": 87
     },
     "newStagedGrades": 0
   },
@@ -115,7 +115,7 @@
     "partnerRequests": 0,
     "partnerObservedRows": null,
     "excluded": {
-      "missing_exact_pickfinder_start": 28
+      "missing_exact_pickfinder_start": 87
     },
     "newStagedGrades": 0
   }

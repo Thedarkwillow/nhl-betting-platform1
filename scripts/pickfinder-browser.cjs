@@ -182,12 +182,13 @@ function readCompactBoardClocks({sport,observedAt,limit=20,authenticatedContextV
   }
   return {authenticated,visiblePropLinks:links.length,records};
 }
-async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldContinue=()=>true,onPage=async()=>{}}) {
+async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldContinue=()=>true,onPage=async()=>{},auditTraversal=false}) {
   if(!['prizepicks','underdog'].includes(book)||!(maxPages===Infinity||Number.isSafeInteger(maxPages)&&maxPages>=1))throw Error('invalid partition');
   const sport=aliases[code]||code.toLowerCase();
   const startedAt=new Date().toISOString();
   const localDay=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(startedAt));
   const result={schema:'pickfinder-premium-export-v1',book,sport,slot,localDay,startedAt,pages:[],boardState:'partial',lastPageReached:false};
+  if(auditTraversal)result.traversalAudit={bookGapPages:[],pageChecks:[],firstDisplayedTotal:null,displayedTotalChanged:false,selectedControlRequired:true,lastPageTraversalVerified:false};
   if(!shouldContinue())return result;
   await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:15000});
   await page.waitForFunction(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium'),null,{timeout:15000});
@@ -213,8 +214,19 @@ async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldCon
     // Live prices may change while old rows remain on screen. Identity, not price, proves progress.
     const signature=rows=>JSON.stringify(rows.map(r=>r.detailId).sort());
     const bookSeen=rows=>rows.some(r=>r.apps?.some(a=>a.book===book)||r.appEvidence?.some(a=>a.book===book));
+    const readCount=rows=>rows.filter(r=>bookSeen([r])).length;
+    const selected=async()=>{
+      try{const b=button('Apps '+book);return await b.count()===1&&await b.isVisible();}catch{return false;}
+    };
+    const note=(n,snapshot,kind)=>{
+      if(!auditTraversal)return;
+      const trace=result.traversalAudit,total=snapshot.total;
+      if(trace.firstDisplayedTotal===null)trace.firstDisplayedTotal=total;
+      else if(total!==trace.firstDisplayedTotal)trace.displayedTotalChanged=true;
+      if(trace.pageChecks.length<100)trace.pageChecks.push({page:n,displayedTotal:total,propRows:snapshot.rows.length,selectedBadgeRows:readCount(snapshot.rows),kind});
+    };
     for(let n=1;n<=maxPages&&shouldContinue();n++){
-      let snapshot, stableEmpty=0, ready=false, noBookReads=0;
+      let snapshot, stableEmpty=0, ready=false, noBookReads=0,gap=false,gapSignature='';
       const rejection={page:0,sport:0,repeat:0,empty:0,book:0};
       for(let retry=0;retry<64&&shouldContinue();retry++){
         snapshot=await read();
@@ -227,7 +239,18 @@ async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldCon
         else if(snapshot.rows.some(r=>r.sport!==sport))rejection.sport++;
         else if(sig===previous)rejection.repeat++;
         else if(!bookSeen(snapshot.rows))rejection.book++;
-        if(scoped&&!bookSeen(snapshot.rows)){noBookReads++;if(noBookReads>=8){result.failure='selected_book_badge_absent';break;}}
+        if(scoped&&!bookSeen(snapshot.rows)){
+          if(auditTraversal){
+            // A changed pager and stable rows can prove browsing progression, not book ownership.
+            // Only recover an observation if the actual selected-book control remains visible.
+            const current=JSON.stringify([snapshot.total,sig]);
+            noBookReads=gapSignature===current?noBookReads+1:1;gapSignature=current;
+            if(noBookReads>=8){
+              if(await selected()){ready=true;gap=true;break;}
+              result.failure='selected_book_control_not_confirmed';break;
+            }
+          }else{noBookReads++;if(noBookReads>=8){result.failure='selected_book_badge_absent';break;}}
+        }
         else noBookReads=0;
         if((scoped&&bookSeen(snapshot.rows)) || (n===1&&stableEmpty>=4&&snapshot.rows.length===0)){ready=true;break;}
         await new Promise(resolve=>setTimeout(resolve,250));
@@ -236,13 +259,35 @@ async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldCon
         result.pageFailureDiagnostics={expectedPage:n,observedPage:Number.isSafeInteger(snapshot?.number)?snapshot.number:null,displayedTotal:Number.isSafeInteger(snapshot?.total)?snapshot.total:null,rejection};
         if(result.failure==='selected_book_badge_absent'&&snapshot?.rows?.length){result.displayedPageCount=snapshot.total;result.pages.push({number:n,rows:snapshot.rows});await onPage({book,sport,startedAt,displayedPageCount:snapshot.total,page:result.pages.at(-1),accepted:false});}
         break;}
+      if(auditTraversal&&!await selected()){
+        result.failure='selected_book_control_not_confirmed';
+        result.pageFailureDiagnostics={expectedPage:n,observedPage:snapshot.number,displayedTotal:snapshot.total,rejection};
+        break;
+      }
       if(n===1&&stableEmpty>=4&&snapshot.rows.length===0){result.boardState='empty';result.explicitEmpty=true;result.lastPageReached=true;break;}
       result.displayedPageCount=snapshot.total;
       result.pages.push({number:n,rows:snapshot.rows});
-      await onPage({book,sport,startedAt,displayedPageCount:snapshot.total,page:result.pages.at(-1),accepted:true});
+      note(n,snapshot,gap?'no_row_book_badge':'row_book_badge_observed');
+      if(gap&&result.traversalAudit.bookGapPages.length<100)result.traversalAudit.bookGapPages.push(n);
+      await onPage({book,sport,startedAt,displayedPageCount:snapshot.total,page:result.pages.at(-1),accepted:!gap});
       previous=signature(snapshot.rows);
-      if(n===snapshot.total){result.lastPageReached=true;result.boardState=snapshot.empty&&n===1?'empty':'populated';break;}
-      if(n<maxPages&&shouldContinue())await button('Next page').click();
+      if(n===snapshot.total){
+        result.lastPageReached=true;
+        if(auditTraversal)result.traversalAudit.lastPageTraversalVerified=true;
+        const incomplete=auditTraversal&&(result.traversalAudit.bookGapPages.length||result.traversalAudit.displayedTotalChanged);
+        result.boardState=incomplete?'partial':snapshot.empty&&n===1?'empty':'populated';
+        if(incomplete)result.failure=result.traversalAudit.displayedTotalChanged?'displayed_total_changed':'traversed_with_unverified_book_pages';
+        break;
+      }
+      if(n<maxPages&&shouldContinue()){
+        try{await button('Next page').click();}
+        catch(err){
+          if(!auditTraversal)throw err;
+          result.failure='next_page_click_failed';
+          result.pageFailureDiagnostics={expectedPage:n+1,observedPage:n,displayedTotal:snapshot.total,rejection};
+          break;
+        }
+      }
     }
   }
   result.endedAt=new Date().toISOString();

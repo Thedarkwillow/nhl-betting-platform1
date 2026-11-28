@@ -166,3 +166,42 @@ test('compact prop card binds the line below the offer to one exact board link',
   if(oldLoc===undefined)delete global.location;else global.location=oldLoc;
  }
 });
+
+test('bounded recovery walks past stable badge-less pages without attributing those offers',async()=>{
+ const gap={...row,detailId:'gap',apps:[],appEvidence:[]};
+ const page=session([active,{...active,number:1,total:3,rows:[row]},
+  ...Array.from({length:8},()=>({...active,number:2,total:3,rows:[gap]})),
+  {...active,number:3,total:3,rows:[{...row,detailId:'last'}]}]);
+ const base=page.getByRole;
+ page.getByRole=(kind,opts)=>opts?.name==='Apps prizepicks'?{waitFor:async()=>{},count:async()=>1,isVisible:async()=>true}:base(kind,opts);
+ const seen=[];
+ const batch=await collect(page,{book:'prizepicks',code:'NHL',auditTraversal:true,onPage:s=>seen.push([s.page.number,s.accepted])});
+ assert.deepEqual(seen,[[1,true],[2,false],[3,true]]);
+ assert.equal(batch.lastPageReached,true);
+ assert.equal(batch.boardState,'partial');
+ assert.equal(batch.traversalAudit.lastPageTraversalVerified,true);
+ assert.deepEqual(batch.traversalAudit.bookGapPages,[2]);
+ assert.equal(normalize(batch).pageTraversalComplete,false);
+ assert.equal(normalize(batch).offers.length,2);
+});
+test('recovery retains first page and actionable diagnostics on a failed pager action',async()=>{
+ const page=session([active,{...active,number:1,total:3,rows:[row]}]),base=page.getByRole;
+ page.getByRole=(kind,opts)=>opts?.name==='Apps prizepicks'?{waitFor:async()=>{},count:async()=>1,isVisible:async()=>true}:
+  opts?.name==='Next page'?{click:async()=>{throw Error('detached pager')}}:base(kind,opts);
+ const batch=await collect(page,{book:'prizepicks',code:'NHL',auditTraversal:true});
+ assert.equal(batch.failure,'next_page_click_failed');
+ assert.equal(batch.pageFailureDiagnostics.expectedPage,2);
+ assert.equal(batch.pages.length,1);
+ assert.equal(batch.traversalAudit.lastPageTraversalVerified,false);
+ const n=require('../scripts/pickfinder-public-runner.cjs').cleanBoard(batch);
+ assert.equal(n.recoveryTraversal.stopReason,'next_page_click_failed');
+ assert.equal(n.recoveryTraversal.pageFailure.observedPage,1);
+ assert.equal(n.rawHtmlPublished,false);
+});
+test('recovery refuses even an apparently empty pager if the selected-book state was lost',async()=>{
+ const page=session([active,...Array.from({length:4},()=>({...active,empty:true,rows:[]}))]),base=page.getByRole;
+ page.getByRole=(kind,opts)=>opts?.name==='Apps prizepicks'?{waitFor:async()=>{},count:async()=>1,isVisible:async()=>false}:base(kind,opts);
+ const batch=await collect(page,{book:'prizepicks',code:'NHL',auditTraversal:true});
+ assert.equal(batch.failure,'selected_book_control_not_confirmed');assert.equal(batch.boardState,'partial');
+ assert.equal(batch.explicitEmpty,undefined);
+});

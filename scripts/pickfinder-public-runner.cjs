@@ -43,7 +43,7 @@ function captureOrigin(env,policy){
  return {event,runId,attempt,revision,cron};
 }
 function cleanBoard(batch){
- const n=normalize(batch);return safe({...n,sourceDigest:sha(JSON.stringify(batch)),schema:'pickfinder-public-normalized-v1',authenticated:batch.authenticated===true,explicitEmpty:batch.explicitEmpty===true,disabledConfirmed:batch.disabledConfirmed===true,displayedPageCount:batch.displayedPageCount??null,lastPageReached:batch.lastPageReached===true,rawHtmlPublished:false,accountDataPublished:false});
+ const n=normalize(batch);return safe({...n,sourceDigest:sha(JSON.stringify(batch)),schema:'pickfinder-public-normalized-v1',authenticated:batch.authenticated===true,explicitEmpty:batch.explicitEmpty===true,disabledConfirmed:batch.disabledConfirmed===true,displayedPageCount:batch.displayedPageCount??null,lastPageReached:batch.lastPageReached===true,...(batch.traversalAudit&&{recoveryTraversal:{...batch.traversalAudit,stopReason:batch.failure??null,pageFailure:batch.pageFailureDiagnostics??null}}),rawHtmlPublished:false,accountDataPublished:false});
 }
 function splitBoard(n){
  const {offers,researchObservations,unpricedTierObservations,sportsbookQuotes,...meta}=n,parts=[];
@@ -309,7 +309,7 @@ async function main(root,env=process.env){
   if(!p.deep){for(const {code,book} of (p.clockAudit?boardTargets(null,['nba/prizepicks','nba/underdog']):boardTargets(evidence,p.partitions??fallback?.missingPartitions??null))){
    if(!alive())break;
    try{await page.goto(ORIGIN+'/props',{timeout:20000});const names=code==='DOTA2'?['DOTA2','Dota 2']:[code];let visible=false;for(const name of names){const b=page.getByRole('button',{name,exact:true});if(await b.count()===1&&await b.isVisible())visible=true;}if(!visible){console.log(JSON.stringify({state:'public_board_not_exposed',code,book,competition:'unknown'}));continue;}
-    const batch=await collect(page,{book,code,slot:p.expected,maxPages:p.clockAudit?1:Infinity,shouldContinue:alive,onPage:async x=>{if(x.page.number===1||x.page.number%10===0)console.log(JSON.stringify({state:'public_board_progress',code,book,pages:x.page.number,displayedPages:x.displayedPageCount}));}});
+    const batch=await collect(page,{book,code,slot:p.expected,maxPages:p.clockAudit?1:Infinity,auditTraversal:!!p.partitions,shouldContinue:alive,onPage:async x=>{if(x.page.number===1||x.page.number%10===0)console.log(JSON.stringify({state:'public_board_progress',code,book,pages:x.page.number,displayedPages:x.displayedPageCount}));}});
     const n={...cleanBoard(batch),...(p.clockAudit?{samplingPurpose:'displayed_game_clock'}:{})},{meta,parts}=splitBoard(n),partDigests=[];for(const part of parts)partDigests.push((await write('board-parts',part)).digest);const receipt=await write('boards',{...meta,partDigests,captureOrigin:captureOrigin(env,p)});boards++;
     if(p.clockAudit&&!batch.failure)for(const row of batch.pages.flatMap(x=>x.rows))auditRows.push({...row,book,boardArchiveDigest:receipt.digest,hasClock:row.research.some(f=>f.metric==='Displayed Matchup and Time')});
     console.log(JSON.stringify({state:'public_board_checkpoint_verified',code,book,slot:n.slot,withinSlot:n.withinSlot,boardState:n.boardState,pages:n.health.pages,offers:n.health.distinctOfferKeys,unresolved:n.health.unresolvedRows,sourceDigest:n.sourceDigest,archiveDigest:receipt.digest,remoteDigestVerified:true,originalOffersVerified:false}));

@@ -205,3 +205,28 @@ test('recovery refuses even an apparently empty pager if the selected-book state
  assert.equal(batch.failure,'selected_book_control_not_confirmed');assert.equal(batch.boardState,'partial');
  assert.equal(batch.explicitEmpty,undefined);
 });
+test('recovery selects only the visible pager bound to the current markers',async()=>{
+ const {advanceBoundPager}=require('../scripts/pickfinder-browser.cjs');
+ const checked=[],clicked=[];
+ const page={locator:s=>{
+  assert.equal(s,'button[aria-label="Next page"]:visible');
+  return {evaluateAll:async()=>[{page:1,total:4,disabled:false},{page:1,total:5,disabled:false}],nth:i=>{
+   checked.push(i);
+   return {evaluate:async()=>({page:1,total:5,disabled:false}),isVisible:async()=>true,isEnabled:async()=>true,click:async()=>{clicked.push(i)}};
+  }};
+ }};
+ const r=await advanceBoundPager(page,1,5);
+ assert.equal(r.ok,true);assert.deepEqual(checked,[1]);assert.deepEqual(clicked,[1]);
+ assert.equal((await advanceBoundPager(page,2,5)).reason,'no_bound_visible_pager');
+});
+test('recovery does not click a disabled, ambiguous or changed pager',async()=>{
+ const {advanceBoundPager}=require('../scripts/pickfinder-browser.cjs');let probes=[{page:1,total:5,disabled:true}],calls=0;
+ const q={evaluateAll:async()=>probes,nth:()=>{calls++;return {evaluate:async()=>({page:2,total:5,disabled:false}),click:async()=>assert.fail('changed pager clicked')};}};
+ const page={locator:()=>q};
+ assert.equal((await advanceBoundPager(page,1,5)).reason,'bound_pager_disabled');
+ probes=[{page:1,total:5,disabled:false},{page:1,total:5,disabled:false}];
+ assert.equal((await advanceBoundPager(page,1,5)).reason,'ambiguous_bound_pager');
+ assert.equal(calls,0);
+ probes=probes.slice(0,1);
+ assert.equal((await advanceBoundPager(page,1,5)).reason,'bound_pager_changed');
+});

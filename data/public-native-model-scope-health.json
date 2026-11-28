@@ -1,6 +1,6 @@
 {
   "kind": "public_native_model_scope_validation_v1",
-  "generatedAt": "2026-11-27T23:46:42.836080+00:00",
+  "generatedAt": "2026-11-28T10:57:13.746692+00:00",
   "nfl": {
     "inputPlayerGames": 48234,
     "conflictingPlayerGames": 0,

@@ -11,7 +11,8 @@ const nba=require('./rolling-probability-performance.cjs');
 const nhl=require('./nhl-public-sog-shadow.cjs');
 const other=require('./pickfinder-reviewed-history-forward.cjs');
 const {compareByGame}=require('./prospective-game-comparison.cjs');
-const {fitPlatt,applyPlatt,eligible,MIN_TRAIN,MIN_GAMES,MIN_SLATES}=require('../src/past-only-calibration-research.cjs');
+const {eligible,MIN_TRAIN,MIN_GAMES,MIN_SLATES}=require('../src/past-only-calibration-research.cjs');
+const {fitPlatt,applyPlatt}=require('../src/public-prop-platt.cjs');
 const dt=Date.parse,key=x=>JSON.stringify(x),hash=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x),q=x=>Number.isFinite(x)&&x>=0&&x<=1;
 const SPORT=['NHL','NFL','NBA'],FITS='prop-calibration-fits',KIND='public_prop_calibration_fit_v1',POLICY='precommitted_platt_game_equal_v1';
 const MIN_TEST=100,MIN_TEST_GAMES=30,MIN_TEST_SLATES=10;
@@ -77,12 +78,20 @@ function pastOnlyRows(root,at){
    }
   }
  }
- const nbaLinks=nba.linkedGrades(h('nba-forecasts'),h('nba-grades'),at);
+ const nbaFrames=h('nba-forecasts'),nbaGrades=h('nba-grades').sort((a,b)=>dt(a.first)-dt(b.first)),
+  nbaLinks=nba.linkedGrades(nbaFrames,nbaGrades,at),forecastByDigest=new Map(nbaFrames.map(f=>[f.digest,f]));
  const officialSources=new Set(['cdn','stats_v3','nba.com official game box score']);
  for(const r of nbaLinks.decided){
   const p=r.f.p;if(!officialSources.has(r.officialSource)||p.probabilityConditionalOnDecided!==true)continue;
-  all.push(observation({sport:'NBA',lane:r.f.kind,p,side:p.offeredSide,selected:p.rawSelectedEstimate,
-   first:r.f.first,finalAt:r.officialCommitAt,actual:r.actual,start:p.gameStartAt,source:p.sourceObservedAt,revision:r.f.rev,tier:p.tier},version));
+  const f=forecastByDigest.get(r.f.digest);
+  const g=nbaGrades.find(x=>x.doc.kind==='pickfinder_public_nba_independent_grades_v1'&&x.doc.appSettlementVerified===false&&
+   dt(x.first)<=dt(at)&&dt(x.doc.generatedAt)<=dt(x.first)+999&&x.doc.rows?.some(y=>
+    y.id===r.id&&y.forecastDigest===f?.digest&&y.gameId===p.gameId&&y.playerId===p.playerId&&y.market===p.market&&y.side===p.offeredSide&&
+    y.actual===r.actual&&y.result===r.result&&y.modelEstimate===r.estimate&&officialSources.has(y.officialSource)&&hash(y.officialResponseSha256)&&
+    dt(y.officialObservedAt)>dt(p.gameStartAt)&&dt(y.officialObservedAt)<=dt(x.first)+999));
+  if(!f||!g)continue;
+  all.push(observation({sport:'NBA',lane:f.doc.kind,p,side:p.offeredSide,selected:p.rawSelectedEstimate,
+   first:f.first,finalAt:g.first,actual:r.actual,start:p.gameStartAt,source:p.sourceObservedAt,revision:r.f.rev,tier:p.tier},version));
  }
  return all.filter(Boolean);
 }

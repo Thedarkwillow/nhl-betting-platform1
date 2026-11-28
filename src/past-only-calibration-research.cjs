@@ -100,11 +100,4 @@ function audit(rows,{fitAt}={}){
   futureIndependentEvaluationFloorMet:fGames.size>=MIN_GAMES&&
    fSlates.size>=MIN_SLATES,calibratedProbabilityApproved:false};
 }
-function fitPlatt(rows,fitAt){
- const rowsOnly=rows.filter(r=>eligible(r,fitAt,true)), games=new Set(rowsOnly.map(r=>r.gameId)).size, slates=new Set(rowsOnly.map(r=>r.slate)).size;
- if(rowsOnly.length<MIN_TRAIN||games<MIN_GAMES||slates<MIN_SLATES||new Set(rowsOnly.map(r=>r.higherOutcome)).size!==2)return null;
- const coefficients=make(rowsOnly,'platt');
- return coefficients[1]>0?{coefficients,decisions:rowsOnly.length,games,slates}:null;
-}
-function applyPlatt(p,c){return sigmoid(features(p,'platt').reduce((a,v,i)=>a+v*c[i],0));}
-module.exports={eligible,audit,features,fitPlatt,applyPlatt,MIN_GAMES,MIN_SLATES,MIN_TRAIN};
+module.exports={eligible,audit,features,MIN_GAMES,MIN_SLATES,MIN_TRAIN};

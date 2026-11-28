@@ -1,10 +1,10 @@
 name: Public three-sport prop calibration research
 on:
   pull_request:
-    paths: ['scripts/public-prop-calibration.cjs','src/past-only-calibration-research.cjs','scripts/rolling-probability-performance.cjs','test/public-prop-calibration.test.cjs','.github/workflows/public-prop-calibration.yml']
+    paths: ['scripts/public-prop-calibration.cjs','src/public-prop-platt.cjs','scripts/rolling-probability-performance.cjs','test/public-prop-calibration.test.cjs','.github/workflows/public-prop-calibration.yml']
   push:
     branches: [main]
-    paths: ['scripts/public-prop-calibration.cjs','src/past-only-calibration-research.cjs','.github/workflows/public-prop-calibration.yml']
+    paths: ['scripts/public-prop-calibration.cjs','src/public-prop-platt.cjs','.github/workflows/public-prop-calibration.yml']
   workflow_dispatch:
   schedule:
     - cron: '46 10 * * *'

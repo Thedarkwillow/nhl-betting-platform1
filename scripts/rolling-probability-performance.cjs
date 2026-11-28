@@ -21,17 +21,17 @@ function linkedGrades(frames,grades,clock){
    const rev=f.doc.modelRevision||p.modelRevision;
    if(!/^[a-f0-9]{40}$/.test(rev||'')||!Number.isInteger(p.gameId)||!Number.isInteger(p.playerId)||!finite(p.line)||!finite(p.rawSelectedEstimate)||p.rawSelectedEstimate<0||p.rawSelectedEstimate>1||!['Higher','Lower'].includes(p.offeredSide)||!Number.isFinite(dt(p.gameStartAt))||dt(f.first)+900000>=dt(p.gameStartAt)||!p.book||!p.market||!p.tier)continue;
    const id=JSON.stringify([rev,p.book,p.gameId,p.playerId,p.market,p.line,p.offeredSide,p.tier]);
-   if(!index.has(id))index.set(id,{p,rev,digest:f.digest,kind:f.doc.kind,first:f.first,generatedAt:f.doc.generatedAt,slate:day(p.gameStartAt)});
+   if(!index.has(id))index.set(id,{p,rev,digest:f.digest,generatedAt:f.doc.generatedAt,slate:day(p.gameStartAt)});
   }
  }
- for(const g of [...grades].sort((a,b)=>dt(a.first)-dt(b.first))){
+ for(const g of grades){
   if(!hash(g.digest)||g.doc?.kind!=='pickfinder_public_nba_independent_grades_v1'||g.doc.appSettlementVerified!==false||!Number.isFinite(dt(g.first))||dt(g.first)>at||!Number.isFinite(dt(g.doc.generatedAt))||dt(g.doc.generatedAt)>dt(g.first)+999)continue;
   for(const r of g.doc.rows||[]){
    const f=index.get(r.id);if(!f||f.digest!==r.forecastDigest||r.gameId!==f.p.gameId||r.playerId!==f.p.playerId||r.market!==f.p.market||r.side!==f.p.offeredSide||r.modelEstimate!==f.p.rawSelectedEstimate||!finite(r.actual)||!hash(r.officialResponseSha256)||!Number.isFinite(dt(r.officialObservedAt))||dt(r.officialObservedAt)<=dt(f.p.gameStartAt)||dt(r.officialObservedAt)>dt(g.first)+999){invalid++;continue;}
    const expected=r.actual===f.p.line?'push':(r.side==='Higher'?r.actual>f.p.line:r.actual<f.p.line)?'correct':'incorrect';
    if(expected!==r.result){bad.add(r.id);continue;}
    const old=accepted.get(r.id);if(old&&(old.result!==r.result||old.actual!==r.actual||old.estimate!==r.modelEstimate)){conflicts.add(r.id);continue;}
-   if(!old)accepted.set(r.id,{result:r.result,actual:r.actual,estimate:r.modelEstimate,f,officialSource:r.officialSource,officialCommitAt:g.first,officialResponseSha256:r.officialResponseSha256});
+   if(!old)accepted.set(r.id,{result:r.result,actual:r.actual,estimate:r.modelEstimate,f,officialSource:r.officialSource});
   }
  }
  const decided=[];for(const [id,r] of accepted){if(bad.has(id)||conflicts.has(id))continue;if(r.result==='push'){pushes++;continue;}decided.push({id,...r});}

@@ -1,7 +1,7 @@
 {
   "kind": "pickfinder_current_identity_registry_v1",
-  "generatedAt": "2026-11-28T01:44:50.509Z",
-  "archiveRevision": "74688903df2a07906255eb46046b380839565217",
+  "generatedAt": "2026-11-28T12:59:40.278Z",
+  "archiveRevision": "92dc2b6760c143c68b36d5cb98d8a23e6eeaab42",
   "profiles": 800,
   "scopesWithReusedPlayerId": 139,
   "players": 753,
@@ -174722,7 +174722,7 @@
         "playerGameRows": 48234
       },
       "nba": {
-        "playerGameRows": 1413
+        "playerGameRows": 1625
       }
     },
     "identityEvidence": {

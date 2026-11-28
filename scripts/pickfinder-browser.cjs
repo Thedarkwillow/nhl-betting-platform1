@@ -182,6 +182,38 @@ function readCompactBoardClocks({sport,observedAt,limit=20,authenticatedContextV
   }
   return {authenticated,visiblePropLinks:links.length,records};
 }
+// Read and act on the same visible pager, instead of selecting between
+// duplicate responsive controls by a generic accessibility name.
+async function advanceBoundPager(page,expected,total){
+ const q=page.locator('button[aria-label="Next page"]:visible');
+ const read=e=>{
+  const match=e.parentElement?.innerText.match(/Page\s*(\d+)\s*\/\s*(\d+)/);
+  return {page:match?Number(match[1]):null,total:match?Number(match[2]):null,
+    disabled:e.disabled===true||e.getAttribute('aria-disabled')==='true'};
+ };
+ let items;
+ try{items=await q.evaluateAll(es=>es.map(e=>{
+  const m=e.parentElement?.innerText.match(/Page\s*(\d+)\s*\/\s*(\d+)/);
+  return {page:m?Number(m[1]):null,total:m?Number(m[2]):null,disabled:e.disabled===true||e.getAttribute('aria-disabled')==='true'};
+ }));}catch{return {ok:false,reason:'pager_controls_unreadable'};}
+ const relevant=items.map((r,i)=>({...r,i})).filter(r=>r.page===expected&&r.total===total);
+ const report={visibleControls:items.length,boundControls:relevant.length,disabledBoundControls:relevant.filter(r=>r.disabled).length};
+ if(relevant.length!==1)return {ok:false,reason:relevant.length?'ambiguous_bound_pager':'no_bound_visible_pager',...report};
+ if(relevant[0].disabled)return {ok:false,reason:'bound_pager_disabled',...report};
+ const candidate=q.nth(relevant[0].i);
+ try{
+  const fresh=await candidate.evaluate(read);
+  if(fresh?.page!==expected||fresh?.total!==total||fresh.disabled||!await candidate.isVisible()||!await candidate.isEnabled())
+   return {ok:false,reason:'bound_pager_changed',...report};
+  await candidate.click({timeout:5000});
+  return {ok:true,reason:'bound_pager_clicked',...report};
+ }catch(e){
+  const m=String(e?.message??'');
+  const reason=/intercepts pointer|intercepted/i.test(m)?'bound_pager_pointer_intercepted':/timeout/i.test(m)?'bound_pager_timeout':'bound_pager_click_rejected';
+  return {ok:false,reason,...report};
+ }
+}
+
 async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldContinue=()=>true,onPage=async()=>{},auditTraversal=false}) {
   if(!['prizepicks','underdog'].includes(book)||!(maxPages===Infinity||Number.isSafeInteger(maxPages)&&maxPages>=1))throw Error('invalid partition');
   const sport=aliases[code]||code.toLowerCase();
@@ -280,6 +312,16 @@ async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldCon
         break;
       }
       if(n<maxPages&&shouldContinue()){
+        if(auditTraversal&&typeof page.locator==='function'){
+          const pager=await advanceBoundPager(page,n,snapshot.total);
+          if(result.traversalAudit.pageChecks.at(-1)?.page===n)result.traversalAudit.pageChecks.at(-1).pager=pager;
+          if(!pager.ok){
+            result.failure='next_page_click_failed';
+            result.pageFailureDiagnostics={expectedPage:n+1,observedPage:n,displayedTotal:snapshot.total,rejection,pager};
+            break;
+          }
+          continue;
+        }
         try{await button('Next page').click();}
         catch(err){
           if(!auditTraversal)throw err;
@@ -293,4 +335,4 @@ async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldCon
   result.endedAt=new Date().toISOString();
   return result;
 }
-module.exports={ORIGIN,collect,readBoard,readCompactBoardClocks};
+module.exports={ORIGIN,collect,readBoard,readCompactBoardClocks,advanceBoundPager};

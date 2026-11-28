@@ -12,12 +12,35 @@ function target(o){
  return {sport:o.sport,eventId:o.eventId,player:o.player,playerPath:u.pathname,detailId:u.pathname+'?'+u.searchParams.toString()};
 }
 function queue(archive,receipts,at){
- const completed=new Set(receipts.filter(x=>x.schema==='pickfinder-public-nba-context-v1').flatMap(x=>x.records||[]).filter(x=>x.state==='explicit_context_observed'&&iso(x.observedAt)&&iso(x.startAt)&&Date.parse(x.observedAt)<=Date.parse(at)&&Date.parse(x.startAt)>Date.parse(at)+900000&&Date.parse(at)-Date.parse(x.observedAt)<6*3600000).map(key));
- const seen=new Map();
- for(const b of archive.latest)for(const o of b.offers||[]){const t=target(o);if(!t||!['nba','nhl','nfl'].includes(t.sport))continue;const k=key(t),old=seen.get(k);if(!old)seen.set(k,{...t,offerReferences:1});else old.offerReferences++;}
- const groups=new Map();for(const x of seen.values())if(!completed.has(key(x))){const a=groups.get(x.sport+'/'+x.eventId)||[];a.push(x);groups.set(x.sport+'/'+x.eventId,a);}
+ const cutoff=Date.parse(at),fresh=x=>iso(x.observedAt)&&Date.parse(x.observedAt)<=cutoff&&cutoff-Date.parse(x.observedAt)<6*3600000;
+ const records=receipts.filter(x=>x.schema==='pickfinder-public-nba-context-v1').flatMap(x=>x.records||[]).filter(fresh);
+ const completed=new Set(records.filter(x=>x.state==='explicit_context_observed'&&iso(x.startAt)&&Date.parse(x.startAt)>cutoff+900000).map(key));
+ const attempted=new Map();
+ for(const x of records)if(x.state==='context_incomplete'&&x.routeVerified===true&&x.playerLabelVerified===true&&
+   ['missing_clock','local_clock_zone_unverified'].includes(x.clockEvidenceState)){
+  const k=JSON.stringify([key(x),x.detailId]),seenAt=Date.parse(x.observedAt);
+  attempted.set(k,Math.max(attempted.get(k)??0,seenAt));
+ }
+ const seen=new Map(),clocks=new Map();
+ for(const b of archive.latest)for(const o of b.offers||[]){
+  const t=target(o);if(!t||!['nba','nhl','nfl'].includes(t.sport))continue;
+  const k=key(t),old=seen.get(k);
+  if(!old)seen.set(k,{...t,offerReferences:1});else old.offerReferences++;
+  const last=b.m?.lastObservedAt,clock=clocks.get(k)??0;
+  clocks.set(k,iso(last)?Math.max(clock,Date.parse(last)):Infinity);
+ }
+ const groups=new Map();let deferredUnchangedContext=0;
+ for(const x of seen.values()){
+  const k=key(x);if(completed.has(k))continue;
+  // This is a temporary collection deferral, never a fact or model input.
+  // Allow new committed board observations, expired attempts, and uncertain reads.
+  if((attempted.get(JSON.stringify([k,x.detailId]))??-Infinity)>=clocks.get(k)){
+   deferredUnchangedContext++;continue;
+  }
+  const a=groups.get(x.sport+'/'+x.eventId)||[];a.push(x);groups.set(x.sport+'/'+x.eventId,a);
+ }
  const pending=[];for(let i=0;[...groups.values()].some(a=>i<a.length);i++)for(const a of groups.values())if(a[i])pending.push(a[i]);
- return {total:seen.size,pending,offerReferences:[...seen.values()].reduce((n,x)=>n+x.offerReferences,0)};
+ return {total:seen.size,pending,deferredUnchangedContext,offerReferences:[...seen.values()].reduce((n,x)=>n+x.offerReferences,0)};
 }
 function readVisible({player,detailId}){
  const u=new URL(location.href),expected=new URL(detailId,location.origin),norm=x=>String(x||'').trim().replace(/\s+/g,' ').toLowerCase();

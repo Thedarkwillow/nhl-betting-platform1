@@ -405,7 +405,7 @@ async function main(root,env=process.env){
      await buffer.add(gameContext.normalize(item,snap,new Date().toISOString()));
     }
    }finally{try{if(!buffer.failed())await buffer.flush();}finally{await detail.close();}}
-   console.log(JSON.stringify({state:'public_nba_context_pass',playerEventTargets:q.total,offerReferences:q.offerReferences,attemptsArchived:observed,explicitContextArchived:complete,independentReviewVerified:0}));
+   console.log(JSON.stringify({state:'public_nba_context_pass',playerEventTargets:q.total,offerReferences:q.offerReferences,attemptsArchived:observed,deferredUnchangedContext:q.deferredUnchangedContext,explicitContextArchived:complete,independentReviewVerified:0}));
   }
   if(p.contextOnly)return;
   // Reserve bounded feature discovery before the long player-profile queue.

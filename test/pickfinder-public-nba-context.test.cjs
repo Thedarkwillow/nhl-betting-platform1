@@ -21,3 +21,20 @@ test('browser timezone evidence never verifies provider clock or changes context
  const target=queue(archive,[],at).pending[0];const snap={routeVerified:true,playerLabelVerified:true,entries:[{label:'Team',value:'BOS'},{label:'Opponent',value:'NYK'},{label:'Matchup',value:'BOS @ NYK • Thu @ 12:00AM'}],clocks:[],browserClock:{zone:'UTC',offsetMinutes:0}};
  const x=normalize(target,snap,at);assert.deepEqual(x.browserClock,{zone:'UTC',offsetMinutes:0,providerDisplayZoneVerified:false});assert.equal(x.startAt,null);assert.equal(x.state,'context_incomplete');assert.equal(normalize(target,{...snap,browserClock:{zone:'not-a-zone',offsetMinutes:0}},at).browserClock,null);
 });
+
+test('defers a confirmed missing-clock profile read only against unchanged recent board evidence',()=>{
+ const boardAt='2026-11-25T15:01:00Z',attemptAt='2026-11-25T15:04:00Z';
+ const a={latest:[{m:{lastObservedAt:boardAt},offers:[o]}]};
+ const item=queue(a,[],at).pending[0];
+ const read=normalize(item,{routeVerified:true,playerLabelVerified:true},attemptAt);
+ const q=(archive,record=read,clock=at)=>queue(archive,[{schema:'pickfinder-public-nba-context-v1',records:[record]}],clock);
+ assert.equal(q(a).pending.length,0);
+ assert.equal(q(a).deferredUnchangedContext,1);
+ assert.equal(q({latest:[...a.latest,{m:{lastObservedAt:'2026-11-25T15:05:00Z'},offers:[o]}]}).pending.length,1);
+ assert.equal(q(archive).pending.length,1);
+ assert.equal(q(a,{...read,routeVerified:false}).pending.length,1);
+ assert.equal(q(a,{...read,playerLabelVerified:false}).pending.length,1);
+ assert.equal(q(a,{...read,detailId:read.detailId.replace(/5$/,'6')}).pending.length,1);
+ assert.equal(q(a,{...read,observedAt:'2026-11-25T15:11:00Z'}).pending.length,1);
+ assert.equal(q(a,read,'2026-11-25T21:04:00Z').pending.length,1);
+});

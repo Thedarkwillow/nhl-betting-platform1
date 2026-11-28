@@ -201,7 +201,7 @@ function readCompactBoardClocks({sport,observedAt,limit=20,authenticatedContextV
 // duplicate responsive controls by a generic accessibility name.
 function inspectPagerControls(elements){
  const visible=e=>e.getClientRects().length>0&&!e.hidden;
- return elements.map(e=>{
+ return (Array.isArray(elements)?elements:[elements]).map(e=>{
   let group=e.parentElement;
   for(let level=0;group&&group!==document.body&&level<4;level++,group=group.parentElement){
    if(group.querySelector('table'))break;
@@ -224,17 +224,27 @@ async function advanceBoundPager(page,expected,total){
   markerLevels:items.map(r=>r.markerLevel??null)};
  if(relevant.length!==1)return {ok:false,reason:relevant.length?'ambiguous_bound_pager':'no_bound_visible_pager',...report};
  if(relevant[0].disabled)return {ok:false,reason:'bound_pager_disabled',...report};
- const candidate=q.nth(relevant[0].i);
+ let candidate,stage='recheck';
  try{
+  // Pin the DOM node. A locator keyed by ordinal could resolve to a different
+  // control if the page re-renders between the read and the click.
+  candidate=await q.nth(relevant[0].i).elementHandle({timeout:1500});
+  if(!candidate||!await candidate.isVisible())return {ok:false,reason:'bound_pager_lost_visibility',...report};
   const fresh=await q.evaluateAll(inspectPagerControls);
-  if(JSON.stringify(fresh)!==JSON.stringify(items)||!await candidate.isVisible()||!await candidate.isEnabled())
-   return {ok:false,reason:'bound_pager_changed',...report};
+  const matches=fresh.filter(r=>r.page===expected&&r.total===total);
+  if(matches.length!==1)return {ok:false,reason:matches.length?'ambiguous_bound_pager':'bound_pager_marker_changed',...report};
+  const [pinned]=await candidate.evaluate(inspectPagerControls);
+  if(pinned?.page!==expected||pinned?.total!==total)return {ok:false,reason:'bound_pager_marker_changed',...report};
+  if(pinned.disabled||!await candidate.isEnabled())return {ok:false,reason:'bound_pager_effectively_disabled',...report};
+  stage='click';
   await candidate.click({timeout:5000});
   return {ok:true,reason:'bound_pager_clicked',...report};
  }catch(e){
   const m=String(e?.message??'');
-  const reason=/intercepts pointer|intercepted/i.test(m)?'bound_pager_pointer_intercepted':/timeout/i.test(m)?'bound_pager_timeout':'bound_pager_click_rejected';
+  const reason=/not attached|detached/i.test(m)?'bound_pager_detached':stage==='recheck'?'bound_pager_recheck_failed':/intercepts pointer|intercepted/i.test(m)?'bound_pager_pointer_intercepted':/timeout/i.test(m)?'bound_pager_timeout':'bound_pager_click_rejected';
   return {ok:false,reason,...report};
+ }finally{
+  if(candidate)await candidate.dispose().catch(()=>{});
  }
 }
 

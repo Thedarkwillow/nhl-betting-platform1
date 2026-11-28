@@ -212,7 +212,7 @@ test('recovery selects only the visible pager bound to the current markers',asyn
   assert.equal(s,'button[aria-label="Next page"]:visible');
   return {evaluateAll:async()=>[{page:1,total:4,disabled:false},{page:1,total:5,disabled:false}],nth:i=>{
    checked.push(i);
-   return {evaluate:async()=>({page:1,total:5,disabled:false}),isVisible:async()=>true,isEnabled:async()=>true,click:async()=>{clicked.push(i)}};
+   return {elementHandle:async()=>({evaluate:async()=>[{page:1,total:5,disabled:false}],isVisible:async()=>true,isEnabled:async()=>true,click:async()=>{clicked.push(i)},dispose:async()=>{}})};
   }};
  }};
  const r=await advanceBoundPager(page,1,5);
@@ -221,14 +221,14 @@ test('recovery selects only the visible pager bound to the current markers',asyn
 });
 test('recovery does not click a disabled, ambiguous or changed pager',async()=>{
  const {advanceBoundPager}=require('../scripts/pickfinder-browser.cjs');let probes=[{page:1,total:5,disabled:true}],calls=0;
- const q={evaluateAll:async()=>calls?[{page:2,total:5,disabled:false}]:probes,nth:()=>{calls++;return {click:async()=>assert.fail('changed pager clicked')};}};
+ const q={evaluateAll:async()=>calls?[{page:2,total:5,disabled:false}]:probes,nth:()=>{calls++;return {elementHandle:async()=>({isVisible:async()=>true,click:async()=>assert.fail('changed pager clicked'),dispose:async()=>{}})};}};
  const page={locator:()=>q};
  assert.equal((await advanceBoundPager(page,1,5)).reason,'bound_pager_disabled');
  probes=[{page:1,total:5,disabled:false},{page:1,total:5,disabled:false}];
  assert.equal((await advanceBoundPager(page,1,5)).reason,'ambiguous_bound_pager');
  assert.equal(calls,0);
  probes=probes.slice(0,1);
- assert.equal((await advanceBoundPager(page,1,5)).reason,'bound_pager_changed');
+ assert.equal((await advanceBoundPager(page,1,5)).reason,'bound_pager_marker_changed');
 });
 test('visible pager accepts an unambiguous counter in its nearest surrounding group',()=>{
  const {inspectPagerControls}=require('../scripts/pickfinder-browser.cjs');
@@ -242,4 +242,21 @@ test('visible pager accepts an unambiguous counter in its nearest surrounding gr
   footer.innerText='Page 1 / 5 Page 1 / 6';
   assert.equal(inspectPagerControls([next])[0].page,null);
  }finally{global.document=prev;}
+});
+
+test('recovery tolerates unrelated inventory changes but never clicks a swapped or disabled node',async()=>{
+ const {advanceBoundPager}=require('../scripts/pickfinder-browser.cjs');
+ let pinned={page:1,total:5,disabled:false},enabled=true,visible=true,reads=0,clicks=0,disposals=0;
+ const q={evaluateAll:async()=>++reads%2?[pinned.page===1?pinned:{page:1,total:5,disabled:false}]:[{page:4,total:7,disabled:false},{page:1,total:5,disabled:false}],
+  nth:()=>({elementHandle:async()=>({evaluate:async()=>[pinned],isVisible:async()=>visible,isEnabled:async()=>enabled,click:async()=>{clicks++},dispose:async()=>{disposals++}})})};
+ const page={locator:()=>q};
+ assert.equal((await advanceBoundPager(page,1,5)).reason,'bound_pager_clicked');
+ enabled=false;
+ assert.equal((await advanceBoundPager(page,1,5)).reason,'bound_pager_effectively_disabled');
+ enabled=true;pinned={page:4,total:7,disabled:false};
+ assert.equal((await advanceBoundPager(page,1,5)).reason,'bound_pager_marker_changed');
+ visible=false;
+ assert.equal((await advanceBoundPager(page,1,5)).reason,'bound_pager_lost_visibility');
+ assert.equal(clicks,1);
+ assert.equal(disposals,4);
 });

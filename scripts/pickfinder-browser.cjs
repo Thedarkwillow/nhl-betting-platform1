@@ -1,11 +1,26 @@
 'use strict';
 const ORIGIN = 'https://www.pickfinder.app';
 const aliases = {CFB:'college-football', CBB:'college-basketball', VAL:'valorant'};
-function readBoard({book, code, sport, observedAt}) {
+function readBoard({book, code, sport, observedAt, auditTraversal=false}) {
   const premium = document.body.innerText.split('\n').some(line => line.trim() === 'Premium');
   const authenticated = premium && !!document.querySelector('button[aria-label="Open user menu"]');
   const footer = document.querySelector('button[aria-label="Next page"]')?.parentElement;
-  const pages = footer?.innerText.match(/Page\s*(\d+)\s*\/\s*(\d+)/);
+  let pages = footer?.innerText.match(/Page\s*(\d+)\s*\/\s*(\d+)/);
+  if(auditTraversal){
+    const visible=e=>e.getClientRects().length>0&&!e.hidden;
+    const only=[...document.querySelectorAll('button[aria-label="Next page"]')].filter(visible);
+    if(only.length===1){
+      let group=only[0].parentElement;
+      for(let level=0;group&&group!==document.body&&level<4;level++,group=group.parentElement){
+        if(group.querySelector('table'))break;
+        const controls=[...group.querySelectorAll('button[aria-label="Next page"]')].filter(visible);
+        if(controls.length!==1||controls[0]!==only[0])break;
+        const marks=[...String(group.innerText??'').matchAll(/Page\s*(\d+)\s*(?:\/|of)\s*(\d+)/gi)];
+        if(marks.length>1)break;
+        if(marks.length===1){pages=marks[0];break;}
+      }
+    }
+  }
   const table = document.querySelector('table');
   const headers = [...(table?.querySelectorAll('th') || [])].map(h => h.innerText.trim().split('\n')[0]);
   const rows = [];
@@ -184,26 +199,35 @@ function readCompactBoardClocks({sport,observedAt,limit=20,authenticatedContextV
 }
 // Read and act on the same visible pager, instead of selecting between
 // duplicate responsive controls by a generic accessibility name.
+function inspectPagerControls(elements){
+ const visible=e=>e.getClientRects().length>0&&!e.hidden;
+ return elements.map(e=>{
+  let group=e.parentElement;
+  for(let level=0;group&&group!==document.body&&level<4;level++,group=group.parentElement){
+   if(group.querySelector('table'))break;
+   const seen=[...group.querySelectorAll('button[aria-label="Next page"]')].filter(visible);
+   if(seen.length!==1||seen[0]!==e)break;
+   const marks=[...String(group.innerText??'').matchAll(/Page\s*(\d+)\s*(?:\/|of)\s*(\d+)/gi)];
+   if(marks.length>1)break;
+   if(marks.length===1)return {page:Number(marks[0][1]),total:Number(marks[0][2]),markerLevel:level,
+    disabled:e.disabled===true||e.getAttribute('aria-disabled')==='true'};
+  }
+  return {page:null,total:null,markerLevel:null,disabled:e.disabled===true||e.getAttribute('aria-disabled')==='true'};
+ });
+}
 async function advanceBoundPager(page,expected,total){
  const q=page.locator('button[aria-label="Next page"]:visible');
- const read=e=>{
-  const match=e.parentElement?.innerText.match(/Page\s*(\d+)\s*\/\s*(\d+)/);
-  return {page:match?Number(match[1]):null,total:match?Number(match[2]):null,
-    disabled:e.disabled===true||e.getAttribute('aria-disabled')==='true'};
- };
  let items;
- try{items=await q.evaluateAll(es=>es.map(e=>{
-  const m=e.parentElement?.innerText.match(/Page\s*(\d+)\s*\/\s*(\d+)/);
-  return {page:m?Number(m[1]):null,total:m?Number(m[2]):null,disabled:e.disabled===true||e.getAttribute('aria-disabled')==='true'};
- }));}catch{return {ok:false,reason:'pager_controls_unreadable'};}
+ try{items=await q.evaluateAll(inspectPagerControls);}catch{return {ok:false,reason:'pager_controls_unreadable'};}
  const relevant=items.map((r,i)=>({...r,i})).filter(r=>r.page===expected&&r.total===total);
- const report={visibleControls:items.length,boundControls:relevant.length,disabledBoundControls:relevant.filter(r=>r.disabled).length};
+ const report={visibleControls:items.length,boundControls:relevant.length,disabledBoundControls:relevant.filter(r=>r.disabled).length,
+  markerLevels:items.map(r=>r.markerLevel??null)};
  if(relevant.length!==1)return {ok:false,reason:relevant.length?'ambiguous_bound_pager':'no_bound_visible_pager',...report};
  if(relevant[0].disabled)return {ok:false,reason:'bound_pager_disabled',...report};
  const candidate=q.nth(relevant[0].i);
  try{
-  const fresh=await candidate.evaluate(read);
-  if(fresh?.page!==expected||fresh?.total!==total||fresh.disabled||!await candidate.isVisible()||!await candidate.isEnabled())
+  const fresh=await q.evaluateAll(inspectPagerControls);
+  if(JSON.stringify(fresh)!==JSON.stringify(items)||!await candidate.isVisible()||!await candidate.isEnabled())
    return {ok:false,reason:'bound_pager_changed',...report};
   await candidate.click({timeout:5000});
   return {ok:true,reason:'bound_pager_clicked',...report};
@@ -224,7 +248,7 @@ async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldCon
   if(!shouldContinue())return result;
   await page.getByRole('button',{name:'Open user menu'}).waitFor({timeout:15000});
   await page.waitForFunction(()=>document.body.innerText.split('\n').some(l=>l.trim()==='Premium'),null,{timeout:15000});
-  const initial=await page.evaluate(readBoard,{book,code,sport,observedAt:startedAt});
+  const initial=await page.evaluate(readBoard,{book,code,sport,observedAt:startedAt,auditTraversal});
   if(!initial.authenticated)throw Error('premium_session_unavailable');
   const button=(name)=>page.getByRole('button',{name,exact:true});
   let sportButton=button(code);
@@ -241,7 +265,7 @@ async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldCon
     await page.getByRole('option',{name:new RegExp(book+'.*Only','i')}).getByRole('button',{name:'Only',exact:true}).click();
     await page.getByRole('option',{name:'Close',exact:true}).click();
     await button('Apps '+book).waitFor({state:'visible'});
-    const read=()=>page.evaluate(readBoard,{book,code,sport,observedAt:new Date().toISOString()});
+    const read=()=>page.evaluate(readBoard,{book,code,sport,observedAt:new Date().toISOString(),auditTraversal});
     let previous='';
     // Live prices may change while old rows remain on screen. Identity, not price, proves progress.
     const signature=rows=>JSON.stringify(rows.map(r=>r.detailId).sort());
@@ -335,4 +359,4 @@ async function collect(page,{book,code,slot='manual',maxPages=Infinity,shouldCon
   result.endedAt=new Date().toISOString();
   return result;
 }
-module.exports={ORIGIN,collect,readBoard,readCompactBoardClocks,advanceBoundPager};
+module.exports={ORIGIN,collect,readBoard,readCompactBoardClocks,advanceBoundPager,inspectPagerControls};

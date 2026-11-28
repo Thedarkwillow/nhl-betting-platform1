@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "public_six_priority_accuracy_platform_evidence_desk_v1",
-  "generatedAt": "2026-11-27T01:53:22.165Z",
+  "generatedAt": "2026-11-28T01:35:57.032Z",
   "lastOfficialSlateDate": "2026-11-25",
   "lastOfficialGradePublishedAt": "2026-11-27T00:49:42.538Z",
   "cumulativeNhlTiers": {
@@ -163,14 +163,14 @@
     "nhlDecided": 97,
     "nhlDistinctGames": 33,
     "nhlDistinctDates": 5,
-    "nflDecided": 281,
-    "nflDistinctGames": 12,
+    "nflDecided": 318,
+    "nflDistinctGames": 15,
     "independentlyBetterThanSimpleStrategies": false,
     "calibrated": false,
     "modelPromoted": false
   },
   "collection": {
-    "pacificDate": "2026-11-26",
+    "pacificDate": "2026-11-27",
     "slots": {
       "06:00": {
         "status": "no_verified_full_capture",

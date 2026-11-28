@@ -1,8 +1,21 @@
 {
   "kind": "public_pickfinder_activity_readiness_v1",
-  "generatedAt": "2026-11-28T01:23:14.333Z",
+  "generatedAt": "2026-11-28T01:44:01.626Z",
   "archiveInvalid": 0,
   "events": [
+    {
+      "kind": "board_observation",
+      "sport": "dota2",
+      "book": "prizepicks",
+      "observedAt": "2026-11-28T01:42:29.084Z",
+      "archivedAt": "2026-11-28T01:42:39Z",
+      "manifestDigest": "31c3df834993f8cde7ffbf127822020be85db6a9a5acf896f29c1fd3b888e000",
+      "state": "partial",
+      "offers": 6,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "be361f9c0e3463795e77757a911afc9b7980b3e3f34bb6e61236d412cc67473a"
+    },
     {
       "kind": "board_observation",
       "sport": "dota2",
@@ -1289,25 +1302,12 @@
       "slot": "manual",
       "nativeNotificationVerified": false,
       "id": "2cb7b2180249700df64ba20ad9dff8b3422d8744b4c234e4af634927a5cce220"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "nba",
-      "book": "underdog",
-      "observedAt": "2026-11-27T15:42:05.489Z",
-      "archivedAt": "2026-11-27T15:42:18Z",
-      "manifestDigest": "81a3daed56a9631691320e48dbe06d340b94d939f08f993a5ab211c6b54b0e7e",
-      "state": "populated",
-      "offers": 2333,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "e0d5b7e45400c0f2d76ca6cdc26183f9551adc8bf905b6ec2454b8f54f60314a"
     }
   ],
   "readiness": {
     "nba/prizepicks": {
       "observedAt": "2026-11-28T00:17:50.821Z",
-      "ageMs": 3923512,
+      "ageMs": 5170805,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1319,7 +1319,7 @@
     },
     "nba/underdog": {
       "observedAt": "2026-11-28T00:19:29.549Z",
-      "ageMs": 3824784,
+      "ageMs": 5072077,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1331,7 +1331,7 @@
     },
     "nhl/prizepicks": {
       "observedAt": "2026-11-28T00:20:21.565Z",
-      "ageMs": 3772768,
+      "ageMs": 5020061,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1343,7 +1343,7 @@
     },
     "nhl/underdog": {
       "observedAt": "2026-11-28T00:20:50.212Z",
-      "ageMs": 3744121,
+      "ageMs": 4991414,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1355,7 +1355,7 @@
     },
     "nfl/prizepicks": {
       "observedAt": "2026-11-28T00:23:02.407Z",
-      "ageMs": 3611926,
+      "ageMs": 4859219,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1367,7 +1367,7 @@
     },
     "nfl/underdog": {
       "observedAt": "2026-11-28T00:24:43.368Z",
-      "ageMs": 3510965,
+      "ageMs": 4758258,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1379,7 +1379,7 @@
     },
     "cs2/prizepicks": {
       "observedAt": "2026-11-28T00:30:40.746Z",
-      "ageMs": 3153587,
+      "ageMs": 4400880,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1391,7 +1391,7 @@
     },
     "cs2/underdog": {
       "observedAt": "2026-11-28T00:30:51.849Z",
-      "ageMs": 3142484,
+      "ageMs": 4389777,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1402,8 +1402,8 @@
       "reason": "fresh_complete_populated_board_missing"
     },
     "dota2/prizepicks": {
-      "observedAt": "2026-11-28T01:21:45.253Z",
-      "ageMs": 89080,
+      "observedAt": "2026-11-28T01:42:29.084Z",
+      "ageMs": 92542,
       "boardState": "partial",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1415,7 +1415,7 @@
     },
     "dota2/underdog": {
       "observedAt": "2026-11-28T00:36:11.222Z",
-      "ageMs": 2823111,
+      "ageMs": 4070404,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1427,7 +1427,7 @@
     },
     "valorant/prizepicks": {
       "observedAt": "2026-11-28T00:36:20.882Z",
-      "ageMs": 2813451,
+      "ageMs": 4060744,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1439,7 +1439,7 @@
     },
     "valorant/underdog": {
       "observedAt": "2026-11-28T00:36:24.007Z",
-      "ageMs": 2810326,
+      "ageMs": 4057619,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1451,7 +1451,7 @@
     },
     "lol/prizepicks": {
       "observedAt": "2026-11-28T00:36:32.650Z",
-      "ageMs": 2801683,
+      "ageMs": 4048976,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1463,7 +1463,7 @@
     },
     "lol/underdog": {
       "observedAt": "2026-11-28T00:36:36.067Z",
-      "ageMs": 2798266,
+      "ageMs": 4045559,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1475,7 +1475,7 @@
     },
     "cod/prizepicks": {
       "observedAt": "2026-11-28T00:36:39.697Z",
-      "ageMs": 2794636,
+      "ageMs": 4041929,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1487,7 +1487,7 @@
     },
     "cod/underdog": {
       "observedAt": "2026-11-28T00:36:43.153Z",
-      "ageMs": 2791180,
+      "ageMs": 4038473,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1499,7 +1499,7 @@
     },
     "mlb/prizepicks": {
       "observedAt": "2026-11-28T00:36:45.261Z",
-      "ageMs": 2789072,
+      "ageMs": 4036365,
       "boardState": "disabled",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1511,7 +1511,7 @@
     },
     "mlb/underdog": {
       "observedAt": "2026-11-28T00:36:47.353Z",
-      "ageMs": 2786980,
+      "ageMs": 4034273,
       "boardState": "disabled",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1523,7 +1523,7 @@
     },
     "wnba/prizepicks": {
       "observedAt": "2026-11-28T00:36:49.464Z",
-      "ageMs": 2784869,
+      "ageMs": 4032162,
       "boardState": "disabled",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1535,7 +1535,7 @@
     },
     "wnba/underdog": {
       "observedAt": "2026-11-28T00:36:51.609Z",
-      "ageMs": 2782724,
+      "ageMs": 4030017,
       "boardState": "disabled",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1547,7 +1547,7 @@
     },
     "college-football/prizepicks": {
       "observedAt": "2026-11-28T00:27:18.368Z",
-      "ageMs": 3355965,
+      "ageMs": 4603258,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1559,7 +1559,7 @@
     },
     "college-football/underdog": {
       "observedAt": "2026-11-28T00:29:05.190Z",
-      "ageMs": 3249143,
+      "ageMs": 4496436,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1571,7 +1571,7 @@
     },
     "college-basketball/prizepicks": {
       "observedAt": "2026-11-28T00:30:01.391Z",
-      "ageMs": 3192942,
+      "ageMs": 4440235,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1583,7 +1583,7 @@
     },
     "college-basketball/underdog": {
       "observedAt": "2026-11-28T00:30:27.822Z",
-      "ageMs": 3166511,
+      "ageMs": 4413804,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1595,7 +1595,7 @@
     },
     "tennis/prizepicks": {
       "observedAt": "2026-11-28T00:55:24.386Z",
-      "ageMs": 1669947,
+      "ageMs": 2917240,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1607,7 +1607,7 @@
     },
     "tennis/underdog": {
       "observedAt": "2026-11-28T00:37:19.599Z",
-      "ageMs": 2754734,
+      "ageMs": 4002027,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1619,7 +1619,7 @@
     },
     "soccer/prizepicks": {
       "observedAt": "2026-11-28T00:33:53.612Z",
-      "ageMs": 2960721,
+      "ageMs": 4208014,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1631,7 +1631,7 @@
     },
     "soccer/underdog": {
       "observedAt": "2026-11-28T00:35:40.364Z",
-      "ageMs": 2853969,
+      "ageMs": 4101262,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1644,7 +1644,7 @@
   },
   "cache": {
     "state": "historical_cache_shadow_audit",
-    "generatedAt": "2026-11-28T01:23:14.333Z",
+    "generatedAt": "2026-11-28T01:44:01.626Z",
     "profiles": 2806,
     "fields": 1488332,
     "candidates": 0,
@@ -1694,7 +1694,7 @@
   "originalPlatformVerified": false,
   "modelApproved": false,
   "historicalRecovery": {
-    "generatedAt": "2026-11-28T01:23:14.333Z",
+    "generatedAt": "2026-11-28T01:44:01.626Z",
     "fields": 1488332,
     "candidates": 30482,
     "cacheRecords": 2912,
@@ -1725,8 +1725,8 @@
   },
   "esportsScopeRecovery": {
     "dota2": {
-      "offerObservations": 630,
-      "explicitSupportedScopes": 427,
+      "offerObservations": 636,
+      "explicitSupportedScopes": 433,
       "unresolvedScopes": 7,
       "qualifiedModelInputs": 0,
       "unresolvedMarketSlugs": {
@@ -2030,7 +2030,7 @@
   },
   "valorantRetrospective": {
     "kind": "pickfinder_valorant_matched_retrospective_v1",
-    "generatedAt": "2026-11-28T01:23:14.333Z",
+    "generatedAt": "2026-11-28T01:44:01.626Z",
     "examples": 10,
     "series": 2,
     "even": {
@@ -2265,8 +2265,8 @@
         ]
       },
       "dota2": {
-        "archiveOfferObservations": 630,
-        "explicitSupportedScopeObservations": 427,
+        "archiveOfferObservations": 636,
+        "explicitSupportedScopeObservations": 433,
         "independentlyMatchedRetrospectiveExamples": 0,
         "independentlyMatchedRetrospectiveSeries": 0,
         "originalPlatformSettlementsVerified": 0,

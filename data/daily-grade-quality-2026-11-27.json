@@ -1,8 +1,8 @@
 {
   "kind": "public_daily_six_quality_gates_v1",
   "slateDate": "2026-11-27",
-  "sourceGeneratedAt": "2026-11-28T18:28:23.606Z",
-  "generatedAt": "2026-11-28T18:28:23.687Z",
+  "sourceGeneratedAt": "2026-11-28T19:14:44.584Z",
+  "generatedAt": "2026-11-28T19:14:44.703Z",
   "tracks": [
     {
       "id": "nhl_points",
@@ -34,32 +34,32 @@
     },
     {
       "id": "nfl_rushing",
-      "status": "awaiting_complete_final",
+      "status": "monitor_future",
       "yards": {
-        "decided": 0,
-        "wins": 0,
-        "losses": 0,
-        "observedHitRate": null,
-        "alwaysHigherSameLine": null,
-        "alwaysLowerSameLine": null
+        "decided": 8,
+        "wins": 4,
+        "losses": 4,
+        "observedHitRate": 0.5,
+        "alwaysHigherSameLine": 0.25,
+        "alwaysLowerSameLine": 0.75
       },
       "attempts": {
-        "decided": 0,
-        "wins": 0,
-        "losses": 0,
-        "observedHitRate": null,
-        "alwaysHigherSameLine": null,
-        "alwaysLowerSameLine": null
+        "decided": 4,
+        "wins": 3,
+        "losses": 1,
+        "observedHitRate": 0.75,
+        "alwaysHigherSameLine": 0.5,
+        "alwaysLowerSameLine": 0.5
       },
       "notIndependentEntries": true,
       "remedy": "Investigate carries, snaps, injuries, matchup and source identity using past-only evidence; freeze any new filter before games"
     },
     {
       "id": "unresolved",
-      "status": "awaiting_complete_final",
+      "status": "needs_individual_evidence",
       "nhlPending": 17,
-      "nflUnresolved": null,
-      "nflFirstDistinctThresholdUnresolved": null,
+      "nflUnresolved": 24,
+      "nflFirstDistinctThresholdUnresolved": 10,
       "evidenceNeeded": "Official boxscore and exact identity/appearance; do not convert to a loss or a platform refund"
     },
     {
@@ -74,15 +74,15 @@
     },
     {
       "id": "automated_grading",
-      "status": "incomplete_sources",
+      "status": "aggregate_evidence_reconciled",
       "officialNhlFinals": true,
-      "officialNflFinals": false,
+      "officialNflFinals": true,
       "privateLedgerPreserved": true,
       "remedy": "Generate this fail-closed aggregate check each day after final-only original Git grading; never publish player rows"
     }
   ],
   "gradedNhlFinalOnly": true,
-  "gradedNflFinalOnly": false,
+  "gradedNflFinalOnly": true,
   "notActualBettingROI": true,
   "officialWagersPlaced": 0,
   "modelPromoted": false,

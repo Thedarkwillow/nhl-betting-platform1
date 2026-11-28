@@ -1,0 +1,63 @@
+{
+  "kind": "public_prop_calibration_readiness_v1",
+  "generatedAt": "2026-11-28T00:39:48.334Z",
+  "policy": "precommitted_platt_game_equal_v1",
+  "trainingFloor": {
+    "decisions": 150,
+    "games": 30,
+    "slates": 20
+  },
+  "prospectiveFloor": {
+    "decisions": 100,
+    "games": 30,
+    "slates": 10
+  },
+  "bySport": {
+    "NHL": {
+      "eligibleDecisions": 0,
+      "cohorts": 0,
+      "fitted": 0,
+      "newFitsStaged": 0,
+      "prospectiveDecisions": 0,
+      "reviewReady": 0
+    },
+    "NFL": {
+      "eligibleDecisions": 0,
+      "cohorts": 0,
+      "fitted": 0,
+      "newFitsStaged": 0,
+      "prospectiveDecisions": 0,
+      "reviewReady": 0
+    },
+    "NBA": {
+      "eligibleDecisions": 1,
+      "cohorts": 1,
+      "fitted": 0,
+      "newFitsStaged": 0,
+      "prospectiveDecisions": 0,
+      "reviewReady": 0
+    }
+  },
+  "cohorts": [
+    {
+      "sport": "NBA",
+      "book": "underdog",
+      "tier": "Standard",
+      "period": "full_game",
+      "market": "steals",
+      "contract": "conditional_on_decided",
+      "stratum": "noninteger",
+      "lane": "pickfinder_public_nba_shadow_forecasts_v1",
+      "model": "a91c7d08f98f0a6979d96b6e27f4b2aa0615698c9c5a7e467c26bdc2b91399c5",
+      "observations": 1,
+      "status": "insufficient_frozen_training",
+      "calibrated": false
+    }
+  ],
+  "unsupportedOrUnobservedMarketsQualified": false,
+  "calibratedProbabilityApproved": false,
+  "modelPromoted": false,
+  "productionChanged": false,
+  "researchOnly": true,
+  "paidRequests": 0
+}

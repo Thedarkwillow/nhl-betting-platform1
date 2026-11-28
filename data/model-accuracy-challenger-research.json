@@ -1,6 +1,6 @@
 {
   "kind": "public_model_accuracy_challenger_research_v1",
-  "generatedAt": "2026-11-28T18:28:25.405Z",
+  "generatedAt": "2026-11-28T19:14:46.873Z",
   "nhl": {
     "kind": "nhl_fixed_half_shrink_all_tier_research_v1",
     "policyFirstGitAt": "2026-11-26T15:39:41-08:00",
@@ -829,29 +829,29 @@
       "minimumModelAdvantage": 0.02
     },
     "all": {
-      "decided": 2592,
-      "modelCorrect": 1275,
-      "alwaysHigherCorrect": 1222,
-      "alwaysLowerCorrect": 1370,
-      "slates": 6,
+      "decided": 2650,
+      "modelCorrect": 1304,
+      "alwaysHigherCorrect": 1245,
+      "alwaysLowerCorrect": 1405,
+      "slates": 7,
       "markets": 12
     },
     "eligiblePriorEvidence": {
-      "decided": 1238,
-      "modelCorrect": 636,
-      "alwaysHigherCorrect": 607,
-      "alwaysLowerCorrect": 631,
-      "slates": 3,
+      "decided": 1296,
+      "modelCorrect": 665,
+      "alwaysHigherCorrect": 630,
+      "alwaysLowerCorrect": 666,
+      "slates": 4,
       "markets": 9
     },
     "priorDirectionBenchmark": {
-      "decided": 379,
-      "modelCorrect": 184,
-      "alwaysHigherCorrect": 177,
-      "alwaysLowerCorrect": 202,
-      "slates": 3,
-      "markets": 6,
-      "priorMarketDirectionCorrect": 201
+      "decided": 397,
+      "modelCorrect": 196,
+      "alwaysHigherCorrect": 185,
+      "alwaysLowerCorrect": 212,
+      "slates": 4,
+      "markets": 7,
+      "priorMarketDirectionCorrect": 208
     },
     "retainOriginalWhenPriorModelBeatsBoth": {
       "decided": 0,
@@ -861,7 +861,7 @@
       "slates": 0,
       "markets": 0
     },
-    "abstainedEligibleDecisions": 1238,
+    "abstainedEligibleDecisions": 1296,
     "bySlate": [
       {
         "date": "2026-11-15",
@@ -1078,10 +1078,46 @@
           "markets": 4,
           "correct": 19
         }
+      },
+      {
+        "date": "2026-11-27",
+        "all": {
+          "decided": 58,
+          "modelCorrect": 29,
+          "alwaysHigherCorrect": 23,
+          "alwaysLowerCorrect": 35,
+          "slates": 1,
+          "markets": 9
+        },
+        "eligible": {
+          "decided": 58,
+          "modelCorrect": 29,
+          "alwaysHigherCorrect": 23,
+          "alwaysLowerCorrect": 35,
+          "slates": 1,
+          "markets": 9
+        },
+        "retained": {
+          "decided": 0,
+          "modelCorrect": 0,
+          "alwaysHigherCorrect": 0,
+          "alwaysLowerCorrect": 0,
+          "slates": 0,
+          "markets": 0
+        },
+        "priorDirectionBenchmark": {
+          "decided": 18,
+          "modelCorrect": 12,
+          "alwaysHigherCorrect": 8,
+          "alwaysLowerCorrect": 10,
+          "slates": 1,
+          "markets": 5,
+          "correct": 7
+        }
       }
     ],
     "exclusions": {
-      "ineligibleSlate": 7
+      "ineligibleSlate": 6
     },
     "retrospectiveOnly": true,
     "originalOutcomeAvailabilityBeforeHistoricalKickoffVerified": false,

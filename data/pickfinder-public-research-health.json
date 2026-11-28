@@ -1,12 +1,48 @@
 {
   "schema": "pickfinder_public_research_health_v1",
-  "generatedAt": "2026-11-27T23:55:55.272Z",
-  "archiveManifests": 237,
+  "generatedAt": "2026-11-28T09:19:02.415Z",
+  "archiveManifests": 325,
   "invalidManifests": 0,
   "latestPartitions": 28,
-  "offerRefs": 26529,
-  "exactComparisons": 4259,
+  "offerRefs": 20341,
+  "exactComparisons": 3121,
   "bySport": {
+    "nfl": {
+      "boards": {
+        "underdog": {
+          "state": "populated",
+          "pages": 137,
+          "displayedPages": 137,
+          "offers": 4857,
+          "unresolved": 0,
+          "observedAt": "2026-11-28T07:48:52.928Z",
+          "slot": "manual",
+          "traversal": true
+        },
+        "prizepicks": {
+          "state": "populated",
+          "pages": 382,
+          "displayedPages": 382,
+          "offers": 2634,
+          "unresolved": 6301,
+          "observedAt": "2026-11-28T07:47:11.439Z",
+          "slot": "manual",
+          "traversal": true
+        }
+      },
+      "offers": 7491,
+      "unresolved": 6301,
+      "unpricedGoblin": 1878,
+      "unpricedDemon": 4413,
+      "quotedSportsbooks": 3379,
+      "explicitThresholdQuotes": 0,
+      "matchedTwoSidedQuotes": 0,
+      "boardFeatureRows": 4868,
+      "matchupSampleOffers": 0,
+      "missingStartAt": 7491,
+      "sourceEvents": 11,
+      "exactCrossBookRows": 1304
+    },
     "lol": {
       "boards": {
         "underdog": {
@@ -15,7 +51,7 @@
           "displayedPages": null,
           "offers": 0,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:45:56.998Z",
+          "observedAt": "2026-11-28T07:59:34.197Z",
           "slot": "manual",
           "traversal": false
         },
@@ -25,7 +61,7 @@
           "displayedPages": null,
           "offers": 0,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:45:53.484Z",
+          "observedAt": "2026-11-28T07:59:30.983Z",
           "slot": "manual",
           "traversal": false
         }
@@ -47,37 +83,73 @@
       "boards": {
         "prizepicks": {
           "state": "populated",
-          "pages": 146,
-          "displayedPages": 146,
-          "offers": 446,
-          "unresolved": 2681,
-          "observedAt": "2026-11-27T20:27:10.904Z",
+          "pages": 144,
+          "displayedPages": 144,
+          "offers": 545,
+          "unresolved": 2592,
+          "observedAt": "2026-11-28T07:44:00.914Z",
           "slot": "manual",
           "traversal": true
         },
         "underdog": {
           "state": "populated",
-          "pages": 40,
-          "displayedPages": 40,
-          "offers": 1319,
+          "pages": 58,
+          "displayedPages": 58,
+          "offers": 1845,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:27:52.705Z",
+          "observedAt": "2026-11-28T07:44:45.154Z",
           "slot": "manual",
           "traversal": true
         }
       },
-      "offers": 1765,
-      "unresolved": 2681,
-      "unpricedGoblin": 318,
-      "unpricedDemon": 2363,
-      "quotedSportsbooks": 1281,
+      "offers": 2390,
+      "unresolved": 2592,
+      "unpricedGoblin": 270,
+      "unpricedDemon": 2319,
+      "quotedSportsbooks": 1026,
       "explicitThresholdQuotes": 0,
       "matchedTwoSidedQuotes": 0,
-      "boardFeatureRows": 1614,
+      "boardFeatureRows": 2390,
       "matchupSampleOffers": 0,
-      "missingStartAt": 1765,
-      "sourceEvents": 10,
-      "exactCrossBookRows": 167
+      "missingStartAt": 2390,
+      "sourceEvents": 13,
+      "exactCrossBookRows": 186
+    },
+    "college-football": {
+      "boards": {
+        "prizepicks": {
+          "state": "populated",
+          "pages": 341,
+          "displayedPages": 341,
+          "offers": 1972,
+          "unresolved": 5830,
+          "observedAt": "2026-11-28T07:51:22.132Z",
+          "slot": "manual",
+          "traversal": true
+        },
+        "underdog": {
+          "state": "populated",
+          "pages": 119,
+          "displayedPages": 119,
+          "offers": 2923,
+          "unresolved": 0,
+          "observedAt": "2026-11-28T07:52:53.038Z",
+          "slot": "manual",
+          "traversal": true
+        }
+      },
+      "offers": 4895,
+      "unresolved": 5830,
+      "unpricedGoblin": 1830,
+      "unpricedDemon": 4000,
+      "quotedSportsbooks": 3675,
+      "explicitThresholdQuotes": 0,
+      "matchedTwoSidedQuotes": 0,
+      "boardFeatureRows": 4132,
+      "matchupSampleOffers": 0,
+      "missingStartAt": 4895,
+      "sourceEvents": 35,
+      "exactCrossBookRows": 1080
     },
     "valorant": {
       "boards": {
@@ -87,22 +159,22 @@
           "displayedPages": null,
           "offers": 0,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:45:41.514Z",
+          "observedAt": "2026-11-28T07:59:20.781Z",
           "slot": "manual",
           "traversal": false
         },
         "underdog": {
           "state": "populated",
-          "pages": 2,
-          "displayedPages": 2,
-          "offers": 32,
+          "pages": 1,
+          "displayedPages": 1,
+          "offers": 16,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:45:44.856Z",
+          "observedAt": "2026-11-28T07:59:23.413Z",
           "slot": "manual",
           "traversal": true
         }
       },
-      "offers": 32,
+      "offers": 16,
       "unresolved": 0,
       "unpricedGoblin": 0,
       "unpricedDemon": 0,
@@ -111,8 +183,8 @@
       "matchedTwoSidedQuotes": 0,
       "boardFeatureRows": 0,
       "matchupSampleOffers": 0,
-      "missingStartAt": 32,
-      "sourceEvents": 5,
+      "missingStartAt": 16,
+      "sourceEvents": 3,
       "exactCrossBookRows": 0
     },
     "dota2": {
@@ -123,22 +195,22 @@
           "displayedPages": 1,
           "offers": 38,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:45:25.315Z",
+          "observedAt": "2026-11-28T02:58:57.325Z",
           "slot": "manual",
           "traversal": true
         },
         "underdog": {
           "state": "populated",
-          "pages": 1,
-          "displayedPages": 1,
-          "offers": 18,
+          "pages": 3,
+          "displayedPages": 3,
+          "offers": 73,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:45:33.100Z",
+          "observedAt": "2026-11-28T07:59:12.849Z",
           "slot": "manual",
           "traversal": true
         }
       },
-      "offers": 56,
+      "offers": 111,
       "unresolved": 0,
       "unpricedGoblin": 0,
       "unpricedDemon": 0,
@@ -147,7 +219,7 @@
       "matchedTwoSidedQuotes": 0,
       "boardFeatureRows": 0,
       "matchupSampleOffers": 0,
-      "missingStartAt": 56,
+      "missingStartAt": 111,
       "sourceEvents": 3,
       "exactCrossBookRows": 0
     },
@@ -159,7 +231,7 @@
           "displayedPages": null,
           "offers": 0,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:46:04.297Z",
+          "observedAt": "2026-11-28T07:59:41.010Z",
           "slot": "manual",
           "traversal": false
         },
@@ -169,7 +241,7 @@
           "displayedPages": null,
           "offers": 0,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:46:00.374Z",
+          "observedAt": "2026-11-28T07:59:37.631Z",
           "slot": "manual",
           "traversal": false
         }
@@ -191,73 +263,73 @@
       "boards": {
         "prizepicks": {
           "state": "populated",
-          "pages": 147,
-          "displayedPages": 147,
-          "offers": 1278,
-          "unresolved": 2285,
-          "observedAt": "2026-11-27T20:38:41.395Z",
+          "pages": 13,
+          "displayedPages": 13,
+          "offers": 80,
+          "unresolved": 197,
+          "observedAt": "2026-11-28T07:53:16.795Z",
           "slot": "manual",
           "traversal": true
         },
         "underdog": {
           "state": "populated",
-          "pages": 41,
-          "displayedPages": 41,
-          "offers": 907,
+          "pages": 4,
+          "displayedPages": 4,
+          "offers": 63,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:39:22.825Z",
+          "observedAt": "2026-11-28T07:53:26.274Z",
           "slot": "manual",
           "traversal": true
         }
       },
-      "offers": 2185,
-      "unresolved": 2285,
-      "unpricedGoblin": 675,
-      "unpricedDemon": 1610,
-      "quotedSportsbooks": 1028,
+      "offers": 143,
+      "unresolved": 197,
+      "unpricedGoblin": 70,
+      "unpricedDemon": 125,
+      "quotedSportsbooks": 140,
       "explicitThresholdQuotes": 0,
       "matchedTwoSidedQuotes": 0,
-      "boardFeatureRows": 2185,
+      "boardFeatureRows": 143,
       "matchupSampleOffers": 0,
-      "missingStartAt": 2185,
-      "sourceEvents": 18,
-      "exactCrossBookRows": 404
+      "missingStartAt": 143,
+      "sourceEvents": 2,
+      "exactCrossBookRows": 28
     },
     "cs2": {
       "boards": {
         "prizepicks": {
-          "state": "populated",
-          "pages": 7,
-          "displayedPages": 7,
-          "offers": 260,
-          "unresolved": 0,
-          "observedAt": "2026-11-27T20:39:37.575Z",
+          "state": "partial",
+          "pages": 1,
+          "displayedPages": 4,
+          "offers": 10,
+          "unresolved": 15,
+          "observedAt": "2026-11-28T07:53:49.062Z",
           "slot": "manual",
-          "traversal": true
+          "traversal": false
         },
         "underdog": {
           "state": "populated",
-          "pages": 9,
-          "displayedPages": 9,
-          "offers": 342,
+          "pages": 4,
+          "displayedPages": 4,
+          "offers": 149,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:39:48.824Z",
+          "observedAt": "2026-11-28T07:53:57.226Z",
           "slot": "manual",
           "traversal": true
         }
       },
-      "offers": 602,
-      "unresolved": 0,
+      "offers": 159,
+      "unresolved": 15,
       "unpricedGoblin": 0,
       "unpricedDemon": 0,
-      "quotedSportsbooks": 2,
+      "quotedSportsbooks": 0,
       "explicitThresholdQuotes": 0,
       "matchedTwoSidedQuotes": 0,
       "boardFeatureRows": 0,
       "matchupSampleOffers": 0,
-      "missingStartAt": 602,
-      "sourceEvents": 10,
-      "exactCrossBookRows": 102
+      "missingStartAt": 159,
+      "sourceEvents": 5,
+      "exactCrossBookRows": 10
     },
     "wnba": {
       "boards": {
@@ -267,7 +339,7 @@
           "displayedPages": null,
           "offers": 0,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:46:10.820Z",
+          "observedAt": "2026-11-28T07:59:47.018Z",
           "slot": "manual",
           "traversal": false
         },
@@ -277,7 +349,7 @@
           "displayedPages": null,
           "offers": 0,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:46:13.012Z",
+          "observedAt": "2026-11-28T07:59:49.007Z",
           "slot": "manual",
           "traversal": false
         }
@@ -295,77 +367,41 @@
       "sourceEvents": 0,
       "exactCrossBookRows": 0
     },
-    "nfl": {
+    "tennis": {
       "boards": {
-        "underdog": {
-          "state": "populated",
-          "pages": 124,
-          "displayedPages": 124,
-          "offers": 4419,
-          "unresolved": 0,
-          "observedAt": "2026-11-27T20:32:02.220Z",
-          "slot": "manual",
-          "traversal": true
-        },
-        "prizepicks": {
-          "state": "populated",
-          "pages": 340,
-          "displayedPages": 340,
-          "offers": 2243,
-          "unresolved": 5656,
-          "observedAt": "2026-11-27T20:30:15.877Z",
-          "slot": "manual",
-          "traversal": true
-        }
-      },
-      "offers": 6662,
-      "unresolved": 5656,
-      "unpricedGoblin": 1708,
-      "unpricedDemon": 3948,
-      "quotedSportsbooks": 2758,
-      "explicitThresholdQuotes": 0,
-      "matchedTwoSidedQuotes": 0,
-      "boardFeatureRows": 4115,
-      "matchupSampleOffers": 0,
-      "missingStartAt": 6662,
-      "sourceEvents": 12,
-      "exactCrossBookRows": 1209
-    },
-    "college-football": {
-      "boards": {
-        "prizepicks": {
-          "state": "populated",
-          "pages": 388,
-          "displayedPages": 388,
-          "offers": 2094,
-          "unresolved": 6707,
-          "observedAt": "2026-11-27T20:35:01.673Z",
-          "slot": "manual",
-          "traversal": true
-        },
         "underdog": {
           "state": "partial",
-          "pages": 131,
-          "displayedPages": 135,
-          "offers": 3231,
+          "pages": 0,
+          "displayedPages": null,
+          "offers": 0,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:37:14.169Z",
+          "observedAt": "2026-11-28T08:00:00.791Z",
           "slot": "manual",
           "traversal": false
+        },
+        "prizepicks": {
+          "state": "populated",
+          "pages": 2,
+          "displayedPages": 2,
+          "offers": 20,
+          "unresolved": 19,
+          "observedAt": "2026-11-28T07:59:52.083Z",
+          "slot": "manual",
+          "traversal": true
         }
       },
-      "offers": 5325,
-      "unresolved": 6707,
-      "unpricedGoblin": 2133,
-      "unpricedDemon": 4566,
-      "quotedSportsbooks": 4124,
+      "offers": 20,
+      "unresolved": 19,
+      "unpricedGoblin": 7,
+      "unpricedDemon": 12,
+      "quotedSportsbooks": 22,
       "explicitThresholdQuotes": 0,
       "matchedTwoSidedQuotes": 0,
-      "boardFeatureRows": 4473,
+      "boardFeatureRows": 20,
       "matchupSampleOffers": 0,
-      "missingStartAt": 5325,
-      "sourceEvents": 42,
-      "exactCrossBookRows": 1211
+      "missingStartAt": 20,
+      "sourceEvents": 2,
+      "exactCrossBookRows": 0
     },
     "mlb": {
       "boards": {
@@ -375,7 +411,7 @@
           "displayedPages": null,
           "offers": 0,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:46:06.437Z",
+          "observedAt": "2026-11-28T07:59:43.019Z",
           "slot": "manual",
           "traversal": false
         },
@@ -385,7 +421,7 @@
           "displayedPages": null,
           "offers": 0,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:46:08.659Z",
+          "observedAt": "2026-11-28T07:59:45.017Z",
           "slot": "manual",
           "traversal": false
         }
@@ -407,11 +443,11 @@
       "boards": {
         "underdog": {
           "state": "populated",
-          "pages": 109,
-          "displayedPages": 109,
-          "offers": 2174,
+          "pages": 110,
+          "displayedPages": 110,
+          "offers": 2187,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:45:04.935Z",
+          "observedAt": "2026-11-28T07:58:44.948Z",
           "slot": "manual",
           "traversal": true
         },
@@ -419,97 +455,61 @@
           "state": "populated",
           "pages": 501,
           "displayedPages": 501,
-          "offers": 1030,
-          "unresolved": 9504,
-          "observedAt": "2026-11-27T20:43:12.990Z",
+          "offers": 1172,
+          "unresolved": 9431,
+          "observedAt": "2026-11-28T07:57:02.560Z",
           "slot": "manual",
           "traversal": true
         }
       },
-      "offers": 3204,
-      "unresolved": 9504,
-      "unpricedGoblin": 2724,
-      "unpricedDemon": 6780,
-      "quotedSportsbooks": 6079,
+      "offers": 3359,
+      "unresolved": 9431,
+      "unpricedGoblin": 2604,
+      "unpricedDemon": 6824,
+      "quotedSportsbooks": 5878,
       "explicitThresholdQuotes": 0,
       "matchedTwoSidedQuotes": 0,
-      "boardFeatureRows": 3204,
+      "boardFeatureRows": 3359,
       "matchupSampleOffers": 0,
-      "missingStartAt": 3204,
-      "sourceEvents": 46,
-      "exactCrossBookRows": 30
+      "missingStartAt": 3359,
+      "sourceEvents": 47,
+      "exactCrossBookRows": 38
     },
     "nba": {
       "boards": {
-        "prizepicks": {
-          "state": "populated",
-          "pages": 501,
-          "displayedPages": 501,
-          "offers": 4150,
-          "unresolved": 7932,
-          "observedAt": "2026-11-27T20:24:16.027Z",
-          "slot": "manual",
-          "traversal": true
-        },
         "underdog": {
           "state": "populated",
-          "pages": 69,
-          "displayedPages": 69,
-          "offers": 2427,
-          "unresolved": 19,
-          "observedAt": "2026-11-27T20:25:58.987Z",
-          "slot": "manual",
-          "traversal": true
-        }
-      },
-      "offers": 6577,
-      "unresolved": 7951,
-      "unpricedGoblin": 3543,
-      "unpricedDemon": 4389,
-      "quotedSportsbooks": 4959,
-      "explicitThresholdQuotes": 0,
-      "matchedTwoSidedQuotes": 0,
-      "boardFeatureRows": 5374,
-      "matchupSampleOffers": 4066,
-      "missingStartAt": 6577,
-      "sourceEvents": 11,
-      "exactCrossBookRows": 1128
-    },
-    "tennis": {
-      "boards": {
-        "prizepicks": {
-          "state": "populated",
-          "pages": 2,
-          "displayedPages": 2,
-          "offers": 16,
-          "unresolved": 31,
-          "observedAt": "2026-11-27T20:46:16.226Z",
-          "slot": "manual",
-          "traversal": true
-        },
-        "underdog": {
-          "state": "populated",
-          "pages": 3,
-          "displayedPages": 3,
-          "offers": 105,
+          "pages": 25,
+          "displayedPages": 25,
+          "offers": 875,
           "unresolved": 0,
-          "observedAt": "2026-11-27T20:46:26.935Z",
+          "observedAt": "2026-11-28T07:42:59.821Z",
           "slot": "manual",
           "traversal": true
+        },
+        "prizepicks": {
+          "state": "partial",
+          "pages": 150,
+          "displayedPages": 151,
+          "offers": 882,
+          "unresolved": 2546,
+          "observedAt": "2026-11-28T07:42:25.421Z",
+          "slot": "manual",
+          "traversal": false
         }
       },
-      "offers": 121,
-      "unresolved": 31,
-      "unpricedGoblin": 14,
-      "unpricedDemon": 17,
-      "quotedSportsbooks": 86,
+      "offers": 1757,
+      "unresolved": 2546,
+      "unpricedGoblin": 885,
+      "unpricedDemon": 1659,
+      "quotedSportsbooks": 1729,
       "explicitThresholdQuotes": 0,
       "matchedTwoSidedQuotes": 0,
-      "boardFeatureRows": 121,
-      "matchupSampleOffers": 0,
-      "missingStartAt": 121,
-      "sourceEvents": 11,
-      "exactCrossBookRows": 8
+      "boardFeatureRows": 1517,
+      "matchupSampleOffers": 1304,
+      "missingStartAt": 1757,
+      "sourceEvents": 5,
+      "exactCrossBookRows": 475
     }
   },
   "originalPlatformVerified": false,
@@ -517,18 +517,18 @@
   "paidRequests": 0,
   "privateRepoUsed": false,
   "researchCoverage": {
-    "profileAttempts": 2806,
-    "uniqueCompletedCurrentVersion": 2648,
-    "dashboardSnapshots": 42,
-    "namedDashboardSnapshots": 41,
+    "profileAttempts": 2967,
+    "uniqueCompletedCurrentVersion": 2808,
+    "dashboardSnapshots": 45,
+    "namedDashboardSnapshots": 44,
     "byDashboard": {
-      "Games": 17,
-      "Popular": 12,
-      "Discrepancies": 12
+      "Games": 18,
+      "Popular": 13,
+      "Discrepancies": 13
     },
     "dashboardEvidence": {
       "Games": {
-        "dataSnapshots": 13,
+        "dataSnapshots": 14,
         "explicitEmptySnapshots": 0,
         "unverifiedSnapshots": 4,
         "withExplicitPage": 0,
@@ -536,13 +536,13 @@
       },
       "Discrepancies": {
         "dataSnapshots": 7,
-        "explicitEmptySnapshots": 1,
+        "explicitEmptySnapshots": 2,
         "unverifiedSnapshots": 4,
         "withExplicitPage": 0,
         "verifiedSequences": 0
       },
       "Popular": {
-        "dataSnapshots": 8,
+        "dataSnapshots": 9,
         "explicitEmptySnapshots": 0,
         "unverifiedSnapshots": 4,
         "withExplicitPage": 0,
@@ -577,20 +577,20 @@
     },
     "schedule": true,
     "scheduleSource": "NBA public preview plus ESPN explicit pregame",
-    "requests": 18
+    "requests": 13
   },
   "nbaFinalHistoryRecovery": {
-    "calls": 0,
-    "archived": 0,
-    "rows": 0,
+    "calls": 11,
+    "archived": 10,
+    "rows": 212,
     "seasonCompletenessVerified": false,
     "scheduleFallbackCalls": 4,
-    "scheduleFallbackCandidates": 9,
+    "scheduleFallbackCandidates": 11,
     "scheduleFailedDates": []
   },
   "nbaOfficialAvailability": {
-    "state": "official_report_unavailable",
-    "requests": 2,
+    "state": "no_verified_game_within_six_hours",
+    "requests": 0,
     "newlyObservedStatuses": 0,
     "existingCommittedReceipts": 0,
     "nominationsUseOnlyPreexistingReceipts": true,
@@ -1387,9 +1387,9 @@
     "NBA": {
       "status": "ok",
       "source": "espn:basketball/nba",
-      "observedAt": "2026-11-27T23:58:27.882Z",
-      "coverageUntil": "2026-11-29T23:58:27.882Z",
-      "upcoming": 24,
+      "observedAt": "2026-11-28T09:22:26.383Z",
+      "coverageUntil": "2026-11-30T09:22:26.383Z",
+      "upcoming": 15,
       "complete": false,
       "daysSucceeded": 3,
       "daysFailed": 0,
@@ -1398,9 +1398,9 @@
     "NHL": {
       "status": "ok",
       "source": "espn:hockey/nhl",
-      "observedAt": "2026-11-27T23:58:27.882Z",
-      "coverageUntil": "2026-11-29T23:58:27.882Z",
-      "upcoming": 18,
+      "observedAt": "2026-11-28T09:22:26.383Z",
+      "coverageUntil": "2026-11-30T09:22:26.383Z",
+      "upcoming": 15,
       "complete": false,
       "daysSucceeded": 3,
       "daysFailed": 0,
@@ -1409,9 +1409,9 @@
     "NFL": {
       "status": "ok",
       "source": "espn:football/nfl",
-      "observedAt": "2026-11-27T23:58:27.882Z",
-      "coverageUntil": "2026-11-29T23:58:27.882Z",
-      "upcoming": 9,
+      "observedAt": "2026-11-28T09:22:26.383Z",
+      "coverageUntil": "2026-11-30T09:22:26.383Z",
+      "upcoming": 10,
       "complete": false,
       "daysSucceeded": 3,
       "daysFailed": 0,
@@ -1420,48 +1420,48 @@
     "CS2": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-27T23:58:27.882Z",
-      "coverageUntil": "2026-11-29T23:58:27.882Z",
+      "observedAt": "2026-11-28T09:22:26.383Z",
+      "coverageUntil": "2026-11-30T09:22:26.383Z",
       "upcoming": 0,
       "complete": false
     },
     "DOTA2": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-27T23:58:27.882Z",
-      "coverageUntil": "2026-11-29T23:58:27.882Z",
+      "observedAt": "2026-11-28T09:22:26.383Z",
+      "coverageUntil": "2026-11-30T09:22:26.383Z",
       "upcoming": 0,
       "complete": false
     },
     "VAL": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-27T23:58:27.882Z",
-      "coverageUntil": "2026-11-29T23:58:27.882Z",
+      "observedAt": "2026-11-28T09:22:26.383Z",
+      "coverageUntil": "2026-11-30T09:22:26.383Z",
       "upcoming": 0,
       "complete": false
     },
     "LOL": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-27T23:58:27.882Z",
-      "coverageUntil": "2026-11-29T23:58:27.882Z",
+      "observedAt": "2026-11-28T09:22:26.383Z",
+      "coverageUntil": "2026-11-30T09:22:26.383Z",
       "upcoming": 0,
       "complete": false
     },
     "COD": {
       "status": "unavailable",
       "source": "not_configured",
-      "observedAt": "2026-11-27T23:58:27.882Z",
-      "coverageUntil": "2026-11-29T23:58:27.882Z",
+      "observedAt": "2026-11-28T09:22:26.383Z",
+      "coverageUntil": "2026-11-30T09:22:26.383Z",
       "upcoming": 0,
       "complete": false
     },
     "MLB": {
       "status": "ok",
       "source": "espn:baseball/mlb",
-      "observedAt": "2026-11-27T23:58:27.882Z",
-      "coverageUntil": "2026-11-29T23:58:27.882Z",
+      "observedAt": "2026-11-28T09:22:26.383Z",
+      "coverageUntil": "2026-11-30T09:22:26.383Z",
       "upcoming": 0,
       "complete": false,
       "daysSucceeded": 3,
@@ -1471,8 +1471,8 @@
     "WNBA": {
       "status": "ok",
       "source": "espn:basketball/wnba",
-      "observedAt": "2026-11-27T23:58:27.882Z",
-      "coverageUntil": "2026-11-29T23:58:27.882Z",
+      "observedAt": "2026-11-28T09:22:26.383Z",
+      "coverageUntil": "2026-11-30T09:22:26.383Z",
       "upcoming": 0,
       "complete": false,
       "daysSucceeded": 3,
@@ -1482,9 +1482,9 @@
     "CFB": {
       "status": "ok",
       "source": "espn:football/college-football",
-      "observedAt": "2026-11-27T23:58:27.882Z",
-      "coverageUntil": "2026-11-29T23:58:27.882Z",
-      "upcoming": 56,
+      "observedAt": "2026-11-28T09:22:26.383Z",
+      "coverageUntil": "2026-11-30T09:22:26.383Z",
+      "upcoming": 53,
       "complete": false,
       "daysSucceeded": 3,
       "daysFailed": 0,
@@ -1493,9 +1493,9 @@
     "CBB": {
       "status": "ok",
       "source": "espn:basketball/mens-college-basketball",
-      "observedAt": "2026-11-27T23:58:27.882Z",
-      "coverageUntil": "2026-11-29T23:58:27.882Z",
-      "upcoming": 83,
+      "observedAt": "2026-11-28T09:22:26.383Z",
+      "coverageUntil": "2026-11-30T09:22:26.383Z",
+      "upcoming": 3,
       "complete": false,
       "daysSucceeded": 3,
       "daysFailed": 0,
@@ -1504,8 +1504,8 @@
     "TENNIS": {
       "status": "ok",
       "source": "espn:tennis/atp",
-      "observedAt": "2026-11-27T23:58:27.882Z",
-      "coverageUntil": "2026-11-29T23:58:27.882Z",
+      "observedAt": "2026-11-28T09:22:26.383Z",
+      "coverageUntil": "2026-11-30T09:22:26.383Z",
       "upcoming": 0,
       "complete": false,
       "daysSucceeded": 3,
@@ -1515,8 +1515,8 @@
     "SOCCER": {
       "status": "ok",
       "source": "espn:soccer/eng.1",
-      "observedAt": "2026-11-27T23:58:27.882Z",
-      "coverageUntil": "2026-11-29T23:58:27.882Z",
+      "observedAt": "2026-11-28T09:22:26.383Z",
+      "coverageUntil": "2026-11-30T09:22:26.383Z",
       "upcoming": 9,
       "complete": false,
       "daysSucceeded": 3,

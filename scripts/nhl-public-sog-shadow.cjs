@@ -11,6 +11,7 @@ const {finalFor}=require('./pickfinder-reviewed-history-model.cjs');
 const {toRows}=require('./collect-live-partner-nhl-nfl.cjs');
 const {COLUMNS}=require('../src/partner-prizepicks-board.cjs');
 const {classify}=require('../src/partner-direction-tier-evidence.cjs');
+const {recoverArchiveClocks,proofMatches}=require('./pickfinder-verified-board-clock.cjs');
 
 const MAX_AGE=300000, LEAD=900000, dt=Date.parse;
 const FOLDER='nhl-public-sog-forecasts', GRADES='nhl-public-sog-grades';
@@ -44,6 +45,7 @@ function candidates(archive,clock,{latestIncluded=false}={}){
   for(const o of b.offers){
    if(o.market!=='player_shots_on_goal'||o.sport!=='nhl'||o.book!=='prizepicks')continue;
    if(!o.eventId||!o.detailId||!full(o.period)||o.mapRange!=null||o.gameMode!=null||researchTier(o)!=='standard'||!line(o.line)){diag(excluded,'nonstandard_or_unsupported_scope');continue;}
+   if(o.clockConflict===true){diag(excluded,'conflicting_pickfinder_event_clock');continue;}
    if(!exactTime(o.startAt)){diag(excluded,'missing_exact_pickfinder_start');continue;}
    if(dt(o.startAt)<=at+LEAD){diag(excluded,'too_close_or_started');continue;}
    if(!fresh(o.observedAt,at)||dt(o.observedAt)>dt(b.first)+999){diag(excluded,'stale_or_uncommitted_offer');continue;}
@@ -76,7 +78,8 @@ async function prepareOfficial(root,manifestDigest,{clock=today,get}={}){
  const {request,nhlEvents,nhlRoster,save:saveOfficial}=require('./pickfinder-public-identity.cjs');
  const at=clock(),archive=load(root,'nhl',{latestOnly:true,...(manifestDigest&&{digests:[manifestDigest]})});
  if(archive.invalid.length)return {state:'invalid_board',officialRequests:0};
- const matchups=exactNhlMatchups(candidates(archive,at).boards);
+ const checked=recoverArchiveClocks(root,archive,at);
+ const matchups=exactNhlMatchups(candidates(checked,at).boards);
  if(!matchups.size)return {state:'no_fresh_exact_matchups',officialRequests:0};
  const officialKey=e=>key([dt(e.startAt),...e.teams.map(t=>text(t.abbr)).sort()]);
  const originals=receipts(root,'research/pickfinder-public-identity-v1/native-facts','independent_public_sport_identity_facts_v1',at)
@@ -99,7 +102,7 @@ async function prepareOfficial(root,manifestDigest,{clock=today,get}={}){
   const roster=[],proofs=[{url:schedule.url,digest:schedule.sourceDigest,observedAt:schedule.observedAt}];
   for(let i=0;i<teams.length;i+=4){
    const next=clock();
-   if(!candidates(archive,next).boards.length)return {state:'official_context_deadline',officialRequests};
+   if(!candidates(checked,next).boards.length)return {state:'official_context_deadline',officialRequests};
    const batch=await Promise.allSettled(teams.slice(i,i+4).map(async t=>{
     const r=await read(prefix+'roster/'+t.id+'/'+season+(season+1));
     return {roster:nhlRoster(r.data,t),proof:{url:r.url,digest:r.sourceDigest,observedAt:r.observedAt,teamId:t.id}};
@@ -144,6 +147,7 @@ function makeForecasts(modelRows,partner,known,clock){
     !Number.isSafeInteger(p.priorObservations)||p.priorObservations<5||
     !p.playerId||!p.gameId||!p.player||!p.team||!p.opponent||!line(p.line)||
     !probability(p.probability)||p.pushProbability!==0||!Number.isFinite(p.projection)||p.projection<0){diag(excluded,'model_evidence_unavailable');continue;}
+  if(p.boardClockProof&&!proofMatches(p,p.boardClockProof)){diag(excluded,'unmatched_clock_evidence');continue;}
   if(!fresh(partner.observedAt,at)||!fresh(p.sourceObservedAt,at)||
     !(dt(p.forecastAt)<=at)||!(dt(p.startAt)>at+LEAD)){diag(excluded,'forecast_window_closed');continue;}
   const a=partner.groups.get(offerScope(p));
@@ -166,7 +170,7 @@ function makeForecasts(modelRows,partner,known,clock){
   if(Math.abs(h.probability+l.probability-1)>1e-9||h.manifestDigest!==l.manifestDigest||
      h.sourceEventId!==l.sourceEventId||h.sourceDetailId!==l.sourceDetailId||
      h.sourceObservedAt!==l.sourceObservedAt||h.startAt!==l.startAt||h.modelRevision!==l.modelRevision||
-     h.projection!==l.projection){diag(excluded,'inconsistent_pickfinder_pair');continue;}
+     h.projection!==l.projection||key(h.boardClockProof??null)!==key(l.boardClockProof??null)){diag(excluded,'inconsistent_pickfinder_pair');continue;}
   const side=sideFor(h.probability);
   if(!side){diag(excluded,'model_tie');continue;}
   if(known.has(decisionId(h))){diag(excluded,'already_frozen');continue;}
@@ -177,7 +181,7 @@ function makeForecasts(modelRows,partner,known,clock){
   rows.push({sport,book,gameId,playerId,team,opponent,startAt,forecastAt,sourceObservedAt,modelRevision,
    historyDigests,manifestDigest,sourceDetailId,sourceEventId,projection,method,priorObservations,line:threshold,
    market:'shotsOnGoal',tier:'standard',period:'full_game',side,higherProbability:h.probability,
-   partnerObservedAt:partner.observedAt,partnerResponseDigest:partner.bodyDigest,
+   ...(h.boardClockProof&&{boardClockProof:h.boardClockProof}),partnerObservedAt:partner.observedAt,partnerResponseDigest:partner.bodyDigest,
    researchOnly:true,modelApproved:false,originalPlatformVerified:false});
  }
  return {rows,excluded};
@@ -188,7 +192,7 @@ function validForecast(p,at){
   p.sourceDetailId&&p.sourceEventId&&line(p.line)&&probability(p.higherProbability)&&p.side===sideFor(p.higherProbability)&&
   ['Higher','Lower'].includes(p.side)&&p.researchOnly===true&&p.modelApproved===false&&p.originalPlatformVerified===false&&
   Number.isFinite(p.projection)&&p.projection>=0&&Number.isSafeInteger(p.priorObservations)&&p.priorObservations>=5&&
-  revision(p.modelRevision)&&hash(p.manifestDigest)&&hash(p.partnerResponseDigest)&&
+  (!p.boardClockProof||proofMatches(p,p.boardClockProof))&&revision(p.modelRevision)&&hash(p.manifestDigest)&&hash(p.partnerResponseDigest)&&
   Array.isArray(p.historyDigests)&&p.historyDigests.length>0&&p.historyDigests.every(hash)&&
   dt(p.startAt)>at+LEAD&&dt(p.forecastAt)<=at&&dt(p.sourceObservedAt)<=dt(p.forecastAt)&&
   fresh(p.sourceObservedAt,at)&&fresh(p.partnerObservedAt,at);
@@ -223,7 +227,8 @@ function verifiedGrades(frames,official,clock){
   if(f.doc.kind!==GRADE||!(dt(f.first)<=dt(clock))||!(dt(f.doc.generatedAt)<=dt(f.first)+999))continue;
   for(const g of f.doc.rows||[]){
    const v=byId.get(g.id);
-   if(v&&Object.keys(v).every(k=>v[k]===g[k])&&dt(v.officialFinalAvailableAt)<=dt(f.first))out.set(g.id,v);
+   if(v&&Object.keys(v).every(k=>v[k]===g[k])&&dt(v.officialFinalAvailableAt)<=dt(f.first)&&
+      (!out.has(g.id)||dt(f.first)<dt(out.get(g.id).gradeCommittedAt)))out.set(g.id,{...v,gradeCommittedAt:f.first});
   }
  }
  return out;
@@ -267,7 +272,8 @@ async function run(root,{mode='grade',manifestDigest=null,clock=today,fetchPartn
   if(manifestDigest!==null&&!hash(manifestDigest))throw Error('invalid_manifest_reference');
   const archive=load(root,'nhl',{latestOnly:true,...(manifestDigest&&{digests:[manifestDigest]})});
   if(archive.invalid.length){diag(result.excluded,'invalid_public_archive');return publish(root,result,forecasts,verified,clock);}
-  const {boards,excluded}=candidates(archive,clock(),{latestIncluded:archive.latest.some(b=>b.m.book==='prizepicks')});
+  const checked=recoverArchiveClocks(root,archive,clock());
+  const {boards,excluded}=candidates(checked,clock(),{latestIncluded:archive.latest.some(b=>b.m.book==='prizepicks')});
   result.excluded=excluded;result.candidateOffers=boards.reduce((n,b)=>n+b.offers.length,0);
   if(boards.length){
    const stamp=clock(),snapshot={manifests:boards,latest:boards,invalid:[]};
@@ -277,7 +283,10 @@ async function run(root,{mode='grade',manifestDigest=null,clock=today,fetchPartn
    facts.push(...receipts(root,officialRoot+'nhl-sog-native-facts','independent_public_sport_identity_facts_v1',stamp));
    const ctx=build({facts,nhlFinals:receipts(root,officialRoot+'nhl-final-stat-facts','nhl_official_recent_final_stats_v1',stamp),
     nflSeasons:[],archive:snapshot,clock:stamp,revision:git(root,['rev-parse','HEAD'])});
-   const report=generate(ctx);
+   const report=generate(ctx),proofs=new Map();
+   for(const b of boards)for(const o of b.offers)if(o.boardClockProof)proofs.set(key([b.digest,o.detailId,o.observedAt]),o.boardClockProof);
+   for(const p of report.rows){const proof=proofs.get(key([p.manifestDigest,p.sourceDetailId,p.sourceObservedAt]));if(proof)p.boardClockProof=proof;}
+   result.independentlyClockedSides=report.rows.filter(p=>proofMatches(p,p.boardClockProof)).length;
    result.projectedSides=report.rows.length;
    Object.assign(result.excluded,report.excluded);
    if(!ctx.scopes.some(s=>s.sport==='NHL'))diag(result.excluded,ctx.status.NHL?.reason||'official_nhl_context_unavailable');

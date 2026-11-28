@@ -1,10 +1,10 @@
 name: NHL public shots-on-goal shadow pilot
 on:
   pull_request:
-    paths: ['scripts/nhl-public-sog-shadow.cjs','scripts/pickfinder-public-evidence-audit.cjs','test/nhl-public-sog-shadow.test.cjs','.github/workflows/nhl-public-sog-shadow.yml']
+    paths: ['scripts/nhl-public-sog-shadow.cjs','scripts/pickfinder-verified-board-clock.cjs','scripts/pickfinder-public-evidence-audit.cjs','test/nhl-public-sog-shadow.test.cjs','test/pickfinder-verified-board-clock.test.cjs','.github/workflows/nhl-public-sog-shadow.yml']
   push:
     branches: [main]
-    paths: ['scripts/nhl-public-sog-shadow.cjs','.github/workflows/nhl-public-sog-shadow.yml']
+    paths: ['scripts/nhl-public-sog-shadow.cjs','scripts/pickfinder-verified-board-clock.cjs','.github/workflows/nhl-public-sog-shadow.yml']
   repository_dispatch:
     types: [pickfinder_nhl_sog_board_archived]
   workflow_dispatch:
@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - run: node --test test/nhl-public-sog-shadow.test.cjs
+      - run: node --test test/nhl-public-sog-shadow.test.cjs test/pickfinder-verified-board-clock.test.cjs
   shadow:
     if: >-
       github.ref == 'refs/heads/main' && (

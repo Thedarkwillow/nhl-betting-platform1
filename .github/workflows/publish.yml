@@ -17,6 +17,7 @@ on:
       - 'Public PickFinder activity readiness'
       - 'PickFinder archived model input processing'
       - 'NHL public shots-on-goal shadow pilot'
+      - 'Public three-sport prop calibration research'
       - 'Public-only PickFinder research validation'
     types: [completed]
   push:
@@ -37,6 +38,7 @@ on:
       - 'data/pickfinder-public-activity.json'
       - 'data/pickfinder-reviewed-history-performance.json'
       - 'data/nhl-public-sog-shadow.json'
+      - 'data/public-prop-calibration.json'
       - 'data/pickfinder-public-research-health.json'
       - 'nhl-games.json'
       - '.github/workflows/publish.yml'

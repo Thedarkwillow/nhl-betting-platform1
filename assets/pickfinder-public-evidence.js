@@ -40,6 +40,18 @@
  }catch{}
 
  try{
+  const response=await fetch('./data/public-prop-calibration.json',{cache:'no-store'});
+  if(!response.ok)throw Error();
+  const d=await response.json();
+  if(d.kind!=='public_prop_calibration_readiness_v1'||d.researchOnly!==true||d.calibratedProbabilityApproved!==false)throw Error();
+  add(mount,'h3','NHL, NFL and NBA probability calibration');
+  for(const sport of ['NHL','NFL','NBA']){
+   const a=d.bySport?.[sport];if(!a)continue;
+   add(mount,'p',sport+' · '+n(a.eligibleDecisions)+' eligible frozen and graded decisions · '+n(a.fitted)+' committed fits · '+n(a.prospectiveDecisions)+' scored after fit · '+n(a.reviewReady)+' cohorts ready for independent review.');
+  }
+  add(mount,'p','Each sport, book, tier, period, market and model version is evaluated separately. No probabilities from this report are approved for recommendations.');
+ }catch{}
+ try{
   const response=await fetch('./data/pickfinder-public-activity.json',{cache:'no-store'});if(!response.ok)throw Error();
   const activity=await response.json();if(activity.kind!=='public_pickfinder_activity_readiness_v1'||activity.modelApproved!==false)throw Error();
   add(mount,'h3','PickFinder activity center');

@@ -1,0 +1,57 @@
+name: PickFinder paired worker benchmark
+on:
+  pull_request:
+    paths: ['scripts/pickfinder-paired-worker-benchmark.cjs','test/pickfinder-paired-worker-benchmark.test.cjs','.github/workflows/pickfinder-paired-worker-benchmark.yml']
+  workflow_dispatch:
+    inputs:
+      board_digest:
+        description: Immutable public PickFinder board digest
+        type: string
+        default: '3d3f45b3420812a407f80397225a0905967d796a7b58d0ff25f6cb2a1535e821'
+        required: true
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test test/pickfinder-paired-worker-benchmark.test.cjs test/pickfinder-public-runner.test.cjs
+  benchmark:
+    needs: test
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && vars.PICKFINDER_AUTOMATION_AUTHORIZED == '1'
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: pickfinder-hosted-capture
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - id: window
+        run: node scripts/pickfinder-public-morning-preflight.cjs
+      - name: Install pinned browser
+        if: steps.window.outputs.proceed == 'true'
+        run: |
+          npm install --prefix "$RUNNER_TEMP/pickfinder-bench" --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          "$RUNNER_TEMP/pickfinder-bench/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Read identical cohorts in one and two tabs and archive aggregate checkpoints
+        if: steps.window.outputs.proceed == 'true'
+        env:
+          BOARD_DIGEST: ${{ inputs.board_digest }}
+          PICKFINDER_PUBLIC_DATA_AUTHORIZED: '1'
+          PICKFINDER_AUTOMATION_AUTHORIZED: ${{ vars.PICKFINDER_AUTOMATION_AUTHORIZED }}
+          PICKFINDER_EMAIL: ${{ secrets.PICKFINDER_EMAIL }}
+          PICKFINDER_PASSWORD: ${{ secrets.PICKFINDER_PASSWORD }}
+          PICKFINDER_STORAGE_STATE: ${{ secrets.PICKFINDER_STORAGE_STATE }}
+          NODE_PATH: ${{ runner.temp }}/pickfinder-bench/node_modules
+        run: node scripts/pickfinder-paired-worker-benchmark.cjs

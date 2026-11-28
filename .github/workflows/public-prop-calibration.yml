@@ -48,7 +48,9 @@ jobs:
             test -z "$(git diff --cached --name-only --diff-filter=CDMRTUXB -- "$fits")"
           fi
           git diff --cached --quiet && exit 0
-          git -c user.name='Public calibration research' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -qm 'Publish prospective prop calibration readiness'
+          git config user.name 'Public calibration research'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qm 'Publish prospective prop calibration readiness'
           for i in 1 2 3; do
             git fetch --quiet origin main
             git rebase --quiet FETCH_HEAD || { git rebase --abort; exit 1; }

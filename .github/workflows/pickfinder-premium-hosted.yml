@@ -8,7 +8,11 @@ on:
         type: choice
         required: true
         default: boards_only
-        options: [boards_only, current_profiles, clock_audit, game_timezone_validation, nba_history_repair, nba_context_only, features_only, timezone_validation, board_and_deep, deep_research_now, probe_now, capture_0600, capture_0900]
+        options: [boards_only, recover_partitions, current_profiles, clock_audit, game_timezone_validation, nba_history_repair, nba_context_only, features_only, timezone_validation, board_and_deep, deep_research_now, probe_now, capture_0600, capture_0900]
+      partitions:
+        description: "Only for recover_partitions. Comma-separated sport/book selectors (1-4)"
+        type: string
+        required: false
   schedule:
     - cron: '7 6 * * *'
       timezone: America/Los_Angeles
@@ -94,6 +98,7 @@ jobs:
         env:
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
           REQUESTED_MODE: ${{ inputs.mode }}
+          REQUESTED_PARTITIONS: ${{ inputs.partitions }}
           PICKFINDER_PUBLIC_DATA_AUTHORIZED: '1'
           PICKFINDER_NHL_SHADOW_DISPATCH: ${{ github.token }}
           PICKFINDER_AUTOMATION_AUTHORIZED: ${{ vars.PICKFINDER_AUTOMATION_AUTHORIZED }}

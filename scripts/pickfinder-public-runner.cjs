@@ -8,11 +8,23 @@ const currentIdentity=require('./pickfinder-current-identity.cjs');
 const gameContext=require('./pickfinder-public-nba-context.cjs'),{load}=require('./pickfinder-public-evidence-audit.cjs');
 const {backupPreflight,isBackup,protectedMorningClock}=require('./pickfinder-public-morning-preflight.cjs');
 const CORE=['NBA','NHL','NFL','CS2','DOTA2','VAL','LOL','COD','MLB','WNBA','CFB','CBB','TENNIS','SOCCER'],BOOKS=['prizepicks','underdog'];
+function recoveryPartitions(raw){
+ if(typeof raw!=='string'||raw.length>100)throw Error('invalid partition recovery scope');
+ const items=raw.split(',').map(x=>x.trim().toLowerCase());
+ const permitted=new Set(CORE.flatMap(s=>BOOKS.map(b=>s.toLowerCase()+'/'+b)));
+ if(items.length<1||items.length>4||new Set(items).size!==items.length||items.some(x=>!permitted.has(x)))throw Error('invalid partition recovery scope');
+ return items;
+}
 function invocation(env,now=new Date()){
  if(env.PICKFINDER_AUTOMATION_AUTHORIZED!=='1'||env.PICKFINDER_PUBLIC_DATA_AUTHORIZED!=='1')throw Error('authorization required');
  if(env.GITHUB_EVENT_NAME==='schedule'&&/^[0-9]+ (6|9) \* \* \*$/.test(env.GITHUB_EVENT_SCHEDULE))return decide({eventName:'schedule',schedule:env.GITHUB_EVENT_SCHEDULE,now});
  if(env.GITHUB_EVENT_NAME==='workflow_dispatch'&&['capture_0600','capture_0900'].includes(env.REQUESTED_MODE))return decide({eventName:'workflow_dispatch',mode:env.REQUESTED_MODE,now});
  const clock=pacific(now),mode=env.REQUESTED_MODE||'board_and_deep';
+ if(mode==='recover_partitions'){
+  if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual partition recovery only');
+  const partitions=recoveryPartitions(env.REQUESTED_PARTITIONS);
+  return {allowed:!protectedMorningClock(clock),expected:'manual',clock,boardsOnly:true,partitions,state:'manual_partition_recovery_gate'};
+ }
  if(mode==='nba_history_repair'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual repair only');return {allowed:!protectedMorningClock(clock),expected:'manual',clock,deep:true,historyRepair:true,state:'nba_history_repair_gate'};}
  if(mode==='game_timezone_validation'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual game clock experiment only');return {allowed:!protectedMorningClock(clock),expected:'manual',clock,gameTimezoneOnly:true,state:'game_timezone_experiment_gate'};}
  if(mode==='timezone_validation'){if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')throw Error('manual experiment only');return {allowed:!protectedMorningClock(clock),expected:'manual',clock,timezoneOnly:true,state:'timezone_experiment_gate'};}
@@ -291,9 +303,10 @@ async function main(root,env=process.env){
  let boards=0,profiles=0,archiveMs=0,transactions=0,profileMs=0,errors=0;const write=async(kind,data)=>{const t=Date.now();const receipt=await persist(root,kind,data);archiveMs+=Date.now()-t;transactions++;return receipt;};
  try{
   if(p.probe){console.log(JSON.stringify({state:'public_hosted_auth_verified',accountDataPublished:false}));return;}
-  const evidence=p.historyRepair||p.currentProfiles||p.clockAudit||fallback?null:await discover({env});
+  const evidence=p.historyRepair||p.currentProfiles||p.clockAudit||p.partitions||fallback?null:await discover({env});
+  if(p.partitions)console.log(JSON.stringify({state:'public_partition_recovery_scope',partitions:p.partitions,protectedMorningCapture:false,paidApiRequests:0}));
   const auditRows=[];
-  if(!p.deep){for(const {code,book} of (p.clockAudit?boardTargets(null,['nba/prizepicks','nba/underdog']):boardTargets(evidence,fallback?.missingPartitions??null))){
+  if(!p.deep){for(const {code,book} of (p.clockAudit?boardTargets(null,['nba/prizepicks','nba/underdog']):boardTargets(evidence,p.partitions??fallback?.missingPartitions??null))){
    if(!alive())break;
    try{await page.goto(ORIGIN+'/props',{timeout:20000});const names=code==='DOTA2'?['DOTA2','Dota 2']:[code];let visible=false;for(const name of names){const b=page.getByRole('button',{name,exact:true});if(await b.count()===1&&await b.isVisible())visible=true;}if(!visible){console.log(JSON.stringify({state:'public_board_not_exposed',code,book,competition:'unknown'}));continue;}
     const batch=await collect(page,{book,code,slot:p.expected,maxPages:p.clockAudit?1:Infinity,shouldContinue:alive,onPage:async x=>{if(x.page.number===1||x.page.number%10===0)console.log(JSON.stringify({state:'public_board_progress',code,book,pages:x.page.number,displayedPages:x.displayedPageCount}));}});
@@ -487,5 +500,5 @@ async function main(root,env=process.env){
   await context.close();console.log(JSON.stringify({state:'public_pickfinder_throughput',boards,profiles,profileMs,archiveMs,transactions,errors,elapsedMs:Date.now()-started,privateRepoUsed:false,modelInputsApproved:false}));
  }
 }
-module.exports={invocation,clockAuditTargets,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers,waitPremium,boardTargets,currentProfileQueue,compactCurrentProfile,profileBenchmarkScope};
+module.exports={invocation,recoveryPartitions,clockAuditTargets,queue,cleanBoard,publicProfile,splitBoard,captureOrigin,profileWorkers,waitPremium,boardTargets,currentProfileQueue,compactCurrentProfile,profileBenchmarkScope};
 if(require.main===module)main(fs.realpathSync(process.argv[2])).catch(()=>{console.error(JSON.stringify({state:'public_pickfinder_failed_closed',privateRepoUsed:false,accountDataLogged:false}));process.exitCode=1;});

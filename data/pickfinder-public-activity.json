@@ -1,8 +1,34 @@
 {
   "kind": "public_pickfinder_activity_readiness_v1",
-  "generatedAt": "2026-11-28T00:43:55.995Z",
+  "generatedAt": "2026-11-28T00:57:06.024Z",
   "archiveInvalid": 0,
   "events": [
+    {
+      "kind": "board_observation",
+      "sport": "tennis",
+      "book": "prizepicks",
+      "observedAt": "2026-11-28T00:55:24.386Z",
+      "archivedAt": "2026-11-28T00:55:33Z",
+      "manifestDigest": "a6161f6ac6fc2e0fa59b4a234d75d3615cdbe8783343e0dd875cd96c6c4f6bdd",
+      "state": "populated",
+      "offers": 6,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "95c3f9eec1838cb7f8ca818e04ecd5e92e789f07a049bdc9a9af47d4478e8cd0"
+    },
+    {
+      "kind": "board_observation",
+      "sport": "dota2",
+      "book": "prizepicks",
+      "observedAt": "2026-11-28T00:55:14.014Z",
+      "archivedAt": "2026-11-28T00:55:21Z",
+      "manifestDigest": "11e619c69e257ed551e39fe20ba6c7bfb6a89196f6650a4bac3a8a6e8cdeef03",
+      "state": "partial",
+      "offers": 6,
+      "slot": "manual",
+      "nativeNotificationVerified": false,
+      "id": "fade873ebe897d749d8a9dddd88e69cfee27478d0b340ab0d0a221bae2b9a834"
+    },
     {
       "kind": "board_observation",
       "sport": "tennis",
@@ -1276,38 +1302,12 @@
       "slot": "manual",
       "nativeNotificationVerified": false,
       "id": "8594e7ddcba81924e42a93768c93bb2f304640e74040d6613fd3e2b5c53f334e"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "wnba",
-      "book": "underdog",
-      "observedAt": "2026-11-27T11:47:47.861Z",
-      "archivedAt": "2026-11-27T11:47:48Z",
-      "manifestDigest": "2d949a9df3f2993a696d38ff002b54b5351b5c4f1887ba73596381f63a1b5e48",
-      "state": "disabled",
-      "offers": 0,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "1f98bc51e7d045e105d014c8627a67dc5041469e42967d544273cb5e64ffcad7"
-    },
-    {
-      "kind": "board_observation",
-      "sport": "wnba",
-      "book": "prizepicks",
-      "observedAt": "2026-11-27T11:47:45.077Z",
-      "archivedAt": "2026-11-27T11:47:45Z",
-      "manifestDigest": "7be32ee51daa927705f00b93480859faa8df0dbd4272142ad2a88856ba885a2f",
-      "state": "disabled",
-      "offers": 0,
-      "slot": "manual",
-      "nativeNotificationVerified": false,
-      "id": "4f0091135b430bb0289419e125e591670c9615a42d7e04b9fca1ed051e0211ee"
     }
   ],
   "readiness": {
     "nba/prizepicks": {
       "observedAt": "2026-11-28T00:17:50.821Z",
-      "ageMs": 1565174,
+      "ageMs": 2355203,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1319,7 +1319,7 @@
     },
     "nba/underdog": {
       "observedAt": "2026-11-28T00:19:29.549Z",
-      "ageMs": 1466446,
+      "ageMs": 2256475,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1331,7 +1331,7 @@
     },
     "nhl/prizepicks": {
       "observedAt": "2026-11-28T00:20:21.565Z",
-      "ageMs": 1414430,
+      "ageMs": 2204459,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1343,7 +1343,7 @@
     },
     "nhl/underdog": {
       "observedAt": "2026-11-28T00:20:50.212Z",
-      "ageMs": 1385783,
+      "ageMs": 2175812,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1355,7 +1355,7 @@
     },
     "nfl/prizepicks": {
       "observedAt": "2026-11-28T00:23:02.407Z",
-      "ageMs": 1253588,
+      "ageMs": 2043617,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1367,7 +1367,7 @@
     },
     "nfl/underdog": {
       "observedAt": "2026-11-28T00:24:43.368Z",
-      "ageMs": 1152627,
+      "ageMs": 1942656,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1379,55 +1379,55 @@
     },
     "cs2/prizepicks": {
       "observedAt": "2026-11-28T00:30:40.746Z",
-      "ageMs": 795249,
-      "boardState": "populated",
-      "freshCompleteBoard": true,
-      "freshTraversal": true,
-      "membership": "no_detected_membership_gaps",
-      "originalBoardCompletenessVerified": false,
-      "observedOffers": 292,
-      "freshClockScopedOffers": 0,
-      "reason": "exact_pregame_source_clock_missing"
-    },
-    "cs2/underdog": {
-      "observedAt": "2026-11-28T00:30:51.849Z",
-      "ageMs": 784146,
-      "boardState": "populated",
-      "freshCompleteBoard": true,
-      "freshTraversal": true,
-      "membership": "no_detected_membership_gaps",
-      "originalBoardCompletenessVerified": false,
-      "observedOffers": 342,
-      "freshClockScopedOffers": 0,
-      "reason": "exact_pregame_source_clock_missing"
-    },
-    "dota2/prizepicks": {
-      "observedAt": "2026-11-27T20:45:25.315Z",
-      "ageMs": 14310680,
+      "ageMs": 1585278,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
       "membership": "no_detected_membership_gaps",
       "originalBoardCompletenessVerified": false,
-      "observedOffers": 38,
+      "observedOffers": 292,
+      "freshClockScopedOffers": 0,
+      "reason": "fresh_complete_populated_board_missing"
+    },
+    "cs2/underdog": {
+      "observedAt": "2026-11-28T00:30:51.849Z",
+      "ageMs": 1574175,
+      "boardState": "populated",
+      "freshCompleteBoard": false,
+      "freshTraversal": false,
+      "membership": "no_detected_membership_gaps",
+      "originalBoardCompletenessVerified": false,
+      "observedOffers": 342,
+      "freshClockScopedOffers": 0,
+      "reason": "fresh_complete_populated_board_missing"
+    },
+    "dota2/prizepicks": {
+      "observedAt": "2026-11-28T00:55:14.014Z",
+      "ageMs": 112010,
+      "boardState": "partial",
+      "freshCompleteBoard": false,
+      "freshTraversal": false,
+      "membership": "incomplete_traversal",
+      "originalBoardCompletenessVerified": false,
+      "observedOffers": 6,
       "freshClockScopedOffers": 0,
       "reason": "fresh_complete_populated_board_missing"
     },
     "dota2/underdog": {
       "observedAt": "2026-11-28T00:36:11.222Z",
-      "ageMs": 464773,
+      "ageMs": 1254802,
       "boardState": "populated",
-      "freshCompleteBoard": true,
-      "freshTraversal": true,
+      "freshCompleteBoard": false,
+      "freshTraversal": false,
       "membership": "no_detected_membership_gaps",
       "originalBoardCompletenessVerified": false,
       "observedOffers": 73,
       "freshClockScopedOffers": 0,
-      "reason": "exact_pregame_source_clock_missing"
+      "reason": "fresh_complete_populated_board_missing"
     },
     "valorant/prizepicks": {
       "observedAt": "2026-11-28T00:36:20.882Z",
-      "ageMs": 455113,
+      "ageMs": 1245142,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1439,19 +1439,19 @@
     },
     "valorant/underdog": {
       "observedAt": "2026-11-28T00:36:24.007Z",
-      "ageMs": 451988,
+      "ageMs": 1242017,
       "boardState": "populated",
-      "freshCompleteBoard": true,
-      "freshTraversal": true,
+      "freshCompleteBoard": false,
+      "freshTraversal": false,
       "membership": "no_detected_membership_gaps",
       "originalBoardCompletenessVerified": false,
       "observedOffers": 17,
       "freshClockScopedOffers": 0,
-      "reason": "exact_pregame_source_clock_missing"
+      "reason": "fresh_complete_populated_board_missing"
     },
     "lol/prizepicks": {
       "observedAt": "2026-11-28T00:36:32.650Z",
-      "ageMs": 443345,
+      "ageMs": 1233374,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1463,7 +1463,7 @@
     },
     "lol/underdog": {
       "observedAt": "2026-11-28T00:36:36.067Z",
-      "ageMs": 439928,
+      "ageMs": 1229957,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1475,7 +1475,7 @@
     },
     "cod/prizepicks": {
       "observedAt": "2026-11-28T00:36:39.697Z",
-      "ageMs": 436298,
+      "ageMs": 1226327,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1487,7 +1487,7 @@
     },
     "cod/underdog": {
       "observedAt": "2026-11-28T00:36:43.153Z",
-      "ageMs": 432842,
+      "ageMs": 1222871,
       "boardState": "empty",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1499,7 +1499,7 @@
     },
     "mlb/prizepicks": {
       "observedAt": "2026-11-28T00:36:45.261Z",
-      "ageMs": 430734,
+      "ageMs": 1220763,
       "boardState": "disabled",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1511,7 +1511,7 @@
     },
     "mlb/underdog": {
       "observedAt": "2026-11-28T00:36:47.353Z",
-      "ageMs": 428642,
+      "ageMs": 1218671,
       "boardState": "disabled",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1523,7 +1523,7 @@
     },
     "wnba/prizepicks": {
       "observedAt": "2026-11-28T00:36:49.464Z",
-      "ageMs": 426531,
+      "ageMs": 1216560,
       "boardState": "disabled",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1535,7 +1535,7 @@
     },
     "wnba/underdog": {
       "observedAt": "2026-11-28T00:36:51.609Z",
-      "ageMs": 424386,
+      "ageMs": 1214415,
       "boardState": "disabled",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1547,7 +1547,7 @@
     },
     "college-football/prizepicks": {
       "observedAt": "2026-11-28T00:27:18.368Z",
-      "ageMs": 997627,
+      "ageMs": 1787656,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": false,
@@ -1559,92 +1559,92 @@
     },
     "college-football/underdog": {
       "observedAt": "2026-11-28T00:29:05.190Z",
-      "ageMs": 890805,
+      "ageMs": 1680834,
       "boardState": "populated",
       "freshCompleteBoard": false,
-      "freshTraversal": true,
+      "freshTraversal": false,
       "membership": "membership_unproven",
       "originalBoardCompletenessVerified": false,
       "observedOffers": 3241,
       "freshClockScopedOffers": 0,
-      "reason": "membership_unproven"
+      "reason": "fresh_complete_populated_board_missing"
     },
     "college-basketball/prizepicks": {
       "observedAt": "2026-11-28T00:30:01.391Z",
-      "ageMs": 834604,
+      "ageMs": 1624633,
+      "boardState": "populated",
+      "freshCompleteBoard": false,
+      "freshTraversal": false,
+      "membership": "membership_unproven",
+      "originalBoardCompletenessVerified": false,
+      "observedOffers": 570,
+      "freshClockScopedOffers": 0,
+      "reason": "fresh_complete_populated_board_missing"
+    },
+    "college-basketball/underdog": {
+      "observedAt": "2026-11-28T00:30:27.822Z",
+      "ageMs": 1598202,
+      "boardState": "populated",
+      "freshCompleteBoard": false,
+      "freshTraversal": false,
+      "membership": "no_detected_membership_gaps",
+      "originalBoardCompletenessVerified": false,
+      "observedOffers": 450,
+      "freshClockScopedOffers": 0,
+      "reason": "fresh_complete_populated_board_missing"
+    },
+    "tennis/prizepicks": {
+      "observedAt": "2026-11-28T00:55:24.386Z",
+      "ageMs": 101638,
       "boardState": "populated",
       "freshCompleteBoard": false,
       "freshTraversal": true,
       "membership": "membership_unproven",
       "originalBoardCompletenessVerified": false,
-      "observedOffers": 570,
+      "observedOffers": 6,
       "freshClockScopedOffers": 0,
       "reason": "membership_unproven"
     },
-    "college-basketball/underdog": {
-      "observedAt": "2026-11-28T00:30:27.822Z",
-      "ageMs": 808173,
-      "boardState": "populated",
-      "freshCompleteBoard": true,
-      "freshTraversal": true,
-      "membership": "no_detected_membership_gaps",
-      "originalBoardCompletenessVerified": false,
-      "observedOffers": 450,
-      "freshClockScopedOffers": 0,
-      "reason": "exact_pregame_source_clock_missing"
-    },
-    "tennis/prizepicks": {
-      "observedAt": "2026-11-28T00:37:10.580Z",
-      "ageMs": 405415,
-      "boardState": "partial",
-      "freshCompleteBoard": false,
-      "freshTraversal": false,
-      "membership": "incomplete_traversal",
-      "originalBoardCompletenessVerified": false,
-      "observedOffers": 4,
-      "freshClockScopedOffers": 0,
-      "reason": "fresh_complete_populated_board_missing"
-    },
     "tennis/underdog": {
       "observedAt": "2026-11-28T00:37:19.599Z",
-      "ageMs": 396396,
+      "ageMs": 1186425,
       "boardState": "populated",
-      "freshCompleteBoard": true,
-      "freshTraversal": true,
+      "freshCompleteBoard": false,
+      "freshTraversal": false,
       "membership": "no_detected_membership_gaps",
       "originalBoardCompletenessVerified": false,
       "observedOffers": 126,
       "freshClockScopedOffers": 0,
-      "reason": "exact_pregame_source_clock_missing"
+      "reason": "fresh_complete_populated_board_missing"
     },
     "soccer/prizepicks": {
       "observedAt": "2026-11-28T00:33:53.612Z",
-      "ageMs": 602383,
+      "ageMs": 1392412,
       "boardState": "populated",
       "freshCompleteBoard": false,
-      "freshTraversal": true,
+      "freshTraversal": false,
       "membership": "possible_display_cap",
       "originalBoardCompletenessVerified": false,
       "observedOffers": 1134,
       "freshClockScopedOffers": 0,
-      "reason": "possible_display_cap"
+      "reason": "fresh_complete_populated_board_missing"
     },
     "soccer/underdog": {
       "observedAt": "2026-11-28T00:35:40.364Z",
-      "ageMs": 495631,
+      "ageMs": 1285660,
       "boardState": "populated",
-      "freshCompleteBoard": true,
-      "freshTraversal": true,
+      "freshCompleteBoard": false,
+      "freshTraversal": false,
       "membership": "no_detected_membership_gaps",
       "originalBoardCompletenessVerified": false,
       "observedOffers": 2186,
       "freshClockScopedOffers": 0,
-      "reason": "exact_pregame_source_clock_missing"
+      "reason": "fresh_complete_populated_board_missing"
     }
   },
   "cache": {
     "state": "historical_cache_shadow_audit",
-    "generatedAt": "2026-11-28T00:43:55.995Z",
+    "generatedAt": "2026-11-28T00:57:06.024Z",
     "profiles": 2806,
     "fields": 1488332,
     "candidates": 0,
@@ -1694,7 +1694,7 @@
   "originalPlatformVerified": false,
   "modelApproved": false,
   "historicalRecovery": {
-    "generatedAt": "2026-11-28T00:43:55.995Z",
+    "generatedAt": "2026-11-28T00:57:06.024Z",
     "fields": 1488332,
     "candidates": 30482,
     "cacheRecords": 2912,
@@ -1725,8 +1725,8 @@
   },
   "esportsScopeRecovery": {
     "dota2": {
-      "offerObservations": 606,
-      "explicitSupportedScopes": 403,
+      "offerObservations": 612,
+      "explicitSupportedScopes": 409,
       "unresolvedScopes": 7,
       "qualifiedModelInputs": 0,
       "unresolvedMarketSlugs": {
@@ -1756,8 +1756,8 @@
     "scopes": 692,
     "counts": {
       "roster_and_map_corroborated": 368,
-      "roster_conflict": 2,
       "series_unreviewed": 314,
+      "roster_conflict": 2,
       "map_scope_unresolved": 8
     },
     "officialSettlementVerified": 0,
@@ -1921,9 +1921,9 @@
       "conflictingSourceTimePairs": 0
     },
     "tennis": {
-      "observed": 1494,
+      "observed": 1496,
       "explicitThreshold": 0,
-      "missingThreshold": 1494,
+      "missingThreshold": 1496,
       "missingBook": 0,
       "invalidSideOrPrice": 0,
       "exactPairs": 0,
@@ -2030,7 +2030,7 @@
   },
   "valorantRetrospective": {
     "kind": "pickfinder_valorant_matched_retrospective_v1",
-    "generatedAt": "2026-11-28T00:43:55.995Z",
+    "generatedAt": "2026-11-28T00:57:06.024Z",
     "examples": 10,
     "series": 2,
     "even": {
@@ -2265,8 +2265,8 @@
         ]
       },
       "dota2": {
-        "archiveOfferObservations": 606,
-        "explicitSupportedScopeObservations": 403,
+        "archiveOfferObservations": 612,
+        "explicitSupportedScopeObservations": 409,
         "independentlyMatchedRetrospectiveExamples": 0,
         "independentlyMatchedRetrospectiveSeries": 0,
         "originalPlatformSettlementsVerified": 0,

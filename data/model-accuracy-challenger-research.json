@@ -1,6 +1,6 @@
 {
   "kind": "public_model_accuracy_challenger_research_v1",
-  "generatedAt": "2026-11-28T18:25:46.524Z",
+  "generatedAt": "2026-11-28T18:28:25.405Z",
   "nhl": {
     "kind": "nhl_fixed_half_shrink_all_tier_research_v1",
     "policyFirstGitAt": "2026-11-26T15:39:41-08:00",
